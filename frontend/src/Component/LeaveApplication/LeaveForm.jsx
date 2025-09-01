@@ -15,6 +15,7 @@ import Stack from '@mui/material/Stack';
 import Header from "../Partials/Header";
 import Footer from "../Partials/Footer";
 
+
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
 const databaseId = 'your-database-id';
@@ -32,9 +33,9 @@ const LeaveForm = () => {
     designation: '',
     purpose: 'PERSONAL',
     clUsed: 0,
-    clBalance: 10,
+    clBalance: 0,
     elUsed: 0,
-    elBalance: 15,
+    elBalance: 0,
     address: '',
     phone: ''
   });
@@ -97,17 +98,42 @@ const [gridKey, setGridKey] = useState(Date.now());
     }
   };
 
-  const selectEmployee = (emp) => {
+  const selectEmployee = async (emp) => {
     setFormData(prev => ({
       ...prev,
       empId: emp.empid,
       ename: emp.ename,
       department: emp.department,
-      designation: emp.designation
+      designation: emp.designation,
+        clUsed: 0,
+    clBalance: 0,
+    elUsed: 0,
+    elBalance: 0,
     }));
     setShowEmpPopup(false);
+    try {
+      console.log('Fetching leave balance for empid:', emp.empid);
+    // Fetch leave balances for this employee from Leave Master API
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/leave/balance/${emp.empid}`);
+   // console.log(${emp.empid});
+    // Assume API returns something like:
+    // { clUsed: number, clBalance: number, elUsed: number, elBalance: number }
+console.log(res.data);
+    setFormData(prev => ({
+      ...prev,
+      clUsed: res.data.clUsed,
+      clBalance: res.data.clBalance,
+      elUsed: res.data.elUsed,
+      elBalance: res.data.elBalance,
+    }));
+
+  } catch (error) {
+    console.error('Failed to fetch leave balance:', error);
+    showToast('Failed to fetch leave balance', 'error');
+  }
+
     setTimeout(() => {
-      document.querySelector('[name="ename"]').focus();
+      document.querySelector('[name="purpose"]').focus();
     }, 0);
   };
 
@@ -183,7 +209,13 @@ const resetForm = async () => {
       designation: '',
       purpose: 'PERSONAL',
       address: '',
-      phone: ''
+      phone: '',
+
+  clUsed: 0,
+  clBalance: 0,
+  elUsed: 0,
+  elBalance: 0,
+
     }));
 
  setLeaveDetails([
@@ -282,6 +314,8 @@ setGridKey(Date.now());
     window.addEventListener('keydown', handleKeyShortcuts);
     return () => window.removeEventListener('keydown', handleKeyShortcuts);
   }, []);
+
+
   
   useEffect(() => {
   resetForm();  // 👈 runs on form load or refresh
@@ -313,15 +347,16 @@ setGridKey(Date.now());
             <button className="dropdown-icon more-btn" onClick={loadEmpList}>⋮</button>
           </div>
         </div>
-        <div><label>Ename</label><input name="ename" value={formData.ename} onChange={handleChange} onKeyDown={(e) => handleKeyDown(e, 'ename')} /></div>
-        <div><label>Department</label><input name="department" value={formData.department} onChange={handleChange} onKeyDown={(e) => handleKeyDown(e, 'department')} /></div>
-        <div><label>Designation</label><input name="designation" value={formData.designation} onChange={handleChange} onKeyDown={(e) => handleKeyDown(e, 'purpose')} /></div>
+        <div><label>Ename</label><input name="ename" value={formData.ename} onChange={handleChange} onKeyDown={(e) => handleKeyDown(e, 'ename')} disabled/></div>
+        <div><label>Department</label><input name="department" value={formData.department} onChange={handleChange} onKeyDown={(e) => handleKeyDown(e, 'department')} disabled/></div>
+        <div><label>Designation</label><input name="designation" value={formData.designation} onChange={handleChange} onKeyDown={(e) => handleKeyDown(e, 'purpose')} disabled/></div>
 
         <div className="leave-summary-box" style={{ gridRow: '1 / span 3', gridColumn: '3 / 5' }}>
           <div className="summary-title">Leave Summary</div>
           <div className="summary-grid">
-            <div><label>CLs Utilised</label><input value={formData.clUsed} disabled /></div>
-            <div><label>ELs Utilised</label><input value={formData.elUsed} disabled /></div>
+     
+             <div><label>CLs Utilised</label><input value={formData.clUsed} disabled /></div>
+            <div><label>ELs Utilised</label><input value={formData.elUsed} disabled  /></div>
             <div><label>CLs Balance</label><input value={formData.clBalance} disabled /></div>
             <div><label>ELs Balance</label><input value={formData.elBalance} disabled /></div>
           </div>
@@ -346,6 +381,7 @@ setGridKey(Date.now());
       </div>
 
       {/* <LeaveGrid leaveDetails={leaveDetails} setLeaveDetails={setLeaveDetails} /> */}
+     
       <LeaveGrid
   key={gridKey} 
   leaveDetails={leaveDetails}

@@ -14,10 +14,12 @@ services:
       - ./pgdata-new:/var/lib/postgresql/data
       - ./init-scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh:ro
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hrdb && psql -U postgres -d hrdb -c 'SELECT 1'"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 20s
+
     ports:
       - "5432:5432"
     restart: unless-stopped
@@ -78,12 +80,16 @@ services:
     env_file:
       - ./backend/.env.development
     depends_on:
-      db:
-        condition: service_healthy
+      - db
+    command: ["npx", "nodemon", "--legacy-watch", "index.js"]
     ports:
       - "5000:5000"
+    volumes:
+      - ./backend:/app           # <-- Mount your source code directory into container
+      - /app/node_modules       # <-- Prevent overwriting node_modules inside container
+    working_dir: /app            # <-- Set working directory to /app
     networks: [hr-network]
-    restart: unless-stopped
+    restart: always
 
   # ────────────── FRONTEND ──────────────
   frontend:

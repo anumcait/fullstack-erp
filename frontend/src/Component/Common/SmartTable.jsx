@@ -222,7 +222,7 @@ const exportToPDF = () => {
           </thead>
           <tbody>
             {pagedData.map((row) => (
-              <tr key={row.movement_id}>
+              <tr key={row.sno}>
                 {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
                   <td key={colIdx}>
                     {col.expandable ? (

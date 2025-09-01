@@ -6,10 +6,12 @@
 .layout-body {
   display: flex;
   flex: 1;
+    overflow-y: hidden;
 }
 .layout-content {
   flex: 1;
   padding: 1rem;
   background: #f9f9f9;
   overflow-y: auto;
+   
 }

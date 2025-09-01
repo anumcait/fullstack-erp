@@ -1,18 +1,14 @@
-*{
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
-    font-size: 16px;
-}
-
 .leave-container {
   background: white;
-  padding: 20px 30px;
+  padding: 10px;
   border: 1px solid #ccc;
   border-radius: 10px;
   width: 90%;
   max-width: 1100px;
-  margin: 30px auto;
+  margin: 10px auto;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
   color:#222;
+
 }
 
 .leave-header {
@@ -29,7 +25,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 6px 4px;
-  padding: 6px;
+  /* padding: 6px; */
   box-sizing: border-box;
 }
 
@@ -124,6 +120,7 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
 
 /* 🧾 Tablet View */
 @media (min-width: 601px) and (max-width: 1024px) {
@@ -489,3 +486,4 @@ textarea {
   background-color: #ffe5e5 !important;
   border: 1px solid #cc0000;
 }
+

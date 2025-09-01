@@ -1,4 +1,4 @@
-# 🧑‍💼 Fullstack HR ERP Application
+# 🧑‍💼 Fullstack ERP Application
 
 A complete **HR management system** built with **React 19**, **Node.js**, **Sequelize**, **PostgreSQL/MySQL**, and **Docker** — designed for real-time, multi-unit enterprise use.
 

@@ -12,12 +12,15 @@ const LeaveTable = () => {
     const fetchLeaveData = async () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/leave/report`);
+          console.log("Raw backend data:", res.data);
+
         const formatted = res.data.map((row, index) => ({
           sno: index + 1,
           _expanded: false,
           ...row,
         }));
         setData(formatted);
+      
       } catch (err) {
         console.error("Failed to fetch leave data:", err);
       }
@@ -27,7 +30,7 @@ const LeaveTable = () => {
 
   const handleExpand = (targetRow) => {
     const updated = data.map((row) =>
-      row.leave_id === targetRow.leave_id
+      row.lno === targetRow.lno
         ? { ...row, _expanded: !row._expanded }
         : row
     );
@@ -36,10 +39,11 @@ const LeaveTable = () => {
 
   const columns = [
     { header: "S.No.", field: "sno" },
-    { header: "Leave ID", field: "leave_id" },
+    { header: "Leave ID", field: "lno" },
     { header: "Emp ID", field: "empid" },
     { header: "Name", field: "ename" },
-    { header: "Unit", field: "unit" },
+    { header: "Designation", field: "designation" },
+    { header: "Department", field: "department" },
     { header: "Type", field: "leave_type" },
     { header: "From", field: "from_date" },
     { header: "To", field: "to_date" },
@@ -49,6 +53,7 @@ const LeaveTable = () => {
   return (
     <>
       <SmartTable
+      // keyField="sno"
         title="Leave Report"
         columns={columns}
         data={data}

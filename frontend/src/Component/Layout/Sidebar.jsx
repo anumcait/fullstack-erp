@@ -1,90 +1,197 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  FiUsers,
+  FiUserPlus,
+  FiClipboard,
+  FiMenu,
+  FiSettings,
+  FiLogOut,
+  FiHome,
+  FiX,
+  FiChevronDown,
+  FiChevronRight
+} from 'react-icons/fi';
+
 import './Sidebar.css';
 
 const Sidebar = () => {
-  const [isSubMenuOpen, setSubMenuOpen] = useState({
-    employeeMenu: false,
-    leaveMenu: false,
-  });
-
+  const [openSubmenu, setOpenSubmenu] = useState('');
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const sidebarRef = useRef(null);
+  const location = useLocation();
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Function to toggle the menu or close if already open
-  const toggleSubMenu = (menuToToggle) => {
-    setSubMenuOpen((prevState) => {
-      // Check if the clicked menu is already open
-      const isMenuAlreadyOpen = prevState[menuToToggle];
-      const newState = {
-        employeeMenu: false,
-        leaveMenu: false,
-      };
+  // Keep submenu open when on its child route
+  const isEmployeeRoute = location.pathname.startsWith('/employees') || location.pathname.startsWith('/add-employee');
 
-      if (isMenuAlreadyOpen) {
-        // If the menu is already open, close it
-        return newState;
-      }
+  useEffect(() => {
+    if (isEmployeeRoute) {
+      setOpenSubmenu('employee');
+    }
+  }, [location.pathname]);
 
-      // Otherwise, open the clicked menu
-      newState[menuToToggle] = true;
-      return newState;
-    });
-  };
-
-  // Close submenu when clicking outside the sidebar
-  const handleClickOutside = (event) => {
-    if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
-      setSubMenuOpen({
-        employeeMenu: false,
-        leaveMenu: false,
-      });
+  // Toggle submenu manually
+  const toggleSubmenu = (menu) => {
+    if (openSubmenu === menu) {
+      setOpenSubmenu('');
+    } else {
+      setOpenSubmenu(menu);
     }
   };
 
-  // Close the submenu when clicking on a submenu link
-  const closeMenuOnLinkClick = (menuToClose) => {
-    setSubMenuOpen((prevState) => ({
-      ...prevState,
-      [menuToClose]: false,
-    }));
-  };
-
-  useEffect(() => {
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   return (
-    <aside className="sidebar" ref={sidebarRef}>
-      <ul>
-        <li><NavLink to="/dashboard" activeClassName="active">Dashboard</NavLink></li>
+    <aside
+      ref={sidebarRef}
+      className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
+    >
+      <div className="sidebar-header">
+        {!collapsed && <h3>HRMS</h3>}
+        <button
+          className="sidebar-menu-toggle"
+          onClick={() => setCollapsed(!collapsed)}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          title="Toggle Sidebar"
+        >
+          {isHovered ? <FiX size={20} /> : <FiMenu size={20} />}
+        </button>
+      </div>
 
-        {/* Employee Menu */}
-        <li className={`menu-item ${isSubMenuOpen.employeeMenu ? 'open' : ''}`}>
-          <span onClick={() => toggleSubMenu('employeeMenu')}>Employee</span>
-          {isSubMenuOpen.employeeMenu && (
-            <ul className="submenu open">
-              <li><NavLink to="/add-employee" activeClassName="active" onClick={() => closeMenuOnLinkClick('employeeMenu')}>Add Employee</NavLink></li>
-              <li><NavLink to="/employees" activeClassName="active" onClick={() => closeMenuOnLinkClick('employeeMenu')}>Employee Report</NavLink></li>
-            </ul>
-          )}
+      <ul className="sidebar-menu-list">
+        {/* Dashboard */}
+        <li className="sidebar-menu-item">
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+          >
+            <FiHome />
+            {!collapsed && <span>Dashboard</span>}
+          </NavLink>
         </li>
 
-        {/* Leave Menu */}
-        <li className={`menu-item ${isSubMenuOpen.leaveMenu ? 'open' : ''}`}>
-          <span onClick={() => toggleSubMenu('leaveMenu')}>Leave</span>
-          {isSubMenuOpen.leaveMenu && (
-            <ul className="submenu open">
-              <li><NavLink to="/leave" activeClassName="active" onClick={() => closeMenuOnLinkClick('leaveMenu')}>Leave Form</NavLink></li>
-              <li><NavLink to="/leave-report" activeClassName="active" onClick={() => closeMenuOnLinkClick('leaveMenu')}>Leave Report</NavLink></li>
-            </ul>
-          )}
+        {/* Employee menu item (with toggle) */}
+        <li className={`sidebar-menu-item ${openSubmenu === 'employee' ? 'open' : ''}`}>
+          <div
+            className="sidebar-menu-link"
+            onClick={() => toggleSubmenu('employee')}
+            style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', cursor: 'pointer' }}
+          >
+            <FiUsers />
+            {!collapsed && (
+              <>
+                <span>Employee</span>
+                <span className="sidebar-submenu-icon" style={{ marginLeft: 'auto' }}>
+                  {openSubmenu === 'employee' ? <FiChevronDown /> : <FiChevronRight />}
+                </span>
+              </>
+            )}
+          </div>
         </li>
-         <li><NavLink to="/onduty" activeClassName="active">Onduty</NavLink></li>
 
+        {/* Submenu */}
+        {(openSubmenu === 'employee' || isEmployeeRoute) && (
+          <>
+            <li className="sidebar-submenu-item">
+              <NavLink
+                to="/employees"
+                className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+              >
+                <FiUsers />
+                {!collapsed && <span>Employee Master</span>}
+              </NavLink>
+            </li>
+            <li className="sidebar-submenu-item">
+              <NavLink
+                to="/add-employee"
+                className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+              >
+                <FiUserPlus />
+                {!collapsed && <span>Add Employee</span>}
+              </NavLink>
+            </li>
+            <li className="sidebar-submenu-item">
+              <NavLink
+                to="/employees"
+                className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+              >
+                <FiClipboard />
+                {!collapsed && <span>Employee Reports</span>}
+              </NavLink>
+            </li>
+          </>
+        )}
+        {/* Attendance */}
+        <li className="sidebar-menu-item">
+          <NavLink
+            to="/attendance"
+            className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+             onClick={() => setOpenSubmenu('')} 
+          >
+            <FiClipboard />
+            {!collapsed && <span>Reports</span>}
+          </NavLink>
+        </li>
+        {/* Leaves */}
+        <li className="sidebar-menu-item">
+          <NavLink
+            to="/leave"
+            className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+             onClick={() => setOpenSubmenu('')} 
+          >
+            <FiClipboard />
+            {!collapsed && <span>Leaves</span>}
+          </NavLink>
+        </li>
+
+        {/* Onduty */}
+        <li className="sidebar-menu-item">
+          <NavLink
+            to="/onduty"
+            className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+            onClick={() => setOpenSubmenu('')} 
+          >
+            <FiClipboard />
+            {!collapsed && <span>Onduty</span>}
+          </NavLink>
+        </li>
+
+        {/* Reports */}
+        <li className="sidebar-menu-item">
+          <NavLink
+            to="/reports"
+            className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+             onClick={() => setOpenSubmenu('')} 
+          >
+            <FiClipboard />
+            {!collapsed && <span>Reports</span>}
+          </NavLink>
+        </li>
+
+        {/* Settings */}
+        <li className="sidebar-menu-item">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+             onClick={() => setOpenSubmenu('')} 
+          >
+            <FiSettings />
+            {!collapsed && <span>Settings</span>}
+          </NavLink>
+        </li>
+
+        {/* Logout */}
+        <li className="sidebar-menu-item">
+          <NavLink
+            to="/"
+            className={({ isActive }) => `sidebar-menu-link ${isActive ? 'sidebar-active' : ''}`}
+             onClick={() => setOpenSubmenu('')} 
+          >
+            <FiLogOut />
+            {!collapsed && <span>Logout</span>}
+          </NavLink>
+        </li>
       </ul>
     </aside>
   );

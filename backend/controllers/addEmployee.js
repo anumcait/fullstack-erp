@@ -1,32 +1,39 @@
 const { mysqlPool, pgPool } = require("../db-config");
 
 const addEmployee = async (req, res) => {
-  const emp = req.body;
-console.log(emp);
+  // Flatten personal object if exists
+  const emp = req.body.personal ? { ...req.body.personal } : req.body;
+
+  console.log("RAW BODY:", req.body);
+  console.log("EMP SENT TO DB:", emp);
+
+  // Validate empid before running query
+  if (!emp.empid) {
+    return res.status(400).json({ error: "empid is required" });
+  }
+
   const insertQuery = `
     INSERT INTO employee_master (
       empid, emptype, uno, divno, deptno, secno, sex, marital_status,
-      ename, fname, dob, pob, bgroup, mother_toungue, idfm1, idfm2,
-      lang_known, 
-     
-      created_by
+      ename, fname, dob, pob, bgroup, mother_tongue, idfm1, idfm2,
+      lang_known, created_by
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
-    emp.empid, emp.emptype, emp.uno, emp.divno, emp.deptno, emp.secno,
+    1030, emp.emptype, emp.uno, emp.divno, emp.deptno, emp.secno,
     emp.sex, emp.marital_status, emp.ename, emp.fname, emp.dob, emp.pob,
-    emp.bgroup, emp.mother_toungue, emp.idfm1, emp.idfm2, emp.lang_known,
- emp.created_by
+    emp.bgroup, emp.mother_tongue, emp.idfm1, emp.idfm2, emp.lang_known,
+    emp.created_by
   ];
 
   try {
-    // Insert into MySQL
+    // MySQL
     const mysqlConn = await mysqlPool.getConnection();
     await mysqlConn.execute(insertQuery, values);
     mysqlConn.release();
 
-    // Insert into PostgreSQL
+    // PostgreSQL (convert ? to $1, $2, etc.)
     const pgQuery = insertQuery.replace(/\?/g, (_, i) => `$${i + 1}`);
     await pgPool.query(pgQuery, values);
 

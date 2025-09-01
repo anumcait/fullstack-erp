@@ -8,6 +8,7 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
+        // autoIncrement: true, // Uncomment if you want auto-increment
       },
       emptype: DataTypes.STRING(30),
       uno: DataTypes.INTEGER,
@@ -21,24 +22,29 @@ module.exports = (sequelize) => {
       dob: DataTypes.DATE,
       pob: DataTypes.STRING(50),
       bgroup: DataTypes.STRING(10),
-      mother_toungue: DataTypes.STRING(20),
+      mother_tongue: DataTypes.STRING(20), // Fixed typo
       idfm1: DataTypes.STRING(100),
       idfm2: DataTypes.STRING(100),
       lang_known: DataTypes.STRING(100),
+
+      // Communication Address
       cadd_sa: DataTypes.STRING(150),
       cadd_city: DataTypes.STRING(50),
       cadd_state: DataTypes.STRING(50),
-     // cadd_phone: DataTypes.STRING(50),
-     // cadd_mobile: DataTypes.STRING(50),
-     // cadd_pin: DataTypes.STRING(50),
-      cadd_email: DataTypes.STRING(30),
+      cadd_phone: DataTypes.STRING(50),
+      cadd_mobile: DataTypes.STRING(50),
+      cadd_pin: DataTypes.STRING(50),
+      cadd_email: DataTypes.STRING(100), // Increased length for email
+
+      // Permanent Address
       padd_sa: DataTypes.STRING(150),
       padd_city: DataTypes.STRING(50),
       padd_state: DataTypes.STRING(50),
-     // padd_phone: DataTypes.STRING(50),
-    //  padd_mobile: DataTypes.STRING(50),
-     // padd_pin: DataTypes.STRING(50),
-     // padd_email: DataTypes.STRING(30),
+      padd_phone: DataTypes.STRING(50),
+      padd_mobile: DataTypes.STRING(50),
+      padd_pin: DataTypes.STRING(50),
+      padd_email: DataTypes.STRING(100),
+
       photo: DataTypes.BLOB('long'),
       uname: DataTypes.STRING(40),
       divname: DataTypes.STRING(40),
@@ -66,16 +72,16 @@ module.exports = (sequelize) => {
     {
       tableName: 'employee_master',
       timestamps: false,
-      underscored: true, // 👈 ensures correct column mapping
-    },
-  
+      underscored: true, // Ensures snake_case column mapping
+    }
   );
 
-Employee.associate = (models) => {
-  Employee.hasOne(models.User, {
-    foreignKey: 'empid',
-    as: 'user'
-  });
-};
+  Employee.associate = (models) => {
+    Employee.hasOne(models.User, {
+      foreignKey: 'empid',
+      as: 'user',
+    });
+  };
+
   return Employee;
 };
