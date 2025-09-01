@@ -19,6 +19,7 @@ const sequelize = new Sequelize(
 
 fs.readdirSync(__dirname)
   .filter((file) => {
+    console.log(file);
     return file !== basename && file.endsWith('.js');
   })
   .forEach((file) => {

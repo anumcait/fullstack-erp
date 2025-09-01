@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import LeaveReport from "./LeaveReport";
 import './LeaveDashboard.css';
 import LeaveForm from "./LeaveForm";
+import LeaveMaster from "./LeaveMaster";
+import LeaveApproval from "./LeaveApproval";
+import TestApplication from "./TestApplication";
 
 const LeaveDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("report");
@@ -11,6 +14,9 @@ const LeaveDashboard = () => {
   const actions = [
     { label: "New", value: "new" },
     { label: "Leave Report", value: "report" },
+    { label: "Leave Master", value: "master"},
+    { label: "Leave Approval", value: "approval"},
+    { label: "Test", value:"test"},
     { label: "Export", value: "export" }
   ];
 
@@ -52,6 +58,9 @@ const LeaveDashboard = () => {
       <div className="leave-dashboard-content">
         {selectedAction === "new" && <LeaveForm />}
         {selectedAction === "report" && <LeaveReport />}
+        {selectedAction === "master" && <LeaveMaster />}
+        {selectedAction === "approval" && <LeaveApproval />}
+        {selectedAction === "test" && <TestApplication />}
         {selectedAction === "export" && <p style={{ padding: "20px" }}>📤 Please use export buttons inside the report.</p>}
       </div>
     </div>

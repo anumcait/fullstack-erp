@@ -20,10 +20,13 @@ import EditItem from "./Component/ItemMaster/EditItem";
 import { ThemeProvider } from '@mui/material/styles';
  import theme from './theme.js';
 import LeaveDashboard from "./Component/LeaveApplication/LeaveDashboard.jsx";
+import EmployeeDashboard from "./Component/Employee/EmployeeDashboard.jsx";
+import PhotoUpload from "./Component/Employee/PhotoUpload.jsx";
 
 function App() {
+
   return (
-     <ThemeProvider theme={theme}>
+    //  <ThemeProvider theme={theme}>
      <ToastProvider>
     <div className="App">
      
@@ -41,7 +44,9 @@ function App() {
 
         {/* <Route path="/leave-form" element={<LeaveDashboard />} /> */}
         {/* <Route path="/leave-report" element={<LeaveReport />} /> */}
-        <Route path="/employees" element={<EmployeeReportForm />} />
+        <Route path="/photo" element={<PhotoUpload />} />
+        <Route path="/employees" element={<EmployeeDashboard />} />
+        <Route path="/employee-report" element={<EmployeeDashboard />} />
         <Route path="/add-employee" element={<AddEmployeeForm />} />
         <Route path="/leave" element={<LeaveDashboard />} />
         <Route path="/onduty" element={<OnDutyDashboard />} />
@@ -57,7 +62,7 @@ function App() {
     </Router> 
     </div>
     </ToastProvider>
-    </ThemeProvider>
+    // </ThemeProvider>
   );
 }
 

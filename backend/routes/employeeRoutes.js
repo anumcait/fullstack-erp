@@ -21,6 +21,7 @@ router.get('/:empid', employeeController.getEmployeeById);
 // Create new employee
 router.post('/add-employee', employeeController.createEmployee);
 
+
 // Update employee by ID
 router.put('/:empid', employeeController.updateEmployee);
 

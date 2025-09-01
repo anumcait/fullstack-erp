@@ -31,16 +31,43 @@ exports.getEmployeeById = async (req, res) => {
 
 
 exports.createEmployee = async (req, res) => {
-  const t = await employee_master.sequelize.transaction(); // Start transaction
+  const { personal, commAddress, permAddress, sameAsComm } = req.body;
+  const t = await employee_master.sequelize.transaction();
+
+
+    // Merge address fields into personal data with proper keys matching your model columns
+    const empData = {
+      empid: personal.empid ? parseInt(personal.empid, 10) : null,
+      ename: personal.ename,
+  emptype: personal.emptype,
+      
+      // Communication Address fields (prefix with cadd_)
+      cadd_sa: commAddress?.street || null,
+      cadd_city: commAddress?.city || null,
+      cadd_state: commAddress?.state || null,
+      cadd_phone: commAddress?.phone || null,
+      cadd_mobile: commAddress?.mobile || null,
+      cadd_email: commAddress?.email || null,
+
+      // Permanent Address fields (prefix with padd_)
+      padd_sa: sameAsComm ? commAddress?.street || null : permAddress?.street || null,
+      padd_city: sameAsComm ? commAddress?.city || null : permAddress?.city || null,
+      padd_state: sameAsComm ? commAddress?.state || null : permAddress?.state || null,
+      padd_phone: sameAsComm ? commAddress?.phone || null : permAddress?.phone || null,
+      padd_mobile: sameAsComm ? commAddress?.mobile || null : permAddress?.mobile || null,
+      padd_email: sameAsComm ? commAddress?.email || null : permAddress?.email || null,
+    };
+  console.log('EmpData',empData);
   try {
+
     // 1. Create employee
-    const newEmployee = await employee_master.create(req.body, { transaction: t });
+    const newEmployee = await employee_master.create(empData, { transaction: t });
 
     // 2. Prepare default user values
     const defaultPassword = 'AUCTOR';
     const password_hash = await bcrypt.hash(defaultPassword, 10);
 
-    const username = req.body.uname || newEmployee.empid.toString(); // Use uname or empid
+    const username = empData.uname || newEmployee.empid.toString();
     const role = 'user';
     const created_by = req.session?.userId || null;
 

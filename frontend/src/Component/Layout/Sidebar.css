@@ -1,85 +1,189 @@
-/* Basic Sidebar Styling */
 .sidebar {
-  width: 250px;
-  background: #f4f4f4;
-  padding: 10px;
-  min-height: 100vh; /* Ensure sidebar takes full height */
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Optional: Add subtle shadow */
+  width: 220px;
+  background: linear-gradient(180deg, #f2f6ff, #e9f0fb);
+  border-right: 1px solid #d1d5db;
+  height: 100vh;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  font-family: sans-serif;
   position: relative;
+  z-index: 10;
+  transition: width 0.3s ease;
+  padding: 2px;
 }
 
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0; /* Remove default margin */
+.sidebar.collapsed {
+  width: 64px;
 }
 
-.sidebar li {
-  margin: 10px 0;
-}
-
-.sidebar a {
-  text-decoration: none;
-  color: #333;
-  display: block;
-  padding: 5px 0;
-}
-
-.sidebar a:hover {
-  color: #0056b3; /* Darker blue on hover */
-}
-
-.sidebar .menu-item {
-  position: relative;
-}
-
-.sidebar .menu-item span {
-  cursor: pointer;
+.sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 5px 0;
-  color: #333;
-  font-weight: 500;
-}
-
-.sidebar .menu-item span:hover {
-  color: #0056b3;
-}
-
-/* Submenu Styles */
-.sidebar .submenu {
-  display: none;
-  padding-left: 20px;
-  border-left: 1px solid #ccc;
-  margin-top: 5px;
-}
-
-.sidebar .submenu.open {
-  display: block;
-}
-
-.sidebar .submenu li {
-  padding: 5px 0;
-}
-
-/* Arrow indicator for open/closed submenu */
-.sidebar .menu-item span::after {
-  content: '▶'; /* Right arrow */
-  margin-left: 5px;
-  font-size: 0.8em;
-  transition: transform 0.2s ease-in-out;
-}
-
-.sidebar .menu-item.open span::after {
-  transform: rotate(90deg); /* Down arrow when open */
-}
-
-/* Active link styles */
-.sidebar a.active {
+  padding: 14px 16px;
+  background-color: #f0f4f8;
+  border-bottom: 1px solid #d1d5db;
+  font-family: sans-serif;
   font-weight: bold;
-  color: #007bff;
-  background-color: #f0f0f0;
-  border-radius: 3px;
-  padding: 5px 10px;
+  font-size: 1.1rem;
+  color: #2563eb;
+  position: relative;
+}
+
+.sidebar-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background-color: #2563eb;
+}
+
+.sidebar-menu-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.sidebar-menu-toggle:hover {
+  background-color: #e2e8f0;
+}
+
+.sidebar-header button svg {
+  transition: transform 0.2s ease;
+}
+
+.sidebar-header button:hover svg {
+  transform: rotate(90deg);
+}
+
+.sidebar-menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu-item,
+.sidebar-submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  position: relative;
+  color: #333;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-menu-item:hover,
+.sidebar-submenu-item:hover {
+  background-color: #e5f3ff;
+  color: #0077cc;
+}
+
+.sidebar-menu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: #96d4f8;
+}
+
+.sidebar-menu-link,
+.sidebar-menu-link:visited {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+sidebar-menu-link sidebar-active svg{
+ stroke: currentColor;
+ padding: 0;
+}
+.sidebar-active {
+  background-color: #0077cc;
+  font-weight: bold;
+  color:#f0f9ff !important;
+  padding:10px !important;
+  font-size: 20px !important;
+
+}
+.sidebar-active svg {
+  display: inline;
+  stroke: currentColor;
+  
+
+}
+
+.sidebar-submenu-item .sidebar-active {
+  background-color: #0077cc;
+  font-weight: bold;
+  color: currentColor;
+  padding: 5px !important;
+}
+.sidebar-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: #0077cc;
+}
+
+/* Ensure icon color inside submenu also becomes white */
+.sidebar-submenu-item .sidebar-active svg {
+  stroke: currentColor !important;
+   color: #f0f9ff !important;
+   padding: 0 !important;
+
+}
+
+
+.sidebar-menu-link.sidebar-active {
+  background-color: #0077cc;
+  font-weight: bold;
+  color: #ffffff !important; /* This sets currentColor */
+  padding: 5px !important;
+}
+ 
+/* .sidebar-menu-link, .sidebar-menu-link:visited
+ {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    align-items: center;
+    gap: 0;
+    width: 0;
+}
+  */
+
+.sidebar-submenu-item {
+  padding-left: 20px;
+  font-size: 14px;
+  
+}
+
+.sidebar-menu-item.open {
+  background-color: #f0f9ff;
+  font-weight: bold;
+  color: #0c4a6e;
+
+}
+
+.sidebar-submenu-icon {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
 }

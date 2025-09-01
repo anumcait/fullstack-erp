@@ -6,6 +6,12 @@
     @apply w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400;
   }
 }
+*{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 14px;
+}
+
+
 input[type="text"],
 input[type="number"],
 input[type="date"],

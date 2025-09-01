@@ -1,29 +1,29 @@
-.leave-dashboard-container {
-  padding: 10px;
+.employee-dashboard-container {
+  padding: 20px;
   background: #f9f9f9;
 }
 
-.leave-dashboard-header {
+.employee-dashboard-header {
   display: flex;
   justify-content: left;
   align-items: center;
   padding: 10px 15px;
   border-radius: 8px;
-  margin-bottom: 5px;
+  margin-bottom: 20px;
 }
 
-.leave-dashboard-title {
+.employee-dashboard-title {
   font-size: 20px;
   font-weight: bold;
   margin: 0;
 }
 
-.leave-dropdown-wrapper {
+.employee-dropdown-wrapper {
   position: relative;
   margin-left: 10px;
 }
 
-.leave-dropdown-toggle {
+.employee-dropdown-toggle {
   background: none;
   border: none;
   color: #0088bb;
@@ -33,7 +33,7 @@
   font-size: 18px;
 }
 
-.leave-dropdown-menu {
+.employee-dropdown-menu {
   position: absolute;
   left: 0;
   top: 100%;
@@ -44,11 +44,11 @@
   z-index: 1000;
 }
 
-.leave-dropdown-menu li {
+.employee-dropdown-menu li {
   padding: 10px;
   cursor: pointer;
 }
 
-.leave-dropdown-menu li:hover {
+.employee-dropdown-menu li:hover {
   background-color: #f0f0f0;
 }
