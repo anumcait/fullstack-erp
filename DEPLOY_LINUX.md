@@ -22,10 +22,13 @@ Run these commands as the **root** user on OEL 7.9:
 # 1. Install required utilities
 yum install -y yum-utils
 
-# 2. Add the official Docker Stable repository
+# 2. Enable Oracle Linux 7.9 Repositories (Fixes container-selinux error)
+yum-config-manager --enable ol7_latest ol7_addons ol7_optional_latest
+
+# 3. Add the official Docker Stable repository
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
-# 3. Install Docker CE (Community Edition)
+# 4. Install Docker CE (Community Edition)
 yum install -y docker-ce docker-ce-cli containerd.io
 
 # 4. Start and Enable Docker
