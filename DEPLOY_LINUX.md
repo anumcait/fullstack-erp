@@ -164,3 +164,24 @@ To backup your database on Linux:
 ```bash
 docker exec -t hr_postgres pg_dumpall -c -U postgres > backup_$(date +%F).sql
 ```
+
+---
+
+## 📦 Migrating Data from Localhost to Production
+
+If you have existing data on your local Windows machine and want to migrate it to the Linux server:
+
+1. **Export the data from Windows (Localhost):**
+   Open Command Prompt (or PowerShell) in your local project folder and run:
+   ```cmd
+   cmd /c "docker exec -t hr_postgres pg_dump -U postgres -c --if-exists hrdb > erp_data.sql"
+   ```
+
+2. **Transfer the file:**
+   Move the generated `erp_data.sql` file to your Linux server (using WinSCP, FileZilla, or `scp`).
+
+3. **Import the data on Linux (Production):**
+   Log into your Linux server, navigate to the folder containing `erp_data.sql`, and run:
+   ```bash
+   cat erp_data.sql | docker exec -i hr_postgres psql -U postgres -d hrdb
+   ```

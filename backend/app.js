@@ -13,7 +13,7 @@ const leaveRoutes = require('./routes/HR/leaveRoutes');
 const ondutyRoutes = require('./routes/HR/ondutyRoutes');
 const shiftRoutes = require('./routes/HR/shiftRoutes');
 const jasperRoutes = require('./routes/jasperRoutes');
-const gptRoutes = require('./routes/gptRoutes');
+// const gptRoutes = require('./routes/gptRoutes'); // Disabled LLM features
 const dashboardRoutes = require('./routes/HR/dashboardRoutes');
 const tourRoutes = require('./routes/HR/tourRoutes');
 const woffRoutes = require('./routes/HR/woffRoutes');
@@ -74,7 +74,7 @@ app.use('/api/onduty', ondutyRoutes);
 app.use('/api/shift', shiftRoutes);
 app.use('/api/jasper', jasperRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/gpt', gptRoutes);
+// app.use('/api/gpt', gptRoutes); // Disabled LLM features
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tour', tourRoutes);
 app.use('/api/woff', woffRoutes);

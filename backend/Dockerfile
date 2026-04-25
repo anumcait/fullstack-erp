@@ -16,15 +16,15 @@ RUN chmod +x node_modules/.bin/nodemon \
  && dos2unix node_modules/.bin/nodemon \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment for Python packages
-RUN python3 -m venv /opt/venv
+# # Create virtual environment for Python packages
+# RUN python3 -m venv /opt/venv
 
-# Activate venv and install AI libraries
-RUN /opt/venv/bin/pip install --upgrade pip \
- && /opt/venv/bin/pip install torch transformers gpt4all
+# # Activate venv and install AI libraries
+# RUN /opt/venv/bin/pip install --upgrade pip \
+#  && /opt/venv/bin/pip install torch transformers gpt4all
 
-# Add venv to PATH so scripts can use it
-ENV PATH="/opt/venv/bin:$PATH"
+# # Add venv to PATH so scripts can use it
+# ENV PATH="/opt/venv/bin:$PATH"
 
 EXPOSE 5000
 
