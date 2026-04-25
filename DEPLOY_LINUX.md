@@ -4,9 +4,30 @@ This guide explains how to deploy and run the entire ERP application (Frontend, 
 
 ## 📋 Prerequisites
 
-Ensure your Linux machine has the following installed:
-- **Docker**: [Installation Guide](https://docs.docker.com/engine/install/)
-- **Docker Compose**: [Installation Guide](https://docs.docker.com/compose/install/)
+Ensure your Linux machine (Ubuntu/Debian) has the following installed. 
+
+### ⚡ Quick Docker & Compose Install (Ubuntu)
+Run these commands to set up everything you need in one go:
+
+```bash
+# 1. Update your package index
+sudo apt update && sudo apt upgrade -y
+
+# 2. Install Docker
+sudo apt install -y docker.io
+
+# 3. Install Docker Compose (V2)
+sudo apt install -y docker-compose-v2
+
+# 4. Start and Enable Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# 5. (Optional) Allow your user to run docker without 'sudo'
+sudo usermod -aG docker $USER
+# Note: Log out and back in for this to take effect!
+```
+
 - **Git**: `sudo apt install git` (for Ubuntu/Debian)
 
 ---
