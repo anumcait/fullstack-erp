@@ -37,13 +37,7 @@ const allowedOrigins = [
 
 // Middlewares
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // Dynamically allow any requesting origin (perfect for 'run anywhere')
   credentials: true
 }));
 
