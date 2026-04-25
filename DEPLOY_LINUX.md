@@ -4,29 +4,42 @@ This guide explains how to deploy and run the entire ERP application (Frontend, 
 
 ## 📋 Prerequisites
 
-Ensure your Linux machine (Ubuntu/Debian) has the following installed. 
+Ensure your Linux machine (Ubuntu, Debian, or Oracle Linux) has the following installed.
 
-### ⚡ Quick Docker & Compose Install (Ubuntu)
-Run these commands to set up everything you need in one go:
+### ⚡ Quick Docker & Compose Install (Ubuntu/Debian)
+Run these commands if you are using Ubuntu:
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y docker.io docker-compose-v2
+sudo systemctl start docker && sudo systemctl enable docker
+sudo usermod -aG docker $USER
+```
+
+### 🏮 Quick Docker & Compose Install (Oracle Linux 7.9)
+Run these commands as the **root** user on OEL 7.9:
 
 ```bash
-# 1. Update your package index
-sudo apt update && sudo apt upgrade -y
+# 1. Enable the addons repository
+yum-config-manager --enable ol7_addons
 
-# 2. Install Docker
-sudo apt install -y docker.io
+# 2. Install Docker Engine
+yum install -y docker-engine
 
-# 3. Install Docker Compose (V2)
-sudo apt install -y docker-compose-v2
+# 3. Start and Enable Docker
+systemctl start docker
+systemctl enable docker
 
-# 4. Start and Enable Docker
-sudo systemctl start docker
-sudo systemctl enable docker
+# 4. Install Docker Compose (V2)
+# Download the binary (since OEL 7.9 yum might have older versions)
+curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
 
-# 5. (Optional) Allow your user to run docker without 'sudo'
-sudo usermod -aG docker $USER
-# Note: Log out and back in for this to take effect!
+# 5. Allow 'oracle' user to run docker (without sudo)
+usermod -aG docker oracle
 ```
+*Note: Log in as the `oracle` user after these steps to run the application.*
+
+- **Git**: `yum install -y git`
 
 - **Git**: `sudo apt install git` (for Ubuntu/Debian)
 
