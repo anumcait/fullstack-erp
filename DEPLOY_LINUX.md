@@ -22,9 +22,10 @@ Run these commands as the **root** user on OEL 7.9:
 # 1. Install required utilities
 yum install -y yum-utils
 
-# 2. Enable Oracle Linux 7.9 Repositories (Fixes container-selinux, slirp4netns, etc.)
+# 2. Modernize Repositories & Enable EPEL (Fixes legacy repo issues)
+/usr/bin/ol_yum_configure.sh
 yum install -y oracle-epel-release-el7
-yum-config-manager --enable ol7_latest ol7_addons ol7_optional_latest
+yum-config-manager --enable ol7_latest ol7_addons ol7_optional_latest ol7_developer_EPEL
 
 # 3. Add the official Docker Stable repository
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
