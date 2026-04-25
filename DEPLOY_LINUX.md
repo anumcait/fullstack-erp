@@ -166,6 +166,14 @@ docker exec -t hr_postgres pg_dumpall -c -U postgres > backup_$(date +%F).sql
 ```
 
 ---
+1. Rebuild the backend cleanly (it will be very fast this time):
+
+bash
+docker-compose up -d --build backend
+2. Delete the old 3GB image to get your hard drive space back:
+
+bash
+docker image prune -f
 
 ## 📦 Migrating Data from Localhost to Production
 
