@@ -32,15 +32,20 @@ yum clean all
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
 # 4. Install Docker CE (Community Edition)
-yum install -y docker-ce docker-ce-cli containerd.io
-
+# OEL 7.9 has strict dependency conflicts with newer Docker versions.
+# The most reliable method is to download and force-install the stable v20.10 RPMs:
+yum install -y containerd.io
+cd /tmp
+yumdownloader --resolve docker-ce-20.10.24-3.el7 docker-ce-cli-20.10.24-3.el7
+rpm -ivh --nodeps docker-ce-20.10.24-3.el7*.rpm docker-ce-cli-20.10.24-3.el7*.rpm
+systemctl daemon-reexec
 # 4. Start and Enable Docker
 systemctl start docker
 systemctl enable docker
 
-# 4. Install Docker Compose (V2)
-# Download the binary (since OEL 7.9 yum might have older versions)
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+# 5. Install Docker Compose (V1)
+# Using v1.29.2 as the most reliable version for this OEL 7.9 environment
+curl -L https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64 -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
 # 5. Allow 'oracle' user to run docker (without sudo)
