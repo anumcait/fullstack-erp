@@ -22,7 +22,8 @@ Run these commands as the **root** user on OEL 7.9:
 # 1. Install required utilities
 yum install -y yum-utils
 
-# 2. Enable Oracle Linux 7.9 Repositories (Fixes container-selinux error)
+# 2. Enable Oracle Linux 7.9 Repositories (Fixes container-selinux, slirp4netns, etc.)
+yum install -y oracle-epel-release-el7
 yum-config-manager --enable ol7_latest ol7_addons ol7_optional_latest
 
 # 3. Add the official Docker Stable repository
