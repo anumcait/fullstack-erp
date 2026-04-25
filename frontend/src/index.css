@@ -1,17 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer components {
   .input {
     @apply w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400;
   }
 }
-*{
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
-    font-size: 14px;
+
+* {
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 14px;
 }
 
 
+/* 
 input[type="text"],
 input[type="number"],
 input[type="date"],
@@ -36,7 +39,8 @@ textarea:focus {
   background-color: #fff;
   outline: none;
   box-shadow: 0 0 0 3px rgba(0,123,255,0.3);
-}
+} 
+*/
 
 
 :root {
@@ -59,7 +63,7 @@ textarea:focus {
   --bg-white: #ffffff;
   --shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   --font: 'Segoe UI', Tahoma, sans-serif;
- 
+
 }
 
 a {
@@ -67,18 +71,19 @@ a {
   color: black;
   text-decoration: inherit;
 }
+
 a:hover {
   color: #535bf2;
 }
 
- body {
-  /* margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;*/
+body {
   min-height: 100vh;
-  overflow: hidden; 
-} 
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-attachment: fixed;
+  color: #1a202c;
+}
+
 
 h1 {
   font-size: 3.2em;
@@ -96,9 +101,11 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
   border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -109,11 +116,12 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
+
   a:hover {
     color: #747bff;
   }
+
   button {
     background-color: #f9f9f9;
   }
 }
-

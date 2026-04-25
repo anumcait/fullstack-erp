@@ -1,0 +1,52 @@
+FROM jenkins/jenkins:lts
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y curl gnupg lsb-release ca-certificates && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bullseye stable" > /etc/apt/sources.list.d/docker.list && \
+    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      docker-ce-cli docker-compose-plugin git-lfs openssh-client dos2unix && \
+    git lfs install --system && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/*
+
+RUN groupadd -g 998 docker && usermod -aG docker jenkins
+
+USER jenkins
+
+
+
+# FROM jenkins/jenkins:lts
+
+# USER root
+
+# # Install Docker CLI and Compose Plugin
+# RUN apt-get update && \
+#     apt-get install -y \
+#     git \
+#     curl \
+#     wget \      
+#     lsb-release \
+#     gnupg2 \
+#     ca-certificates \
+#     python3 \
+#     python3-pip \
+#     nodejs \
+#     npm \
+#     unzip \
+#     docker.io \
+#     docker-compose && \
+#     rm -rf /var/lib/apt/lists/*
+
+# # ✅ Install Trivy after wget is available
+# RUN wget https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.deb && \
+#     dpkg -i trivy_0.64.1_Linux-64bit.deb && \
+#     rm trivy_0.64.1_Linux-64bit.deb
+
+# # Set safe directory for git
+# USER jenkins
+# RUN git config --global --add safe.directory /var/jenkins_home/workspace/fullstack-hr-pipeline

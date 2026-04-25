@@ -62,7 +62,7 @@ services:
   #   container_name: hr-jenkins
   #   user: root
   #   ports:
-  #     - "8080:8080"
+  #     - "8085:8080"
   #     - "50000:50000"
   #   volumes:
   #     - ./jenkins_data:/var/jenkins_home
@@ -106,6 +106,28 @@ services:
     networks: [hr-network]
     restart: unless-stopped
 
+  # genai:
+  #   build:
+  #     context: ./genai
+  #   container_name: hr-genai
+  #   volumes:
+  #     - ./genai:/app
+  #   ports:
+  #     - "5001:5001"
+  #   networks: [hr-network]
+
+  nginx:
+    image: nginx:latest
+    container_name: hr-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro          # ✅ Mount file correctly
+    depends_on:
+      - frontend
+      - backend
+    networks: [hr-network]
+    restart: unless-stopped
 # ────────────── Networks & Volumes ──────────────
 networks:
   hr-network:

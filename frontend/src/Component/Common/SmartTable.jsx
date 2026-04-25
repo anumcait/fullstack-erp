@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { FaSearch, FaSlidersH } from "react-icons/fa";
+import React, { useState, useRef, useEffect } from "react";
+import { FaSearch, FaSlidersH, FaEdit } from "react-icons/fa";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowUp, faArrowDown, faSort } from '@fortawesome/free-solid-svg-icons';
 import "./SmartTable.css";
@@ -9,7 +9,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 
-const SmartTable = ({ title, columns, data, onPreview, onToggleExpand }) => {
+const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand }) => {
   const [visibleColumns, setVisibleColumns] = useState(columns.map(col => col.field));
   const [tempVisibleColumns, setTempVisibleColumns] = useState([...visibleColumns]);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
@@ -17,6 +17,29 @@ const SmartTable = ({ title, columns, data, onPreview, onToggleExpand }) => {
   const [filters, setFilters] = useState({});
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Dual scrollbar refs
+  const topScrollRef = useRef(null);
+  const bottomScrollRef = useRef(null);
+  const tableRef = useRef(null);
+
+  // Sync inner top-scroll width to actual table scroll width
+  useEffect(() => {
+    if (tableRef.current && topScrollRef.current) {
+      const inner = topScrollRef.current.querySelector('.smart-table-top-scroll-inner');
+      if (inner) inner.style.width = `${tableRef.current.scrollWidth}px`;
+    }
+  });
+
+  const syncTopScroll = () => {
+    if (bottomScrollRef.current)
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+  };
+  const syncBottomScroll = () => {
+    if (topScrollRef.current)
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+  };
+
 
   const toggleTempColumn = (field) => {
     setTempVisibleColumns(prev =>
@@ -68,70 +91,70 @@ const SmartTable = ({ title, columns, data, onPreview, onToggleExpand }) => {
   );
 
   const exportToExcel = () => {
-  const exportData = filteredData.map((row) => {
-    const output = {};
-    visibleColumns.forEach((col) => {
-      const header = columns.find((c) => c.field === col)?.header || col;
-      output[header] = row[col];
+    const exportData = filteredData.map((row) => {
+      const output = {};
+      visibleColumns.forEach((col) => {
+        const header = columns.find((c) => c.field === col)?.header || col;
+        output[header] = row[col];
+      });
+      return output;
     });
-    return output;
-  });
 
-  const worksheet = XLSX.utils.json_to_sheet(exportData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
 
-  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-  saveAs(blob, `${title || "SmartTable"}_${new Date().toISOString()}.xlsx`);
-};
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, `${title || "SmartTable"}_${new Date().toISOString()}.xlsx`);
+  };
 
-const exportToPDF = () => {
-  const doc = new jsPDF();
+  const exportToPDF = () => {
+    const doc = new jsPDF();
 
-  const tableColumn = visibleColumns.map((col) => {
-    const colHeader = columns.find(c => c.field === col)?.header || col;
-    return colHeader;
-  });
+    const tableColumn = visibleColumns.map((col) => {
+      const colHeader = columns.find(c => c.field === col)?.header || col;
+      return colHeader;
+    });
 
-  const tableRows = filteredData.map((row) =>
-    visibleColumns.map((col) => row[col] ?? "")
-  );
+    const tableRows = filteredData.map((row) =>
+      visibleColumns.map((col) => row[col] ?? "")
+    );
 
-  autoTable(doc, {
-    head: [tableColumn],
-    body: tableRows,
-    styles: { fontSize: 8 },
-    margin: { top: 20 }
-  });
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      styles: { fontSize: 8 },
+      margin: { top: 20 }
+    });
 
-  doc.save(`${title || "SmartTable"}_${new Date().toISOString()}.pdf`);
-};
+    doc.save(`${title || "SmartTable"}_${new Date().toISOString()}.pdf`);
+  };
   return (
     <div className="smart-table-wrapper">
       {/* Header */}
       <div className="smart-table-header">
-  <div className="smart-table-title">{title}</div>
+        <div className="smart-table-title">{title}</div>
 
 
 
         <div className="smart-column-toggle">
-<div className="smart-header-actions">
-  <button onClick={exportToExcel} title="Export to Excel" className="icon-button excel-btn">
-    <FaFileExcel size={16} />
-  </button>
-    <div className="vertical-divider" />
-  <button onClick={exportToPDF} title="Export to PDF" className="icon-button pdf-btn">
-    <FaFilePdf size={16} />
-  </button>
+          <div className="smart-header-actions">
+            <button onClick={exportToExcel} title="Export to Excel" className="icon-button excel-btn">
+              <FaFileExcel size={16} />
+            </button>
+            <div className="vertical-divider" />
+            <button onClick={exportToPDF} title="Export to PDF" className="icon-button pdf-btn">
+              <FaFilePdf size={16} />
+            </button>
 
-  <div className="vertical-divider" />
+            <div className="vertical-divider" />
 
-  <button onClick={handleOpenSelector} title="Displayed Columns" className="icon-button">
-    <FaSlidersH size={16} />
-  </button>
-</div>
-       
+            <button onClick={handleOpenSelector} title="Displayed Columns" className="icon-button">
+              <FaSlidersH size={16} />
+            </button>
+          </div>
+
           {showColumnSelector && (
             <div className="column-selector-dropdown">
               <div className="dropdown-header">Displayed columns</div>
@@ -159,8 +182,8 @@ const exportToPDF = () => {
                   {tempVisibleColumns.length === columns.length
                     ? "All selected"
                     : tempVisibleColumns.length === 0
-                    ? "Select all"
-                    : `${tempVisibleColumns.length} of ${columns.length} selected`}
+                      ? "Select all"
+                      : `${tempVisibleColumns.length} of ${columns.length} selected`}
                 </span>
               </div>
               <hr className="dropdown-separator" />
@@ -186,9 +209,20 @@ const exportToPDF = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="smart-table-container">
-        <table className="smart-table">
+      {/* Table with dual scrollbars */}
+      <div
+        className="smart-table-top-scroll"
+        ref={topScrollRef}
+        onScroll={syncTopScroll}
+      >
+        <div className="smart-table-top-scroll-inner" />
+      </div>
+      <div
+        className="smart-table-container"
+        ref={bottomScrollRef}
+        onScroll={syncBottomScroll}
+      >
+        <table className="smart-table" ref={tableRef}>
           <thead>
             <tr>
               {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
@@ -216,7 +250,7 @@ const exportToPDF = () => {
                   />
                 </th>
               ))}
-              <th>Preview</th>
+              <th>Actions</th>
               <th></th>
             </tr>
           </thead>
@@ -238,9 +272,14 @@ const exportToPDF = () => {
                   </td>
                 ))}
                 <td className="preview-icon-cell">
-                  <a href="#" onClick={() => onPreview && onPreview(row)} title="Preview">
-                    <FaSearch size={18} color="#007bff" />
-                  </a>
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                    <a href="#" onClick={(e) => { e.preventDefault(); onPreview && onPreview(row); }} title="Preview">
+                      <FaSearch size={18} color="#007bff" />
+                    </a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); onEdit && onEdit(row); }} title="Edit">
+                      <FaEdit size={18} color="#28a745" />
+                    </a>
+                  </div>
                 </td>
                 <td className="expand-icon-cell">
                   <div
@@ -264,35 +303,35 @@ const exportToPDF = () => {
         </table>
 
         {/* Pagination */}
-       <div className="pagination-row">
-  <div className="pagination-controls">
-    <label className="rows-per-page">
-      {/* Rows per page:&nbsp; */}
-      <select
-        value={rowsPerPage}
-        onChange={(e) => {
-          setRowsPerPage(Number(e.target.value));
-          setPage(0);
-        }}
-      >
-        {[5, 10, 20, 50].map((size) => (
-          <option key={size} value={size}>{size}</option>
-        ))}
-      </select>
-    </label>
+        <div className="pagination-row">
+          <div className="pagination-controls">
+            <label className="rows-per-page">
+              {/* Rows per page:&nbsp; */}
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setPage(0);
+                }}
+              >
+                {[5, 10, 20, 50].map((size) => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+            </label>
 
-    <button disabled={page === 0} onClick={() => setPage(page - 1)}>Prev</button>
-    <span>
-      Page <strong>{page + 1}</strong> of <strong>{Math.max(1, Math.ceil(filteredData.length / rowsPerPage))}</strong>
-    </span>
-    <button
-      disabled={(page + 1) * rowsPerPage >= filteredData.length}
-      onClick={() => setPage(page + 1)}
-    >
-      Next
-    </button>
-  </div>
-</div>
+            <button disabled={page === 0} onClick={() => setPage(page - 1)}>Prev</button>
+            <span>
+              Page <strong>{page + 1}</strong> of <strong>{Math.max(1, Math.ceil(filteredData.length / rowsPerPage))}</strong>
+            </span>
+            <button
+              disabled={(page + 1) * rowsPerPage >= filteredData.length}
+              onClick={() => setPage(page + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </div>
 
 
       </div>

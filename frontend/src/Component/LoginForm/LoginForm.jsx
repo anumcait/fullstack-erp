@@ -11,36 +11,42 @@ const LoginForm = () => {
   const [error, setError] = useState('');
 
   const handleLogin = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const response = await axios.post(
-      'http://localhost:5000/api/auth/login',
-      {
-        username,
-        password
-      },
-      {
-        withCredentials: true // ⬅️ VERY IMPORTANT for session to work
-      }
-    );
+    try {
+      const response = await axios.post(
+        '/api/auth/login',
+        {
+          username,
+          password
+        },
+        {
+          withCredentials: true // ⬅️ VERY IMPORTANT for session to work
+        }
+      );
 
-    // Save session info to localStorage or state
-    const { user } = response.data;
-    localStorage.setItem('userName', user.username);
-    localStorage.setItem('userRole', user.role); // optional
-    localStorage.setItem('empName', user.ename);
-    window.location.href = '/dashboard';
-  } catch (err) {
-    console.error('Login error:', err.response?.data || err.message);
-    setError('Invalid username or password');
-  }
-};
+      // Save session info to localStorage or state
+      const { user } = response.data;
+      localStorage.setItem('userName', user.username);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('empName', user.ename);
+      localStorage.setItem('userPermissions', JSON.stringify(user.permissions || []));
+      
+      // Also persist to sessionStorage for refresh resilience
+      sessionStorage.setItem('userRole', user.role);
+      sessionStorage.setItem('empName', user.ename);
+      sessionStorage.setItem('userPermissions', JSON.stringify(user.permissions || []));
+      window.location.href = '/dashboard';
+    } catch (err) {
+      console.error('Login error:', err.response?.data || err.message);
+      setError('Invalid username or password');
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#eaf2ff] px-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 overflow-hidden">
-        
+
         {/* Left Illustration */}
         <div className="hidden md:flex items-center justify-center bg-[#d4e3fc]">
           <img
@@ -57,12 +63,12 @@ const LoginForm = () => {
             {/* <h2 className="text-xl font-semibold">EQIC ERP</h2> */}
           </div>
           <h3 className="text-3xl font-extrabold mb-6 text-gray-800 tracking-tight">
-  <span className="text-2xl text-[#56c7be] drop-shadow-md">Welcome to EQIC<span className="text-2xl text-orange-500">ERP</span> Portal</span>
-</h3>
-{/* <h3 className="text-2xl font-bold mb-4">Sign In</h3>
+            <span className="text-2xl text-[#56c7be] drop-shadow-md">Welcome to EQIC<span className="text-2xl text-orange-500">ERP</span> Portal</span>
+          </h3>
+          {/* <h3 className="text-2xl font-bold mb-4">Sign In</h3>
           <h3 className="text-2xl font-bold mb-4">Sign In</h3> */}
 
-          <form onSubmit={handleLogin}>
+          <form>
             <label className="block mb-2 text-sm font-medium text-gray-700">
               User Name:
             </label>
@@ -95,7 +101,13 @@ const LoginForm = () => {
               </a>
             </div>
 
-            <button type="submit" className="login-btn w-full">
+            {error && <p className="text-red-500 text-sm mb-4 text-center font-semibold">{error}</p>}
+
+            <button 
+              type="button" 
+              onClick={handleLogin}
+              className="login-btn w-full"
+            >
               LOG IN
             </button>
           </form>

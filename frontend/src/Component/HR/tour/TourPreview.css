@@ -1,0 +1,132 @@
+.onduty-print-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.onduty-print-container {
+  background: #fff;
+  width: 90%;
+  max-width: 750px;
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
+  font-size: 8px;
+  color: #000;
+}
+
+.onduty-print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #000;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.onduty-logo {
+  height: 30px;
+}
+
+.onduty-company-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.onduty-slip-title {
+  font-size: 13px;
+  text-decoration: underline;
+  display: block;
+  margin-top: 2px;
+}
+
+.onduty-status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.onduty-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.onduty-details-table td {
+  padding: 8px;
+  border: 1px solid #000;
+}
+
+.label-cell {
+  font-weight: bold;
+  background: #f5f5f5;
+  width: 25%;
+}
+
+.value-cell {
+  width: 25%;
+}
+
+.onduty-signature-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.signature-box {
+  text-align: center;
+  width: 30%;
+}
+
+.signature-line {
+  border-top: 1px solid #000;
+  margin-top: 30px;
+  height: 30px;
+}
+
+.onduty-print-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.print-btn, .close-btn {
+  padding: 10px 30px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.print-btn {
+  background: #1976d2;
+  color: white;
+}
+
+.close-btn {
+  background: #dc3545;
+  color: white;
+}

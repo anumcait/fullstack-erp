@@ -1,0 +1,21 @@
+# Ignore OS and tool clutter
+.git
+.gitignore
+.DS_Store
+*.log
+*.tmp
+
+# Ignore all node_modules
+**/node_modules
+
+# Ignore local database data and backups
+pgdata-new/
+pg_restore/
+
+# Ignore build output folders
+dist/
+build/
+
+# Ignore IDE settings
+.vscode/
+.idea/

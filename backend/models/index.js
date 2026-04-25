@@ -17,15 +17,27 @@ const sequelize = new Sequelize(
   }
 );
 
-fs.readdirSync(__dirname)
-  .filter((file) => {
-    console.log(file);
-    return file !== basename && file.endsWith('.js');
-  })
-  .forEach((file) => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;
+// Function to recursively find model files
+const loadModels = (dir) => {
+  fs.readdirSync(dir).forEach((file) => {
+    const fullPath = path.join(dir, file);
+    if (fs.statSync(fullPath).isDirectory()) {
+      // Skip the directory itself if it's the current directory (shouldn't happen with readdirSync on __dirname)
+      if (file !== 'HR' || dir === __dirname) {
+         // Just a safety check, we want to enter subdirectories like HR
+      }
+      if (file !== 'node_modules' && !file.startsWith('.')) {
+        loadModels(fullPath);
+      }
+    } else if (file !== basename && file.endsWith('.js') && !file.startsWith('.')) {
+      console.log("Loading model:", file, "from", dir);
+      const model = require(fullPath)(sequelize, Sequelize.DataTypes);
+      db[model.name] = model;
+    }
   });
+};
+
+loadModels(__dirname);
 
 Object.keys(db).forEach((modelName) => {
   if (db[modelName].associate) {

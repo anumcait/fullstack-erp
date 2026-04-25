@@ -1,0 +1,37 @@
+.hr-attendance-card {
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+
+.hr-attendance-header {
+  background: linear-gradient(90deg, #1976d2, #42a5f5) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  padding: 12px 18px !important;
+}
+
+.hr-form .MuiTextField-root,
+.hr-form .MuiFormControl-root {
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.hr-form .MuiOutlinedInput-root.Mui-focused {
+  box-shadow: 0 0 5px rgba(25, 118, 210, 0.25);
+}
+
+.hr-attendance-table th {
+  font-weight: bold !important;
+  text-transform: uppercase;
+  background: #f1f1f1;
+}
+
+.hr-attendance-table td {
+  font-size: 14px;
+}
+
+.hr-btn {
+  text-transform: none !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}

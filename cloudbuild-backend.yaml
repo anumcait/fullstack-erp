@@ -1,0 +1,25 @@
+steps:
+  # Step 1: Build Docker image for backend
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPO_HOST}/${PROJECT_ID}/erp-backend:${SHORT_SHA}'
+      - './backend'
+
+  # Step 2: Push Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REPO_HOST}/${PROJECT_ID}/erp-backend:${SHORT_SHA}'
+
+images:
+  - '${_REPO_HOST}/${PROJECT_ID}/erp-backend:${SHORT_SHA}'
+
+# Optional: region and repository substitution
+substitutions:
+  _REPO_HOST: '${REGION}-docker.pkg.dev'
+
+# Recommended: specify logs bucket (optional)
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -8,10 +8,21 @@ client.collectDefaultMetrics();
 
 require('dotenv').config(); // make sure .env is loaded before using
 
-const employeeRoutes = require('./routes/employeeRoutes');
-const leaveRoutes = require('./routes/leaveRoutes');
-const ondutyRoutes = require('./routes/ondutyRoutes');
+const employeeRoutes = require('./routes/HR/employeeRoutes');
+const leaveRoutes = require('./routes/HR/leaveRoutes');
+const ondutyRoutes = require('./routes/HR/ondutyRoutes');
+const shiftRoutes = require('./routes/HR/shiftRoutes');
 const jasperRoutes = require('./routes/jasperRoutes');
+const gptRoutes = require('./routes/gptRoutes');
+const dashboardRoutes = require('./routes/HR/dashboardRoutes');
+const tourRoutes = require('./routes/HR/tourRoutes');
+const woffRoutes = require('./routes/HR/woffRoutes');
+const advanceRoutes = require('./routes/HR/advanceRoutes');
+const esiLeaveRoutes = require('./routes/HR/esiLeaveRoutes');
+const payrollRoutes = require('./routes/HR/payrollRoutes');
+const attendanceRoutes = require('./routes/HR/attendanceRoutes');
+const holidayRoutes = require('./routes/HR/holidayRoutes');
+const extOtRoutes = require('./routes/HR/extOtRoutes');
 
 
 const app = express();
@@ -20,9 +31,9 @@ const app = express();
 const allowedOrigins = [
   'http://localhost',
   'http://localhost:5173',
-  'http://52.4.231.1',
-  'https://fullstack-hr-app-frontend.onrender.com',
-];
+  'http://localhost:5000',
+  process.env.FRONTEND_URL,   // set this in .env for production
+].filter(Boolean);
 
 // Middlewares
 app.use(cors({
@@ -52,11 +63,12 @@ app.use(express.urlencoded({ extended: true }));
 // }));
 
 app.use(session({
-  secret: 'your_secret_here',
+  secret: process.env.SESSION_SECRET || 'change-me-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // set to true in production with HTTPS
+    secure: process.env.NODE_ENV === 'production', // true with HTTPS in prod
+    httpOnly: true,
     maxAge: 1000 * 60 * 60 // 1 hour
   }
 }));
@@ -65,12 +77,40 @@ app.use(session({
 app.use('/api/employees', employeeRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/onduty', ondutyRoutes);
+app.use('/api/shift', shiftRoutes);
 app.use('/api/jasper', jasperRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/gpt', gptRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/tour', tourRoutes);
+app.use('/api/woff', woffRoutes);
+app.use('/api/advance', advanceRoutes);
+app.use('/api/esileave', esiLeaveRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/holidays', holidayRoutes);
+app.use('/api/ext-ot', extOtRoutes);
+app.use('/api/users', require('./routes/userRoutes'));
+
+// Accounts Module Routes
+app.use('/api/accounts/invoices', require('./routes/Accounts/invoiceRoutes'));
+
+// ERP Module Routes
+app.use('/api/erp/purchase', require('./routes/ERP/purchaseRoutes'));
+app.use('/api/erp/stores', require('./routes/ERP/storesRoutes'));
 
 
 // Health check
 app.get('/', (req, res) => res.send('✅ App is running.'));
+
+app.get('/test-models', (req, res) => {
+  const db = require('./models');
+  res.json({ 
+    loadedModels: Object.keys(db),
+    tourModel: db.TourApplication ? '✅ TourApplication loaded' : '❌ TourApplication NOT found',
+    woffModel: db.WoffApplication ? '✅ WoffApplication loaded' : '❌ WoffApplication NOT found'
+  });
+});
 
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', client.register.contentType);

@@ -13,8 +13,15 @@ module.exports = (sequelize, DataTypes) => {
     empid: {
       type: DataTypes.INTEGER
     },
+    ename: {
+      type: DataTypes.STRING
+    },
     role: {
       type: DataTypes.STRING
+    },
+    permissions: {
+      type: DataTypes.JSONB,
+      defaultValue: []
     },
     is_active: {
       type: DataTypes.BOOLEAN,
@@ -38,20 +45,23 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER
     }
   }, {
-    tableName: 'users',
+    tableName: 'Users',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   },);
 
-    // ✅ Add the association
+  //   // ✅ Add the association
+  // User.associate = (models) => {
+  //   User.belongsTo(models.employee_master, {
+  //     foreignKey: 'empid',
+  //     targetKey: 'empid',
+  //     as: 'employee' // ✅ Use this in your includes
+  //   });
+  // };
+
   User.associate = (models) => {
-    User.belongsTo(models.employee_master, {
-      foreignKey: 'empid',
-      targetKey: 'empid',
-      as: 'employee' // ✅ Use this in your includes
-    });
+    User.belongsTo(models.EmployeeMaster, { foreignKey: 'empid', as: 'employee' }); // Example
   };
-  
   return User;
 };

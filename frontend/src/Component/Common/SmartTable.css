@@ -3,8 +3,23 @@
   width: 100%;
   position: relative;
 }
+/* Top mirror scrollbar */
+.smart-table-top-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 12px;
+  margin-bottom: 2px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.smart-table-top-scroll-inner {
+  height: 1px;
+  min-width: 1200px; /* matches table min-width */
+}
+
 .smart-table-container {
   overflow-x: auto;
+  overflow-y: auto;
 }
 
 .smart-table {

@@ -27,13 +27,11 @@ const Footer = () => {
   return (
     <Box
       sx={{
-        position: 'fixed',
-        bottom: 0,
         width: '100%',
         bgcolor: 'var(--primary-color)',
         color: 'white',
-        zIndex: 1300,
-        boxShadow: 4,
+        boxShadow: '0 -4px 12px rgba(0,0,0,0.15)',
+        flexShrink: 0,
       }}
     >
       {/* Toggle Button */}
@@ -54,7 +52,7 @@ const Footer = () => {
 
       <Collapse in={showFooter}>
         <Divider sx={{ bgcolor: '#ffffff33' }} />
-        <Container maxWidth="lg" sx={{ py: 3 }}>
+        <Container maxWidth="lg" sx={{ py: 3, pb: 6 }}>
           <Grid container spacing={4}>
             {/* Logo & Branding */}
             <Grid item xs={12} sm={4}>

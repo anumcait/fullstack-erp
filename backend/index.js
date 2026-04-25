@@ -49,10 +49,11 @@ async function startServer(retries = MAX_RETRIES) {
       await db.sequelize.authenticate();
       console.log(`✅ Connected to ${ENV} database`);
 
-      await db.sequelize.sync({ alter: true });
+      const syncOptions = ENV === 'production' ? { force: false } : { alter: true };
+      await db.sequelize.sync(syncOptions);
       console.log('✅ Database synced (tables created/updated).');
 
-      app.listen(PORT, () => {
+      app.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ Server running at http://localhost:${PORT}`);
       });
       break;

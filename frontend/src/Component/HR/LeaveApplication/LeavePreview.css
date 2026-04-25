@@ -1,0 +1,262 @@
+/* .leave-print-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.07);
+  z-index: 9999;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.leave-print-container {
+  background: #fff;
+  width: 80%;
+  max-width: 700px;
+  padding: 19px 25px 8px 25px;
+  font-family: 'Arial', sans-serif;
+  font-size: 13px;
+  color: #000;
+  /* box-shadow: 0 1px 14px 0 #d0d0d0; 
+} */
+
+.leave-print-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.07);
+  z-index: 9999;
+  overflow: hidden;                  /* <-- key fix: remove -y: auto. Use hidden */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Container: fit nicely, never overflow screen */
+.leave-print-container {
+  background: #fff;
+  width: 80vw;                       /* Use vw for responsive width */
+  max-width: 700px;
+  max-height: 92vh;                  /* Prevent content from flowing off bottom */
+  padding: 19px 25px 8px 25px;
+  font-family: 'Arial', sans-serif;
+  font-size: 13px;
+  color: #000;
+  overflow: auto;                    /* Only allows scroll inside if really needed (rare) */
+  box-sizing: border-box;
+  border-radius: 6px;
+}
+
+.left-align {
+  text-align: left;
+}
+
+.leave-print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #000;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.leave-logo {
+  height: 30px;
+}
+
+.leave-company-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.leave-slip-title {
+  font-size: 13px;
+  text-decoration: underline;
+  display: block;
+  margin-top: 2px;
+}
+
+.leave-after-box {
+  border: 1px solid #000;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+.leave-field-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.leave-field-table td {
+  padding: 4px 6px;
+  vertical-align: top;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.label { width: 95px; font-weight: bold; }
+.colon { width: 8px; text-align: center; }
+.value { width: 130px; }
+
+.leave-note {
+  font-size: 10px;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.leave-date-sign {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  margin-bottom: 10px;
+  margin-top: 6px;
+}
+.leave-sign-text { margin-right: 32px; }
+
+.leave-table-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 14px;
+}
+
+.leave-position-table, .leave-company-table {
+  font-size: 9px;
+  border-collapse: collapse;
+  width: 55%;
+}
+
+.leave-position-table th,
+.leave-position-table td,
+.leave-company-table th,
+.leave-company-table td {
+  border: 1px solid #000;
+  padding: 2px 8px;
+  text-align: left;
+}
+
+.leave-company-table {
+  width: 40%;
+  margin-left: 12px;
+}
+.leave-signatures-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  margin: 15px 0 7px 0;
+  font-weight:bold;
+}
+
+.leave-report-date {
+  text-align: right;
+  font-size: 10px;
+  margin-bottom: 10px;
+  margin-top: 3px;
+}
+
+.leave-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.leave-actions button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.leave-actions button:hover {
+  background-color: #0056b3;
+}
+
+/* @media print {
+  @page { size: A4 portrait; margin: 0; }
+  body * { visibility: hidden; }
+  .leave-print-container, .leave-print-container * { visibility: visible; }
+  .leave-actions.no-print { display: none; }
+} */
+/* Overlay: prevent all scrollbars and cover viewport */
+
+
+@media (max-width: 768px) {
+  .leave-print-container {
+    width: 98vw;
+    padding: 10px 2vw 8px 2vw;
+    font-size: 12px;
+  }
+}
+
+@media (max-height: 830px) {
+  .leave-print-container {
+    transform: scale(0.92);
+    transform-origin: top center;
+    max-height: 98vh;                /* fallback for rare edge cases on extra-small screens */
+  }
+}
+
+@media (max-width: 540px), (max-height: 600px) {
+  .leave-print-container {
+    transform: scale(0.80);
+    width: 100vw;
+    max-width: none;
+    max-height: 100vh;
+    padding: 0 1vw;
+  }
+}
+
+/* @media print {
+  @page { size: A4 portrait; margin:0; }
+  html, body, .leave-print-overlay, .leave-print-container {
+    overflow: visible !important;
+    position: static !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+  .no-print { display: none !important; }
+} */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .leave-print-container,
+  .leave-print-container * {
+    visibility: visible;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .leave-print-container {
+    position: absolute;
+    top: 0;
+    left: 100%; /* Start from far right */
+    width: 100%;
+    height: 100%;
+    transform: rotate(90deg);
+    transform-origin: top left;
+    box-sizing: border-box;
+    font-size: 11px;
+    background: #fff;
+    padding: 10mm;
+  }
+}

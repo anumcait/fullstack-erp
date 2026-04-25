@@ -2,3 +2,27 @@ jenkins_data/
 jenkins_data.rar
 pgdata-new/
 .github/
+
+# Environment files (secrets)
+.env
+.env.*
+backend/.env*
+frontend/.env*
+
+# Dependencies
+node_modules/
+
+# Large AI model
+backend/*.gguf
+genai/
+
+# Database Dumps
+backend/oracle_dump/
+*.dmp
+
+# Build output
+frontend/dist/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const { User, employee_master } = require('../models');
+const { User, EmployeeMaster } = require('../models');
 
 exports.login = async (req, res) => {
   const { username, password } = req.body;
@@ -7,9 +7,11 @@ exports.login = async (req, res) => {
   try {
     const user = await User.findOne({
       where: { username, is_active: true },
-      include: [{ model: employee_master, 
+      include: [{
+        model: EmployeeMaster,
         as: 'employee',
-    attributes: ['ename'] }]
+        attributes: ['ename']
+      }]
     });
 
 
@@ -28,6 +30,7 @@ exports.login = async (req, res) => {
       username: user.username,
       empid: user.empid,
       role: user.role,
+      permissions: user.permissions || [],
       ename: user.employee?.ename || 'Guest'
     };
 
@@ -44,7 +47,14 @@ exports.login = async (req, res) => {
   }
 };
 
-
-
-
+exports.logout = (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Logout error:', err);
+      return res.status(500).json({ message: 'Logout failed' });
+    }
+    res.clearCookie('connect.sid');
+    res.json({ message: 'Logged out successfully' });
+  });
+};
 
