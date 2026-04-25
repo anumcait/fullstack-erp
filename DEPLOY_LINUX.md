@@ -25,7 +25,8 @@ yum install -y yum-utils
 # 2. Modernize Repositories & Enable EPEL (Fixes legacy repo issues)
 /usr/bin/ol_yum_configure.sh
 yum install -y oracle-epel-release-el7
-yum-config-manager --enable ol7_latest ol7_addons ol7_optional_latest ol7_developer_EPEL
+yum-config-manager --enable ol7_latest ol7_addons ol7_optional_latest ol7_developer ol7_developer_EPEL
+yum clean all
 
 # 3. Add the official Docker Stable repository
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
