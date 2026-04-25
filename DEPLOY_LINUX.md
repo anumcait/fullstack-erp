@@ -19,13 +19,16 @@ sudo usermod -aG docker $USER
 Run these commands as the **root** user on OEL 7.9:
 
 ```bash
-# 1. Enable the addons repository
-yum-config-manager --enable ol7_addons
+# 1. Install required utilities
+yum install -y yum-utils
 
-# 2. Install Docker Engine
-yum install -y docker-engine
+# 2. Add the official Docker Stable repository
+yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
-# 3. Start and Enable Docker
+# 3. Install Docker CE (Community Edition)
+yum install -y docker-ce docker-ce-cli containerd.io
+
+# 4. Start and Enable Docker
 systemctl start docker
 systemctl enable docker
 
