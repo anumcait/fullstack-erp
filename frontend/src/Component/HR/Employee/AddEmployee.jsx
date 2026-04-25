@@ -432,12 +432,25 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
   };
 
   const validateForm = () => {
-    // Example validation - check required fields in formData
-    if (!formData.empid || !formData.ename) {
-      alert('Employee ID and Name are required.');
+    const requiredFields = [
+      { field: formData.empid, name: 'Employee ID' },
+      { field: formData.ename, name: 'Employee Name' },
+      { field: formData.sex, name: 'Gender' },
+      { field: formData.dob, name: 'Date of Birth' }
+    ];
+
+    for (let item of requiredFields) {
+      if (!item.field || String(item.field).trim() === '') {
+        showToast(`${item.name} is a required field.`, "error");
+        return false;
+      }
+    }
+
+    if (formData.status === 'Left' && (!formData.left_date || formData.left_date.trim() === '')) {
+      showToast("Left Date is required when Employee Status is 'Left'.", "error");
       return false;
     }
-    // Add other validations as needed
+
     return true;
   };
   // SUBMIT!
@@ -612,7 +625,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
             <Grid container spacing={2.5} sx={{ mb: 4 }}>
               {/* Personal Fields */}
               <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Employee ID" name="empid" size="small"
+                <TextField required label="Employee ID" name="empid" size="small"
                   fullWidth value={formData.empid}
                   onChange={handleFDChange}
                   onKeyDown={handleKeyDown}
@@ -621,7 +634,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
               </Grid>
 
               <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Name" name="ename" size="small"
+                <TextField required label="Name" name="ename" size="small"
                   fullWidth value={formData.ename}
                   onChange={handleFDChange}
                   onKeyDown={handleKeyDown}
@@ -650,7 +663,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <TextField select label="Gender" name="sex" size="small" fullWidth
+                <TextField required select label="Gender" name="sex" size="small" fullWidth
                   value={formData.sex}
                   onChange={handleFDChange} variant="outlined"
                   onKeyDown={handleKeyDown}
@@ -664,7 +677,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
 
 
               <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Date of Birth" name="dob" size="small" fullWidth type="date"
+                <TextField required label="Date of Birth" name="dob" size="small" fullWidth type="date"
                   InputLabelProps={{ shrink: true }} value={formData.dob} onChange={handleFDChange} onKeyDown={handleKeyDown}
                 />
               </Grid>

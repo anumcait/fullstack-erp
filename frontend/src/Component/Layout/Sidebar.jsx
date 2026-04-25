@@ -184,14 +184,12 @@ const Sidebar = () => {
               </li>
             )}
             
-            {(hasPermission('HR_EMP_MASTER') || hasPermission('HR_ADD_EMP') || hasPermission('HR_PHOTO') || hasPermission('HR_SHIFT_MASTER') || hasPermission('HR_HOLIDAY_MASTER') || hasPermission('HR_LEAVE_MASTER')) && (
+            {(hasPermission('HR_EMP_MASTER') || hasPermission('HR_SHIFT_MASTER') || hasPermission('HR_HOLIDAY_MASTER') || hasPermission('HR_LEAVE_MASTER')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "hrMaster" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrMaster")}><FiUsers /> {!collapsed && <span>Master Data</span>}</div>
                 {openSubmenu === "hrMaster" && (
                   <ul className="sidebar-submenu">
                     {hasPermission('HR_EMP_MASTER') && <SubItem to="/employees" label="Employee Master" icon={FiUsers} />}
-                    {hasPermission('HR_ADD_EMP') && <SubItem to="/add-employee" label="Add New Employee" icon={FiUserPlus} />}
-                    {hasPermission('HR_PHOTO') && <SubItem to="/photo" label="Photo Upload" icon={FiCamera} />}
                     {hasPermission('HR_SHIFT_MASTER') && <SubItem to="/shift-master" label="Shift Master" icon={FiClock} />}
                     {hasPermission('HR_HOLIDAY_MASTER') && <SubItem to="/holidays" label="Holiday Master" icon={FiCalendar} />}
                     {hasPermission('HR_LEAVE_MASTER') && <SubItem to="/leaves-master" label="Leaves Master" icon={FiCheckSquare} />}

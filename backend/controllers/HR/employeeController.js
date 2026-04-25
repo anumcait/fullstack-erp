@@ -13,6 +13,12 @@ const bcrypt = require('bcrypt');
 // Valid PostgreSQL enum values for employment_status (must match employee-master.js model)
 const VALID_EMP_STATUSES = ['Active', 'Resigned', 'Terminated', 'On Leave', 'Permanent', 'Contract', 'Intern', 'Left'];
 
+const safeDate = (dateString) => {
+  if (!dateString || String(dateString).trim() === "") return null;
+  const d = new Date(dateString);
+  return isNaN(d.getTime()) ? null : d;
+};
+
 /**
  * Safely map emptype (frontend) to employment_status (DB enum).
  * Returns the value if valid, defaults to 'Active' otherwise.
@@ -136,13 +142,23 @@ exports.createEmployee = async (req, res) => {
     status, left_date, left_reason
   } = req.body;
 
+  if (!empid) {
+    return res.status(400).json({ error: 'Employee ID is required.' });
+  }
+
+  // Pre-emptive Duplicate Check
+  const existingEmp = await EmployeeMaster.findOne({ where: { empid } });
+  if (existingEmp) {
+    return res.status(400).json({ error: `Employee ID ${empid} already exists in the system!` });
+  }
+
   const t = await EmployeeMaster.sequelize.transaction();
 
   const empData = {
-    empid: empid ? parseInt(empid, 10) : null,
+    empid: parseInt(empid, 10),
     ename,
     fname,
-    dob,
+    dob: safeDate(dob),
     gender: sex,
     marital_status,
     employment_status: toEmploymentStatus(emptype),

@@ -1,337 +1,398 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Box,
-  Paper,
-  Typography,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Grid,
-  TextField,
-  MenuItem,
-  Button,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  InputAdornment,
-  IconButton,
+  Box, Card, CardContent, Typography, Grid, TextField, Select, MenuItem,
+  Button, Table, TableHead, TableBody, TableRow, TableCell,
+  IconButton, Chip, FormControl, InputLabel, RadioGroup, FormControlLabel, Radio
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
+import SaveIcon from "@mui/icons-material/Save";
+import DeleteIcon from "@mui/icons-material/Delete";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import ClearIcon from "@mui/icons-material/Clear";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import axios from "axios";
+import { useToast } from "../../../context/ToastContext";
 
 const AttendanceModificationEntry = () => {
+  const { showToast } = useToast();
+  const [filterType, setFilterType] = useState("date");
+  const [dataDate, setDataDate] = useState(new Date().toISOString().split("T")[0]);
+  const [modType, setModType] = useState("Manual Attendance");
+  
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filterEmpId, setFilterEmpId] = useState("");
+  const [filterShift, setFilterShift] = useState("");
+
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  const months = [
+    { value: 1, label: "January" }, { value: 2, label: "February" }, { value: 3, label: "March" },
+    { value: 4, label: "April" }, { value: 5, label: "May" }, { value: 6, label: "June" },
+    { value: 7, label: "July" }, { value: 8, label: "August" }, { value: 9, label: "September" },
+    { value: 10, label: "October" }, { value: 11, label: "November" }, { value: 12, label: "December" }
+  ];
+
+  const modTypes = [
+    "Manual Attendance",
+    "Late Coming",
+    "Onduty",
+    "Early In Late Out",
+    "Weekly off Change",
+    "Shift Change",
+    "No Attendance"
+  ];
+
+  useEffect(() => {
+    fetchData();
+  }, [filterType, dataDate, month, year, filterShift]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (filterType === "date") {
+        params.startDate = dataDate;
+        params.endDate = dataDate;
+      } else if (filterType === "month") {
+        params.month = month;
+        params.year = year;
+      }
+      if (filterEmpId) params.empid = filterEmpId;
+
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/attendance`, { params });
+      
+      let data = res.data;
+      if (filterShift) {
+        data = data.filter(d => d.shift === filterShift);
+      }
+      
+      // Seed editable state
+      data = data.map(row => {
+        let currentMod = "None";
+        if (row.remarks) {
+          const match = row.remarks.match(/\[MOD: (.*?)\]/);
+          if (match) currentMod = match[1];
+        }
+        return {
+          ...row,
+          modify_in_time: row.in_time || "",
+          modify_out_time: row.out_time || "",
+          modify_shift: row.shift || "G",
+          modify_status: row.status || "P",
+          modify_type: currentMod === "None" ? modType : currentMod
+        };
+      });
+      
+      setAttendanceData(data);
+    } catch (err) {
+      console.error("Error fetching attendance data:", err);
+      showToast("Error loading attendance records", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFieldChange = (id, field, value) => {
+    setAttendanceData(prev => 
+      prev.map(row => (row.id === id ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const saveRow = async (row) => {
+    try {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/attendance/${row.id}`, {
+        empid: row.empid,
+        att_date: row.att_date,
+        shift: row.modify_shift,
+        status: row.modify_status,
+        in_time: row.modify_in_time || null,
+        out_time: row.modify_out_time || null,
+        late_hrs: row.late_hrs || 0,
+        ot_hrs: row.ot_hrs || 0,
+        remarks: row.modify_type !== "None" 
+          ? `[MOD: ${row.modify_type}] ${row.remarks ? row.remarks.replace(/\[MOD: .*?\]\s*/, '') : ''}`
+          : row.remarks
+      });
+      showToast("Attendance successfully modified", "success");
+      fetchData();
+    } catch (err) {
+      showToast("Error saving modification", "error");
+    }
+  };
+
+  const deleteRecord = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this record?")) return;
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/attendance/${id}`);
+      showToast("Record deleted", "success");
+      fetchData();
+    } catch (err) {
+      showToast("Error deleting", "error");
+    }
+  };
+
+  const clearFilters = () => {
+    setFilterEmpId("");
+    setFilterShift("");
+    setDataDate(new Date().toISOString().split("T")[0]);
+    setMonth(new Date().getMonth() + 1);
+    setYear(new Date().getFullYear());
+  };
+
   return (
-    <Paper
-      elevation={1}
-      sx={{
-        p: 2,
-        border: "1px solid #dcdcdc",
-        borderRadius: "10px",
-        backgroundColor: "#fafafa",
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          backgroundColor: "#0b3c91",
-          px: 2,
-          py: 1,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderRadius: "2px",
-        }}
-      >
-        <Typography fontWeight="600" fontSize="15px" color="white">
-          Attendance Modification Entry
-        </Typography>
-        <Button
-          variant="text"
-          sx={{ minWidth: "30px", color: "#333", fontWeight: 600 }}
-        >
-          ✖
-        </Button>
+    <Card sx={{ m: 2 }}>
+      {/* HEADER */}
+      <Box sx={{ bgcolor: "#1976d2", color: "white", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Typography variant="h6">Attendance Modification</Typography>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button 
+            variant={filterType === "date" ? "contained" : "outlined"} 
+            color={filterType === "date" ? "secondary" : "inherit"}
+            size="small"
+            onClick={() => setFilterType("date")}
+            startIcon={<CalendarMonthIcon />}
+          >
+            By Date
+          </Button>
+          <Button 
+            variant={filterType === "month" ? "contained" : "outlined"}
+            color={filterType === "month" ? "secondary" : "inherit"}
+            size="small"
+            onClick={() => setFilterType("month")}
+            startIcon={<FilterListIcon />}
+          >
+            By Month
+          </Button>
+        </Box>
       </Box>
 
-      {/* Radio Buttons */}
-      <RadioGroup row sx={{ mt: 1, mb: 2 }}>
-        {[
-          "Manual Attendance",
-          "Late Coming",
-          "Onduty",
-          "Early In Late Out",
-          "Weekly off Change",
-          "Shift Change",
-          "No Attendance",
-        ].map((label) => (
-          <FormControlLabel
-            key={label}
-            value={label}
-            control={<Radio size="small" />}
-            label={label}
-            sx={{ mr: 2 }}
-          />
-        ))}
-      </RadioGroup>
+      <CardContent>
+        {/* Mod Type Selection */}
+        <Box sx={{ mb: 2 }}>
+          <RadioGroup 
+            row 
+            value={modType} 
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setModType(newValue);
+              // Update all rows to match the globally selected modification type
+              setAttendanceData(prev => prev.map(row => ({
+                ...row,
+                modify_type: newValue
+              })));
+            }}
+          >
+            {modTypes.map((label) => (
+              <FormControlLabel
+                key={label}
+                value={label}
+                control={<Radio size="small" color="primary" />}
+                label={<Typography variant="body2" fontWeight="bold">{label}</Typography>}
+                sx={{ mr: 2 }}
+              />
+            ))}
+          </RadioGroup>
+        </Box>
 
-      {/* Filters Section */}
-      <Grid container spacing={2}>
-        {/* Left Filters */}
-        <Grid item xs={12} sm={6}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Date (DD-MON-RR)"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Shift"
-                fullWidth
-                size="small"
-              >
-                <MenuItem value="">-Select-</MenuItem>
-                <MenuItem value="General">General</MenuItem>
-                <MenuItem value="Night">Night</MenuItem>
-              </TextField>
-            </Grid>
-            {/* <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Unit"
-                fullWidth
-                size="small"
-              >
-                <MenuItem value="">-Select-</MenuItem>
-                <MenuItem value="Unit A">Unit A</MenuItem>
-                <MenuItem value="Unit B">Unit B</MenuItem>
-              </TextField>
-            </Grid> */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Month"
-                defaultValue="SEP"
-                fullWidth
-                size="small"
-              >
-                <MenuItem value="SEP">SEP</MenuItem>
-                <MenuItem value="OCT">OCT</MenuItem>
-                <MenuItem value="NOV">NOV</MenuItem>
-              </TextField>
-            </Grid>
+        {/* FILTERS */}
+        <Box sx={{ mb: 3, p: 2, bgcolor: "#f8f9fa", borderRadius: 1 }}>
+          <Grid container spacing={2} alignItems="center">
             
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Month"
-                defaultValue="SEP"
-                fullWidth
-                size="small"
-              >
-                <MenuItem value="SEP">SEP</MenuItem>
-                <MenuItem value="OCT">OCT</MenuItem>
-                <MenuItem value="NOV">NOV</MenuItem>
-              </TextField>
+            {filterType === "date" && (
+              <Grid item xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label="Date"
+                  InputLabelProps={{ shrink: true }}
+                  value={dataDate}
+                  onChange={(e) => setDataDate(e.target.value)}
+                />
+              </Grid>
+            )}
+
+            {filterType === "month" && (
+              <>
+                <Grid item xs={12} md={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Month</InputLabel>
+                    <Select value={month} label="Month" onChange={(e) => setMonth(e.target.value)}>
+                      {months.map((m) => (
+                        <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Year</InputLabel>
+                    <Select value={year} label="Year" onChange={(e) => setYear(e.target.value)}>
+                      {years.map((y) => (
+                        <MenuItem key={y} value={y}>{y}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            )}
+
+            <Grid item xs={12} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Shift</InputLabel>
+                <Select label="Shift" value={filterShift} onChange={(e) => setFilterShift(e.target.value)}>
+                  <MenuItem value="">All Shifts</MenuItem>
+                  <MenuItem value="G">General</MenuItem>
+                  <MenuItem value="A">Morning</MenuItem>
+                  <MenuItem value="B">Afternoon</MenuItem>
+                  <MenuItem value="W">Weekly Off</MenuItem>
+                  <MenuItem value="H">Holiday</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+
+            <Grid item xs={12} md={2}>
               <TextField
-                label="Year"
-                value="2025"
                 fullWidth
                 size="small"
-                InputProps={{ readOnly: true }}
+                label="Employee ID"
+                placeholder="Enter Emp ID"
+                value={filterEmpId}
+                onChange={(e) => setFilterEmpId(e.target.value)}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <Button
-                variant="contained"
-                sx={{
-                  backgroundColor: "#24496f",
-                  color: "#fff",
-                  textTransform: "none",
-                  mt: 1,
-                  px: 4,
-                }}
-              >
+
+            <Grid item xs={12} md={1}>
+              <Button variant="outlined" fullWidth size="small" startIcon={<RefreshIcon />} onClick={fetchData}>
                 Show
               </Button>
             </Grid>
-          </Grid>
-        </Grid>
 
-        {/* Right Filters (Entry Id + Entry Date) */}
-        <Grid item xs={12} sm={6}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Entry Id"
-                value="11995"
-                fullWidth
-                size="small"
-                InputProps={{
-                  readOnly: true,
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {/* <Button size="small" variant="contained" sx={{ minWidth: "30px" }}>
-                        ...
-                      </Button> */}
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Entry Date"
-                type="date"
-                fullWidth
-                size="small"
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {/* <Button size="small" variant="contained" sx={{ minWidth: "30px" }}>
-                        ...
-                      </Button> */}
-                    </InputAdornment>
-                  ),
-                }}
-              />
+            <Grid item xs={12} md={1}>
+              <Button variant="outlined" fullWidth size="small" startIcon={<ClearIcon />} onClick={clearFilters}>
+                Clear
+              </Button>
             </Grid>
           </Grid>
-        </Grid>
-      </Grid>
-
-      {/* Table Section */}
-      <Box sx={{ mt: 2, border: "1px solid #ccc", borderRadius: "3px", overflowX: "auto" }}>
-        {/* Table Controls */}
-        <Box
-          sx={{
-            p: 1,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <TextField
-              size="small"
-              placeholder="Search: All Text Columns"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small">
-                      <SearchIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button variant="outlined" size="small">
-              Go
-            </Button>
-          </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Button variant="outlined" size="small">Actions</Button>
-            <Button variant="outlined" size="small">Edit</Button>
-            <Button variant="outlined" size="small">Add Row</Button>
-          </Box>
         </Box>
 
-        {/* Scrollable Table */}
-        <Table size="small">
-          <TableHead sx={{ backgroundColor: "#0b3c91" }}>
-            <TableRow>
-              {[
-                "Sno",
-                "Att Mod Type",
-                "Att Date",
-                "EmpId",
-                "Employee Name",
-                "Shift",
-                "Shift Start Time",
-                "Shift End Time",
-                "Modify InTime",
-                "Modify Out Time",
-                "Actual In Time",
-                "Actual out time",
-                "Remarks"
-              ].map((head) => (
-                <TableCell key={head} sx={{ fontWeight: 600, textAlign: "center",color:"white" }}>
-                  {head}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell>1</TableCell>
-              <TableCell>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  sx={{ minWidth: 120 }}
-                >
-                  <MenuItem>-Select-</MenuItem>
-                  <MenuItem>Manual</MenuItem>
-                  <MenuItem>Onduty</MenuItem>
-                </TextField>
-              </TableCell>
-              <TableCell>
-                <TextField type="date" size="small" fullWidth sx={{ minWidth: 120 }} />
-              </TableCell>
-              <TableCell>
-                <TextField placeholder="Emp ID" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField placeholder="Name" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField placeholder="Shift" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField type="time" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField type="time" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField type="time" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField type="time" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField type="time" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField type="time" size="small" fullWidth />
-              </TableCell>
-              <TableCell>
-                <TextField type="time" size="small" fullWidth />
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </Box>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Modification Records: {attendanceData.length}
+          </Typography>
+        </Box>
 
-      {/* Footer Save Button */}
-      <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
-        <Button
-          variant="contained"
-          sx={{ backgroundColor: "#24496f", textTransform: "none", px: 4 }}
-        >
-          Save
-        </Button>
-      </Box>
-    </Paper>
+        {/* TABLE */}
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: "#1976d2", color: "white" }}>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Mod Type</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>New Shift</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>New Status</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actual In</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actual Out</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Modify In</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Modify Out</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={10} align="center" sx={{ py: 3 }}>Loading...</TableCell>
+                </TableRow>
+              ) : attendanceData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} align="center" sx={{ py: 3, color: "#777" }}>No attendance records found</TableCell>
+                </TableRow>
+              ) : (
+                attendanceData.map((row) => (
+                  <TableRow key={row.id} sx={{ "&:nth-of-type(odd)": { bgcolor: "#fafafa" } }}>
+                    <TableCell>{row.att_date}</TableCell>
+                    <TableCell>{row.empid}</TableCell>
+                    <TableCell>{row.employee?.ename || "-"}</TableCell>
+                    <TableCell>
+                      <FormControl size="small" fullWidth sx={{ minWidth: 140 }}>
+                        <Select 
+                          value={row.modify_type || "None"} 
+                          onChange={(e) => handleFieldChange(row.id, "modify_type", e.target.value)}
+                        >
+                          <MenuItem value="None">None</MenuItem>
+                          {modTypes.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                        </Select>
+                      </FormControl>
+                    </TableCell>
+                    <TableCell>
+                      <FormControl size="small" fullWidth sx={{ minWidth: 80 }}>
+                        <Select 
+                          value={row.modify_shift} 
+                          onChange={(e) => handleFieldChange(row.id, "modify_shift", e.target.value)}
+                        >
+                          <MenuItem value="G">G</MenuItem>
+                          <MenuItem value="A">A</MenuItem>
+                          <MenuItem value="B">B</MenuItem>
+                          <MenuItem value="W">W</MenuItem>
+                          <MenuItem value="H">H</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </TableCell>
+                    <TableCell>
+                      <FormControl size="small" fullWidth sx={{ minWidth: 100 }}>
+                        <Select 
+                          value={row.modify_status} 
+                          onChange={(e) => handleFieldChange(row.id, "modify_status", e.target.value)}
+                        >
+                          <MenuItem value="P">Present</MenuItem>
+                          <MenuItem value="A">Absent</MenuItem>
+                          <MenuItem value="W">Weekly Off</MenuItem>
+                          <MenuItem value="H">Holiday</MenuItem>
+                          <MenuItem value="L">Leave</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </TableCell>
+                    <TableCell sx={{ fontFamily: "monospace", color: "gray" }}>{row.in_time || "-"}</TableCell>
+                    <TableCell sx={{ fontFamily: "monospace", color: "gray" }}>{row.out_time || "-"}</TableCell>
+                    <TableCell>
+                      <TextField 
+                        type="time" 
+                        size="small" 
+                        value={row.modify_in_time}
+                        onChange={(e) => handleFieldChange(row.id, "modify_in_time", e.target.value)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextField 
+                        type="time" 
+                        size="small" 
+                        value={row.modify_out_time}
+                        onChange={(e) => handleFieldChange(row.id, "modify_out_time", e.target.value)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <IconButton size="small" color="primary" onClick={() => saveRow(row)}>
+                        <SaveIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="error" onClick={() => deleteRecord(row.id)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Box>
+
+      </CardContent>
+    </Card>
   );
 };
 
