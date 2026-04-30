@@ -330,7 +330,7 @@ const TestApplication = ({ onClose }) => {
         </Grid>
 
         {/* Leave Summary Section Reverted to Old Layout */}
-        <Box component="fieldset" sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 1, mb: 0, bgcolor: '#fafafa' }}>
+        <Box component="fieldset" sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2, mb: 0, bgcolor: '#fafafa' }}>
           <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
             Leave Summary
           </Typography>
