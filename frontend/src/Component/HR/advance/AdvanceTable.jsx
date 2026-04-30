@@ -47,8 +47,17 @@ const AdvanceTable = () => {
     { header: "Reason", field: "reason", expandable: true },
   ];
 
+  const handleNew = () => {
+    window.location.href = '/advance?action=new';
+  };
+
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+        <button onClick={handleNew} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+          + New
+        </button>
+      </div>
       <SmartTable
         title="Advance List"
         columns={columns}

@@ -1,7 +1,6 @@
 .employee-dashboard-container {
-  padding: 20px;
-  background: #f9f9f9;
-}
+   padding: 20px;
+ }
 
 .employee-dashboard-header {
   display: flex;

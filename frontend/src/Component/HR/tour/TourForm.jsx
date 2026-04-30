@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  TextField, Typography, Button, Grid, Box, Divider, InputAdornment
+  TextField, Typography, Button, Grid, Box, Divider, InputAdornment, Stack, IconButton
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import CloseIcon from "@mui/icons-material/Close";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 import { useToast } from "../../../context/ToastContext";
 import axios from "axios";
 import TourPreview from "./TourPreview";
+import { formatDate } from "../../../utils/dateUtils";
 
-const TourForm = () => {
+const RequiredLabel = ({ children }) => (
+  <span>
+    {children}
+    <span style={{ color: 'red', marginLeft: 2 }}>*</span>
+  </span>
+);
+
+const requiredStyle = {
+  backgroundColor: '#fffde7'
+};
+
+const TourForm = ({ onClose }) => {
   const { showToast } = useToast();
 
   const getCurrentISTDateTime = () => {
@@ -17,7 +29,9 @@ const TourForm = () => {
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, "0");
     const dd = String(now.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
+    const hh = String(now.getHours()).padStart(2, "0");
+    const min = String(now.getMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
   };
 
   const [formData, setFormData] = useState({
@@ -32,7 +46,8 @@ const TourForm = () => {
     tour_to_date: "",
     destination: "",
     purpose: "",
-    estimated_amount: ""
+    estimated_amount: "",
+    remarks: ""
   });
 
   const [showEmpPopup, setShowEmpPopup] = useState(false);
@@ -46,7 +61,7 @@ const TourForm = () => {
   const fetchNextTourId = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tour/next-id`);
-      setFormData(prev => ({ ...prev, tour_id: response.data.nextId }));
+      setFormData(prev => ({ ...prev, tour_id: response.data.nextTourId }));
     } catch (error) {
       console.error("Failed to fetch next tour ID:", error);
     }
@@ -71,8 +86,8 @@ const TourForm = () => {
   };
 
   const saveTour = async () => {
-    if (!formData.empid || !formData.tour_from_date || !formData.tour_to_date || !formData.destination) {
-      showToast("❌ Please fill all required fields.", "error");
+    if (!formData.empid || !formData.tour_from_date || !formData.destination || !formData.purpose) {
+      showToast("Please fill all required fields.", "error");
       return;
     }
     try {
@@ -90,7 +105,8 @@ const TourForm = () => {
         tour_to_date: "",
         destination: "",
         purpose: "",
-        estimated_amount: ""
+        estimated_amount: "",
+        remarks: ""
       });
       fetchNextTourId();
     } catch (err) {
@@ -100,121 +116,93 @@ const TourForm = () => {
   };
 
   return (
-    <Box sx={{ p: 2, bgcolor: "#f5f7fa" }}>
-      <Box sx={{
-        maxWidth: 800, mx: "auto", bgcolor: "#fff",
-        borderRadius: 3, boxShadow: 3, mt: 1, px: 4, py: 3
-      }}>
-        <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
-          Tour Application
-        </Typography>
+    <Box>
+      <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h6" fontWeight={700}>Tour Application</Typography>
+          <IconButton onClick={onClose}><CloseIcon /></IconButton>
+        </Stack>
 
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={4}>
-            <Typography fontWeight={500}>
-              Tour ID: <span style={{ fontWeight: 700 }}>{formData.tour_id}</span>
-            </Typography>
-          </Grid>
-          <Grid item xs={8}>
-            <Typography fontWeight={500}>
-              Date: <span style={{ fontWeight: 700 }}>{formData.tour_date}</span>
-            </Typography>
-          </Grid>
-        </Grid>
+        <Box sx={{ mb: 2, display: 'flex', gap: 4, justifyContent: 'flex-start', alignItems: 'center' }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" color="text.secondary">Tour ID:</Typography>
+            <Typography fontWeight={600}>{formData.tour_id}</Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" color="text.secondary">Date:</Typography>
+            <Typography fontWeight={600}>{formatDate(formData.tour_date)}</Typography>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        <Typography fontWeight={600} variant="body2" sx={{ mb: 1 }}>
-          Employee Details
-        </Typography>
-
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item sx={{ width: 140 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm="auto">
             <TextField
-              label="Emp ID *"
+              label={<RequiredLabel>Emp ID</RequiredLabel>}
               name="empid"
               value={formData.empid}
-              size="small"
               onClick={openEmpPopup}
+              size="small"
+              placeholder="Select Employee"
+              fullWidth
+              sx={{ ...requiredStyle, width: { sm: '180px' } }}
               InputProps={{
+                readOnly: true,
                 endAdornment: (
                   <InputAdornment position="end">
-                    <SearchIcon onClick={openEmpPopup} style={{ cursor: 'pointer' }} />
+                    <IconButton size="small" onClick={openEmpPopup}>
+                      <SearchIcon fontSize="small" />
+                    </IconButton>
                   </InputAdornment>
                 ),
               }}
-              required
             />
           </Grid>
-          <Grid item xs>
-            <TextField
-              label="Name"
-              name="ename"
-              value={formData.ename}
-              fullWidth
-              size="small"
-              disabled
-            />
-          </Grid>
-          <Grid item xs={3}>
-            <TextField
-              label="Unit"
-              name="unit"
-              value={formData.unit}
-              fullWidth
-              size="small"
-              disabled
-            />
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={3}>
-            <TextField
-              label="Division"
-              name="division"
-              value={formData.division}
-              fullWidth
-              size="small"
-              disabled
-            />
-          </Grid>
-          <Grid item xs={3}>
-            <TextField
-              label="Designation"
-              name="designation"
-              value={formData.designation}
-              fullWidth
-              size="small"
-              disabled
-            />
+          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
+            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', width: '100%' }}>
+              <Typography fontWeight={600} variant="subtitle2">
+                Name: {formData.ename || "--"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unit: {formData.unit || "--"} • Div: {formData.division || "--"} • Desig: {formData.designation || "--"}
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
 
         <Divider sx={{ my: 2 }} />
 
-        <Typography fontWeight={600} variant="body2" sx={{ mb: 1 }}>
-          Tour Details
-        </Typography>
-
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={3}>
+        <Grid container spacing={1} alignItems="center" wrap="nowrap" sx={{ mb: 2 }}>
+          <Grid item xs={12} sm="auto" sx={{ width: { sm: '150px' } }}>
             <TextField
-              label="From Date"
+              label={<RequiredLabel>Place To Go</RequiredLabel>}
+              name="destination"
+              value={formData.destination}
+              onChange={handleChange}
+              fullWidth
+              size="small"
+              sx={requiredStyle}
+            />
+          </Grid>
+          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
+            <TextField
+              label={<RequiredLabel>Out Time</RequiredLabel>}
               name="tour_from_date"
-              type="date"
+              type="datetime-local"
               value={formData.tour_from_date}
               onChange={handleChange}
               fullWidth
               size="small"
+              sx={requiredStyle}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
             <TextField
-              label="To Date"
+              label="In Time"
               name="tour_to_date"
-              type="date"
+              type="datetime-local"
               value={formData.tour_to_date}
               onChange={handleChange}
               fullWidth
@@ -222,34 +210,32 @@ const TourForm = () => {
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={6} sm="auto" sx={{ width: { sm: '100px' } }}>
             <TextField
-              label="Estimated Amount"
+              label="Est. Amt"
               name="estimated_amount"
-              type="number"
               value={formData.estimated_amount}
               onChange={handleChange}
               fullWidth
               size="small"
-              InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
             />
           </Grid>
-        </Grid>
-
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12}>
+          <Grid item xs={6} sm sx={{ flexGrow: 1 }}>
             <TextField
-              label="Destination"
-              name="destination"
-              value={formData.destination}
+              label="Remarks"
+              name="remarks"
+              value={formData.remarks}
               onChange={handleChange}
               fullWidth
               size="small"
             />
           </Grid>
-          <Grid item xs={12}>
+        </Grid>
+
+        <Grid container spacing={2} mt={2}>
+          <Grid item xs={12} style={{ width: '100%' }}>
             <TextField
-              label="Purpose"
+              label={<RequiredLabel>Purpose Of Tour</RequiredLabel>}
               name="purpose"
               value={formData.purpose}
               onChange={handleChange}
@@ -257,16 +243,22 @@ const TourForm = () => {
               size="small"
               multiline
               rows={2}
+              inputProps={{ maxLength: 200 }}
+              sx={requiredStyle}
+              style={{ width: '100%' }}
+              helperText={`${formData.purpose?.length || 0}/200 characters`}
+              FormHelperTextProps={{ sx: { bgcolor: '#fffde7', padding: '2px 8px', borderRadius: 1 } }}
             />
           </Grid>
         </Grid>
 
-        <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
+        <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '8px' }}>
           <Button variant="outlined" onClick={() => setShowPreview(true)}>Preview</Button>
-          <Button variant="outlined" color="primary" onClick={() => navigate('/tour')}>Close</Button>
-          <Button variant="contained" color="primary" onClick={saveTour}>Save</Button>
-        </Box>
-      </Box>
+          <button className="save-btn" onClick={saveTour} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+            Save
+          </button>
+        </div>
+      </div>
 
       {showEmpPopup && (
         <EmployeeSelectDialog

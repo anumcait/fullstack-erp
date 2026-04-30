@@ -1,33 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
 import LeaveReport from "./LeaveReport";
 import './LeaveDashboard.css';
-import LeaveForm from "./LeaveForm";
 import LeaveMaster from "./LeaveMaster";
 import LeaveApproval from "./LeaveApproval";
 import TestApplication from "./TestApplication";
 
 const LeaveDashboard = () => {
-  const userRole = localStorage.getItem('userRole');
-  const userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
-
-  const hasPermission = (perm) => {
-    if (userRole === 'ADMIN') return true;
-    return userPermissions.includes(perm);
-  };
-
-  const allActions = [
-    { label: "New", value: "new", permission: 'HR_LEAVE_APP' },
-    { label: "Leave Report", value: "report", permission: 'HR_LEAVE_APP' },
-    { label: "Leave Master", value: "master", permission: 'HR_LEAVE_MASTER' },
-    { label: "Leave Approval", value: "approval", permission: 'HR_LEAVE_APPROVE' },
-    { label: "Export", value: "export", permission: 'HR_LEAVE_APP' }
-  ];
-
-  const actions = allActions.filter(action => hasPermission(action.permission));
-  const [selectedAction, setSelectedAction] = useState(actions[0]?.value || "report");
+  const [selectedAction, setSelectedAction] = useState("report");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  
+
+  const actions = [
+    { label: "New Application", value: "new" },
+    { label: "View List", value: "report" },
+    { label: "Leave Master", value: "master" },
+    { label: "Approval", value: "approval" },
+    { label: "Export", value: "export" }
+  ];
+
   const handleMenuClick = (action) => {
     setSelectedAction(action);
     setDropdownOpen(false);
@@ -64,11 +54,10 @@ const LeaveDashboard = () => {
       </div>
 
       <div className="leave-dashboard-content">
-        {selectedAction === "new" && <LeaveForm />}
-        {selectedAction === "report" && <LeaveReport />}
+        {selectedAction === "report" && <LeaveReport onNewEntry={() => setSelectedAction("new")} />}
+        {selectedAction === "new" && <TestApplication onClose={() => setSelectedAction("report")} />}
         {selectedAction === "master" && <LeaveMaster />}
         {selectedAction === "approval" && <LeaveApproval />}
-        {selectedAction === "test" && <TestApplication />}
         {selectedAction === "export" && <p style={{ padding: "20px" }}>📤 Please use export buttons inside the report.</p>}
       </div>
     </div>

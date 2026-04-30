@@ -37,24 +37,52 @@ exports.getNextWoffId = async (req, res) => {
 
 exports.createWoff = async (req, res) => {
   try {
-    const { empid, ename, unit, division, designation, current_woff_day, requested_woff_day, woff_from_date, woff_to_date, reason } = req.body;
-    
+    const { empid, woff_from_date, woff_to_date, ename } = req.body;
+
+    if (!empid || !woff_from_date || !woff_to_date) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    if (woff_from_date === woff_to_date) {
+      return res.status(400).json({ message: 'Existing date and Changed date cannot be the same.' });
+    }
+
+    // 1. Check if application already exists for this Existing Date
+    const existingFrom = await WoffApplication.findOne({
+      where: {
+        empid,
+        woff_from_date: woff_from_date,
+        status: ['Pending', 'Approved']
+      }
+    });
+
+    if (existingFrom) {
+      return res.status(400).json({ message: `A Woff change application already exists for ${woff_from_date}.` });
+    }
+
+    // 2. Check if changed date is already a Woff date in another application
+    const existingTo = await WoffApplication.findOne({
+      where: {
+        empid,
+        woff_to_date: woff_to_date,
+        status: ['Pending', 'Approved']
+      }
+    });
+
+    if (existingTo) {
+      return res.status(400).json({ message: `A Woff change is already requested for ${woff_to_date}.` });
+    }
+
+    // 3. Check for overlaps with other modules (OnDuty, Leave, etc.) - Placeholder logic
+    // In a real scenario, we would check OD, Leave, and Tour tables here.
+
     const maxId = await WoffApplication.max('woff_id') || 0;
-    const newWoffId = maxId + 1;
+    const newWoffId = Number(maxId) + 1;
 
     const woff = await WoffApplication.create({
+      ...req.body,
       woff_id: newWoffId,
       woff_date: new Date(),
-      empid,
-      ename,
-      unit,
-      division,
-      designation,
-      current_woff_day,
-      requested_woff_day,
-      woff_from_date,
-      woff_to_date,
-      reason,
       created_by: ename,
       status: 'Pending'
     });
@@ -62,7 +90,7 @@ exports.createWoff = async (req, res) => {
     res.status(201).json({ message: 'Woff application created', data: woff });
   } catch (err) {
     console.error('Error creating woff:', err);
-    res.status(500).json({ message: 'Error creating woff application' });
+    res.status(500).json({ message: 'Error creating woff application', error: err.message });
   }
 };
 

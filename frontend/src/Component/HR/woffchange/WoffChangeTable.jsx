@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import WoffChangePreview from "./WoffChangePreview";
 import SmartTable from "../../Common/SmartTable";
+import { formatDateOnly } from "../../../utils/dateUtils";
 
-const WoffChangeTable = () => {
+const WoffChangeTable = ({ onNewEntry }) => {
   const [data, setData] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -16,6 +17,9 @@ const WoffChangeTable = () => {
           sno: index + 1,
           _expanded: false,
           ...row,
+          woff_date: formatDateOnly(row.woff_date),
+          woff_from_date: formatDateOnly(row.woff_from_date),
+          woff_to_date: formatDateOnly(row.woff_to_date),
         }));
         setData(formatted);
       } catch (err) {
@@ -54,6 +58,25 @@ const WoffChangeTable = () => {
         title="Woff Change List"
         columns={columns}
         data={data}
+        headerAction={
+          onNewEntry && (
+            <button
+              onClick={onNewEntry}
+              style={{
+                padding: '6px 14px',
+                background: '#1976d2',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
+              + Woff Change Application
+            </button>
+          )
+        }
         onPreview={(row) => {
           setSelectedRecord(row);
           setShowPreview(true);

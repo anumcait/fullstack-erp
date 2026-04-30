@@ -142,7 +142,7 @@ const Sidebar = () => {
                 </NavLink>
               </li>
             )}
-            
+
             {(hasPermission('ACC_INV_SALES') || hasPermission('ACC_INV_PURCH') || hasPermission('ACC_INV_DEBIT') || hasPermission('ACC_INV_CREDIT')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "accInv" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("accInv")}><FiShoppingCart /> {!collapsed && <span>Invoicing</span>}</div>
@@ -183,7 +183,7 @@ const Sidebar = () => {
                 </NavLink>
               </li>
             )}
-            
+
             {(hasPermission('HR_EMP_MASTER') || hasPermission('HR_SHIFT_MASTER') || hasPermission('HR_HOLIDAY_MASTER') || hasPermission('HR_LEAVE_MASTER')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "hrMaster" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrMaster")}><FiUsers /> {!collapsed && <span>Master Data</span>}</div>
@@ -231,9 +231,9 @@ const Sidebar = () => {
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrTrans")}><FiRefreshCw /> {!collapsed && <span>Transactions</span>}</div>
                 {openSubmenu === "hrTrans" && (
                   <ul className="sidebar-submenu">
-                    {hasPermission('HR_LEAVE_APP') && <SubItem to="/leave" label="Leave Applications" icon={FiBriefcase} />}
-                    {hasPermission('HR_ONDUTY') && <SubItem to="/onduty" label="On-Duty Requests" icon={FiMapPin} />}
-                    {hasPermission('HR_TOUR') && <SubItem to="/tour" label="Tour Applications" icon={FiTruck} />}
+                    {hasPermission('HR_LEAVE_APP') && <SubItem to="/leave" label="Leave Application" icon={FiBriefcase} />}
+                    {hasPermission('HR_ONDUTY') && <SubItem to="/onduty" label="On-Duty" icon={FiMapPin} />}
+                    {hasPermission('HR_TOUR') && <SubItem to="/tour" label="Tour" icon={FiTruck} />}
                     {hasPermission('HR_SHIFT_CHG') && <SubItem to="/shiftchange" label="Shift Change" icon={FiRefreshCw} />}
                     {hasPermission('HR_WOFF_CHG') && <SubItem to="/woffchange" label="Weekly Off Change" icon={FiCalendar} />}
                   </ul>

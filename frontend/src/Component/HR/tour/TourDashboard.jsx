@@ -21,7 +21,7 @@ const TourDashboard = () => {
   ];
 
   const actions = allActions.filter(action => hasPermission(action.permission));
-  const [selectedAction, setSelectedAction] = useState(actions[0]?.value || "table");
+  const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -69,8 +69,8 @@ const TourDashboard = () => {
       </div>
 
       <div className="shift-dashboard-content">
-        {selectedAction === "table" && <TourTable />}
-        {selectedAction === "new" && <TourForm />}
+        {selectedAction === "table" && <TourTable onNewEntry={() => setSelectedAction("new")} />}
+        {selectedAction === "new" && <TourForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <TourApproval />}
       </div>
     </div>

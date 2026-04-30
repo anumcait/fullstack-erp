@@ -382,7 +382,7 @@ const generateDays = (from, to, daytype) => {
 
   /** ---------- UI ---------- */
   return (
-    <Box sx={{ p: 3, bgcolor: "#f5f7fa", minHeight: "100vh" }}>
+    <Box sx={{ p: 1, bgcolor: "#f5f7fa", minHeight: "100vh" }}>
       <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>
         Leave Approval
       </Typography>

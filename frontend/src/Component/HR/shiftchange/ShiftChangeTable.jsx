@@ -3,7 +3,7 @@ import axios from "axios";
 import ShiftChangePreview from "./ShiftChangePreview";
 import SmartTable from "../../Common/SmartTable";
 
-const ShiftChangeTable = () => {
+const ShiftChangeTable = ({ onNewEntry }) => {
   const [data, setData] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -53,6 +53,25 @@ const ShiftChangeTable = () => {
         title="Shift Change List"
         columns={columns}
         data={data}
+        headerAction={
+          onNewEntry && (
+            <button
+              onClick={onNewEntry}
+              style={{
+                padding: '6px 14px',
+                background: '#1976d2',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
+              + Shift Change Application
+            </button>
+          )
+        }
         onPreview={(row) => {
           setSelectedRecord(row);
           setShowForm(true);

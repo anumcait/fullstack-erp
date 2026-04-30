@@ -48,18 +48,27 @@ const ESILeaveTable = () => {
     { header: "Reason", field: "reason", expandable: true },
   ];
 
+  const handleNew = () => {
+    window.location.href = '/esileave?action=new';
+  };
+
   return (
     <>
-      <SmartTable
-        title="ESI Leave List"
-        columns={columns}
-        data={data}
-        onPreview={(row) => {
-          setSelectedRecord(row);
-          setShowForm(true);
-        }}
-        onToggleExpand={handleExpand}
-      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+        <button onClick={handleNew} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+          + New
+        </button>
+      </div>
+       <SmartTable
+         title="ESI Leave List"
+         columns={columns}
+         data={data}
+         onPreview={(row) => {
+           setSelectedRecord(row);
+           setShowForm(true);
+         }}
+         onToggleExpand={handleExpand}
+       />
 
       {showForm && (
         <ESILeavePreview data={selectedRecord} onClose={() => setShowForm(false)} />

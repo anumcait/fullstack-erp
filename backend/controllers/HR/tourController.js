@@ -65,10 +65,10 @@ exports.createTour = async (req, res) => {
       division,
       designation,
       tour_from_date,
-      tour_to_date,
+      tour_to_date: tour_to_date && tour_to_date !== '' ? tour_to_date : null,
       purpose,
       destination,
-      estimated_amount,
+      estimated_amount: estimated_amount || null,
       created_by: ename,
       status: 'Pending'
     });

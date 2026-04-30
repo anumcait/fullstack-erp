@@ -36,7 +36,7 @@ const LeavePreview = ({ data, onClose }) => {
     );
   }
 
-  if (error || !data) {
+  if (error || !data || (!loading && !leaveData)) {
     return (
       <div className="leave-preview">
         <p>{error || "No leave data found."}</p>
@@ -75,7 +75,7 @@ const LeavePreview = ({ data, onClose }) => {
     reportDate = "",
     leaves = [],
     leavesApplied ="",
-  }  = leaveData;
+  }  = leaveData || {};
 
 
   return (

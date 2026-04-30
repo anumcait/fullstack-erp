@@ -10,6 +10,7 @@ const isAuthenticated = (req, res, next) => {
 //router.get('/hr-summary', isAuthenticated, hrSummary);
 router.get('/hr-summary',  hrSummary);
 router.get('/manager-summary', isAuthenticated, managerSummary);
-router.get('/employee-summary', isAuthenticated, employeeSummary);
+// Temporarily disabled auth to debug - empid from query param
+router.get('/employee-summary', employeeSummary);
 
 module.exports = router;

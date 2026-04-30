@@ -670,3 +670,163 @@ exports.bulkUpdateSalaries = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// ===================== Photo Upload =====================
+exports.uploadPhoto = async (req, res) => {
+  const { empid } = req.params;
+  const { photo, fileName, mimeType } = req.body;
+
+  if (!photo) {
+    return res.status(400).json({ error: 'Photo data is required' });
+  }
+
+  try {
+    const employee = await EmployeeMaster.findOne({ where: { empid } });
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    const photoBuffer = Buffer.from(photo, 'base64');
+
+    await employee.update({
+      photo_blob: photoBuffer,
+      img_name: fileName || 'photo.jpg',
+      img_mimetype: mimeType || 'image/jpeg',
+      img_lastupd: new Date(),
+    });
+
+    res.json({ message: 'Photo uploaded successfully' });
+  } catch (error) {
+    console.error('Error uploading photo:', error);
+    res.status(500).json({ error: 'Failed to upload photo' });
+  }
+};
+
+// ===================== Get Photo =====================
+exports.getPhoto = async (req, res) => {
+  const { empid } = req.params;
+  try {
+    const employee = await EmployeeMaster.findOne({
+      where: { empid },
+      attributes: ['photo_blob', 'img_name', 'img_mimetype'],
+    });
+
+    if (!employee || !employee.photo_blob) {
+      return res.json({ photo: null });
+    }
+
+    const base64Photo = employee.photo_blob.toString('base64');
+    res.json({
+      photo: base64Photo,
+      fileName: employee.img_name,
+      mimeType: employee.img_mimetype || 'image/jpeg',
+    });
+  } catch (error) {
+    console.error('Error getting photo:', error);
+    res.status(500).json({ error: 'Failed to get photo' });
+  }
+};
+
+// ===================== Delete Photo =====================
+exports.deletePhoto = async (req, res) => {
+  const { empid } = req.params;
+  try {
+    const employee = await EmployeeMaster.findOne({ where: { empid } });
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    await employee.update({
+      photo_blob: null,
+      img_name: null,
+      img_mimetype: null,
+      img_lastupd: null,
+    });
+
+    res.json({ message: 'Photo removed successfully' });
+  } catch (error) {
+    console.error('Error deleting photo:', error);
+    res.status(500).json({ error: 'Failed to delete photo' });
+  }
+};
+
+// ===================== Update Profile (Address & Phone) =====================
+exports.updateProfile = async (req, res) => {
+  const empId = req.session?.user?.empid;
+  if (!empId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { commAddress, permAddress, sameAsComm } = req.body;
+
+  try {
+    const employee = await EmployeeMaster.findOne({ where: { empid: empId } });
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    const updateData = {};
+
+    if (commAddress) {
+      if (commAddress.street !== undefined) updateData.cadd_sa = commAddress.street;
+      if (commAddress.city !== undefined) updateData.cadd_city = commAddress.city;
+      if (commAddress.state !== undefined) updateData.cadd_state = commAddress.state;
+      if (commAddress.phone !== undefined) updateData.cadd_phone = commAddress.phone;
+      if (commAddress.mobile !== undefined) updateData.cadd_mobile = commAddress.mobile;
+      if (commAddress.pin !== undefined) updateData.cadd_pin = commAddress.pin;
+      if (commAddress.email !== undefined) updateData.cadd_email = commAddress.email;
+    }
+
+    if (sameAsComm && commAddress) {
+      updateData.padd_sa = commAddress.street || null;
+      updateData.padd_city = commAddress.city || null;
+      updateData.padd_state = commAddress.state || null;
+      updateData.padd_phone = commAddress.phone || null;
+      updateData.padd_mobile = commAddress.mobile || null;
+      updateData.padd_pin = commAddress.pin || null;
+      updateData.padd_email = commAddress.email || null;
+    } else if (permAddress) {
+      if (permAddress.street !== undefined) updateData.padd_sa = permAddress.street;
+      if (permAddress.city !== undefined) updateData.padd_city = permAddress.city;
+      if (permAddress.state !== undefined) updateData.padd_state = permAddress.state;
+      if (permAddress.phone !== undefined) updateData.padd_phone = permAddress.phone;
+      if (permAddress.mobile !== undefined) updateData.padd_mobile = permAddress.mobile;
+      if (permAddress.pin !== undefined) updateData.padd_pin = permAddress.pin;
+      if (permAddress.email !== undefined) updateData.padd_email = permAddress.email;
+    }
+
+    await employee.update(updateData);
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
+// ===================== Get Profile =====================
+exports.getProfile = async (req, res) => {
+  const empId = req.session?.user?.empid;
+  if (!empId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  try {
+    const employee = await EmployeeMaster.findOne({
+      where: { empid: empId },
+      attributes: [
+        'empid', 'ename', 'fname', 'dob', 'gender', 'deptname', 'secname', 'divname',
+        'cadd_sa', 'cadd_city', 'cadd_state', 'cadd_phone', 'cadd_mobile', 'cadd_pin', 'cadd_email',
+        'padd_sa', 'padd_city', 'padd_state', 'padd_phone', 'padd_mobile', 'padd_pin', 'padd_email',
+      ],
+    });
+
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.json(employee);
+  } catch (error) {
+    console.error('Error getting profile:', error);
+    res.status(500).json({ error: 'Failed to get profile' });
+  }
+};

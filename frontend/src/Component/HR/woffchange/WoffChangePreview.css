@@ -1,22 +1,28 @@
 .onduty-print-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.3);
   z-index: 9999;
-  overflow-y: auto;
-  display: flex;
   justify-content: center;
-  align-items: center;
+  display: block; 
+  text-align: center;
+  font-size: 8px;
 }
 
 .onduty-print-container {
   background: #fff;
   width: 90%;
   max-width: 750px;
-  padding: 20px;
-  font-family: 'Arial', sans-serif;
-  font-size: 8px;
+  padding:  20px;
+  font-family: 'Arial', sans-serif; 
   color: #000;
+  display: inline-block; 
+  margin-top: 20px; 
+  text-align: left; 
+  font-size: 11px !important;
 }
 
 .onduty-print-header {
@@ -29,11 +35,12 @@
 }
 
 .onduty-logo {
-  height: 30px;
+  height: 40px;
 }
 
 .onduty-company-title {
   text-align: center;
+  flex-grow: 1;
   font-weight: bold;
   font-size: 14px;
   line-height: 1.2;
@@ -46,87 +53,94 @@
   margin-top: 2px;
 }
 
-.onduty-status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.status-pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status-approved {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-rejected {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.onduty-details-table {
+.onduty-field-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
+  font-size: 11px;
 }
 
-.onduty-details-table td {
-  padding: 8px;
-  border: 1px solid #000;
+.onduty-field-table td {
+  padding: 4px 6px;
+  vertical-align: top;
 }
 
-.label-cell {
+.label {
+  width: 100px;
   font-weight: bold;
-  background: #f5f5f5;
-  width: 25%;
+  white-space: nowrap;
 }
 
-.value-cell {
-  width: 25%;
-}
-
-.onduty-signature-section {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 30px;
-}
-
-.signature-box {
+.colon {
+  width: 10px;
   text-align: center;
-  width: 30%;
 }
 
-.signature-line {
-  border-top: 1px solid #000;
-  margin-top: 30px;
-  height: 30px;
+.value {
+  width: auto;
+  font-weight: 500;
 }
 
-.onduty-print-actions {
+.onduty-signature-grid {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: center;
+}
+
+.onduty-signature-grid td {
+  border: none;
+  vertical-align: top;
+  text-align: left;
+  padding: 10px;
+  width: 20%;
+}
+
+.onduty-note {
+  font-size: 10px;
+  font-weight: bold;
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 5px;
+}
+
+.onduty-actions {
+  margin-top: 20px;
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-top: 20px;
 }
 
-.print-btn, .close-btn {
-  padding: 10px 30px;
+.onduty-actions button {
+  background-color: #007bff;
+  color: white;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 8px 16px;
   font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
 }
 
-.print-btn {
-  background: #1976d2;
-  color: white;
+.onduty-actions button:hover {
+  background-color: #0056b3;
 }
 
-.close-btn {
-  background: #dc3545;
-  color: white;
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .onduty-print-container, .onduty-print-container * {
+    visibility: visible;
+  }
+  .onduty-print-overlay {
+    position: static;
+    background: none;
+  }
+  .onduty-actions.no-print {
+    display: none;
+  }
 }

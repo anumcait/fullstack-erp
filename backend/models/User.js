@@ -30,6 +30,9 @@ module.exports = (sequelize, DataTypes) => {
     last_login: {
       type: DataTypes.DATE
     },
+    previous_login: {
+      type: DataTypes.DATE
+    },
     login_count: {
       type: DataTypes.INTEGER,
       defaultValue: 0

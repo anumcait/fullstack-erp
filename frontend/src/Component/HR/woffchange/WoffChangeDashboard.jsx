@@ -40,15 +40,15 @@ const WoffChangeDashboard = () => {
   }, [dropdownOpen]);
 
   return (
-    <div className="shift-dashboard-container">
-      <div className="shift-dashboard-header">
-        <h2 className="shift-dashboard-title">Woff Change Dashboard</h2>
-        <div className="shift-dropdown-wrapper" ref={dropdownRef}>
-          <button className="shift-dropdown-toggle" onClick={() => setDropdownOpen(!dropdownOpen)}>
+    <div className="woff-dashboard-container">
+      <div className="woff-dashboard-header">
+        <h2 className="woff-dashboard-title">Woff Change Dashboard</h2>
+        <div className="woff-dropdown-wrapper" ref={dropdownRef}>
+          <button className="woff-dropdown-toggle" onClick={() => setDropdownOpen(!dropdownOpen)}>
             ☰
           </button>
           {dropdownOpen && (
-            <ul className="shift-dropdown-menu">
+            <ul className="woff-dropdown-menu">
               {actions.map((action) => (
                 <li key={action.value} onClick={() => handleMenuClick(action.value)}>
                   {action.label}
@@ -59,9 +59,9 @@ const WoffChangeDashboard = () => {
         </div>
       </div>
 
-      <div className="shift-dashboard-content">
-        {selectedAction === "table" && <WoffChangeTable />}
-        {selectedAction === "new" && <WoffChangeForm />}
+      <div className="woff-dashboard-content">
+        {selectedAction === "table" && <WoffChangeTable onNewEntry={() => setSelectedAction("new")} />}
+        {selectedAction === "new" && <WoffChangeForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <WoffApproval />}
       </div>
     </div>

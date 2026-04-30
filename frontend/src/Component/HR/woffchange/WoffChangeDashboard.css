@@ -1,28 +1,27 @@
-.shift-dashboard-container {
-  padding: 20px;
-  background: #f9f9f9;
-}
+.woff-dashboard-container {
+   padding: 10px;
+ }
 
-.shift-dashboard-header {
+.woff-dashboard-header {
   display: flex;
   justify-content: left;
   align-items: center;
-  padding: 10px 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
 }
 
-.shift-dashboard-title {
-  font-size: 20px;
+.woff-dashboard-title {
+  font-size: 16px;
   font-weight: bold;
   margin: 0;
 }
 
-.shift-dropdown-wrapper {
+.woff-dropdown-wrapper {
   position: relative;
 }
 
-.shift-dropdown-toggle {
+.woff-dropdown-toggle {
   background: none;
   border: none;
   color: #0088bb;
@@ -33,12 +32,12 @@
   outline: none;
 }
 
-.shift-dropdown-toggle:focus {
+.woff-dropdown-toggle:focus {
   outline: none;
   box-shadow: none;
 }
 
-.shift-dropdown-menu {
+.woff-dropdown-menu {
   position: absolute;
   left: 0;
   top: 100%;
@@ -49,11 +48,15 @@
   z-index: 1000;
 }
 
-.shift-dropdown-menu li {
+.woff-dropdown-menu li {
   padding: 10px;
   cursor: pointer;
 }
 
-.shift-dropdown-menu li:hover {
+.woff-dropdown-menu li:hover {
   background-color: #f0f0f0;
+}
+
+.woff-dashboard-content {
+  overflow-x: hidden;
 }

@@ -5,10 +5,14 @@ import {
 import { FiSettings, FiUser, FiShield } from 'react-icons/fi';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SecurityIcon from '@mui/icons-material/Security';
-
+import PersonIcon from '@mui/icons-material/Person';
+import { Avatar } from '@mui/material';
+import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './Header.css';
 import logo from "../../assets/images/EQIC_Image.jpg";
+
+const API = import.meta.env.VITE_API_URL || "";
 
 const Header = () => {
   const [userName, setUserName] = useState('Guest');
@@ -16,6 +20,7 @@ const Header = () => {
   const [currentDate, setCurrentDate] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [userPhoto, setUserPhoto] = useState(null);
   const settingsRef = useRef(null);
 
   const navigate = useNavigate();
@@ -42,6 +47,20 @@ const Header = () => {
       weekday: 'long', year: 'numeric', month: 'short', day: 'numeric',
     });
     setCurrentDate(formattedDate);
+
+    const fetchUserPhoto = async () => {
+      const empId = localStorage.getItem('empId');
+      if (!empId) return;
+      try {
+        const res = await axios.get(`${API}/api/employees/${empId}/photo`, { withCredentials: true });
+        if (res.data?.photo) {
+          setUserPhoto(`data:${res.data.mimeType || 'image/jpeg'};base64,${res.data.photo}`);
+        }
+      } catch (err) {
+        console.error('Error fetching user photo:', err);
+      }
+    };
+    fetchUserPhoto();
   }, []);
 
   const handleLogout = () => {
@@ -74,6 +93,7 @@ const Header = () => {
             { label: 'Employee Master', path: '/employees' },
             { label: 'Add New Employee', path: '/add-employee' },
             { label: 'Photo Upload', path: '/photo' },
+            { label: 'Profile Requests', path: '/profile-requests' },
             { label: 'Shift Master', path: '/shift-master' },
             { label: 'Holiday Master', path: '/holidays' },
             { label: 'Leaves Master', path: '/leaves-master' }
@@ -394,9 +414,22 @@ const Header = () => {
         </div>
 
         <div className="user-section">
-          <div className="user-meta desktop-only">
-            <span className="user-name">{userName}</span>
-            <span className="date-display">{currentDate}</span>
+          <div className="user-meta desktop-only" style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {userPhoto ? (
+              <Avatar 
+                src={userPhoto} 
+                alt={userName} 
+                sx={{ width: 32, height: 32 }} 
+              />
+            ) : (
+              <Avatar sx={{ width: 32, height: 32, bgcolor: '#1976d2' }}>
+                <PersonIcon />
+              </Avatar>
+            )}
+            <div style={{ marginLeft: 8, display: 'flex', flexDirection: 'column' }}>
+              <span className="user-name">{userName}</span>
+              <span className="date-display">{currentDate}</span>
+            </div>
           </div>
 
           <div className="action-icons">
@@ -412,7 +445,7 @@ const Header = () => {
               {isSettingsOpen && (
                 <div className="settings-dropdown">
                   <div className="dropdown-header">Quick Settings</div>
-                  <Link to="/settings" className="dropdown-item" onClick={() => setIsSettingsOpen(false)}>
+                  <Link to="/profile" className="dropdown-item" onClick={() => setIsSettingsOpen(false)}>
                     <FiUser style={{ marginRight: '10px' }} /> Profile Settings
                   </Link>
                   {userRole === 'ADMIN' && (

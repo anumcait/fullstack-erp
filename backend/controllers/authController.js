@@ -34,9 +34,12 @@ exports.login = async (req, res) => {
       ename: user.employee?.ename || 'Guest'
     };
 
-    // Update login metadata
+    // Update login metadata - save local time instead of UTC
+    const now = new Date();
+    const localTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
     await user.update({
-      last_login: new Date(),
+      previous_login: user.last_login,
+      last_login: localTime,
       login_count: user.login_count + 1
     });
 

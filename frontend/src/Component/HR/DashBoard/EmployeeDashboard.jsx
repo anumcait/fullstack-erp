@@ -13,6 +13,15 @@ import {
 import ChatBotIcon from "../../ChatBot/ChatBotIcon";
 const API = import.meta.env.VITE_API_URL || "";
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "N/A";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "N/A";
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${day}-${months[date.getMonth()]}-${date.getFullYear()}`;
+};
+
 const EmployeeDashboard = () => {
   const [summary, setSummary] = useState({
     attendanceToday: "",
@@ -26,17 +35,25 @@ const EmployeeDashboard = () => {
   });
 
   const empName = localStorage.getItem("empName") || "Employee";
+  const empId = localStorage.getItem("empId") || "";
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchSummary = async () => {
       try {
+        console.log("Fetching dashboard summary for empId:", empId);
         const res = await axios.get(`${API}/api/dashboard/employee-summary`, {
           withCredentials: true,
+          params: empId ? { empid: empId } : {},
         });
-        setSummary(res.data);
+        console.log("Dashboard summary response:", res.data);
+        if (res.data) {
+          setSummary(prev => ({ ...prev, ...res.data }));
+        }
       } catch (err) {
         console.error("Error fetching summary:", err);
+        setError(err.response?.data?.message || err.message || 'Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
@@ -50,6 +67,17 @@ const EmployeeDashboard = () => {
         <p className="text-gray-600 text-lg animate-pulse">
           Loading your dashboard...
         </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <p className="text-red-600 text-lg mb-2">Error loading dashboard</p>
+          <p className="text-gray-500 text-sm">{error}</p>
+        </div>
       </div>
     );
   }
@@ -118,9 +146,9 @@ const EmployeeDashboard = () => {
         <SummaryCard
           title="Upcoming Holiday"
           icon={<FaUserClock className="text-pink-500 text-2xl" />}
-          value={summary.upcomingHoliday || "None"}
+          value={summary.upcomingHoliday?.includes('(') ? summary.upcomingHoliday.split('(')[0].trim() : (summary.upcomingHoliday || "None")}
           color="text-pink-600"
-          subtitle="Next company holiday"
+          subtitle={summary.upcomingHoliday?.includes('(') ? summary.upcomingHoliday.match(/\((.*)\)/)?.[1] : "Next company holiday"}
         />
 
         {/* Latest Payslip */}
@@ -181,98 +209,3 @@ const SummaryCard = ({ title, icon, value, color, subtitle }) => (
 
 export default EmployeeDashboard;
 
-
-// import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
-// import ChatBotIcon from "../../ChatBot/ChatBotIcon";
-
-// const EmployeeDashboard = () => {
-//   const [summary, setSummary] = useState({
-//     attendanceToday: '',
-//     leaveBalance: 0,
-//     latestPayslip: ''
-//   });
-
-//   const empName = localStorage.getItem('empName') || 'Employee';
-
-//   useEffect(() => {
-//     axios.get('/api/dashboard/employee-summary', { withCredentials: true })
-//       .then(res => setSummary(res.data))
-//       .catch(err => console.error(err));
-//   }, []);
-
-//   return (
-//     <div className="p-6">
-//       <h1 className="text-3xl font-bold mb-4">Welcome, {empName}</h1>
-
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-//         <div className="bg-white shadow-md p-4 rounded-xl">
-//           <h3 className="text-gray-600">Attendance Today</h3>
-//           <p className="text-2xl font-semibold text-green-500">{summary.attendanceToday}</p>
-//         </div>
-
-//         <div className="bg-white shadow-md p-4 rounded-xl">
-//           <h3 className="text-gray-600">Leave Balance</h3>
-//           <p className="text-2xl font-semibold text-blue-500">{summary.leaveBalance}</p>
-//         </div>
-
-//         <div className="bg-white shadow-md p-4 rounded-xl">
-//           <h3 className="text-gray-600">Latest Payslip</h3>
-//           <p className="text-2xl font-semibold text-orange-500">{summary.latestPayslip}</p>
-//         </div>
-//       </div>
-
-//       <div className="mt-8 flex gap-4">
-//         <button className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md">Apply Leave</button>
-//         <button className="bg-gray-200 px-4 py-2 rounded-lg shadow-md">Download Payslip</button>
-//       </div>
-//        <ChatBotIcon />
-//     </div>
-    
-//   );
-// };
-
-// export default EmployeeDashboard;
-
-// import React from "react";
-// import { FaUser, FaCalendarAlt, FaPlaneDeparture, FaClipboardList } from "react-icons/fa";
-// import "./Dashboard.css";
-
-// const EmployeeDashboard = () => {
-//   const empName = localStorage.getItem("empName");
-
-//   return (
-//     <div className="dashboard-container">
-//       <h2 className="dashboard-title">Welcome, {empName}</h2>
-//       <p className="dashboard-subtitle">Employee Self-Service Portal</p>
-
-//       <div className="dashboard-grid">
-//         <div className="dashboard-card">
-//           <FaCalendarAlt className="dashboard-icon" />
-//           <h4>Apply Leave</h4>
-//           <p>Submit your leave applications.</p>
-//         </div>
-
-//         <div className="dashboard-card">
-//           <FaPlaneDeparture className="dashboard-icon" />
-//           <h4>Tour Application</h4>
-//           <p>Apply for company tours or visits.</p>
-//         </div>
-
-//         <div className="dashboard-card">
-//           <FaClipboardList className="dashboard-icon" />
-//           <h4>On Duty</h4>
-//           <p>Apply for official on-duty requests.</p>
-//         </div>
-
-//         <div className="dashboard-card">
-//           <FaUser className="dashboard-icon" />
-//           <h4>Profile</h4>
-//           <p>View and update your employee profile.</p>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default EmployeeDashboard;

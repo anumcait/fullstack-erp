@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import {
-  InputAdornment, TextField, Typography, Button, FormControl, Select, MenuItem,Divider, 
-  Grid, Box, Dialog
-} from '@mui/material';
+import { Box, Typography, TextField, Grid, Button, Divider, InputAdornment, FormControl, Select, MenuItem, Stack, IconButton, InputLabel } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 import { useToast } from "../../../context/ToastContext";
 import axios from 'axios';
+import { formatDate } from "../../../utils/dateUtils";
 
-const ShiftChangeForm = () => {
+const RequiredLabel = ({ children }) => (
+  <span>
+    {children}
+    <span style={{ color: 'red', marginLeft: 2 }}>*</span>
+  </span>
+);
+
+const requiredStyle = {
+  backgroundColor: '#fffde7'
+};
+
+const ShiftChangeForm = ({ onClose }) => {
   const { showToast } = useToast();
-  // Mock: assign these dynamically from backend
+  const [shifts, setShifts] = useState([]);
+
   const getCurrentISTDateTime = () => {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -22,7 +33,7 @@ const ShiftChangeForm = () => {
   };
 
   const [formData, setFormData] = useState({
-    schange_no: '151031',            // Assigned from backend
+    schange_no: '151031',
     schange_date: getCurrentISTDateTime(),
     empid: '',
     empname: '',
@@ -44,17 +55,13 @@ const ShiftChangeForm = () => {
   const [showEmpPopup, setShowEmpPopup] = useState(false);
   const [employeeList, setEmployeeList] = useState([]);
 
-  // Call backend for employee list
   const openEmpPopup = async () => {
     const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
-     setEmployeeList(response.data);
-  setShowEmpPopup(true);
-  //  const data = await response.json();
-   // setEmployeeList(data);
-   // setShowEmpPopup(true);
+    setEmployeeList(response.data);
+    setShowEmpPopup(true);
   };
 
-    const selectEmployee = (emp) => {
+  const selectEmployee = (emp) => {
     setFormData({
       ...formData,
       empid: emp.empid,
@@ -66,44 +73,92 @@ const ShiftChangeForm = () => {
     setShowEmpPopup(false);
   };
 
-  // F9 keyboard shortcut
-useEffect(() => {
-  const handleKeyDown = (e) => {
-    if (e.key === "F9" || e.keyCode === 120) {
-      e.preventDefault();    // prevent any default action
-      setShowEmpPopup(true); // open employee popup
-    }
-  };
-
-  window.addEventListener("keydown", handleKeyDown);
-
-  return () => {
-    window.removeEventListener("keydown", handleKeyDown);
-  };
-}, []);
-
-  // Calculate hours automatically
   useEffect(() => {
-    if (formData.cha_start_time && formData.cha_end_time) {
-      const from = new Date(`1970-01-01T${formData.cha_start_time}`);
-      const to = new Date(`1970-01-01T${formData.cha_end_time}`);
-      let diff = (to - from) / 3600000;
-      if (diff < 0) diff += 24; // overnight
-      setFormData(prev => ({ ...prev, no_of_hrs: diff.toFixed(2) }));
+    const handleKeyDown = (e) => {
+      if (e.key === "F9" || e.keyCode === 120) {
+        e.preventDefault();
+        setShowEmpPopup(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => { fetchShifts(); fetchNextSchangeId(); }, []);
+
+  const fetchNextSchangeId = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/shift/next-id`);
+      setFormData(prev => ({ ...prev, schange_no: String(res.data.nextSchangeId) }));
+    } catch (err) {
+      console.error("Error fetching next ID:", err);
     }
-  }, [formData.cha_start_time, formData.cha_end_time]);
+  };
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const fetchShifts = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/shift/master/all`);
+      setShifts(res.data);
+    } catch (err) {
+      console.error("Error fetching shifts:", err);
+    }
+  };
 
-  // Save logic
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let updatedData = { ...formData, [name]: value };
+
+    if (name === 'schange_from' && value && updatedData.schange_to) {
+      const from = new Date(value);
+      const to = new Date(updatedData.schange_to);
+      const diffDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+      if (diffDays > 0) {
+        updatedData.no_of_hrs = String(diffDays);
+      }
+    }
+
+    if (name === 'schange_to' && value && updatedData.schange_from) {
+      const from = new Date(updatedData.schange_from);
+      const to = new Date(value);
+      const diffDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+      if (diffDays > 0) {
+        updatedData.no_of_hrs = String(diffDays);
+      }
+    }
+
+    setFormData(updatedData);
+
+    if (name === 'actual_shift' && value) {
+      const selectedShift = shifts.find(s => s.shift_cd === value);
+      if (selectedShift) {
+        setFormData(prev => ({
+          ...prev,
+          act_start_time: selectedShift.start_time ? selectedShift.start_time.slice(0, 5) : '',
+          act_end_time: selectedShift.end_time ? selectedShift.end_time.slice(0, 5) : ''
+        }));
+      }
+    }
+
+    if (name === 'change_shift' && value) {
+      const selectedShift = shifts.find(s => s.shift_cd === value);
+      if (selectedShift) {
+        setFormData(prev => ({
+          ...prev,
+          cha_start_time: selectedShift.start_time ? selectedShift.start_time.slice(0, 5) : '',
+          cha_end_time: selectedShift.end_time ? selectedShift.end_time.slice(0, 5) : ''
+        }));
+      }
+    }
+  };
+
   const saveShiftChange = async () => {
-    if (!formData.empid || !formData.actual_shift || !formData.change_shift) {
-      showToast("❌ Please fill all required fields.", "error");
+    if (!formData.empid || !formData.actual_shift || !formData.change_shift || !formData.purpose) {
+      showToast("Please fill all required fields.", "error");
       return;
     }
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/shift/save`, formData);
-      showToast(`✅ Shift Change Saved! ID: ${response.data.movement_id}`, "success");
+      showToast(`Shift Change Saved! ID: ${response.data.movement_id}`, "success");
       setFormData({
         schange_no: String(Number(formData.schange_no) + 1),
         schange_date: getCurrentISTDateTime(),
@@ -125,316 +180,202 @@ useEffect(() => {
       });
     } catch (err) {
       console.error("Save error:", err);
-      showToast("❌ Error saving Shift Change", "error");
+      showToast("Error saving Shift Change", "error");
     }
   };
 
   return (
-    <Box sx={{ p: 2, bgcolor: "#f5f7fa" }}>
-      <Box sx={{
-        maxWidth: 800, mx: "auto", bgcolor: "#fff",
-        borderRadius: 3, boxShadow: 3, mt: 1, px: 4, py: 3
-      }}>
-        <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
-          Shift Change Request
-        </Typography>
-        {/* Header info row */}
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={4}>
-            <Typography fontWeight={500}>
-              Shift Change No:&nbsp;
-              <span style={{ fontWeight: 700 }}>{formData.schange_no}</span>
-            </Typography>
+    <Box>
+      <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h6" fontWeight={700}>Shift Change Request</Typography>
+          <IconButton onClick={onClose}><CloseIcon /></IconButton>
+        </Stack>
+
+        <Box sx={{ mb: 2, display: 'flex', gap: 4, justifyContent: 'flex-start', alignItems: 'center' }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" color="text.secondary">Shift Change No:</Typography>
+            <Typography fontWeight={600}>{formData.schange_no}</Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" color="text.secondary">Date:</Typography>
+            <Typography fontWeight={600}>{formatDate(formData.schange_date)}</Typography>
+          </Box>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm="auto">
+            <TextField
+              label={<RequiredLabel>Emp Id</RequiredLabel>}
+              name="empid"
+              value={formData.empid}
+              onClick={openEmpPopup}
+              size="small"
+              placeholder="Select Employee"
+              fullWidth
+              sx={{ ...requiredStyle, width: { sm: '180px' } }}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={openEmpPopup}>
+                      <SearchIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
           </Grid>
-          <Grid item xs={8}>
-            <Typography fontWeight={500}>
-              Date:&nbsp; <span style={{ fontWeight: 700 }}>{formData.schange_date}</span>
-            </Typography>
+          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
+            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', width: '100%' }}>
+              <Typography fontWeight={600} variant="subtitle2">
+                Name: {formData.empname || "--"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Dept: {formData.department || "--"} • Desig: {formData.designation || "--"}
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
+
         <Divider sx={{ my: 2 }} />
-        {/* Employee Info */}
-        <Typography fontWeight={600} variant="body2" sx={{ mb: 1 }}>
-          Employee Details
-        </Typography>
-       <Grid container spacing={2} alignItems="center"  wrap="nowrap" sx={{ mb: 2 }}>
-  <Grid item sx={{ width: 140 }}>
-    {/* Emp ID smaller fixed width */}
-  <TextField
-  label="Emp ID *"
-  name="empid"
-  value={formData.empid}
-  size="small"
-  variant="outlined"
-  onClick={openEmpPopup}
-  InputProps={{
-    endAdornment: (
-      <InputAdornment position="end">
-        <SearchIcon onClick={openEmpPopup} style={{ cursor: 'pointer' }} />
-      </InputAdornment>
-    ),
-  }}
-  sx={{
-    '& .MuiOutlinedInput-notchedOutline': {
-      border: 'none',
-    },
-  }}
-  required
-/>
 
-  </Grid>
-
-  <Grid item xs>
-    {/* Name takes up the remaining space */}
-    <TextField
-      label="Name"
-      name="empname"
-      value={formData.empname}
-      fullWidth
-      size="small"
-      variant="outlined"
-      disabled
-    />
-  </Grid>
-
-  <Grid item xs={3}>
-    <TextField
-      label="Department"
-      name="department"
-      value={formData.department}
-      fullWidth
-      size="small"
-      variant="outlined"
-      disabled
-    />
-  </Grid>
-
-  <Grid item xs={3}>
-    <TextField
-      label="Designation"
-      name="designation"
-      value={formData.designation}
-      fullWidth
-      size="small"
-      variant="outlined"
-      disabled
-    />
-  </Grid>
-</Grid>
-{/* 
-
-          <Grid container spacing={2} alignItems="center" wrap="nowrap" sx={{ mb: 2 }}>
-<Grid item xs={1} sx={{ flexGrow: 0.5 }}>
-    <TextField
-      label="Emp ID *"
-      name="empid"
-      value={formData.empid}
-      fullWidth
-      size="small"
-      onClick={openEmpPopup}
-      InputProps={{
-        endAdornment: (
-          <InputAdornment position="end">
-            <SearchIcon onClick={openEmpPopup} style={{ cursor: 'pointer' }} />
-          </InputAdornment>
-        ),
-      }}
-      variant="outlined"
-      required
-    />
-  </Grid>
-<Grid item xs={4} sx={{ flexGrow: 2 }}>
-    <TextField
-      label="Name"
-      name="empname"
-      value={formData.empname}
-      fullWidth
-      size="small"
-      variant="outlined"
-      disabled
-    />
-  </Grid>
-  <Grid item xs={3}>
-    <TextField
-      label="Department"
-      name="department"
-      value={formData.department}
-      fullWidth
-      size="small"
-      variant="outlined"
-      disabled
-    />
-  </Grid>
-  <Grid item xs={3}>
-    <TextField
-      label="Designation"
-      name="designation"
-      value={formData.designation}
-      fullWidth
-      size="small"
-      variant="outlined"
-      disabled
-    />
-  </Grid>
-</Grid> */}
-          <Divider sx={{ my: 2 }} />
-        {/* Shift Details */}
-        <Typography fontWeight={600} variant="body2" sx={{ mb: 1 }}>
-          Shift Change Details
-        </Typography>
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          {/* Actual Shift row */}
-          <Grid item xs={2} sx={{ width: 100 }}>
-            <FormControl size="small" fullWidth>
+        <Grid container spacing={1} alignItems="center" sx={{ mb: 2 }}>
+          <Grid item xs={6} sm="auto" sx={{ flexGrow: { sm: 1 } }}>
+            <FormControl size="small" fullWidth sx={requiredStyle}>
+              <InputLabel><RequiredLabel>Actual Shift</RequiredLabel></InputLabel>
               <Select
                 name="actual_shift"
                 value={formData.actual_shift}
                 onChange={handleChange}
-                displayEmpty
+                label={<RequiredLabel>Actual Shift</RequiredLabel>}
               >
-                <MenuItem value="">
-                  Actual Shift
-                </MenuItem>
-                <MenuItem value="A">A</MenuItem>
-                <MenuItem value="B">B</MenuItem>
-                <MenuItem value="C">C</MenuItem>
+                {shifts.map(s => (
+                  <MenuItem key={s.shift_id} value={s.shift_cd}>{s.shift_cd}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={2}>
+          <Grid item xs={3} sm="auto" sx={{ width: { sm: '70px' } }}>
             <TextField
-              label="Start Time"
-              name="act_start_time"
-              type="time"
+              label="Start"
               value={formData.act_start_time}
-              onChange={handleChange}
               fullWidth size="small"
               disabled
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={2}>
+          <Grid item xs={3} sm="auto" sx={{ width: { sm: '70px' } }}>
             <TextField
-              label="End Time"
-              name="act_end_time"
-              type="time"
+              label="End"
               value={formData.act_end_time}
-              onChange={handleChange}
               fullWidth size="small"
               disabled
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          {/* Change Shift row */}
-          <Grid item xs={2} sx = {{ width:100 }}>
-            <FormControl size="small" fullWidth>
+
+          <Grid item xs={6} sm="auto" sx={{ flexGrow: { sm: 1 } }}>
+            <FormControl size="small" fullWidth sx={requiredStyle}>
+              <InputLabel><RequiredLabel>Change Shift</RequiredLabel></InputLabel>
               <Select
                 name="change_shift"
                 value={formData.change_shift}
                 onChange={handleChange}
-                displayEmpty
+                label={<RequiredLabel>Change Shift</RequiredLabel>}
               >
-                <MenuItem value="">
-                  Change Shift
-                </MenuItem>
-                <MenuItem value="A">A</MenuItem>
-                <MenuItem value="B">B</MenuItem>
-                <MenuItem value="C">C</MenuItem>
+                {shifts.map(s => (
+                  <MenuItem key={s.shift_id} value={s.shift_cd}>{s.shift_cd}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={2}>
+          <Grid item xs={3} sm="auto" sx={{ width: { sm: '70px' } }}>
             <TextField
-              label="Start Time"
-              name="cha_start_time"
-              type="time"
+              label="Start"
               value={formData.cha_start_time}
-              onChange={handleChange}
               fullWidth size="small"
+              disabled
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={2}>
+          <Grid item xs={3} sm="auto" sx={{ width: { sm: '70px' } }}>
             <TextField
-              label="End Time"
-              name="cha_end_time"
-              type="time"
+              label="End"
               value={formData.cha_end_time}
-              onChange={handleChange}
               fullWidth size="small"
+              disabled
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
         </Grid>
-        {/* Date range, hours, remarks */}
+
         <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
             <TextField
-              label="Change From"
+              label={<RequiredLabel>Change From</RequiredLabel>}
               name="schange_from"
               type="date"
               value={formData.schange_from}
               onChange={handleChange}
               fullWidth size="small"
+              sx={requiredStyle}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
             <TextField
-              label="To Date"
+              label={<RequiredLabel>To Date</RequiredLabel>}
               name="schange_to"
               type="date"
               value={formData.schange_to}
               onChange={handleChange}
               fullWidth size="small"
+              sx={requiredStyle}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={3}>
-            <TextField
-              label="No of Hours"
-              name="no_of_hrs"
-              value={formData.no_of_hrs}
-              disabled
-              fullWidth size="small"
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
             <TextField
               label="Remarks"
               name="remarks"
               value={formData.remarks}
               onChange={handleChange}
               fullWidth size="small"
-              variant="outlined"
+              placeholder="Additional remarks..."
             />
           </Grid>
         </Grid>
-        <TextField
-          label="Purpose"
-          name="purpose"
-          value={formData.purpose}
-          onChange={handleChange}
-          fullWidth
-          size="small"
-          multiline
-          minRows={2}
-          sx={{ mb: 2 }}
-        />
-        {/* Action buttons */}
-        <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
-          <Button variant="outlined" color="primary" onClick={() => { /* close logic */ }}>
-            Close
-          </Button>
-          <Button variant="contained" color="primary" onClick={saveShiftChange}>
+
+        <Grid container spacing={2} style={{ width: '100%', marginLeft: 0 }}>
+          <Grid item xs={12} style={{ width: '100%' }}>
+            <TextField
+              label={<RequiredLabel>Purpose</RequiredLabel>}
+              name="purpose"
+              value={formData.purpose}
+              onChange={handleChange}
+              fullWidth
+              size="small"
+              multiline
+              rows={2}
+              inputProps={{ maxLength: 200 }}
+              sx={requiredStyle}
+              style={{ width: '100%' }}
+              helperText={`${formData.purpose?.length || 0}/200 characters`}
+            />
+          </Grid>
+        </Grid>
+
+        <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button className="save-btn" onClick={saveShiftChange} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
             Save
-          </Button>
-        </Box>
-      </Box>
-      {/* Employee select popup */}
-      <EmployeeSelectDialog
-        open={showEmpPopup}
-        onClose={() => setShowEmpPopup(false)}
-        onSelect={selectEmployee}
-        data={employeeList}
-      />
+          </button>
+        </div>
+      </div>
+
+      <EmployeeSelectDialog open={showEmpPopup} onClose={() => setShowEmpPopup(false)} onSelect={selectEmployee} data={employeeList} />
     </Box>
   );
 };

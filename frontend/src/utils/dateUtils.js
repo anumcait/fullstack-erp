@@ -1,8 +1,12 @@
 export const formatDate = (date) => {
   if (!date) return "-";
-  let d, day, month, year, hours, minutes;
+  if (typeof date !== 'string') {
+    console.log('formatDate received non-string:', date, typeof date);
+    return "-";
+  }
   
-  if (typeof date === 'string') {
+  let d;
+  try {
     if (date.includes('T')) {
       d = new Date(date);
     } else if (date.includes('-') && date.length === 10) {
@@ -11,19 +15,23 @@ export const formatDate = (date) => {
     } else {
       d = new Date(date);
     }
-  } else {
-    d = new Date(date);
+  } catch (e) {
+    console.log('formatDate parse error:', e, 'date:', date);
+    return date;
   }
   
-  if (isNaN(d.getTime())) return date;
+  if (isNaN(d.getTime())) {
+    console.log('Invalid date:', date);
+    return date;
+  }
   
-  day = String(d.getDate()).padStart(2, '0');
-  month = String(d.getMonth() + 1).padStart(2, '0');
-  year = d.getFullYear();
-  hours = String(d.getHours()).padStart(2, '0');
-  minutes = String(d.getMinutes()).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
   
-  return `${day}-${month}-${year} ${hours}.${minutes}`;
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
 
 export const formatDateOnly = (date) => {

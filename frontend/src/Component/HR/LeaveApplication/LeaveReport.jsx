@@ -3,25 +3,42 @@ import axios from "axios";
 import SmartTable from "../../Common/SmartTable";
 import LeavePreview from "./LeavePreview";
 
-const LeaveReport= () => {
+const LeaveReport = ({ onNewEntry }) => {
   const [data, setData] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
 
-  
+
   useEffect(() => {
     const fetchLeaveData = async () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/leave/report`);
-          //console.log("Raw backend data:", res.data);
+        const formatted = res.data.map((row, index) => {
+          const date = new Date(row.ldate);
+          let formattedDate = row.ldate;
+          if (!isNaN(date)) {
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            let hours = date.getHours();
+            const mins = String(date.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            formattedDate = `${d}-${m}-${y} ${hours}:${mins} ${ampm}`;
+          }
 
-        const formatted = res.data.map((row, index) => ({
-          sno: index + 1,
-          _expanded: false,
-          ...row,
-        }));
+          const statusMap = { 0: "Pending", 1: "Approved", 2: "Rejected" };
+
+          return {
+            sno: index + 1,
+            _expanded: false,
+            ...row,
+            ldate: formattedDate,
+            statusText: statusMap[row.status] || "Unknown"
+          };
+        });
         setData(formatted);
-      
+
       } catch (err) {
         console.error("Failed to fetch leave data:", err);
       }
@@ -49,6 +66,7 @@ const LeaveReport= () => {
     { header: "Reason", field: "pofl", expandable: true },
     { header: "Address", field: "address" },
     { header: "Phone", field: "phno" },
+    { header: "Status", field: "statusText" },
     //{ header: "To", field: "to_date" },
 
   ];
@@ -56,10 +74,29 @@ const LeaveReport= () => {
   return (
     <>
       <SmartTable
-      // keyField="sno"
+        // keyField="sno"
         title="Leave Report"
         columns={columns}
         data={data}
+        headerAction={
+          onNewEntry && (
+            <button
+              onClick={onNewEntry}
+              style={{
+                padding: '6px 14px',
+                background: '#1976d2',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
+              + Leave Application
+            </button>
+          )
+        }
         onPreview={(row) => {
           setSelectedRecord(row);
           setShowForm(true);

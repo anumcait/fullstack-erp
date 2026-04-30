@@ -21,7 +21,7 @@ const OnDutyDashboard = () => {
   ];
 
   const actions = allActions.filter(action => hasPermission(action.permission));
-  const [selectedAction, setSelectedAction] = useState(actions[0]?.value || "table");
+  const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -72,8 +72,8 @@ const OnDutyDashboard = () => {
 
       {/* Content based on menu click */}
       <div className="od-dashboard-content">
-        {selectedAction === "table" && <OnDutyTable />}
-        {selectedAction === "new" && <OnDutyForm />}
+        {selectedAction === "table" && <OnDutyTable onNewEntry={() => setSelectedAction("new")} />}
+        {selectedAction === "new" && <OnDutyForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <OnDutyApproval />}
       </div>
     </div>

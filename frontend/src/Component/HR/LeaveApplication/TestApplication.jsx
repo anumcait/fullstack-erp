@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import LeaveGrid from "./LeaveGrid";
 import "./LeaveApplication.css";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { formatDate } from "../../../utils/dateUtils";
 import {
-  TextField, Typography, Button, Grid, Box, Card, CardContent,
-  Stack, IconButton, Divider, InputAdornment, FormControl, InputLabel, Select, MenuItem, Paper
+  TextField, Typography, Button, Grid, Box, Paper,
+  Stack, IconButton, Divider, InputAdornment, FormControl, InputLabel, Select, MenuItem
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
@@ -14,17 +14,47 @@ import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
-const LeaveForm = () => {
+const RequiredLabel = ({ label }) => (
+  <span>
+    {label} <span style={{ color: "red" }}>*</span>
+  </span>
+);
+
+const TestApplication = ({ onClose }) => {
   const { showToast } = useToast();
-  const navigate = useNavigate();
+
+  const getCurrentISTDateTime = () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  };
+
+  const formatDateTimeAMPM = (dateInput) => {
+    if (!dateInput) return "";
+    const date = new Date(dateInput);
+    if (isNaN(date)) return dateInput;
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    let hours = date.getHours();
+    const mins = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${d}-${m}-${y} ${hours}:${mins} ${ampm}`;
+  };
+
   const [formData, setFormData] = useState({
     lappNo: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getCurrentISTDateTime(),
     empId: "",
     ename: "",
     department: "",
     designation: "",
-    purpose: "PERSONAL",
+    purpose: "",
     clUsed: 0,
     clBalance: 0,
     elUsed: 0,
@@ -42,24 +72,15 @@ const LeaveForm = () => {
   const [totalDays, setTotalDays] = useState(0);
   const [isInvalid, setIsInvalid] = useState(false);
   const [gridKey, setGridKey] = useState(Date.now());
-
   const purposeRef = useRef(null);
 
-  // Load employee list
   const loadEmpList = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
+      const res = await axios.get(`/api/employees`);
       setEmployeeList(res.data);
       setShowEmpPopup(true);
     } catch (err) {
       showToast("Failed to load employee list", "error");
-    }
-  };
-
-  const handleEmpIdKeyDown = (e) => {
-    if (e.key === 'F9') {
-      e.preventDefault();
-      loadEmpList();
     }
   };
 
@@ -78,9 +99,7 @@ const LeaveForm = () => {
     setShowEmpPopup(false);
 
     try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/leave/balance/${emp.empid}`
-      );
+      const res = await axios.get(`/api/leave/balance/${emp.empid}`);
       setFormData((prev) => ({
         ...prev,
         clUsed: res.data.clUsed,
@@ -101,58 +120,18 @@ const LeaveForm = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleClose = () => {
-    navigate("/leave-report");
-  };
-
-  const validateForm = () => {
-    if (!formData.empId) {
-      showToast("Please select an employee", "error");
-      return false;
-    }
-    if (!formData.purpose) {
-      showToast("Please select a purpose", "error");
-      return false;
-    }
-    if (!formData.phone || formData.phone.length !== 10 || isNaN(formData.phone)) {
-      showToast("Please enter a valid 10-digit phone number", "error");
-      return false;
-    }
-    if (!formData.address || formData.address.trim().length < 5) {
-      showToast("Please enter a valid address/reason (min 5 chars)", "error");
-      return false;
-    }
-
-    for (let i = 0; i < leaveDetails.length; i++) {
-      const row = leaveDetails[i];
-      if (!row.fromDate || !row.toDate || !row.dayType || !row.noOfDays) {
-        showToast(`Row ${i + 1}: Please fill all fields.`, "error");
-        return false;
-      }
-      if (new Date(row.fromDate) > new Date(row.toDate)) {
-        showToast(
-          `Row ${i + 1}: From date should be before or equal to To date.`,
-          "error"
-        );
-        return false;
-      }
-    }
-    return true;
-  };
-
   const resetForm = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/leave/next-lno`);
-      const data = await res.json();
-
+      const res = await axios.get(`/api/leave/next-lno`);
       setFormData((prev) => ({
         ...prev,
-        lappNo: data.nextLno,
+        lappNo: res.data.nextLno,
+        date: getCurrentISTDateTime(),
         empId: "",
         ename: "",
         department: "",
         designation: "",
-        purpose: "PERSONAL",
+        purpose: "",
         address: "",
         phone: "",
         clUsed: 0,
@@ -160,16 +139,7 @@ const LeaveForm = () => {
         elUsed: 0,
         elBalance: 0,
       }));
-
-      setLeaveDetails([
-        {
-          dayType: "FULL DAY",
-          fromDate: "",
-          toDate: "",
-          noOfDays: "",
-          remarks: "",
-        },
-      ]);
+      setLeaveDetails([{ dayType: "FULL DAY", fromDate: "", toDate: "", noOfDays: "", remarks: "" }]);
       setGridKey(Date.now());
     } catch (error) {
       showToast("Failed to fetch next leave number", "error");
@@ -177,11 +147,33 @@ const LeaveForm = () => {
   };
 
   const handleSave = async () => {
-    if (!validateForm()) return;
+    if (!formData.empId) {
+      showToast("Employee selection is mandatory", "error");
+      return;
+    }
+    if (!formData.purpose) {
+      showToast("Purpose of leave is mandatory", "error");
+      return;
+    }
+    if (!formData.phone) {
+      showToast("Phone number is mandatory", "error");
+      return;
+    }
+    if (!formData.address) {
+      showToast("Address/Reason is mandatory", "error");
+      return;
+    }
+
+    // Validate that all rows have dates
+    const incompleteRow = leaveDetails.find(item => !item.fromDate || !item.toDate);
+    if (incompleteRow) {
+      showToast("Please fill all From and To dates in the leave grid.", "error");
+      return;
+    }
 
     const application = {
       lno: parseInt(formData.lappNo),
-      ldate: new Date(),
+      ldate: new Date().toISOString(),
       empid: parseInt(formData.empId),
       ename: formData.ename,
       designation: formData.designation,
@@ -197,7 +189,7 @@ const LeaveForm = () => {
       daydt: item.dayType,
       frmdt: item.fromDate,
       todate: item.toDate,
-      nod: parseFloat(item.noOfDays),
+      nod: parseFloat(item.noOfDays) || 0,
       remarks: item.remarks,
       empno: parseInt(formData.empId),
       c_unit: "UNIT1",
@@ -205,22 +197,14 @@ const LeaveForm = () => {
     }));
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/leave/apply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ application, leaveDetails: details }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        showToast(`Leave Application Saved. No: ${data.lno}`, "success");
+      const res = await axios.post(`/api/leave/apply`, { application, leaveDetails: details });
+      if (res.status === 200 || res.status === 201) {
+        showToast(res.data.message || `Leave Application Saved. No: ${res.data.lno}`, "success");
         resetForm();
-      } else {
-        throw new Error(data.message || "Failed to save leave");
       }
     } catch (error) {
-      showToast(error.message || "Error saving leave!", "error");
+      const errMsg = error.response?.data?.message || error.message || "Error saving leave!";
+      showToast(errMsg, "error");
     }
   };
 
@@ -233,59 +217,42 @@ const LeaveForm = () => {
   }, [leaveDetails]);
 
   useEffect(() => {
-    if (purposeRef.current) {
-      purposeRef.current.focus();
-    }
-  }, []);
-
-  useEffect(() => {
     resetForm();
   }, []);
 
   return (
-    <Box> {/*, minHeight: "100vh" */}
+    <Box>
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
-
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Leave Application</Typography>
-          <IconButton><CloseIcon /></IconButton>
+          <IconButton onClick={onClose}><CloseIcon /></IconButton>
         </Stack>
 
-        {/* App Info */}
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <Box display="flex" alignItems="center">
-              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                Leave App No:
-              </Typography>
-              <Typography fontWeight={600}>{formData.lappNo}</Typography>
-            </Box>
-          </Grid>
-
-          <Grid item xs={6}>
-            <Box display="flex" alignItems="center">
-              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                Entry Date:
-              </Typography>
-              <Typography fontWeight={600}>{formData.date.replace("T", " ")}</Typography>
-            </Box>
-          </Grid>
-        </Grid>
+        {/* Standardized Header: Left aligned ID and Date with Time */}
+        <Box sx={{ mb: 2, display: 'flex', gap: 4, justifyContent: 'flex-start', alignItems: 'center' }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" color="text.secondary">Leave ID:</Typography>
+            <Typography fontWeight={600}>{formData.lappNo}</Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" color="text.secondary">Date:</Typography>
+            <Typography fontWeight={600}>{formatDateTimeAMPM(formData.date)}</Typography>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
-        {/* <Box sx={{ p: 3, bgcolor: "#fafafa", borderRadius: 2 }}> */}
+
         <Grid container spacing={2} alignItems="center">
-          {/* Row 1 */}
-          <Grid item xs={12} sm={3}>
+          <Grid item xs={12} sm="auto">
             <TextField
-              label="Emp Id"
+              label={<RequiredLabel label="Emp Id" />}
               name="empId"
               value={formData.empId}
               onClick={loadEmpList}
-              onKeyDown={handleEmpIdKeyDown}
               size="small"
               placeholder="Select Employee"
               fullWidth
+              sx={{ width: { sm: '180px' }, bgcolor: '#fffde7' }}
               InputProps={{
                 readOnly: true,
                 endAdornment: (
@@ -296,30 +263,27 @@ const LeaveForm = () => {
                   </InputAdornment>
                 ),
               }}
-              sx={{
-                bgcolor: 'white',
-                '& .MuiOutlinedInput-root': { paddingRight: 1 }
-              }}
             />
           </Grid>
-
-          <Grid item xs={12} sm={9}>
-            <Typography fontWeight={600}>
-              Ename: {formData.ename || "--"} • Department: {formData.department || "--"} • Designation: {formData.designation || "--"}
-            </Typography>
+          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
+            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', width: '100%' }}>
+              <Typography fontWeight={600} variant="subtitle2">
+                Name: {formData.ename || "--"} • Dept: {formData.department || "--"} • Desig: {formData.designation || "--"}
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
-        <Grid container spacing={2} alignItems="center">
-          {/* Purpose of Leave */}
-          <Grid item mt={2} xs={12} sm={6} lg={4} sx={{ width: "200px" }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Purpose of Leave</InputLabel>
+
+        <Grid container spacing={1} alignItems="flex-start" wrap="nowrap" sx={{ mt: 1 }}>
+          <Grid item sx={{ width: '180px', minWidth: '180px' }}>
+            <FormControl fullWidth size="small" sx={{ bgcolor: '#fffde7' }}>
+              <InputLabel><RequiredLabel label="Purpose" /></InputLabel>
               <Select
-                ref={purposeRef}
                 name="purpose"
                 value={formData.purpose}
                 onChange={handleChange}
-                label="Purpose of Leave"
+                label={<RequiredLabel label="Purpose" />}
+                inputRef={purposeRef}
               >
                 <MenuItem value="PERSONAL">PERSONAL</MenuItem>
                 <MenuItem value="SICK">SICK</MenuItem>
@@ -328,10 +292,9 @@ const LeaveForm = () => {
             </FormControl>
           </Grid>
 
-          {/* Phone Number */}
-          <Grid item xs={12} sm={6} lg={4} sx={{ width: "200px" }}>
+          <Grid item sx={{ ml: 1, width: '160px', minWidth: '160px' }}>
             <TextField
-              label="Phone Number"
+              label={<RequiredLabel label="Phone" />}
               name="phone"
               value={formData.phone}
               onChange={handleChange}
@@ -339,106 +302,83 @@ const LeaveForm = () => {
               fullWidth
             />
           </Grid>
-
-          {/* Address / Reason - spans remaining space */}
-          <Grid item xs={12} sm={12} md={6} sx={{ width: "300px" }}>
+          <Grid item sx={{ flexGrow: 1 }}>
             <TextField
-              label="Address / Reason"
+              label={<RequiredLabel label="Address / Reason" />}
               name="address"
               value={formData.address}
               onChange={handleChange}
               size="small"
               fullWidth
+              placeholder="Address or reason..."
+              inputProps={{ maxLength: 200 }}
+              helperText={`${formData.address?.length || 0}/200 characters`}
+              FormHelperTextProps={{
+                sx: {
+                  bgcolor: '#fffde7',
+                  padding: '2px 8px',
+                  borderRadius: 1,
+                  fontSize: '0.65rem',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  mx: 0,
+                  width: '100%'
+                }
+              }}
             />
           </Grid>
         </Grid>
 
-        <Divider sx={{ my: 2 }} />
+        {/* Leave Summary Section Reverted to Old Layout */}
+        <Box component="fieldset" sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 1, mb: 0, bgcolor: '#fafafa' }}>
+          <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
+            Leave Summary
+          </Typography>
+          <Stack direction="row" spacing={1.5} flexWrap="nowrap" justifyContent="space-between" sx={{ py: 0.5 }}>
+            {/* Utilised Group */}
+            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#e3f2fd", flex: 1, minWidth: 0, borderTop: '4px solid #2196f3' }}>
+              <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 700, whiteSpace: 'nowrap' }}>CL Util</Typography>
+              <Typography variant="h6" fontWeight="bold">{parseFloat(formData.clUsed) || 0}</Typography>
+            </Paper>
 
-        {/* <Box
-  sx={{
-    p: 2,
-    // border: "1px solid #ddd",
-    borderRadius: 2,
-    bgcolor: "#fafafa",
-  }}
-> */}
-        <Grid container alignItems="center" spacing={2}>
-          {/* Left side: Heading */}
-          <Grid item xs="auto">
-            <Typography variant="subtitle1" fontWeight={400}>
-              Leave Summary
-            </Typography>
-          </Grid>
+            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#f1f8e9", flex: 1, minWidth: 0, borderTop: '4px solid #4caf50' }}>
+              <Typography variant="caption" sx={{ display: 'block', color: 'success.main', fontWeight: 700, whiteSpace: 'nowrap' }}>EL Util</Typography>
+              <Typography variant="h6" fontWeight="bold">{parseFloat(formData.elUsed) || 0}</Typography>
+            </Paper>
 
-          {/* Right side: Summary cards */}
-          <Grid item xs>
-            <Grid container spacing={2} justifyContent="flex-start">
-              <Grid item xs={12} sm={6} md={2.4}>
-                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#e3f2fd" }}>
-                  <Typography variant="body2">CLs Utilised</Typography>
-                  <Typography variant="h6" fontWeight="bold">{formData.clUsed}</Typography>
-                </Paper>
-              </Grid>
+            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#e0f2f1", flex: 1, minWidth: 0, borderTop: '4px solid #009688' }}>
+              <Typography variant="caption" sx={{ display: 'block', color: 'teal', fontWeight: 700, whiteSpace: 'nowrap' }}>Tot Util</Typography>
+              <Typography variant="h6" fontWeight="bold">{parseFloat(Number(formData.clUsed) + Number(formData.elUsed)) || 0}</Typography>
+            </Paper>
 
-              <Grid item xs={12} sm={6} md={2.4}>
-                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#f1f8e9" }}>
-                  <Typography variant="body2">ELs Utilised</Typography>
-                  <Typography variant="h6" fontWeight="bold">{formData.elUsed}</Typography>
-                </Paper>
-              </Grid>
+            {/* Balance Group */}
+            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#f3e5f5", flex: 1, minWidth: 0, borderTop: '4px solid #9c27b0' }}>
+              <Typography variant="caption" sx={{ display: 'block', color: 'secondary.main', fontWeight: 700, whiteSpace: 'nowrap' }}>CL Bal</Typography>
+              <Typography variant="h6" fontWeight="bold">{parseFloat(formData.clBalance) || 0}</Typography>
+            </Paper>
 
-              <Grid item xs={12} sm={6} md={2.4}>
-                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#ede7f6" }}>
-                  <Typography variant="body2">CLs Balance</Typography>
-                  <Typography variant="h6" fontWeight="bold">{formData.clBalance}</Typography>
-                </Paper>
-              </Grid>
+            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#e8eaf6", flex: 1, minWidth: 0, borderTop: '4px solid #3f51b5' }}>
+              <Typography variant="caption" sx={{ display: 'block', color: 'indigo', fontWeight: 700, whiteSpace: 'nowrap' }}>EL Bal</Typography>
+              <Typography variant="h6" fontWeight="bold">{parseFloat(formData.elBalance) || 0}</Typography>
+            </Paper>
 
-              <Grid item xs={12} sm={6} md={2.4}>
-                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#ede7f6" }}>
-                  <Typography variant="body2">ELs Balance</Typography>
-                  <Typography variant="h6" fontWeight="bold">{formData.elBalance}</Typography>
-                </Paper>
-              </Grid>
+            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#fff3e0", flex: 1, minWidth: 0, borderTop: '4px solid #ff9800' }}>
+              <Typography variant="caption" sx={{ display: 'block', color: '#e65100', fontWeight: 700, whiteSpace: 'nowrap' }}>Tot Bal</Typography>
+              <Typography variant="h6" fontWeight="bold" color="#e65100">{parseFloat(Number(formData.clBalance) + Number(formData.elBalance)) || 0}</Typography>
+            </Paper>
+          </Stack>
+        </Box>
 
-              <Grid item xs={12} sm={6} md={2.4}>
-                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "orange" }}>
-                  <Typography variant="body2">Total Leaves Applied</Typography>
-                  <Typography variant="h6" fontWeight="bold">{totalDays}</Typography>
-                </Paper>
-              </Grid>
-
-            </Grid>
-          </Grid>
-        </Grid>
-        {/* </Box> */}
-
-
-        {/* </CardContent>
-</Card> */}
-
-        {/* <div className="total-days">
-        <label>Total Leave Days: </label> {totalDays}
-      </div>  */}
-        {/*  <Box sx={{ p: 1, bgcolor: "#f5f7fa"}}> , minHeight: "100vh" */}
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="subtitle1" fontWeight={600}>
-          Leave Details
-        </Typography>
         <LeaveGrid
           key={gridKey}
           leaveDetails={leaveDetails}
           setLeaveDetails={setLeaveDetails}
+          totalDays={totalDays}
           onValidationError={(hasError) => setIsInvalid(hasError)}
+          onSave={handleSave}
+          isSaveDisabled={isInvalid}
+          empId={formData.empId}
         />
-
-        <div className="save-btn-row">
-          <button className="save-btn" disabled={isInvalid} onClick={handleSave}>
-            💾 <u>S</u>ave
-          </button>
-        </div>
-        {/* </Box>    */}
       </div>
 
       <EmployeeSelectDialog
@@ -447,23 +387,8 @@ const LeaveForm = () => {
         onSelect={selectEmployee}
         data={employeeList}
       />
-
     </Box>
   );
 };
 
-function GridRow({ label, value }) {
-  return (
-    <Box sx={{
-      display: "grid",
-      gridTemplateColumns: "160px 1fr",
-      alignItems: "center",
-      py: .25
-    }}>
-      <Typography variant="body2" color="text.secondary">{label}</Typography>
-      <Typography variant="body2">{String(value || "—")}</Typography>
-    </Box>
-  );
-}
-
-export default LeaveForm;
+export default TestApplication;

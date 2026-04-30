@@ -3,6 +3,7 @@ import { FaDownload, FaPrint, FaSearch } from "react-icons/fa";
 import axios from "axios";
 import './onDutyTable.css';
 import OnDutyPreview from "./OnDutyPreview";
+import { formatDateOnly } from "../../../utils/dateUtils";
 
 const OnDutyTable = () => {
   const [data, setData] = useState([]);
@@ -61,16 +62,7 @@ const OnDutyTable = () => {
               <tr key={row.movement_id}>
                 <td>{row.sno}</td>
                 <td>{row.movement_id}</td>
-                <td>{row.movement_date
-                                        ? new Date(row.movement_date).toLocaleString('en-GB', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            hour12: false
-                                          }).replace(',', '')
-                                        : '--'}</td>
+<td>{formatDateOnly(row.movement_date)}</td>
                 <td>{row.empid}</td>
                 <td>{row.ename}</td>
                 <td>{row.unit}</td>

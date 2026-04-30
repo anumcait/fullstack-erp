@@ -9,7 +9,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 
-const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand }) => {
+const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, headerAction }) => {
   const [visibleColumns, setVisibleColumns] = useState(columns.map(col => col.field));
   const [tempVisibleColumns, setTempVisibleColumns] = useState([...visibleColumns]);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
@@ -134,12 +134,15 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand })
     <div className="smart-table-wrapper">
       {/* Header */}
       <div className="smart-table-header">
-        <div className="smart-table-title">{title}</div>
+        <div className="smart-table-title">
+          {title}
+        </div>
 
 
 
         <div className="smart-column-toggle">
           <div className="smart-header-actions">
+            {headerAction && <>{headerAction}<div className="vertical-divider" /></>}
             <button onClick={exportToExcel} title="Export to Excel" className="icon-button excel-btn">
               <FaFileExcel size={16} />
             </button>
@@ -258,7 +261,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand })
             {pagedData.map((row) => (
               <tr key={row.sno}>
                 {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
-                  <td key={colIdx}>
+                  <td key={colIdx} style={{ textAlign: col.align || 'left' }}>
                     {col.expandable ? (
                       <div
                         className={`reason-container ${row._expanded ? "expanded" : ""}`}

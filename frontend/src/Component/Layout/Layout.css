@@ -16,4 +16,6 @@
   padding: 1rem;
   background: #f9f9f9;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }

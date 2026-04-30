@@ -21,7 +21,7 @@ const ShiftChangeDashboard = () => {
   ];
 
   const actions = allActions.filter(action => hasPermission(action.permission));
-  const [selectedAction, setSelectedAction] = useState(actions[0]?.value || "table");
+  const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -72,8 +72,8 @@ const ShiftChangeDashboard = () => {
 
       {/* Content based on menu click */}
       <div className="shift-dashboard-content">
-        {selectedAction === "table" && <ShiftChangeTable />}
-        {selectedAction === "new" && <ShiftChangeForm />}
+        {selectedAction === "table" && <ShiftChangeTable onNewEntry={() => setSelectedAction("new")} />}
+        {selectedAction === "new" && <ShiftChangeForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <ShiftChangeApproval />}
       </div>
     </div>

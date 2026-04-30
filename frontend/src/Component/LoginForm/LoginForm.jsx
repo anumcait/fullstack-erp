@@ -30,6 +30,7 @@ const LoginForm = () => {
       localStorage.setItem('userName', user.username);
       localStorage.setItem('userRole', user.role);
       localStorage.setItem('empName', user.ename);
+      localStorage.setItem('empId', user.empid);
       localStorage.setItem('userPermissions', JSON.stringify(user.permissions || []));
       
       // Also persist to sessionStorage for refresh resilience

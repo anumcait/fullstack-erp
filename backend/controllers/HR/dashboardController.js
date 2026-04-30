@@ -1,6 +1,29 @@
 // controllers/dashboardController.js
-const { EmployeeMaster, Attendance, LeaveDetails, Holiday, Payslip, User } = require('../../models');
+const { EmployeeMaster, Attendance, LeaveDetails, Holiday, Payslip, User, LeaveMaster } = require('../../models');
 const { Op, fn, col, literal } = require('sequelize');
+
+const formatDateDB = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return 'N/A';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${day}-${months[date.getMonth()]}-${date.getFullYear()}`;
+};
+
+const formatDateTimeDB = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return 'N/A';
+  // Convert to local timezone
+  const localDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5:30 hours for IST
+  const day = String(localDate.getDate()).padStart(2, '0');
+  const month = String(localDate.getMonth() + 1).padStart(2, '0');
+  const year = localDate.getFullYear();
+  const hours = String(localDate.getHours()).padStart(2, '0');
+  const minutes = String(localDate.getMinutes()).padStart(2, '0');
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
+};
 
 // =========================================================
 // === HR DASHBOARD ===
@@ -326,29 +349,52 @@ exports.managerSummary = async (req, res) => {
 // =========================================================
 exports.employeeSummary = async (req, res) => {
   try {
-    const empId = req.session?.user?.empid || req.query.empid;
+    let empId = req.session?.user?.empid || req.query.empid;
+    console.log('Employee dashboard request - empId:', empId, 'session:', req.session?.user);
     if (!empId) return res.status(400).json({ message: 'Employee ID required' });
+
+    // Ensure empid is a number for database queries
+    empId = parseInt(empId, 10);
+    if (isNaN(empId)) return res.status(400).json({ message: 'Invalid Employee ID' });
 
     const today = new Date().toISOString().slice(0, 10);
 
     // Attendance today
-    const attendanceToday = await Attendance.findOne({
-      where: { empid: empId, att_date: today },
-      raw: true,
-    });
+    let attendanceToday = null;
+    try {
+      attendanceToday = await Attendance.findOne({
+        where: { empid: empId, att_date: today },
+        raw: true,
+      });
+    } catch (e) { console.error('Error fetching attendance:', e.message); }
 
     // Leave summary
-    const pendingLeaves = await LeaveDetails.count({ where: { empid: empId, status: 'Pending' } });
-    const approvedLeaves = await LeaveDetails.count({ where: { empid: empId, status: 'Approved' } });
-    const leaveBalance = Math.max(15 - approvedLeaves, 0);
+    let pendingLeaves = 0, approvedLeaves = 0;
+    try {
+      pendingLeaves = await LeaveDetails.count({ where: { empno: empId, c_hr_app_status: 0 } });
+      approvedLeaves = await LeaveDetails.count({ where: { empno: empId, c_hr_app_status: 1 } });
+    } catch (e) { console.error('Error fetching leave counts:', e.message); }
+
+    // Use real leave balance from LeaveMaster instead of hardcoded value
+    let leaveBalance = 0;
+    try {
+      const leaveMasterData = await LeaveMaster.findOne({ where: { empid: empId }, raw: true });
+      if (leaveMasterData) {
+        leaveBalance = Number(leaveMasterData.cls_balance || 0) + Number(leaveMasterData.els_balance || 0);
+      }
+    } catch (e) { console.error('Error fetching leave master:', e.message); }
+
 
     // Recent leave requests
-    const recentLeaves = await LeaveDetails.findAll({
-      where: { empid: empId },
-      order: [['from_date', 'DESC']],
-      limit: 5,
-      raw: true,
-    });
+    let recentLeaves = [];
+    try {
+      recentLeaves = await LeaveDetails.findAll({
+        where: { empno: empId },
+        order: [['frmdt', 'DESC']],
+        limit: 5,
+        raw: true,
+      });
+    } catch (e) { console.error('Error fetching recent leaves:', e.message); }
 
     // Latest payslip - Order by Year then Month correctly
     const latestPayslip = await Payslip.findOne({
@@ -376,7 +422,7 @@ exports.employeeSummary = async (req, res) => {
     // Employee info
     const empData = await EmployeeMaster.findOne({
       where: { empid: empId },
-      attributes: ['ename', 'deptname', 'doj', 'dob'],
+      attributes: ['ename', 'deptname', 'dob'],
       raw: true,
     });
 
@@ -388,7 +434,7 @@ exports.employeeSummary = async (req, res) => {
       const nextBirthday = new Date(`${thisYear}-${dob.getMonth() + 1}-${dob.getDate()}`);
       if (nextBirthday < new Date(today)) nextBirthday.setFullYear(thisYear + 1);
       const daysLeft = Math.ceil((nextBirthday - new Date(today)) / (1000 * 60 * 60 * 24));
-      upcomingBirthday = { date: nextBirthday.toISOString().slice(0, 10), daysLeft };
+      upcomingBirthday = { date: formatDateDB(nextBirthday.toISOString().slice(0, 10)), daysLeft };
     }
 
     // Upcoming holidays
@@ -432,8 +478,9 @@ exports.employeeSummary = async (req, res) => {
       },
     });
 
-    // Real last login from User model
-    const user = await User.findOne({ where: { empid: empId }, attributes: ['last_login'], raw: true });
+    // Real last login from User model (show previous login, not current)
+    const user = await User.findOne({ where: { empid: empId }, attributes: ['last_login', 'previous_login'], raw: true });
+    console.log('User record for empid', empId, ':', user);
 
     res.json({
       profile: empData || {},
@@ -442,24 +489,30 @@ exports.employeeSummary = async (req, res) => {
       approvedLeaves,
       totalLeavesTaken: approvedLeaves,
       leaveBalance,
-      recentLeaves,
+      recentLeaves: recentLeaves.map(l => ({
+        from_date: l.frmdt,
+        to_date: l.todate,
+        leave_type: l.leave_type || 'Leave',
+        status: l.c_hr_app_status === 1 ? 'Approved' : l.c_hr_app_status === 2 ? 'Rejected' : 'Pending',
+        nod: l.nod
+      })),
       latestPayslip:
         latestPayslip?.C_MONTH && latestPayslip?.C_YEAR
           ? `${latestPayslip.C_MONTH} ${latestPayslip.C_YEAR}`
-          : 'No record',
+          : 'No Record Found',
       attendanceTrend,
       attendanceStats: { ...attendanceStats, lateComingCount },
       upcomingBirthday,
       upcomingHolidays,
       upcomingHoliday:
         upcomingHolidays.length > 0
-          ? `${upcomingHolidays[0].hdesc} (${new Date(upcomingHolidays[0].hdate).toLocaleDateString()})`
+          ? `${upcomingHolidays[0].hdesc} (${formatDateDB(upcomingHolidays[0].hdate)})`
           : 'None',
-      notifications: 0,
-      lastLogin: user?.last_login ? new Date(user.last_login).toLocaleString() : 'First Login',
+      notifications: pendingLeaves,
+      lastLogin: user?.previous_login ? formatDateTimeDB(user.previous_login) : 'First Login',
     });
   } catch (err) {
     console.error('Error fetching employee summary:', err);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: err.message || 'Internal server error' });
   }
 };

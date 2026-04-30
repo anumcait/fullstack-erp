@@ -3,27 +3,49 @@ const { Sequelize, Op } = require('sequelize');
 
 exports.saveSChange = async (req, res) => {
   const application = req.body;
-  const t = await ShiftChange.sequelize.transaction();
+  const { empid, schange_from, actual_shift, change_shift } = application;
+
+  if (!empid || !schange_from || !actual_shift || !change_shift) {
+    return res.status(400).json({ message: 'Missing required fields: Emp ID, Date, Actual Shift, and Change Shift are mandatory.' });
+  }
 
   try {
-    const maxIdResult = await ShiftChange.findOne({
-      attributes: [
-        [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('schange_no')), 0), 'maxId']
-      ],
-      raw: true
+    const existing = await ShiftChange.findOne({
+      where: {
+        empid,
+        schange_from,
+        app_status: ['Pending', 'Approved']
+      }
     });
 
-    const nextSchangeId = Number(maxIdResult.maxId) + 1;
-    application.schange_no = nextSchangeId;
+    if (existing) {
+      return res.status(400).json({ message: `A shift change application already exists for ${schange_from}.` });
+    }
 
-    await ShiftChange.create(application, { transaction: t });
-    await t.commit();
+    const t = await ShiftChange.sequelize.transaction();
+    try {
+      const maxIdResult = await ShiftChange.findOne({
+        attributes: [
+          [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('schange_no')), 0), 'maxId']
+        ],
+        raw: true
+      });
 
-    res.status(201).json({ message: 'Shiftchange application saved.', movement_id: nextSchangeId });
+      const nextSchangeId = Number(maxIdResult.maxId) + 1;
+      application.schange_no = nextSchangeId;
+      application.app_status = 'Pending';
+
+      await ShiftChange.create(application, { transaction: t });
+      await t.commit();
+
+      res.status(201).json({ message: 'Shift change application saved.', movement_id: nextSchangeId });
+    } catch (innerError) {
+      await t.rollback();
+      throw innerError;
+    }
   } catch (error) {
-    await t.rollback();
     console.error('❌ Error saving Shiftchange application:', error);
-    res.status(500).json({ message: 'Failed to save Shiftchange application.', error });
+    res.status(500).json({ message: 'Failed to save Shift change application.', error: error.message });
   }
 };
 

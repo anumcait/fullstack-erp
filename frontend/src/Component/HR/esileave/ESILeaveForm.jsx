@@ -8,7 +8,17 @@ import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
-import ESILeavePreview from "./ESILeavePreview";
+
+const RequiredLabel = ({ children }) => (
+  <span>
+    {children}
+    <span style={{ color: 'red', marginLeft: 2 }}>*</span>
+  </span>
+);
+
+const requiredStyle = {
+  backgroundColor: '#fffde7'
+};
 
 const ESILeaveForm = () => {
   const { showToast } = useToast();
@@ -118,171 +128,164 @@ const ESILeaveForm = () => {
   };
 
   return (
-    <Box sx={{ p: 3, bgcolor: "#f5f7fa" }}>
+    <Box>
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>ESI Leave Request</Typography>
-          <IconButton><CloseIcon /></IconButton>
+          <IconButton onClick={() => setShowPreview(true)}><CloseIcon /></IconButton>
         </Stack>
 
-        <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
-          <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Box display="flex" alignItems="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                    ESI Leave No:
-                  </Typography>
-                  <Typography fontWeight={600}>{formData.esi_leave_id}</Typography>
-                </Box>
-              </Grid>
+        <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <Box display="flex" alignItems="center">
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
+                ESI Leave No:
+              </Typography>
+              <Typography fontWeight={600}>{formData.esi_leave_id}</Typography>
+            </Box>
+          </Grid>
 
-              <Grid item xs={6}>
-                <Box display="flex" alignItems="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                    Entry Date:
-                  </Typography>
-                  <Typography fontWeight={600}>
-                    {formData.esi_leave_date.replace("T", " ")}
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-            <Divider sx={{ my: 2 }} />
+          <Grid item xs={6}>
+            <Box display="flex" alignItems="center">
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
+                Entry Date:
+              </Typography>
+              <Typography fontWeight={600}>
+                {formData.esi_leave_date.replace("T", " ")}
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+        <Divider sx={{ my: 2 }} />
 
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Employee Details
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Emp ID *"
+              size="small"
+              value={formData.empid || ""}
+              fullWidth
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={openEmpPopup}>
+                      <SearchIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              onClick={openEmpPopup}
+              sx={{ bgcolor: 'white', '& .MuiOutlinedInput-root': { paddingRight: 1 } }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <Typography fontWeight={600}>
+              Name: {formData.ename || ""} • Unit: {formData.unit || "--"} • Division: {formData.division || "--"} • Designation: {formData.designation || "--"}
             </Typography>
+          </Grid>
 
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={3}>
-                <TextField
-                  label="Emp ID *"
-                  size="small"
-                  value={formData.empid || ""}
-                  fullWidth
-                  variant="outlined"
-                  InputProps={{
-                    readOnly: true,
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton size="small" onClick={openEmpPopup}>
-                          <SearchIcon fontSize="small" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  onClick={openEmpPopup}
-                />
-              </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="ESI No"
+              name="esi_no"
+              size="small"
+              fullWidth
+              value={formData.esi_no}
+              onChange={handleChange}
+            />
+          </Grid>
+        </Grid>
 
-              <Grid item xs={4}>
-                <Typography fontWeight={600}>
-                  {formData.ename || ""} • {formData.unit || "--"} • {formData.division || "--"} • {formData.designation || "--"}
-                </Typography>
-              </Grid>
+        <Divider sx={{ my: 2 }} />
 
-              <Grid item xs={3}>
-                <TextField
-                  label="ESI No"
-                  name="esi_no"
-                  size="small"
-                  fullWidth
-                  value={formData.esi_no}
-                  onChange={handleChange}
-                />
-              </Grid>
-            </Grid>
+        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="ESI Dispencery"
+              name="esi_dispencery"
+              size="small"
+              fullWidth
+              value={formData.esi_dispencery}
+              onChange={handleChange}
+            />
+          </Grid>
 
-            <Divider sx={{ my: 2 }} />
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Hospital Name"
+              name="hospital_name"
+              size="small"
+              fullWidth
+              value={formData.hospital_name}
+              onChange={handleChange}
+            />
+          </Grid>
 
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              ESI Leave Details
-            </Typography>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="From Date"
+              name="leave_from_date"
+              type="date"
+              size="small"
+              fullWidth
+              value={formData.leave_from_date}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="ESI Dispencery"
-                  name="esi_dispencery"
-                  size="small"
-                  fullWidth
-                  value={formData.esi_dispencery}
-                  onChange={handleChange}
-                />
-              </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="To Date"
+              name="leave_to_date"
+              type="date"
+              size="small"
+              fullWidth
+              value={formData.leave_to_date}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+        </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="Hospital Name"
-                  name="hospital_name"
-                  size="small"
-                  fullWidth
-                  value={formData.hospital_name}
-                  onChange={handleChange}
-                />
-              </Grid>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="No of Days"
+              name="no_of_days"
+              type="number"
+              size="small"
+              fullWidth
+              value={formData.no_of_days}
+              disabled
+            />
+          </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="From Date"
-                  name="leave_from_date"
-                  type="date"
-                  size="small"
-                  fullWidth
-                  value={formData.leave_from_date}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
+          <Grid item xs={12} sm={9}>
+            <TextField
+              label="Reason"
+              name="reason"
+              size="small"
+              fullWidth
+              multiline
+              rows={2}
+              value={formData.reason}
+              onChange={handleChange}
+              inputProps={{ maxLength: 200 }}
+              sx={requiredStyle}
+              helperText={`${formData.reason?.length || 0}/200 characters`}
+            />
+          </Grid>
+        </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="To Date"
-                  name="leave_to_date"
-                  type="date"
-                  size="small"
-                  fullWidth
-                  value={formData.leave_to_date}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="No of Days"
-                  name="no_of_days"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={formData.no_of_days}
-                  disabled
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  label="Reason"
-                  name="reason"
-                  size="small"
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  value={formData.reason}
-                  onChange={handleChange}
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-
-          <Box sx={{ p: 2, borderTop: "1px solid #e5e7eb", bgcolor: "#fafafa" }}>
-            <Stack direction="row" spacing={20}>
-              <Button variant="outlined" onClick={() => setShowPreview(true)} fullWidth>Close</Button>
-              <Button variant="contained" onClick={saveESILeave} fullWidth>Save</Button>
-            </Stack>
-          </Box>
-        </Card>
+        <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '8px' }}>
+          <Button variant="outlined" onClick={() => setShowPreview(true)}>Close</Button>
+          <button className="save-btn" onClick={saveESILeave} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+            💾 <u>S</u>ave
+          </button>
+        </div>
       </div>
 
       <EmployeeSelectDialog open={showEmpPopup} onClose={() => setShowEmpPopup(false)} onSelect={selectEmployee} data={employeeList} />

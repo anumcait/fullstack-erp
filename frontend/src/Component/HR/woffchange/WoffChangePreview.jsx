@@ -1,15 +1,7 @@
 import React from "react";
 import "./WoffChangePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return "--";
-  const date = new Date(dateStr);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
-};
+import { formatDate, formatDateOnly } from "../../../utils/dateUtils";
 
 const WoffChangePreview = ({ data = {}, onClose }) => {
   const {
@@ -20,90 +12,161 @@ const WoffChangePreview = ({ data = {}, onClose }) => {
     unit = "--",
     division = "--",
     designation = "--",
+    department = "--",
+    section = "--",
     current_woff_day = "--",
     requested_woff_day = "--",
     woff_from_date = "--",
     woff_to_date = "--",
+    shift_cd = "--",
     reason = "--",
-    status = "--"
+    remarks = "--"
   } = data;
 
   return (
     <div className="onduty-print-overlay" onClick={onClose}>
       <div className="onduty-print-container" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="onduty-print-header">
           <img src={logo} alt="Logo" className="onduty-logo" />
           <div className="onduty-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
-            <span className="onduty-slip-title">WOFF CHANGE APPLICATION</span>
-          </div>
-          <div className={`onduty-status-badge status-${status.toLowerCase()}`}>
-            {status}
+            <span className="onduty-slip-title">WEEKLY OFF CHANGE APPLICATION</span>
           </div>
         </div>
 
-        <table className="onduty-details-table">
+        {/* Employee Details Table */}
+        <table className="onduty-field-table">
           <tbody>
             <tr>
-              <td className="label-cell">Woff ID</td>
-              <td className="value-cell">{woff_id}</td>
-              <td className="label-cell">Woff Date</td>
-              <td className="value-cell">{formatDate(woff_date)}</td>
+              <td className="label">Woff ID</td>
+              <td className="colon">:</td>
+              <td className="value">{woff_id}</td>
+
+              <td className="label">Entry Date</td>
+              <td className="colon">:</td>
+              <td className="value">{formatDate(woff_date)}</td>
             </tr>
             <tr>
-              <td className="label-cell">Employee ID</td>
-              <td className="value-cell">{empid}</td>
-              <td className="label-cell">Name</td>
-              <td className="value-cell">{ename}</td>
+              <td className="label">Emp Id</td>
+              <td className="colon">:</td>
+              <td className="value">{empid}</td>
+
+              <td className="label">Emp Name</td>
+              <td className="colon">:</td>
+              <td className="value">{ename}</td>
             </tr>
             <tr>
-              <td className="label-cell">Unit</td>
-              <td className="value-cell">{unit}</td>
-              <td className="label-cell">Division</td>
-              <td className="value-cell">{division}</td>
+              <td className="label">Unit</td>
+              <td className="colon">:</td>
+              <td className="value">{unit}</td>
+
+              <td className="label">Division</td>
+              <td className="colon">:</td>
+              <td className="value">{division}</td>
             </tr>
             <tr>
-              <td className="label-cell">Designation</td>
-              <td className="value-cell" colSpan={3}>{designation}</td>
+              <td className="label">Department</td>
+              <td className="colon">:</td>
+              <td className="value">{department}</td>
+
+              <td className="label">Section</td>
+              <td className="colon">:</td>
+              <td className="value">{section}</td>
             </tr>
             <tr>
-              <td className="label-cell">Current Woff Day</td>
-              <td className="value-cell">{current_woff_day}</td>
-              <td className="label-cell">Requested Woff Day</td>
-              <td className="value-cell">{requested_woff_day}</td>
-            </tr>
-            <tr>
-              <td className="label-cell">From Date</td>
-              <td className="value-cell">{formatDate(woff_from_date)}</td>
-              <td className="label-cell">To Date</td>
-              <td className="value-cell">{formatDate(woff_to_date)}</td>
-            </tr>
-            <tr>
-              <td className="label-cell">Reason</td>
-              <td className="value-cell" colSpan={3}>{reason}</td>
+              <td className="label">Designation</td>
+              <td className="colon">:</td>
+              <td className="value">{designation}</td>
+              <td className="label"></td>
+              <td className="colon"></td>
+              <td className="value"></td>
             </tr>
           </tbody>
         </table>
 
-        <div className="onduty-signature-section">
-          <div className="signature-box">
-            <p>Employee Signature</p>
-            <div className="signature-line"></div>
-          </div>
-          <div className="signature-box">
-            <p>Reporting Manager</p>
-            <div className="signature-line"></div>
-          </div>
-          <div className="signature-box">
-            <p>HR Approval</p>
-            <div className="signature-line"></div>
-          </div>
+        <hr />
+
+        {/* Change Details */}
+        <table className="onduty-field-table">
+          <tbody>
+            <tr>
+              <td className="label">Existing Date</td>
+              <td className="colon">:</td>
+              <td className="value">{formatDateOnly(woff_from_date)} ({current_woff_day})</td>
+
+              <td className="label">Changed Date</td>
+              <td className="colon">:</td>
+              <td className="value">{formatDateOnly(woff_to_date)} ({requested_woff_day})</td>
+            </tr>
+            <tr>
+              <td className="label">Shift</td>
+              <td className="colon">:</td>
+              <td className="value">{shift_cd}</td>
+              <td className="label"></td>
+              <td className="colon"></td>
+              <td className="value"></td>
+            </tr>
+            <tr>
+              <td className="label">Reason</td>
+              <td className="colon">:</td>
+              <td className="value" colSpan={4}>{reason}</td>
+            </tr>
+            <tr>
+              <td className="label">Remarks</td>
+              <td className="colon">:</td>
+              <td className="value" colSpan={4}>{remarks}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr />
+
+        {/* Signature Grid */}
+        <table className="onduty-signature-grid">
+          <tbody>
+            <tr>
+              <td>
+                <br /><br /><br />
+                <strong>Employee</strong><br />
+                Signature
+              </td>
+              <td>
+                <strong>Recommended</strong><br />
+                Name: <br />
+                E.I.D No.: <br /><br />
+                Signature
+              </td>
+              <td>
+                <strong>Approved</strong><br />
+                Name:<br />
+                E.I.D No.:<br /><br />
+                Signature
+              </td>
+              <td>
+                <br /><br /><br />
+                <strong>Authorized</strong><br />
+                Signature
+              </td>
+              <td>
+                <br /><br /><br />
+                <strong>HRM</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Notes */}
+        <div className="onduty-note">
+          * Employee must submit this form at least 24 hours in advance.<br />
+          * Approval from Department Head and HR is mandatory for processing Weekly Off changes.
         </div>
 
-        <div className="onduty-print-actions">
-          <button className="print-btn" onClick={() => window.print()}>Print</button>
-          <button className="close-btn" onClick={onClose}>Close</button>
+        {/* Actions */}
+        <div className="onduty-actions no-print">
+          <button onClick={() => window.print()}>Print</button>
+          <button onClick={onClose}>Close</button>
         </div>
       </div>
     </div>

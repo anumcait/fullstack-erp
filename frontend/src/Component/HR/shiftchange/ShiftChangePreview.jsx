@@ -1,93 +1,56 @@
 import React from "react";
 import "./ShiftChangePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
+import { formatDate } from "../../../utils/dateUtils";
 
-// 📆 Utility: Format date to DD-MMM-YYYY
-const formatDate = (dateStr) => {
-  if (!dateStr) return "--";
-  const date = new Date(dateStr);
-
-  const pad = (num) => num.toString().padStart(2, '0');
-
-  const day = pad(date.getDate());
-  const month = pad(date.getMonth() + 1); // Months are 0-indexed
-  const year = date.getFullYear();
-
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
-
-  return `${day}-${month}-${year} ${hours}:${minutes}`;
-};
-
-const formatMovDate = (dateStr) => {
-  if (!dateStr) return "--";
-  const date = new Date(dateStr);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`; 
-};
-const formatTime = (timeStr) => {
-  if (!timeStr) return "--";
-  const date = new Date(`1970-01-01T${timeStr}`);
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`; // Output: 21:00
-};
 const ShiftChangePreview = ({ data = {}, onClose }) => {
   const {
-    movement_id = "--",
-    movement_date = "--",
+    schange_no = "--",
+    schange_date = "--",
     empid = "--",
-    ename = "--",
+    empname = "--",
     unit = "--",
     division = "--",
     designation = "--",
+    department = "--",
     section = "--",
-    shift = "--",
-    act_date="--",
-    perm_ftime = "--",
-    perm_ttime = "--",
+    actual_shift = "--",
+    act_start_time = "--",
+    act_end_time = "--",
+    change_shift = "--",
+    cha_start_time = "--",
+    cha_end_time = "--",
+    schange_from = "--",
+    schange_to = "--",
     no_of_hrs = "--",
-    reason_perm = "--"
+    remarks = "--",
+    purpose = "--"
   } = data;
-let submissionStatus = "";
-if (act_date && movement_date) {
-  const movement = new Date(movement_date);
-  const actual = new Date(act_date);
-  if (actual > movement) {
-    submissionStatus = "BEFORE SUBMISSION";
-  } else {
-    submissionStatus = "AFTER SUBMISSION";
-  }
-}
+
   return (
-    <div className="onduty-print-overlay">
-      <div className="onduty-print-container">
+    <div className="onduty-print-overlay" onClick={onClose}>
+      <div className="onduty-print-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="onduty-print-header">
           <img src={logo} alt="Logo" className="onduty-logo" />
           <div className="onduty-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
-            <span className="onduty-slip-title">ON DUTY PERMISSION SLIP</span>
+            <span className="onduty-slip-title">SHIFT CHANGE APPLICATION</span>
           </div>
-        {submissionStatus && (
-  <div className="onduty-before-box">{submissionStatus}</div>
-)}
         </div>
 
         {/* Details Table */}
         <table className="onduty-field-table">
           <tbody>
             <tr>
-              <td className="label">S.No</td>
+              <td className="label">Schange No</td>
               <td className="colon">:</td>
-              <td className="value">{movement_id}</td>
+              <td className="value">{schange_no}</td>
 
-              <td className="label">Date</td>
+              <td className="label">Entry Date</td>
               <td className="colon">:</td>
-              <td className="value">{formatDate(movement_date)}</td>
+              <td className="value">{formatDate(schange_date)}</td>
             </tr>
             <tr>
               <td className="label">Emp Id</td>
@@ -96,7 +59,7 @@ if (act_date && movement_date) {
 
               <td className="label">Emp Name</td>
               <td className="colon">:</td>
-              <td className="value">{ename}</td>
+              <td className="value">{empname}</td>
             </tr>
             <tr>
               <td className="label">Unit</td>
@@ -108,62 +71,54 @@ if (act_date && movement_date) {
               <td className="value">{division}</td>
             </tr>
             <tr>
+              <td className="label">Department</td>
+              <td className="colon">:</td>
+              <td className="value">{department}</td>
+
               <td className="label">Designation</td>
               <td className="colon">:</td>
               <td className="value">{designation}</td>
-
-              <td className="label">Section</td>
-              <td className="colon">:</td>
-              <td className="value">{section}</td>
-            </tr>
-            <tr>
-              <td className="label">Shift</td>
-              <td className="colon">:</td>
-              <td className="value">{shift}</td>
-              <td></td>
-              <td className="colon"></td>
-              <td></td>
             </tr>
           </tbody>
         </table>
 
         <hr />
 
-        {/* Movement Details (One Row) */}
+        {/* Shift Details */}
         <table className="onduty-field-table">
           <tbody>
             <tr>
-              <td className="label">Movement Date</td>
+              <td className="label">Actual Shift</td>
               <td className="colon">:</td>
-              <td className="value">{act_date?.slice(0, 10).split('-').reverse().join('-')}</td>
+              <td className="value">{actual_shift} ({act_start_time}-{act_end_time})</td>
 
-              <td className="label">From</td>
+              <td className="label">Change Shift</td>
               <td className="colon">:</td>
-              <td className="value">{formatTime(perm_ftime)}</td>
-
-              <td className="label">To</td>
+              <td className="value">{change_shift} ({cha_start_time}-{cha_end_time})</td>
+            </tr>
+            <tr>
+              <td className="label">From Date</td>
               <td className="colon">:</td>
-              <td className="value">{formatTime(perm_ttime)}</td>
+              <td className="value">{schange_from ? schange_from.slice(0, 10).split('-').reverse().join('-') : "--"}</td>
 
-              <td className="label">Hours</td>
+              <td className="label">To Date</td>
+              <td className="colon">:</td>
+              <td className="value">{schange_to ? schange_to.slice(0, 10).split('-').reverse().join('-') : "--"}</td>
+
+              <td className="label">Days</td>
               <td className="colon">:</td>
               <td className="value">{no_of_hrs}</td>
             </tr>
             <tr>
-              <td className="label">Reason</td>
+              <td className="label">Purpose</td>
               <td className="colon">:</td>
-              <td className="value" colSpan={9}>{reason_perm}</td>
+              <td className="value" colSpan={9}>{purpose}</td>
             </tr>
-            {/* <tr>
-  <td className="label">Movement Date</td>
-  <td className="colon">:</td>
-  <td className="value" colSpan={6} style={{ whiteSpace: "nowrap" }}>
-    {formatDate(movement_date)}&nbsp;&nbsp;
-    <strong>From:</strong>&nbsp;{perm_ftime}&nbsp;&nbsp;
-    <strong>To:</strong>&nbsp;{perm_ttime}&nbsp;&nbsp;
-    <strong>Hours:</strong>&nbsp;{no_of_hrs || "--"}
-  </td>
-</tr> */}
+            <tr>
+              <td className="label">Remarks</td>
+              <td className="colon">:</td>
+              <td className="value" colSpan={9}>{remarks}</td>
+            </tr>
           </tbody>
         </table>
 
@@ -205,8 +160,8 @@ if (act_date && movement_date) {
 
         {/* Notes */}
         <div className="onduty-note">
-          * Up to Operators level approved signature is sufficient<br />
-          * Above Operators level Authorized signature is also must
+          * Application should be submitted at least 24 hours prior to the shift change.<br />
+          * Subject to departmental exigencies and final approval by HR.
         </div>
 
         {/* Actions */}
@@ -219,4 +174,4 @@ if (act_date && movement_date) {
   );
 };
 
-export default ShiftChangePreview; 
+export default ShiftChangePreview;

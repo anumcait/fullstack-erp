@@ -8,7 +8,17 @@ import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
-import AdvancePreview from "./AdvancePreview";
+
+const RequiredLabel = ({ children }) => (
+  <span>
+    {children}
+    <span style={{ color: 'red', marginLeft: 2 }}>*</span>
+  </span>
+);
+
+const requiredStyle = {
+  backgroundColor: '#fffde7'
+};
 
 const AdvanceForm = () => {
   const { showToast } = useToast();
@@ -107,180 +117,168 @@ const AdvanceForm = () => {
   };
 
   return (
-    <Box sx={{ p: 3, bgcolor: "#f5f7fa" }}>
+    <Box>
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Advance Request</Typography>
-          <IconButton><CloseIcon /></IconButton>
+          <IconButton onClick={() => setShowPreview(true)}><CloseIcon /></IconButton>
         </Stack>
 
-        <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
-          <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Box display="flex" alignItems="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                    Advance No:
-                  </Typography>
-                  <Typography fontWeight={600}>{formData.advance_id}</Typography>
-                </Box>
-              </Grid>
+        <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <Box display="flex" alignItems="center">
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
+                Advance No:
+              </Typography>
+              <Typography fontWeight={600}>{formData.advance_id}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={6}>
+            <Box display="flex" alignItems="center">
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
+                Entry Date:
+              </Typography>
+              <Typography fontWeight={600}>
+                {formData.advance_date.replace("T", " ")}
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
 
-              <Grid item xs={6}>
-                <Box display="flex" alignItems="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                    Entry Date:
-                  </Typography>
-                  <Typography fontWeight={600}>
-                    {formData.advance_date.replace("T", " ")}
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-            <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 2 }} />
 
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Employee Details
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Emp Id"
+              name="empid"
+              value={formData.empid}
+              onClick={openEmpPopup}
+              size="small"
+              placeholder="Select Employee"
+              fullWidth
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={openEmpPopup}>
+                      <SearchIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ bgcolor: 'white', '& .MuiOutlinedInput-root': { paddingRight: 1 } }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={9}>
+            <Typography fontWeight={600}>
+              Name: {formData.ename || "--"} • Unit: {formData.unit || "--"} • Division: {formData.division || "--"} • Designation: {formData.designation || "--"}
             </Typography>
+          </Grid>
+        </Grid>
 
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={3}>
-                <TextField
-                  label="Emp ID *"
-                  size="small"
-                  value={formData.empid || ""}
-                  fullWidth
-                  variant="outlined"
-                  InputProps={{
-                    readOnly: true,
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton size="small" onClick={openEmpPopup}>
-                          <SearchIcon fontSize="small" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  onClick={openEmpPopup}
-                />
-              </Grid>
+        <Divider sx={{ my: 2 }} />
 
-              <Grid item xs={4}>
-                <Typography fontWeight={600}>
-                  {formData.ename || ""} • {formData.unit || "--"} • {formData.division || "--"} • {formData.designation || "--"}
-                </Typography>
-              </Grid>
-            </Grid>
+        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={3}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Advance Type</InputLabel>
+              <Select
+                name="advance_type"
+                value={formData.advance_type}
+                onChange={handleChange}
+                label="Advance Type"
+              >
+                <MenuItem value="Salary Advance">Salary Advance</MenuItem>
+                <MenuItem value="Festival Advance">Festival Advance</MenuItem>
+                <MenuItem value="Emergency Advance">Emergency Advance</MenuItem>
+                <MenuItem value="Travel Advance">Travel Advance</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Advance Amount"
+              name="advance_amount"
+              type="number"
+              size="small"
+              fullWidth
+              value={formData.advance_amount}
+              onChange={handleChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="From Date"
+              name="advance_from_date"
+              type="date"
+              size="small"
+              fullWidth
+              value={formData.advance_from_date}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="To Date"
+              name="advance_to_date"
+              type="date"
+              size="small"
+              fullWidth
+              value={formData.advance_to_date}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+        </Grid>
 
-            <Divider sx={{ my: 2 }} />
+        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="No of Installments"
+              name="no_of_installments"
+              type="number"
+              size="small"
+              fullWidth
+              value={formData.no_of_installments}
+              onChange={handleChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Monthly Installment"
+              name="monthly_installment"
+              type="number"
+              size="small"
+              fullWidth
+              value={formData.monthly_installment}
+              onChange={handleChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Reason"
+              name="reason"
+              size="small"
+              fullWidth
+              multiline
+              rows={2}
+              value={formData.reason}
+              onChange={handleChange}
+              inputProps={{ maxLength: 200 }}
+              sx={requiredStyle}
+              helperText={`${formData.reason?.length || 0}/200 characters`}
+            />
+          </Grid>
+        </Grid>
 
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Advance Details
-            </Typography>
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel id="advance-type-label">Advance Type</InputLabel>
-                  <Select
-                    labelId="advance-type-label"
-                    name="advance_type"
-                    value={formData.advance_type}
-                    onChange={handleChange}
-                    label="Advance Type"
-                  >
-                    <MenuItem value="Salary Advance">Salary Advance</MenuItem>
-                    <MenuItem value="Festival Advance">Festival Advance</MenuItem>
-                    <MenuItem value="Emergency Advance">Emergency Advance</MenuItem>
-                    <MenuItem value="Travel Advance">Travel Advance</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="Advance Amount"
-                  name="advance_amount"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={formData.advance_amount}
-                  onChange={handleChange}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="From Date"
-                  name="advance_from_date"
-                  type="date"
-                  size="small"
-                  fullWidth
-                  value={formData.advance_from_date}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="To Date"
-                  name="advance_to_date"
-                  type="date"
-                  size="small"
-                  fullWidth
-                  value={formData.advance_to_date}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="No of Installments"
-                  name="no_of_installments"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={formData.no_of_installments}
-                  onChange={handleChange}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  label="Monthly Installment"
-                  name="monthly_installment"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={formData.monthly_installment}
-                  onChange={handleChange}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  label="Reason"
-                  name="reason"
-                  size="small"
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  value={formData.reason}
-                  onChange={handleChange}
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-
-          <Box sx={{ p: 2, borderTop: "1px solid #e5e7eb", bgcolor: "#fafafa" }}>
-            <Stack direction="row" spacing={20}>
-              <Button variant="outlined" onClick={() => setShowPreview(true)} fullWidth>Close</Button>
-              <Button variant="contained" onClick={saveAdvance} fullWidth>Save</Button>
-            </Stack>
-          </Box>
-        </Card>
+        <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '8px' }}>
+          <Button variant="outlined" onClick={() => setShowPreview(true)}>Close</Button>
+          <button className="save-btn" onClick={saveAdvance} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+            💾 <u>S</u>ave
+          </button>
+        </div>
       </div>
 
       <EmployeeSelectDialog open={showEmpPopup} onClose={() => setShowEmpPopup(false)} onSelect={selectEmployee} data={employeeList} />

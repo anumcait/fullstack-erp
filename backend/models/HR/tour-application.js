@@ -14,7 +14,10 @@ module.exports = (sequelize, DataTypes) => {
     unit: DataTypes.STRING(50),
     division: DataTypes.STRING(50),
     designation: DataTypes.STRING(50),
-    tour_from_date: DataTypes.DATE,
+    tour_from_date: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
     tour_to_date: DataTypes.DATE,
     purpose: DataTypes.TEXT,
     destination: DataTypes.STRING(200),

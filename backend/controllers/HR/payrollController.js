@@ -11,12 +11,12 @@ function getOverlappingDays(startDate, endDate, monthStart, monthEnd) {
   const to = new Date(endDate);
   const mStart = new Date(monthStart);
   const mEnd = new Date(monthEnd);
-  
+
   const overlapStart = from < mStart ? mStart : from;
   const overlapEnd = to > mEnd ? mEnd : to;
-  
+
   if (overlapEnd < overlapStart) return 0;
-  
+
   const diffTime = overlapEnd - overlapStart;
   return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
 }
@@ -48,7 +48,7 @@ exports.processMonthlySalary = async (req, res) => {
 
   console.log(`Processing salary for ${month}/${year}...`);
 
-try {
+  try {
     const employees = await EmployeeMaster.findAll({
       where: { is_active: true },
       include: [{ model: EmpSalary, as: 'salary' }],
@@ -78,14 +78,14 @@ try {
             att_date: { [Sequelize.Op.between]: [startDate, endDate] }
           }
         });
-        
+
         const approvedLeaves = await LeaveDetails.findAll({
           where: {
             empno: emp.empid,
             c_hr_app_status: 1
           }
         });
-        
+
         const pendingLeaves = await LeaveDetails.findAll({
           where: {
             empno: emp.empid,
@@ -95,21 +95,21 @@ try {
           }
         });
         const hasPendingLeave = pendingLeaves && pendingLeaves.length > 0;
-        
+
         const approvedTours = await TourApplication.findAll({
           where: {
             empid: emp.empid,
             status: 'Approved'
           }
         });
-        
+
         if (!attendanceData || attendanceData.length === 0) {
           console.log(`No attendance for emp ${emp.empid}, using default values`);
         }
-        
+
         const monthStart = new Date(`${year}-${String(month).padStart(2, '0')}-01`);
         const monthEnd = new Date(year, month, 0);
-        
+
         const workingDays = daysInMonth;
         const presentDays = attendanceData ? attendanceData.filter(a => a.status === 'Present' || a.status === 'P').length : 0;
         const absentDays = attendanceData ? attendanceData.filter(a => a.status === 'Absent' || a.status === 'A').length : 0;
@@ -118,63 +118,63 @@ try {
         const lopDays = attendanceData ? attendanceData.reduce((sum, a) => sum + (parseFloat(a.lop_days) || 0), 0) : 0;
         const lateHrs = attendanceData ? attendanceData.reduce((sum, a) => sum + (parseFloat(a.late_hrs) || 0), 0) : 0;
         const approvedAttendance = attendanceData ? attendanceData.filter(a => a.hr_app_status === 1) : [];
-      const otHrs = (salary.IS_ot === 'Y' && approvedAttendance) ? approvedAttendance.reduce((sum, a) => {
-        return sum + parseOTToHours(a.hr_app_ot || a.app_ot || a.ot_hrs);
-      }, 0) : 0;
-      
-      const extOtData = await ExtOt.findAll({
-        where: {
-          empid: emp.empid,
-          app_status: 2,
-          ot_date: { [Sequelize.Op.between]: [startDate, endDate] }
+        const otHrs = (salary.IS_ot === 'Y' && approvedAttendance) ? approvedAttendance.reduce((sum, a) => {
+          return sum + parseOTToHours(a.hr_app_ot || a.app_ot || a.ot_hrs);
+        }, 0) : 0;
+
+        const extOtData = await ExtOt.findAll({
+          where: {
+            empid: emp.empid,
+            app_status: 2,
+            ot_date: { [Sequelize.Op.between]: [startDate, endDate] }
+          }
+        });
+        const extOtHrs = extOtData.reduce((sum, a) => sum + parseOTToHours(a.ot_hrs), 0);
+        const totalOtHrs = otHrs + extOtHrs;
+
+        let leaveDays = 0;
+        for (const leave of approvedLeaves) {
+          leaveDays += getOverlappingDays(leave.frmdt, leave.todate, monthStart, monthEnd);
         }
-      });
-      const extOtHrs = extOtData.reduce((sum, a) => sum + parseOTToHours(a.ot_hrs), 0);
-      const totalOtHrs = otHrs + extOtHrs;
-        
-    let leaveDays = 0;
-    for (const leave of approvedLeaves) {
-      leaveDays += getOverlappingDays(leave.frmdt, leave.todate, monthStart, monthEnd);
-    }
-    
-    let tourDays = 0;
-    for (const tour of approvedTours) {
-      tourDays += getOverlappingDays(tour.tour_from_date, tour.tour_to_date, monthStart, monthEnd);
-    }
-        
+
+        let tourDays = 0;
+        for (const tour of approvedTours) {
+          tourDays += getOverlappingDays(tour.tour_from_date, tour.tour_to_date, monthStart, monthEnd);
+        }
+
         const paidDays = Math.min(workingDays, Math.max(0, workingDays - lopDays));
 
         console.log(`Emp ${emp.empid}: ${presentDays} present, ${woffDays} woff, ${holidays} holiday, ${leaveDays} leave, ${tourDays} tour = ${paidDays} paid days, ${otHrs} OT`);
 
-      const advances = [];
+        const advances = [];
 
-      const basic = parseFloat(salary.basic) || 0;
-      const hra = parseFloat(salary.hra) || 0;
-      const conv = parseFloat(salary.conveyance) || 0;
-      const washingAllowance = parseFloat(salary.washing_allowance) || 0;
-      const totSal = basic + hra + conv + washingAllowance;
+        const basic = parseFloat(salary.basic) || 0;
+        const hra = parseFloat(salary.hra) || 0;
+        const conv = parseFloat(salary.conveyance) || 0;
+        const washingAllowance = parseFloat(salary.washing_allowance) || 0;
+        const totSal = basic + hra + conv + washingAllowance;
 
-      const perDayBasic = basic / workingDays;
+        const perDayBasic = basic / workingDays;
         const earnedBasic = paidDays * perDayBasic;
         const earnedHra = (hra / workingDays) * paidDays;
         const earnedConv = (conv / workingDays) * paidDays;
         const earnedWA = (washingAllowance / workingDays) * paidDays;
-      
-      const otRate = (totSal / workingDays) / 8;
-      const earnedOt = Math.round(totalOtHrs * otRate);
 
-      let lateDed = 0;
-      let lateTimesCount = 0;
-      let lateHalfDaysCount = 0;
-      let lateHalfHoursCount = 0;
-      
+        const otRate = (totSal / workingDays) / 8;
+        const earnedOt = Math.round(totalOtHrs * otRate);
+
+        let lateDed = 0;
+        let lateTimesCount = 0;
+        let lateHalfDaysCount = 0;
+        let lateHalfHoursCount = 0;
+
         const lateRecordsSorted = attendanceData.filter(a => parseFloat(a.late_hrs) > 0)
           .sort((a, b) => new Date(a.att_date) - new Date(b.att_date));
-        
+
         lateRecordsSorted.forEach((record, index) => {
           lateTimesCount++;
           if (index === 0) return; // First late occurrence always exempt
-          
+
           const minsLate = parseLateToHours(record.late_hrs);
           const perHourBasic = perDayBasic / 8;
           if (minsLate <= 10) {
@@ -183,91 +183,91 @@ try {
             lateDed += perDayBasic / 2;
           }
         });
-      
-      const leaveDaysFromAtt = attendanceData ? attendanceData.filter(a => a.status === 'Leave' || a.leave_type).length : 0;
-      const totalLeaves = leaveDays + leaveDaysFromAtt + absentDays + lopDays;
-      const attendanceBonus = (paidDays >= 25 && totalLeaves === 0 && !hasPendingLeave) ? 500 : 0;
-      const lopAmount = lopDays * perDayBasic;
-      const earnedGross = earnedBasic + earnedHra + earnedConv + earnedWA + earnedOt + attendanceBonus;
 
-      let dedPf = 0, dedEsi = 0, dedPt = 0;
-      if (salary.IS_pf === 'Y') {
-        dedPf = Math.min(basic * 0.12, 1800);
-      }
-      if (salary.IS_esi === 'Y') {
-        dedEsi = earnedGross * 0.0075;
-      }
-      if (earnedGross < 15000) {
-        dedPt = 0;
-      } else if (earnedGross < 20000) {
-        dedPt = 150;
-      } else {
-        dedPt = 200;
-      }
+        const leaveDaysFromAtt = attendanceData ? attendanceData.filter(a => a.status === 'Leave' || a.leave_type).length : 0;
+        const totalLeaves = leaveDays + leaveDaysFromAtt + absentDays + lopDays;
+        const attendanceBonus = (paidDays >= 25 && totalLeaves === 0 && !hasPendingLeave) ? 500 : 0;
+        const lopAmount = lopDays * perDayBasic;
+        const earnedGross = earnedBasic + earnedHra + earnedConv + earnedWA + earnedOt + attendanceBonus;
 
-      const dedTax = parseFloat(salary.tds_amount) || 0;
-      const dedLic = parseFloat(salary.lic_amount) || 0;
-      
-      let dedAdv = 0;
-      if (advances.length > 0 && advances[0].monthly_installment) {
-        dedAdv = parseFloat(advances[0].monthly_installment) || 0;
-      }
+        let dedPf = 0, dedEsi = 0, dedPt = 0;
+        if (salary.IS_pf === 'Y') {
+          dedPf = Math.min(basic * 0.12, 1800);
+        }
+        if (salary.IS_esi === 'Y') {
+          dedEsi = earnedGross * 0.0075;
+        }
+        if (earnedGross < 15000) {
+          dedPt = 0;
+        } else if (earnedGross < 20000) {
+          dedPt = 150;
+        } else {
+          dedPt = 200;
+        }
 
-      const totDed = dedPf + dedEsi + dedPt + dedTax + dedLic + dedAdv + lateDed;
-      const netAmt = earnedGross - totDed;
+        const dedTax = parseFloat(salary.tds_amount) || 0;
+        const dedLic = parseFloat(salary.lic_amount) || 0;
 
-      await Payslip.upsert({
-        C_MONTH: monthStr,
-        C_YEAR: year,
-        C_EMPID: emp.empid,
-        C_ENAME: emp.ename,
-        C_DESIG: emp.deptname || 'Employee',
-        C_DEPT: emp.deptname,
-        C_TOT_DAYS: workingDays,
-C_DAYS_PRESENT: paidDays,
-        C_LEAVES_ALLOWED: leaveDays,
-        C_WOFF_HOL: woffDays + holidays,
-        C_ABSENT_DAYS: absentDays,
-        C_LATE_COMING: lateHrs,
-        C_BASIC: basic,
-        C_HRA: hra,
-        C_CONV: conv,
-        C_OTHERS: washingAllowance,
-        C_TOT_SAL: totSal,
-        C_EARNED_BASIC: earnedBasic.toFixed(2),
-        C_EARNED_HRA: earnedHra.toFixed(2),
-        C_EARNED_CONV: earnedConv.toFixed(2),
-        C_EARNED_OTHERS: earnedWA.toFixed(2),
-C_EARNED_AB: attendanceBonus,
-        C_LOP_AMT: lopAmount.toFixed(2),
-        C_EARNED_OT: earnedOt.toFixed(2),
-        C_OT_HRS: totalOtHrs.toFixed(2),
-        C_EARNED_BONUS: attendanceBonus,
-        C_EARNED_LUNCH: 0,
-        C_EARNED_GROSS: earnedGross.toFixed(2),
-        C_DED_PF: dedPf.toFixed(2),
-        C_DED_ESI: dedEsi.toFixed(2),
-        C_DED_PT: dedPt,
-        C_DED_LIC: dedLic,
-        C_DED_TAX: dedTax,
-C_DED_ADV: dedAdv,
-        C_DED_OTH: (lopDays + lateDed).toFixed(2),
-        C_LATE_TIMES: lateTimesCount,
-        C_LATE_HALF_DAYS: lateHalfDaysCount,
-        C_LATE_HALF_HOURS: lateHalfHoursCount,
-        C_LATE_DED_AMT: Math.round(lateDed).toFixed(2),
-        C_TOT_DED: Math.round(totDed).toFixed(2),
-        C_NET_AMT: Math.round(netAmt).toFixed(2),
-        C_PAY_TYPE: salary.pay_mode || 'Bank',
-        C_PF_EXIST: salary.IS_pf || 'N',
-        C_ESI_EXIST: salary.IS_esi || 'N',
-        C_OT_EXIST: salary.IS_ot || 'N',
-        C_LIC_EXIST: salary.IS_lic || 'N',
-        C_UNIT: emp.uname,
-        C_DIVISION: emp.divname,
-        C_FINAL_STATUS: 1
-      }, { transaction: t });
-        
+        let dedAdv = 0;
+        if (advances.length > 0 && advances[0].monthly_installment) {
+          dedAdv = parseFloat(advances[0].monthly_installment) || 0;
+        }
+
+        const totDed = dedPf + dedEsi + dedPt + dedTax + dedLic + dedAdv + lateDed;
+        const netAmt = earnedGross - totDed;
+
+        await Payslip.upsert({
+          C_MONTH: monthStr,
+          C_YEAR: year,
+          C_EMPID: emp.empid,
+          C_ENAME: emp.ename,
+          C_DESIG: emp.deptname || 'Employee',
+          C_DEPT: emp.deptname,
+          C_TOT_DAYS: workingDays,
+          C_DAYS_PRESENT: paidDays,
+          C_LEAVES_ALLOWED: leaveDays,
+          C_WOFF_HOL: woffDays + holidays,
+          C_ABSENT_DAYS: absentDays,
+          C_LATE_COMING: lateHrs,
+          C_BASIC: basic,
+          C_HRA: hra,
+          C_CONV: conv,
+          C_OTHERS: washingAllowance,
+          C_TOT_SAL: totSal,
+          C_EARNED_BASIC: earnedBasic.toFixed(2),
+          C_EARNED_HRA: earnedHra.toFixed(2),
+          C_EARNED_CONV: earnedConv.toFixed(2),
+          C_EARNED_OTHERS: earnedWA.toFixed(2),
+          C_EARNED_AB: attendanceBonus,
+          C_LOP_AMT: lopAmount.toFixed(2),
+          C_EARNED_OT: earnedOt.toFixed(2),
+          C_OT_HRS: totalOtHrs.toFixed(2),
+          C_EARNED_BONUS: attendanceBonus,
+          C_EARNED_LUNCH: 0,
+          C_EARNED_GROSS: earnedGross.toFixed(2),
+          C_DED_PF: dedPf.toFixed(2),
+          C_DED_ESI: dedEsi.toFixed(2),
+          C_DED_PT: dedPt,
+          C_DED_LIC: dedLic,
+          C_DED_TAX: dedTax,
+          C_DED_ADV: dedAdv,
+          C_DED_OTH: (lopDays + lateDed).toFixed(2),
+          C_LATE_TIMES: lateTimesCount,
+          C_LATE_HALF_DAYS: lateHalfDaysCount,
+          C_LATE_HALF_HOURS: lateHalfHoursCount,
+          C_LATE_DED_AMT: Math.round(lateDed).toFixed(2),
+          C_TOT_DED: Math.round(totDed).toFixed(2),
+          C_NET_AMT: Math.round(netAmt).toFixed(2),
+          C_PAY_TYPE: salary.pay_mode || 'Bank',
+          C_PF_EXIST: salary.IS_pf || 'N',
+          C_ESI_EXIST: salary.IS_esi || 'N',
+          C_OT_EXIST: salary.IS_ot || 'N',
+          C_LIC_EXIST: salary.IS_lic || 'N',
+          C_UNIT: emp.uname,
+          C_DIVISION: emp.divname,
+          C_FINAL_STATUS: 1
+        }, { transaction: t });
+
         processedCount++;
       } catch (empError) {
         console.error(`Error processing employee ${emp.empid}:`, empError.message);
@@ -411,7 +411,7 @@ exports.createPayslipByEmployee = async (req, res) => {
         c_hr_app_status: 1
       }
     });
-    
+
     const approvedTours = await TourApplication.findAll({
       where: {
         empid: emp.empid,
@@ -421,7 +421,7 @@ exports.createPayslipByEmployee = async (req, res) => {
 
     const monthStart = new Date(`${year}-${String(month).padStart(2, '0')}-01`);
     const monthEnd = new Date(year, month, 0);
-    
+
     const monthDays = new Date(year, month, 0).getDate();
     const workingDays = monthDays;
     const presentDays = attendanceData.filter(a => a.status === 'Present' || a.status === 'P').length;
@@ -433,7 +433,7 @@ exports.createPayslipByEmployee = async (req, res) => {
     const otHrs = (salary.IS_ot === 'Y' && approvedAttendance) ? approvedAttendance.reduce((sum, a) => {
       return sum + parseOTToHours(a.hr_app_ot || a.app_ot || a.ot_hrs);
     }, 0) : 0;
-    
+
     const extOtData = await ExtOt.findAll({
       where: {
         empid: emp.empid,
@@ -443,12 +443,12 @@ exports.createPayslipByEmployee = async (req, res) => {
     });
     const extOtHrs = extOtData.reduce((sum, a) => sum + parseOTToHours(a.ot_hrs), 0);
     const totalOtHrs = otHrs + extOtHrs;
-    
+
     let leaveDays = 0;
     for (const leave of approvedLeaves) {
       leaveDays += getOverlappingDays(leave.frmdt, leave.todate, monthStart, monthEnd);
     }
-    
+
     const pendingLeaves = await LeaveDetails.findAll({
       where: {
         empno: emp.empid,
@@ -463,7 +463,7 @@ exports.createPayslipByEmployee = async (req, res) => {
     for (const tour of approvedTours) {
       tourDays += getOverlappingDays(tour.tour_from_date, tour.tour_to_date, monthStart, monthEnd);
     }
-    
+
     const paidDays = workingDays - lopDays;
 
     const basic = parseFloat(salary.basic) || 0;
@@ -476,7 +476,7 @@ exports.createPayslipByEmployee = async (req, res) => {
     const earnedHra = workingDays > 0 ? (hra / workingDays) * paidDays : 0;
     const earnedConv = workingDays > 0 ? (conv / workingDays) * paidDays : 0;
     const earnedWA = workingDays > 0 ? (washingAllowance / workingDays) * paidDays : 0;
-    
+
     const otRate = ((basic + hra + conv + washingAllowance) / workingDays) / 8;
     const earnedOt = Math.round(totalOtHrs * otRate);
     const leaveDaysFromAtt = attendanceData.filter(a => a.status === 'Leave' || a.leave_type).length;
@@ -488,14 +488,14 @@ exports.createPayslipByEmployee = async (req, res) => {
     let lateTimesCount = 0;
     let lateHalfDaysCount = 0;
     let lateHalfHoursCount = 0;
-    
+
     const lateRecordsSorted = attendanceData.filter(a => parseFloat(a.late_hrs) > 0)
       .sort((a, b) => new Date(a.att_date) - new Date(b.att_date));
-    
+
     lateRecordsSorted.forEach((record, index) => {
       lateTimesCount++;
       if (index === 0) return; // First late occurrence always exempt
-      
+
       const minsLate = parseLateToHours(record.late_hrs);
       const perHourBasic = perDayBasic / 8;
       if (minsLate <= 10) {
@@ -504,7 +504,7 @@ exports.createPayslipByEmployee = async (req, res) => {
         lateDed += perDayBasic / 2;
       }
     });
-    
+
     const earnedGross = earnedBasic + earnedHra + earnedConv + earnedWA + earnedOt + attendanceBonus;
 
     let dedPf = 0, dedEsi = 0, dedPt = 0;
@@ -556,13 +556,13 @@ exports.createPayslipByEmployee = async (req, res) => {
       C_DED_PT: dedPt,
       C_DED_LIC: dedLic,
       C_DED_TAX: dedTax,
-C_DED_ADV: 0,
-        C_DED_OTH: (lopDays + lateDed).toFixed(2),
-        C_LATE_TIMES: lateTimesCount,
-        C_LATE_HALF_DAYS: lateHalfDaysCount,
-        C_LATE_HALF_HOURS: lateHalfHoursCount,
-        C_LATE_DED_AMT: Math.round(lateDed).toFixed(2),
-        C_TOT_DED: Math.round(totDed).toFixed(2),
+      C_DED_ADV: 0,
+      C_DED_OTH: (lopDays + lateDed).toFixed(2),
+      C_LATE_TIMES: lateTimesCount,
+      C_LATE_HALF_DAYS: lateHalfDaysCount,
+      C_LATE_HALF_HOURS: lateHalfHoursCount,
+      C_LATE_DED_AMT: Math.round(lateDed).toFixed(2),
+      C_TOT_DED: Math.round(totDed).toFixed(2),
       C_NET_AMT: Math.round(netAmt).toFixed(2),
       C_PAY_TYPE: salary.pay_mode || 'Bank',
       C_PF_EXIST: salary.IS_pf || 'N',
@@ -589,7 +589,7 @@ exports.getSalaryDetails = async (req, res) => {
       where: { is_active: true },
       order: [['empid', 'ASC']]
     });
-    
+
     const employeeData = await Promise.all(employees.map(async (emp) => {
       const salary = await EmpSalary.findOne({ where: { empid: emp.empid } });
       return {
@@ -597,7 +597,7 @@ exports.getSalaryDetails = async (req, res) => {
         salary: salary ? salary.toJSON() : null
       };
     }));
-    
+
     res.json(employeeData);
   } catch (error) {
     console.error('Error fetching salary details:', error);
@@ -608,7 +608,7 @@ exports.getSalaryDetails = async (req, res) => {
 exports.saveSalaryDetails = async (req, res) => {
   try {
     const data = req.body;
-    
+
     await EmpSalary.upsert({
       empid: data.empid,
       basic: data.basic || 0,
@@ -628,7 +628,7 @@ exports.saveSalaryDetails = async (req, res) => {
       c_last_update: new Date(),
       c_upd_userid: req.session?.userId || null
     });
-    
+
     res.json({ message: 'Salary details saved successfully' });
   } catch (error) {
     console.error('Error saving salary details:', error);

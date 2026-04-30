@@ -1,12 +1,15 @@
 .onduty-print-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.3);
   z-index: 9999;
-  overflow-y: auto;
-  display: flex;
   justify-content: center;
-  align-items: center;
+  display: block; 
+  text-align: center;
+  font-size: 8px;
 }
 
 .onduty-print-container {
@@ -14,10 +17,12 @@
   width: 90%;
   max-width: 750px;
   padding:  20px;
-  /* border: 1px solid #000; */
-   font-family: 'Arial', sans-serif; 
-  font-size: 8px;
+  font-family: 'Arial', sans-serif; 
   color: #000;
+  display: inline-block; 
+  margin-top: 20px; 
+  text-align: left; 
+  font-size: 11px !important;
 }
 
 .onduty-print-header {
@@ -30,11 +35,12 @@
 }
 
 .onduty-logo {
-  height: 30px;
+  height: 40px;
 }
 
 .onduty-company-title {
   text-align: center;
+  flex-grow: 1;
   font-weight: bold;
   font-size: 14px;
   line-height: 1.2;
@@ -47,44 +53,36 @@
   margin-top: 2px;
 }
 
-.onduty-before-box {
-  border: 1px solid #000;
-  font-weight: bold;
-  font-size: 11px;
-  padding: 2px 6px;
-}
 .onduty-field-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 11px;
 }
 
 .onduty-field-table td {
   padding: 4px 6px;
   vertical-align: top;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .label {
-  width: 80px;       /* Equal width for labels */
+  width: 100px;
   font-weight: bold;
   white-space: nowrap;
 }
 
 .colon {
-  width: 10px;        /* Narrow width to keep colon close */
+  width: 10px;
   text-align: center;
 }
 
 .value {
-  width: 150px;       /* Adjust based on your layout */
-  white-space: nowrap;
+  width: auto;
+  font-weight: 500;
 }
 
 .onduty-signature-grid {
   width: 100%;
-  margin: 0;
+  margin-top: 20px;
   border-collapse: collapse;
   font-size: 11px;
   text-align: center;
@@ -93,15 +91,17 @@
 .onduty-signature-grid td {
   border: none;
   vertical-align: top;
-  text-align: left;       /* ← aligns content to the left */
+  text-align: left;
   padding: 10px;
-  width: 25%;
+  width: 20%;
 }
 
 .onduty-note {
   font-size: 10px;
   font-weight: bold;
   margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 5px;
 }
 
 .onduty-actions {
@@ -115,8 +115,8 @@
   background-color: #007bff;
   color: white;
   border: none;
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 8px 16px;
+  font-size: 14px;
   cursor: pointer;
   border-radius: 4px;
 }
@@ -126,56 +126,21 @@
 }
 
 @media print {
-    @page {
+  @page {
     size: A4 portrait;
-  margin:0;
+    margin: 10mm;
   }
-
   body * {
     visibility: hidden;
   }
-
   .onduty-print-container, .onduty-print-container * {
     visibility: visible;
   }
-/* 
   .onduty-print-overlay {
     position: static;
     background: none;
-    overflow: visible;
-  } */
-
+  }
   .onduty-actions.no-print {
     display: none;
   }
-
-  /* .onduty-print-container {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 0;
-    border: none;
-    box-shadow: none;
-  }
-} */
-}
-.onduty-print-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.3);
-  z-index: 9999;
-justify-content: center;
-  display: block; 
-  text-align: center;
-  font-size: 8px;
-}
-
-.onduty-print-container {
-  display: inline-block; /* so it centers horizontally inside text-align */
-  margin-top: 20px; /* push it a bit down from top */
-  text-align: left; /* so content inside is aligned properly */
-  font-size: 8px !important;
-
 }

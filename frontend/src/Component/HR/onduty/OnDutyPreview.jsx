@@ -1,23 +1,7 @@
 import React from "react";
 import "./OnDutyPreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
-
-// 📆 Utility: Format date to DD-MMM-YYYY
-const formatDate = (dateStr) => {
-  if (!dateStr) return "--";
-  const date = new Date(dateStr);
-
-  const pad = (num) => num.toString().padStart(2, '0');
-
-  const day = pad(date.getDate());
-  const month = pad(date.getMonth() + 1); // Months are 0-indexed
-  const year = date.getFullYear();
-
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
-
-  return `${day}-${month}-${year} ${hours}:${minutes}`;
-};
+import { formatDate } from "../../../utils/dateUtils";
 
 const formatMovDate = (dateStr) => {
   if (!dateStr) return "--";

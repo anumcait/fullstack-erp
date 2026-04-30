@@ -65,6 +65,8 @@ import SubcontractSettings from "./Component/ERP/Subcontract/SubcontractSettings
 import MaintenanceReports from "./Component/ERP/Maintenance/MaintenanceReports.jsx";
 import MaintenanceSettings from "./Component/ERP/Maintenance/MaintenanceSettings.jsx";
 import UserAccess from "./Component/Settings/UserAccess.jsx";
+import ProfileUpdate from "./Component/Settings/ProfileUpdate.jsx";
+import ProfileRequestApproval from "./Component/HR/Employee/ProfileRequestApproval.jsx";
 
 import axios from "axios";
 
@@ -149,6 +151,7 @@ function App() {
                 <Route path="/maintenance/settings" element={<MaintenanceSettings />} />
 
                 <Route path="/photo" element={<PhotoUpload />} />
+                <Route path="/profile-requests" element={<ProfileRequestApproval />} />
                 <Route path="/employees" element={<EmployeeDashboard />} />
                 <Route path="/employee-report" element={<EmployeeDashboard />} />
                 <Route path="/add-employee" element={<AddEmployeeForm />} />
@@ -176,6 +179,7 @@ function App() {
                 <Route path="/leave-report" element={<LeaveReport />} />
                 <Route path="/useraccess" element={<UserAccess />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/profile" element={<ProfileUpdate />} />
               </Route>
             </Routes>
           </Router>
