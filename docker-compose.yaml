@@ -80,7 +80,8 @@ services:
     env_file:
       - ./backend/.env.development
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: ["npx", "nodemon", "--legacy-watch", "index.js"]
     ports:
       - "5000:5000"

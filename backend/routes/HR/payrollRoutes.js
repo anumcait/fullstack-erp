@@ -10,5 +10,6 @@ router.get('/years', payrollController.getYearsWithSalary);
 router.get('/employees', payrollController.getAllEmployees);
 router.get('/salary-details', payrollController.getSalaryDetails);
 router.post('/salary-details', payrollController.saveSalaryDetails);
+router.get('/check-status', payrollController.checkPayslipStatus);
 
 module.exports = router;

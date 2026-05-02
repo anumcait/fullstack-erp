@@ -7,7 +7,6 @@ import LoginForm from "./Component/LoginForm/LoginForm";
 import ChangePasswordForm from "./Component/ChangePasswordForm/ChangePasswordForm";
 import EmployeeReportForm from "./Component/HR/Employee/EmployeeMasterReport";
 import AddEmployeeForm from "./Component/HR/Employee/AddEmployee";
-import LeaveForm from "./Component/HR/LeaveApplication/LeaveForm";
 import LeaveReport from "./Component/HR/LeaveApplication/LeaveReport";
 import { ToastProvider } from "./context/ToastContext";
 import MainLayout from "./Component/Layout/MainLayout";
@@ -112,7 +111,7 @@ function App() {
               }>
                 <Route path="/dashboard" element={<DashBoard />} />
                 <Route path="/accounts" element={<AccountsDashboard />} />
-                
+
                 {/* ERP & Operations Modules */}
                 <Route path="/purchase" element={<PurchaseDashboard />} />
                 <Route path="/stores" element={<StoresDashboard />} />

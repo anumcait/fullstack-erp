@@ -73,6 +73,15 @@ const TestApplication = ({ onClose }) => {
   const [isInvalid, setIsInvalid] = useState(false);
   const [gridKey, setGridKey] = useState(Date.now());
   const purposeRef = useRef(null);
+  const phoneRef = useRef(null);
+  const addressRef = useRef(null);
+
+  const handleEnter = (e, nextRef) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      nextRef?.current?.focus();
+    }
+  };
 
   const loadEmpList = async () => {
     try {
@@ -102,10 +111,10 @@ const TestApplication = ({ onClose }) => {
       const res = await axios.get(`/api/leave/balance/${emp.empid}`);
       setFormData((prev) => ({
         ...prev,
-        clUsed: res.data.clUsed,
-        clBalance: res.data.clBalance,
-        elUsed: res.data.elUsed,
-        elBalance: res.data.elBalance,
+        clUsed: res.data.cls_utilised || 0,
+        clBalance: res.data.cls_balance || 0,
+        elUsed: res.data.els_utilised || 0,
+        elBalance: res.data.els_balance || 0,
       }));
     } catch (error) {
       showToast("Failed to fetch leave balance", "error");
@@ -242,67 +251,70 @@ const TestApplication = ({ onClose }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm="auto">
-            <TextField
-              label={<RequiredLabel label="Emp Id" />}
-              name="empId"
-              value={formData.empId}
-              onClick={loadEmpList}
-              size="small"
-              placeholder="Select Employee"
-              fullWidth
-              sx={{ width: { sm: '180px' }, bgcolor: '#fffde7' }}
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={loadEmpList}>
-                      <SearchIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
-            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', width: '100%' }}>
-              <Typography fontWeight={600} variant="subtitle2">
-                Name: {formData.ename || "--"} • Dept: {formData.department || "--"} • Desig: {formData.designation || "--"}
-              </Typography>
+        {/* Two-panel layout: Left = Employee Details, Right = Leave Summary */}
+        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', md: 'row' }, mb: 1 }}>
+
+          {/* ── DIV 1: Employee Details ── */}
+          <Box component="fieldset" sx={{ flex: 7, border: '1px solid #e0e0e0', borderRadius: 1, p: 1.5, bgcolor: '#fafafa', m: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
+              Employee Details
+            </Typography>
+            {/* Row 1: Emp ID + Name/Dept/Desig */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+              <TextField
+                label={<RequiredLabel label="Emp Id" />}
+                name="empId"
+                value={formData.empId}
+                onClick={loadEmpList}
+                size="small"
+                placeholder="Select"
+                sx={{ width: '140px', minWidth: '140px', bgcolor: '#fffde7' }}
+                InputProps={{
+                  readOnly: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={loadEmpList}>
+                        <SearchIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Box sx={{ flex: 1, py: 0.5, px: 1, bgcolor: '#fff', borderRadius: 1, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', minHeight: '36px' }}>
+                <Typography fontWeight={600} variant="body2">
+                  {formData.ename || "--"} &nbsp;•&nbsp; {formData.department || "--"} &nbsp;•&nbsp; {formData.designation || "--"}
+                </Typography>
+              </Box>
             </Box>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={1} alignItems="flex-start" wrap="nowrap" sx={{ mt: 1 }}>
-          <Grid item sx={{ width: '180px', minWidth: '180px' }}>
-            <FormControl fullWidth size="small" sx={{ bgcolor: '#fffde7' }}>
-              <InputLabel><RequiredLabel label="Purpose" /></InputLabel>
-              <Select
-                name="purpose"
-                value={formData.purpose}
+            {/* Row 2: Purpose + Phone */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+              <FormControl size="small" sx={{ width: '140px', minWidth: '140px', bgcolor: '#fffde7' }}>
+                <InputLabel><RequiredLabel label="Purpose" /></InputLabel>
+                <Select
+                  name="purpose"
+                  value={formData.purpose}
+                  onChange={handleChange}
+                  label={<RequiredLabel label="Purpose" />}
+                  inputRef={purposeRef}
+                  onKeyDown={(e) => handleEnter(e, phoneRef)}
+                >
+                  <MenuItem value="PERSONAL">PERSONAL</MenuItem>
+                  <MenuItem value="SICK">SICK</MenuItem>
+                  <MenuItem value="EMERGENCY">EMERGENCY</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField
+                label={<RequiredLabel label="Phone" />}
+                name="phone"
+                value={formData.phone}
                 onChange={handleChange}
-                label={<RequiredLabel label="Purpose" />}
-                inputRef={purposeRef}
-              >
-                <MenuItem value="PERSONAL">PERSONAL</MenuItem>
-                <MenuItem value="SICK">SICK</MenuItem>
-                <MenuItem value="EMERGENCY">EMERGENCY</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item sx={{ ml: 1, width: '160px', minWidth: '160px' }}>
-            <TextField
-              label={<RequiredLabel label="Phone" />}
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              size="small"
-              fullWidth
-            />
-          </Grid>
-          <Grid item sx={{ flexGrow: 1 }}>
+                size="small"
+                sx={{ flex: 1 }}
+                inputRef={phoneRef}
+                onKeyDown={(e) => handleEnter(e, addressRef)}
+              />
+            </Box>
+            {/* Row 3: Address (full width) */}
             <TextField
               label={<RequiredLabel label="Address / Reason" />}
               name="address"
@@ -312,61 +324,57 @@ const TestApplication = ({ onClose }) => {
               fullWidth
               placeholder="Address or reason..."
               inputProps={{ maxLength: 200 }}
-              helperText={`${formData.address?.length || 0}/200 characters`}
-              FormHelperTextProps={{
-                sx: {
-                  bgcolor: '#fffde7',
-                  padding: '2px 8px',
-                  borderRadius: 1,
-                  fontSize: '0.65rem',
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  mx: 0,
-                  width: '100%'
-                }
-              }}
+              inputRef={addressRef}
             />
-          </Grid>
-        </Grid>
+          </Box>
 
-        {/* Leave Summary Section Reverted to Old Layout */}
-        <Box component="fieldset" sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2, mb: 0, bgcolor: '#fafafa' }}>
-          <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
-            Leave Summary
-          </Typography>
-          <Stack direction="row" spacing={1.5} flexWrap="nowrap" justifyContent="space-between" sx={{ py: 0.5 }}>
-            {/* Utilised Group */}
-            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#e3f2fd", flex: 1, minWidth: 0, borderTop: '4px solid #2196f3' }}>
-              <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 700, whiteSpace: 'nowrap' }}>CL Util</Typography>
-              <Typography variant="h6" fontWeight="bold">{parseFloat(formData.clUsed) || 0}</Typography>
-            </Paper>
+          {/* ── DIV 2: Leave Summary ── */}
+          <Box component="fieldset" sx={{ flex: 4, border: '1px solid #e0e0e0', borderRadius: 1, p: 1.5, bgcolor: '#fafafa', m: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
+              Leave Summary
+            </Typography>
+            {/* Row 1: Utilised */}
+            <Box>
+              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 0.5, display: 'block', textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem' }}>
+                Utilised
+              </Typography>
+              <Stack direction="row" spacing={0.75}>
+                <Paper elevation={1} sx={{ flex: 1, py: 0.5, px: 1, bgcolor: '#fff3e0', borderLeft: '3px solid #ef6c00', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#e65100', fontWeight: 600 }}>CL</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold" color="#e65100">{parseFloat(formData.clUsed) || 0}</Typography>
+                </Paper>
+                <Paper elevation={1} sx={{ flex: 1, py: 0.5, px: 1, bgcolor: '#fff3e0', borderLeft: '3px solid #ef6c00', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#e65100', fontWeight: 600 }}>EL</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold" color="#e65100">{parseFloat(formData.elUsed) || 0}</Typography>
+                </Paper>
+                <Paper elevation={1} sx={{ flex: 1, py: 0.5, px: 1, bgcolor: '#ffe0b2', borderLeft: '3px solid #e65100', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#bf360c', fontWeight: 600 }}>Total</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold" color="#bf360c">{(Number(formData.clUsed) + Number(formData.elUsed)) || 0}</Typography>
+                </Paper>
+              </Stack>
+            </Box>
+            {/* Row 2: Balance */}
+            <Box>
+              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 0.5, display: 'block', textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem' }}>
+                Balance
+              </Typography>
+              <Stack direction="row" spacing={0.75}>
+                <Paper elevation={1} sx={{ flex: 1, py: 0.5, px: 1, bgcolor: '#e8f5e9', borderLeft: '3px solid #2e7d32', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#1b5e20', fontWeight: 600 }}>CL</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold" color="#1b5e20">{parseFloat(formData.clBalance) || 0}</Typography>
+                </Paper>
+                <Paper elevation={1} sx={{ flex: 1, py: 0.5, px: 1, bgcolor: '#e8f5e9', borderLeft: '3px solid #2e7d32', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#1b5e20', fontWeight: 600 }}>EL</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold" color="#1b5e20">{parseFloat(formData.elBalance) || 0}</Typography>
+                </Paper>
+                <Paper elevation={2} sx={{ flex: 1, py: 0.5, px: 1, bgcolor: '#c8e6c9', borderLeft: '3px solid #1b5e20', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#1b5e20', fontWeight: 600 }}>Total</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold" color="#1b5e20">{parseFloat(Number(formData.clBalance) + Number(formData.elBalance)) || 0}</Typography>
+                </Paper>
+              </Stack>
+            </Box>
+          </Box>
 
-            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#f1f8e9", flex: 1, minWidth: 0, borderTop: '4px solid #4caf50' }}>
-              <Typography variant="caption" sx={{ display: 'block', color: 'success.main', fontWeight: 700, whiteSpace: 'nowrap' }}>EL Util</Typography>
-              <Typography variant="h6" fontWeight="bold">{parseFloat(formData.elUsed) || 0}</Typography>
-            </Paper>
-
-            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#e0f2f1", flex: 1, minWidth: 0, borderTop: '4px solid #009688' }}>
-              <Typography variant="caption" sx={{ display: 'block', color: 'teal', fontWeight: 700, whiteSpace: 'nowrap' }}>Tot Util</Typography>
-              <Typography variant="h6" fontWeight="bold">{parseFloat(Number(formData.clUsed) + Number(formData.elUsed)) || 0}</Typography>
-            </Paper>
-
-            {/* Balance Group */}
-            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#f3e5f5", flex: 1, minWidth: 0, borderTop: '4px solid #9c27b0' }}>
-              <Typography variant="caption" sx={{ display: 'block', color: 'secondary.main', fontWeight: 700, whiteSpace: 'nowrap' }}>CL Bal</Typography>
-              <Typography variant="h6" fontWeight="bold">{parseFloat(formData.clBalance) || 0}</Typography>
-            </Paper>
-
-            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#e8eaf6", flex: 1, minWidth: 0, borderTop: '4px solid #3f51b5' }}>
-              <Typography variant="caption" sx={{ display: 'block', color: 'indigo', fontWeight: 700, whiteSpace: 'nowrap' }}>EL Bal</Typography>
-              <Typography variant="h6" fontWeight="bold">{parseFloat(formData.elBalance) || 0}</Typography>
-            </Paper>
-
-            <Paper elevation={3} sx={{ p: 1.5, textAlign: "center", bgcolor: "#fff3e0", flex: 1, minWidth: 0, borderTop: '4px solid #ff9800' }}>
-              <Typography variant="caption" sx={{ display: 'block', color: '#e65100', fontWeight: 700, whiteSpace: 'nowrap' }}>Tot Bal</Typography>
-              <Typography variant="h6" fontWeight="bold" color="#e65100">{parseFloat(Number(formData.clBalance) + Number(formData.elBalance)) || 0}</Typography>
-            </Paper>
-          </Stack>
         </Box>
 
         <LeaveGrid

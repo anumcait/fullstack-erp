@@ -25,7 +25,8 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0
     },
     c_unit: DataTypes.STRING(40),
-    c_gempid: DataTypes.STRING(40)
+    c_gempid: DataTypes.STRING(40),
+    leave_type: DataTypes.STRING(10) // CL, EL, LOP
   }, {
     tableName: 'leave_details',
     timestamps: false

@@ -6,7 +6,7 @@ import axios from 'axios';
 import { useToast } from "../../../context/ToastContext";
 import { formatDate } from "../../../utils/dateUtils";
 import {
-  Box, Grid, Typography, TextField, MenuItem, Button, Stack, IconButton, Select, InputLabel, FormControl, InputAdornment, Divider
+  Box, Grid, Typography, TextField, MenuItem, Button, Stack, IconButton, Select, InputLabel, FormControl, InputAdornment, Divider, Paper
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
@@ -227,7 +227,7 @@ const LeaveForm = ({ onClose }) => {
 
         <Divider sx={{ mb: 2 }} />
 
-        {/* User's Original Layout Split (sm=8 for inputs, sm=4 for summary) */ }
+        {/* User's Original Layout Split (sm=8 for inputs, sm=4 for summary) */}
         <Grid container spacing={2}>
           <Grid item xs={12} sm={8}>
             <Grid container spacing={2}>
@@ -263,7 +263,7 @@ const LeaveForm = ({ onClose }) => {
                   </Typography>
                 </Box>
               </Grid>
-              
+
               <Grid item xs={12} sm={6}>
                 <FormControl size="small" fullWidth>
                   <InputLabel>Purpose of Leave</InputLabel>
@@ -306,44 +306,44 @@ const LeaveForm = ({ onClose }) => {
             </Grid>
           </Grid>
 
-           {/* Leave Summary Section Reverted to Old Layout */}
-           <Box component="fieldset" sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2, mb: 2, bgcolor: '#fafafa' }}>
-             <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
-               Leave Summary
-             </Typography>
-             <Grid container spacing={2} justifyContent="flex-start">
-               <Grid item xs={12} sm={6} md={2.4}>
-                 <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#e3f2fd" }}>
-                   <Typography variant="body2">CLs Utilised</Typography>
-                   <Typography variant="h6" fontWeight="bold">{formData.clUsed}</Typography>
-                 </Paper>
-               </Grid>
-               <Grid item xs={12} sm={6} md={2.4}>
-                 <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#f1f8e9" }}>
-                   <Typography variant="body2">ELs Utilised</Typography>
-                   <Typography variant="h6" fontWeight="bold">{formData.elUsed}</Typography>
-                 </Paper>
-               </Grid>
-               <Grid item xs={12} sm={6} md={2.4}>
-                 <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#ede7f6" }}>
-                   <Typography variant="body2">CLs Balance</Typography>
-                   <Typography variant="h6" fontWeight="bold">{formData.clBalance}</Typography>
-                 </Paper>
-               </Grid>
-               <Grid item xs={12} sm={6} md={2.4}>
-                 <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#ede7f6" }}>
-                   <Typography variant="body2">ELs Balance</Typography>
-                   <Typography variant="h6" fontWeight="bold">{formData.elBalance}</Typography>
-                 </Paper>
-               </Grid>
-               <Grid item xs={12} sm={6} md={2.4}>
-                 <Paper sx={{ p: 1, textAlign: "center", bgcolor: "orange" }}>
-                   <Typography variant="body2">Total Leaves Applied</Typography>
-                   <Typography variant="h6" fontWeight="bold">{totalDays}</Typography>
-                 </Paper>
-               </Grid>
-             </Grid>
-           </Box>
+          {/* Leave Summary Section Reverted to Old Layout */}
+          <Box component="fieldset" sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2, mb: 2, bgcolor: '#fafafa' }}>
+            <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
+              Leave Summary
+            </Typography>
+            <Grid container spacing={2} justifyContent="flex-start">
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#e3f2fd" }}>
+                  <Typography variant="body2">CLs Utilised</Typography>
+                  <Typography variant="h6" fontWeight="bold">{formData.clUsed}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#f1f8e9" }}>
+                  <Typography variant="body2">ELs Utilised</Typography>
+                  <Typography variant="h6" fontWeight="bold">{formData.elUsed}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#ede7f6" }}>
+                  <Typography variant="body2">CLs Balance</Typography>
+                  <Typography variant="h6" fontWeight="bold">{formData.clBalance}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "#ede7f6" }}>
+                  <Typography variant="body2">ELs Balance</Typography>
+                  <Typography variant="h6" fontWeight="bold">{formData.elBalance}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Paper sx={{ p: 1, textAlign: "center", bgcolor: "orange" }}>
+                  <Typography variant="body2">Total Leaves Applied</Typography>
+                  <Typography variant="h6" fontWeight="bold">{totalDays}</Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </Box>
         </Grid>
 
 
@@ -362,12 +362,12 @@ const LeaveForm = ({ onClose }) => {
         </div>
       </div >
 
-  <EmployeeSelectDialog
-    open={showEmpPopup}
-    onClose={() => setShowEmpPopup(false)}
-    onSelect={selectEmployee}
-    data={employeeList}
-  />
+      <EmployeeSelectDialog
+        open={showEmpPopup}
+        onClose={() => setShowEmpPopup(false)}
+        onSelect={selectEmployee}
+        data={employeeList}
+      />
     </Box >
   );
 };

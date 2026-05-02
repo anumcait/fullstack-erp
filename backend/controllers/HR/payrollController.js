@@ -635,3 +635,21 @@ exports.saveSalaryDetails = async (req, res) => {
     res.status(500).json({ message: 'Error saving salary details' });
   }
 };
+
+exports.checkPayslipStatus = async (req, res) => {
+  try {
+    const { empid, year, month } = req.query;
+    const monthStr = getMonthName(parseInt(month));
+    const payslip = await Payslip.findOne({
+      where: {
+        C_EMPID: parseInt(empid),
+        C_YEAR: parseInt(year),
+        C_MONTH: monthStr
+      }
+    });
+    res.json({ generated: !!payslip });
+  } catch (error) {
+    console.error('Error checking payslip status:', error);
+    res.status(500).json({ message: 'Error checking status' });
+  }
+};

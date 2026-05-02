@@ -25,6 +25,13 @@ module.exports = (sequelize, DataTypes) => {
       c_gempid: {
         type: DataTypes.STRING(40),
         allowNull: false
+      },
+      status: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0 // 0: Pending, 1: Approved, 2: Rejected
+      },
+      remarks: {
+        type: DataTypes.STRING(255)
       }
     },
     {
@@ -41,9 +48,9 @@ module.exports = (sequelize, DataTypes) => {
     });
 
   // New association to LeaveMaster
-  LeaveApplication.hasOne(models.LeaveMaster, {
-    foreignKey: 'empid',   // LeaveMaster.empid
-    sourceKey: 'empid',    // LeaveApplication.empid
+  LeaveApplication.belongsTo(models.LeaveMaster, {
+    foreignKey: 'empid',
+    targetKey: 'empid',
     as: 'leaveMaster'
   });
 

@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
+import axios from 'axios';
 import {
   Box, Card, CardContent, Typography, Tabs, Tab, TextField, InputAdornment,
-  IconButton, Button, Chip, Divider, Stack, Drawer, Avatar, Tooltip,MenuItem,
+  IconButton, Button, Chip, Divider, Stack, Drawer, Avatar, Tooltip, MenuItem,
+  Dialog, DialogTitle, DialogContent, DialogActions, Checkbox, FormControlLabel
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
@@ -13,7 +15,14 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useToast } from "../../../context/ToastContext";
-import axios from 'axios';
+
+const toYMD = (d) => {
+  if (!d) return "";
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return "";
+  return date.toISOString().split('T')[0];
+};
+
 /** ---- MOCK DATA (replace with API results) ---- */
 const mockRows = [
   { id: 236977, empId: 3016, empName: "MALLIKARJUNA RAO KOTA", unit: "UNIT-1", dept: "PRODUCTION", desg: "Supervisor",
@@ -67,15 +76,15 @@ export default function LeaveApprovalPage() {
 //      .catch(err => console.error("Failed to load leave apps", err));
 //  }, []);
 
-const fetchPendingLeaves = async () => {
-  try {
-    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/leave/pendingleaves`);
-    console.log("API Response:", res.data);
-    setRows(res.data);
-  } catch (err) {
-    console.error("Failed to load leave apps", err);
-  }
-};
+  const fetchPendingLeaves = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/leave/all-leaves`);
+      console.log("API Response:", res.data);
+      setRows(res.data);
+    } catch (err) {
+      console.error("Failed to load leaves", err);
+    }
+  };
 
 // Run once on mount
 useEffect(() => {
@@ -93,7 +102,7 @@ const clearFilters = () => {
 };
   /** ---------- Grid Columns ---------- */
   const columns = useMemo(() => [
-    {
+    ...(tab === "pending" ? [{
       field: "approve",
       headerName: "Approve",
       width: 110,
@@ -107,11 +116,44 @@ const clearFilters = () => {
           Approve
         </Button>
       ),
-    },
+    }] : []),
+    ...(tab === "completed" ? [{
+      field: "cancelApproval",
+      headerName: "Action",
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Button
+          size="small"
+          variant="outlined"
+          color="error"
+          onClick={() => handleCancelApproval(params.row)}
+        >
+          Cancel Approval
+        </Button>
+      ),
+    }] : []),
+    ...(tab === "cancelled" ? [{
+      field: "reopen",
+      headerName: "Action",
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Button
+          size="small"
+          variant="outlined"
+          color="primary"
+          onClick={() => handleReopen(params.row)}
+        >
+          Re-process
+        </Button>
+      ),
+    }] : []),
     { field: "id", headerName: "Leave App #", width: 160 },
-    { field: "ldate", headerName: "Entry Date", width: 160 },
+    { field: "ldate", headerName: "Entry Date", width: 180,
+      valueGetter: (value) => value ? new Date(value).toLocaleString() : ""
+    },
     { field: "unit", headerName: "Unit", width: 90 },
-   // { field: "empId", headerName: "Employee Name", flex: 1, minWidth: 220 },
     {
       field: "empDetails",
       headerName: "Employee Name",
@@ -126,13 +168,18 @@ const clearFilters = () => {
     { field: "phone", headerName: "Phone No", width: 130 },
     { field: "clBal", headerName: "CLs Balance", width: 120, type: "number", align: "center", headerAlign: "center" },
     { field: "elBal", headerName: "ELs Balance", width: 120, type: "number", align: "center", headerAlign: "center" },
-    { field: "cancelStatus", headerName: "Cancel Status", width: 120,
-      valueGetter: () => "" },
-    { field: "cancelEmp", headerName: "Cancel Empid", width: 120,
-      valueGetter: () => "" },
-    { field: "cancelDate", headerName: "Cancel Date", width: 120,
-      valueGetter: () => "" },
-  ], []);
+    { field: "status", headerName: "Status", width: 120,
+      renderCell: (params) => (
+        <Chip 
+          label={params.value} 
+          size="small" 
+          color={params.value === "Approved" ? "success" : params.value === "Cancelled" ? "error" : "primary"}
+          variant="outlined"
+        />
+      )
+    },
+    { field: "remarks", headerName: "HR Remarks", flex: 1, minWidth: 150 },
+  ], [tab]);
 
 
    // ✅ calculate here inside the component
@@ -226,109 +273,84 @@ function sortDays(days) {
     const lop = Number(totalLOP || 0);
    
 
- const days = sanction.days || selected.days || [];
-
-  //console.log("Days at approve:", days);
-
-  if (!days.length) {
-    alert("No leave days available to approve.");
-    return;
-  }
-    // check missing leave type
-  //const missingType = days.some(d => !d.type || d.type.trim() === "");
-//alert(missingType);
-  //if (missingType) {
-//    alert("Please select Leave Type for all rows before approving.");
-  //  return;
-//  }
-
-  const invalidIndex = (sanction.days || []).findIndex(d => !d.type);
-  //alert(invalidIndex);
-  if (invalidIndex !== -1) {
-    alert(`Please select Leave Type for row ${invalidIndex + 1}`);
-    leaveRefs.current[invalidIndex]?.focus(); // 👈 focus the first invalid row
-    return;
-  }
-
-    alert(`${cls}, ${els}`);
-    if (isNaN(cls) || isNaN(els) || cls < 0 || els < 0) {
-      alert("Sanction values must be valid non-negative numbers.");
+    const days = sanction.days || selected.days || [];
+    if (!days.length) {
+      showToast("No leave days available to approve.", "error");
       return;
     }
 
-   if (cls == 0 && els == 0 && lop == 0 ) {
-      alert("You are not approving any leave");
+    const invalidIndex = days.findIndex(d => !d.type);
+
+    if (invalidIndex !== -1) {
+      showToast(`Please select Leave Type for row ${invalidIndex + 1}`, "error");
+      leaveRefs.current[invalidIndex]?.focus();
       return;
     }
 
+    if (cls === 0 && els === 0 && lop === 0) {
+      showToast("You are not approving any leave", "warning");
+      return;
+    }
 
     if (cls > (selected?.clBal ?? 0)) {
-      alert("CLs sanction exceeds available CL balance.");
+      showToast("CLs sanction exceeds available CL balance.", "error");
       return;
     }
     if (els > (selected?.elBal ?? 0)) {
-      alert("ELs sanction exceeds available EL balance.");
+      showToast("ELs sanction exceeds available EL balance.", "error");
       return;
     }
-    if (cls + els > (selected?.nod ?? 0)) {
-      alert("Total sanction cannot exceed No. of Days.");
+    if (cls + els + lop > (selected?.nod ?? 0)) {
+      showToast("Total sanction cannot exceed No. of Days.", "error");
       return;
     }
-
-    // TODO: call your API:
-  //    await axios.post(`/api/leave/approve`, {
-  //      lno: selected.id,
-  //      empid: selected.empId,
-  //      frmdt: selected.from,
-  //      todate: selected.to,
-  //      nod: selected.nod,
-  //      cl_sanction: cls,
-  //      el_sanction: els,
-  //      app_remarks: sanction.remarks,
-  //      unit: selected.unit,
-  //    });
-
-  //   // optimistic UI
-  //   alert(`Approved LApp #${selected.id} | CL: ${cls}, EL: ${els}`);
-  //   closeDrawer();
-  // };
-
 
     try {
-  const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/leave/approve`, {
-    lno: selected.id,
-    empid: selected.empId,
-    frmdt: selected.from,
-    todate: selected.to,
-    nod: selected.nod,
-    cl_sanction: cls,
-    el_sanction: els,
-    app_remarks: sanction.remarks,
-    unit: selected.unit,
-    days: selected.days,
-  });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/leave/approve`, {
+        lno: selected.id,
+        empid: selected.empId,
+        frmdt: selected.from,
+        todate: selected.to,
+        nod: selected.nod,
+        cl_sanction: cls,
+        el_sanction: els,
+        app_remarks: sanction.remarks,
+        unit: selected.unit,
+        days: sanction.days || selected.days || [],
+      });
 
-  if (res.data.success) {
-    showToast("Leave approved successfully ✅", "success");
-    await fetchPendingLeaves();
-    closeDrawer();
-  } else {
-    // backend sent success:false
-    showToast(res.data.message, "error");
-  }
-} catch (err) {
-  console.error("Approval failed:", err);
-
-  // always display backend message if present
-  const errorMessage = err.response?.data?.message || err.message;
-  showToast(errorMessage, "error");
-}
-  }
+      if (res.data.success) {
+        showToast("Leave approved successfully ✅", "success");
+        await fetchPendingLeaves();
+        closeDrawer();
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Approval failed:", err);
+      const errorMessage = err.response?.data?.message || err.message;
+      showToast(errorMessage, "error");
+    }
+  };
 
   const onReject = async () => {
-    // TODO: API call to reject + remarks
-    alert(`Rejected LApp #${selected?.id}`);
-    closeDrawer();
+    if (!selected) return;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/leave/reject`, {
+        lno: selected.id,
+        app_remarks: sanction.remarks
+      });
+      if (res.data.success) {
+        showToast("Leave rejected successfully", "success");
+        await fetchPendingLeaves();
+        closeDrawer();
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Rejection failed:", err);
+      showToast("Error rejecting leave", "error");
+    }
   };
   const [leaveType, setLeaveType] = useState('');
 
@@ -339,19 +361,98 @@ function sortDays(days) {
     console.log('Selected Leave Type:', selectedLeaveType); // Log the selection
   };
 
+  const [cancelDialog, setCancelDialog] = useState({ open: false, row: null, selectedDates: [], remarks: "" });
+
+  const handleCancelApproval = (row) => {
+    console.log("Cancelling approval for row:", row);
+    setCancelDialog({ 
+      open: true, 
+      row: row, 
+      selectedDates: row.days?.map(d => new Date(d.date).toISOString().split('T')[0]) || [], 
+      remarks: "" 
+    });
+  };
+
+  const handleConfirmCancel = async () => {
+    if (cancelDialog.selectedDates.length === 0) {
+      showToast("Please select at least one date to cancel", "warning");
+      return;
+    }
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/leave/cancel-partial`, {
+        lno: cancelDialog.row.id,
+        dates: cancelDialog.selectedDates,
+        remarks: cancelDialog.remarks
+      });
+      if (res.data.success) {
+        showToast(res.data.message, "success");
+        setCancelDialog({ open: false, row: null, selectedDates: [], remarks: "" });
+        await fetchPendingLeaves();
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Cancel failed:", err);
+      showToast("Error during cancellation", "error");
+    }
+  };
+
+  const toggleDateSelection = (date) => {
+    const formattedDate = toYMD(date);
+    setCancelDialog(prev => ({
+      ...prev,
+      selectedDates: prev.selectedDates.includes(formattedDate)
+        ? prev.selectedDates.filter(d => d !== formattedDate)
+        : [...prev.selectedDates, formattedDate]
+    }));
+  };
+
+  const handleReopen = async (row) => {
+    if (!window.confirm(`Are you sure you want to re-process LApp #${row.id}? It will move back to Pending.`)) return;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/leave/reopen`, {
+        lno: row.id
+      });
+      if (res.data.success) {
+        showToast("Leave application reopened for approval", "success");
+        await fetchPendingLeaves();
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Reopen failed:", err);
+      showToast("Error reopening leave", "error");
+    }
+  };
+
+  const counts = useMemo(() => {
+    return {
+      pending: rows.filter(r => r.status === "Pending").length,
+      completed: rows.filter(r => r.status === "Approved").length,
+      cancelled: rows.filter(r => ["Cancelled", "Rejected"].includes(r.status)).length
+    };
+  }, [rows]);
+
   /** ---------- Filtering (client side demo) ---------- */
   const filtered = useMemo(() => {
     return rows.filter(r => {
+      const entryDate = toYMD(r.ldate);
       const inDate =
-        (!filters.start || new Date(r.from) >= new Date(filters.start)) &&
-        (!filters.end || new Date(r.to) <= new Date(filters.end));
+        (!filters.start || entryDate >= filters.start) &&
+        (!filters.end || entryDate <= filters.end);
       const matchApp = !filters.appNo || String(r.id).includes(filters.appNo.trim());
       const matchEmp = !filters.empId || String(r.empId).includes(filters.empId.trim());
       const q = filters.q.toLowerCase();
-      const matchQ = !q || [r.empName, r.dept, r.desg, r.purpose, r.address].some(v => v.toLowerCase().includes(q));
-      return inDate && matchApp && matchEmp && matchQ && r.status === "Pending";
+      const matchQ = !q || [r.empName, r.dept, r.desg, r.purpose, r.address].some(v => v && v.toLowerCase().includes(q));
+      
+      const targetStatuses = 
+        tab === "pending" ? ["Pending"] : 
+        tab === "completed" ? ["Approved"] : 
+        ["Cancelled", "Rejected"];
+
+      return inDate && matchApp && matchEmp && matchQ && targetStatuses.includes(r.status);
     });
-  }, [filters,rows]);
+  }, [filters, rows, tab]);
 
 
   const dedupedRows = React.useMemo(() => {
@@ -443,16 +544,10 @@ const generateDays = (from, to, daytype) => {
             </Button>
           </Stack>
 
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            textColor="primary"
-            indicatorColor="primary"
-            sx={{ mt: 2 }}
-          >
-            <Tab value="pending" label="Pending Leave Approval Details" />
-            <Tab value="completed" label="Completed Leave Approval Details" />
-            <Tab value="cancelled" label="Cancelled Leave Applications" />
+          <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mt: 2 }}>
+            <Tab value="pending" label={`Pending (${counts.pending})`} />
+            <Tab value="completed" label={`Completed (${counts.completed})`} />
+            <Tab value="cancelled" label={`Cancelled (${counts.cancelled})`} />
           </Tabs>
         </CardContent>
       </Card>
@@ -556,9 +651,9 @@ const generateDays = (from, to, daytype) => {
 
       {/* Balances */}
       <Stack direction="row" spacing={1.5} sx={{ mb: 2 }}>
-        <StatTile title="CLs Balance" value={selected.clBal} color="#111827" bg="#EEF2FF" />
-        <StatTile title="ELs Balance" value={selected.elBal} color="#111827" bg="#E0F2FE" />
-        <StatTile title="No. of Days" value={selected.nod} color="#111827" bg="#FEE2E2" />
+        <StatTile title="CLs Balance" value={selected.clBal} color="#1e3a8a" bg="#dbeafe" />
+        <StatTile title="ELs Balance" value={selected.elBal} color="#064e3b" bg="#d1fae5" />
+        <StatTile title="Requested Days" value={selected.nod} color="#991b1b" bg="#fee2e2" />
       </Stack>
 
       {/* Day-wise Approval Grid */}
@@ -651,19 +746,21 @@ const generateDays = (from, to, daytype) => {
 
 
 <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1.5, mb: 2 }}>
- <CompactTotal
-  label="Total CLs"
-  value={totalCLs}
-/>
-<CompactTotal
-  label="Total ELs"
-  value={totalELs}
-/>
-
-<CompactTotal
-  label="Total LOP"
-  value={totalLOP}
-/>
+  <CompactTotal
+    label="Total CLs"
+    value={totalCLs}
+    color="primary"
+  />
+  <CompactTotal
+    label="Total ELs"
+    value={totalELs}
+    color="success"
+  />
+  <CompactTotal
+    label="Total LOP"
+    value={totalLOP}
+    color="warning"
+  />
 </Box>
 
 
@@ -719,6 +816,49 @@ const generateDays = (from, to, daytype) => {
 </Drawer>
 
 
+    {/* Cancellation Dialog */}
+    <Dialog open={cancelDialog.open} onClose={() => setCancelDialog(prev => ({ ...prev, open: false }))} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ bgcolor: "#fef2f2", color: "#b91c1c", fontWeight: 700 }}>
+        Cancel Leave Approval
+      </DialogTitle>
+      <DialogContent sx={{ mt: 1 }}>
+        <Typography variant="subtitle2" gutterBottom>Select dates to cancel (balances will be reverted for these days):</Typography>
+        <Stack spacing={1} sx={{ my: 2 }}>
+          {(!cancelDialog.row?.days || cancelDialog.row.days.length === 0) ? (
+             <Typography color="text.secondary">No dates found for this application.</Typography>
+          ) : (
+            cancelDialog.row.days.map((day, idx) => (
+              <FormControlLabel
+                key={idx}
+                control={
+                  <Checkbox
+                    checked={cancelDialog.selectedDates.includes(toYMD(day.date))}
+                    onChange={() => toggleDateSelection(day.date)}
+                    color="error"
+                  />
+                }
+                label={`${day.date ? new Date(day.date).toLocaleDateString() : 'Invalid Date'} - ${day.dayType} (${day.type})`}
+              />
+            ))
+          )}
+        </Stack>
+        <TextField
+          label="Reason for Cancellation"
+          fullWidth
+          multiline
+          rows={3}
+          value={cancelDialog.remarks}
+          onChange={(e) => setCancelDialog(prev => ({ ...prev, remarks: e.target.value }))}
+          placeholder="Enter reason for reverting this approval..."
+          sx={{ mt: 1 }}
+        />
+      </DialogContent>
+      <DialogActions sx={{ p: 2, bgcolor: "#f9fafb" }}>
+        <Button onClick={() => setCancelDialog(prev => ({ ...prev, open: false }))}>Keep Approved</Button>
+        <Button variant="contained" color="error" onClick={handleConfirmCancel}>Confirm Cancellation</Button>
+      </DialogActions>
+    </Dialog>
+
     </Box>
   );
 }
@@ -751,23 +891,26 @@ function SmallRow({ headers, values }) {
       <Box sx={{ display: "grid", gridTemplateColumns: "70px 1fr 1fr 1fr 110px" }}>
         {values.map((v, i) => <Box key={i} sx={{ p: .75, borderRight: i < values.length - 1 ? "1px solid #e5e7eb" : 0 }}>{v}</Box>)}
       </Box>
+
     </Box>
   );
 }
 function StatTile({ title, value, color, bg }) {
+  const displayValue = (value !== undefined && value !== null) ? parseFloat(value) : "—";
   return (
     <Box sx={{ p: 1.25, px: 1.75, borderRadius: 1.25, bgcolor: bg, minWidth: 120 }}>
       <Typography variant="caption" color="text.secondary">{title}</Typography>
-      <Typography variant="h6" fontWeight={800} sx={{ color, lineHeight: 1 }}>{value}</Typography>
+      <Typography variant="h6" fontWeight={800} sx={{ color, lineHeight: 1 }}>{displayValue}</Typography>
     </Box>
   );
 }
-function CompactTotal({ label, value }) {
+function CompactTotal({ label, value, color = "default" }) {
+  const displayValue = (value !== undefined && value !== null) ? parseFloat(value) : 0;
   return (
     <Card variant="outlined">
       <CardContent sx={{ py: 1, px: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="body2" color="text.secondary">{label}</Typography>
-        <Chip label={value} size="small" />
+        <Chip label={displayValue} size="small" color={color} sx={{ fontWeight: 'bold' }} />
       </CardContent>
     </Card>
   );

@@ -1,35 +1,71 @@
-  sql: 'INSERT INTO "tour_application" ("tour_id","tour_date","empid","ename","unit","division","tour_from_date","tour_to_date","purpose","destination","estimated_amount","created_by","created_at","status") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING "tour_id","tour_date","empid","ename","unit","division","designation","tour_from_date","tour_to_date","purpose","destination","estimated_amount","created_by","created_at","status","approval_remark","approved_by","approved_date";',
+    column: undefined,
 
-  parameters: [
+    dataType: undefined,
 
-    2,
+    constraint: undefined,
 
-    '2026-04-28 07:04:50.347 +00:00',
+    file: 'backend_startup.c',
 
-    1005,
+    line: '297',
 
-    'NAMBARI SRINIVASA RAO',
+    routine: 'BackendInitialize'
 
-    null,
+  },
 
-    'Production',
+  original: error: the database system is in recovery mode
 
-    '2026-04-29 11:00:00.000 +00:00',
+      at Parser.parseErrorMessage (/app/node_modules/pg-protocol/dist/parser.js:285:98)
 
-    'Invalid date',
+      at Parser.handlePacket (/app/node_modules/pg-protocol/dist/parser.js:122:29)
 
-    'Test',
+      at Parser.parse (/app/node_modules/pg-protocol/dist/parser.js:35:38)
 
-    'Chennai',
+      at Socket.<anonymous> (/app/node_modules/pg-protocol/dist/index.js:11:42)
 
-    '10000',
+      at Socket.emit (node:events:524:28)
 
-    'NAMBARI SRINIVASA RAO',
+      at addChunk (node:internal/streams/readable:561:12)
 
-    '2026-04-28 07:04:50.347 +00:00',
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
 
-    'Pending'
+      at Readable.push (node:internal/streams/readable:392:5)
 
-  ]
+      at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+
+    length: 110,
+
+    severity: 'FATAL',
+
+    code: '57P03',
+
+    detail: undefined,
+
+    hint: undefined,
+
+    position: undefined,
+
+    internalPosition: undefined,
+
+    internalQuery: undefined,
+
+    where: undefined,
+
+    schema: undefined,
+
+    table: undefined,
+
+    column: undefined,
+
+    dataType: undefined,
+
+    constraint: undefined,
+
+    file: 'backend_startup.c',
+
+    line: '297',
+
+    routine: 'BackendInitialize'
+
+  }
 
 }

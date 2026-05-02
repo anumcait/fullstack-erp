@@ -13,6 +13,16 @@ const sequelize = new Sequelize(
     dialect: DB_DIALECT,
     port: process.env.DB_PORT,
     logging: console.log,
+    pool: {
+      max: 10,
+      min: 2,
+      acquire: 30000,   // max ms to try getting a connection before throwing
+      idle: 10000,       // max ms a connection can be idle before being released
+      evict: 1000,       // how often to check for idle connections (ms)
+    },
+    retry: {
+      max: 5,            // retry failed queries up to 5 times
+    },
   }
 );
 

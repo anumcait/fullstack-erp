@@ -3,7 +3,7 @@ import LeaveReport from "./LeaveReport";
 import './LeaveDashboard.css';
 import LeaveMaster from "./LeaveMaster";
 import LeaveApproval from "./LeaveApproval";
-import TestApplication from "./TestApplication";
+import LeaveApplication from "./LeaveApplication";
 
 const LeaveDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("report");
@@ -55,7 +55,7 @@ const LeaveDashboard = () => {
 
       <div className="leave-dashboard-content">
         {selectedAction === "report" && <LeaveReport onNewEntry={() => setSelectedAction("new")} />}
-        {selectedAction === "new" && <TestApplication onClose={() => setSelectedAction("report")} />}
+        {selectedAction === "new" && <LeaveApplication onClose={() => setSelectedAction("report")} />}
         {selectedAction === "master" && <LeaveMaster />}
         {selectedAction === "approval" && <LeaveApproval />}
         {selectedAction === "export" && <p style={{ padding: "20px" }}>📤 Please use export buttons inside the report.</p>}
