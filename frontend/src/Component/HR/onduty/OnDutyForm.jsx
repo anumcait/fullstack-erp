@@ -6,6 +6,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 import OnDutyPreview from "./OnDutyPreview";
 import { formatDate } from "../../../utils/dateUtils";
@@ -23,6 +24,7 @@ const requiredStyle = {
 
 const OnDutyForm = ({ onClose }) => {
   const { showToast } = useToast();
+  const { setIsDirty } = useNavigationGuard();
   const [shifts, setShifts] = useState([]);
 
   const getCurrentISTDateTime = () => {
@@ -55,10 +57,14 @@ const OnDutyForm = ({ onClose }) => {
   const [employeeList, setEmployeeList] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setIsDirty(true);
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleChangeTime = (e) => {
     const { name, value } = e.target;
+    setIsDirty(true);
     const updatedData = { ...formData, [name]: value };
 
     if (name === "perm_ftime" || name === "perm_ttime") {
@@ -134,6 +140,7 @@ const OnDutyForm = ({ onClose }) => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/onduty/save`, formData);
       showToast(`On Duty Saved. ID: ${response.data.movement_id}`, "success");
+      setIsDirty(false);
       setFormData({
         movement_id: "",
         movement_date: getCurrentISTDateTime(),
@@ -161,7 +168,7 @@ const OnDutyForm = ({ onClose }) => {
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>On Duty Permission</Typography>
-          <IconButton onClick={onClose}><CloseIcon /></IconButton>
+          <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
         </Stack>
 
         <Box sx={{ mb: 2, display: 'flex', gap: 4, justifyContent: 'flex-start', alignItems: 'center' }}>
@@ -177,128 +184,107 @@ const OnDutyForm = ({ onClose }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm="auto">
-            <TextField
-              label={<RequiredLabel>Emp Id</RequiredLabel>}
-              name="empid"
-              value={formData.empid}
-              onClick={openEmpPopup}
-              size="small"
-              placeholder="Select Employee"
-              fullWidth
-              sx={{ ...requiredStyle, width: { sm: '180px' } }}
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={openEmpPopup}>
-                      <SearchIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
-            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', width: '100%' }}>
-              <Typography fontWeight={600} variant="subtitle2">
-                Name: {formData.ename || "--"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Dept: {formData.unit || "--"} • Div: {formData.division || "--"} • Desig: {formData.designation || "--"}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+          <TextField
+            label={<RequiredLabel>Emp Id</RequiredLabel>}
+            name="empid"
+            value={formData.empid}
+            onClick={openEmpPopup}
+            size="small"
+            placeholder="Select Employee"
+            sx={{ ...requiredStyle, width: '180px' }}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={openEmpPopup}>
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', flex: 1 }}>
+            <Typography fontWeight={600} variant="subtitle2">
+              Name: {formData.ename || "--"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Dept: {formData.unit || "--"} • Div: {formData.division || "--"} • Desig: {formData.designation || "--"}
+            </Typography>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={1} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
-            <TextField
-              label={<RequiredLabel>Date</RequiredLabel>}
-              name="act_date"
-              type="date"
-              size="small"
-              fullWidth
-              value={formData.act_date}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <TextField
+            label={<RequiredLabel>Date</RequiredLabel>}
+            name="act_date"
+            type="date"
+            size="small"
+            sx={{ ...requiredStyle, width: '180px' }}
+            value={formData.act_date}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+          />
+          <FormControl size="small" sx={{ ...requiredStyle, flex: '1 1 150px' }}>
+            <InputLabel><RequiredLabel>Shift</RequiredLabel></InputLabel>
+            <Select
+              name="shift"
+              value={formData.shift}
               onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              sx={requiredStyle}
-            />
-          </Grid>
-          <Grid item xs={12} sm sx={{ flexGrow: 1, minWidth: { sm: '150px' } }}>
-            <FormControl size="small" fullWidth sx={requiredStyle}>
-              <InputLabel><RequiredLabel>Shift</RequiredLabel></InputLabel>
-              <Select
-                name="shift"
-                value={formData.shift}
-                onChange={handleChange}
-                label={<RequiredLabel>Shift</RequiredLabel>}
-              >
-                {shifts.map(s => (
-                  <MenuItem key={s.shift_id} value={s.shift_cd}>{s.shift_cd}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={6} sm="auto" sx={{ width: { sm: '120px' } }}>
-            <TextField
-              label={<RequiredLabel>From Time</RequiredLabel>}
-              type="time"
-              name="perm_ftime"
-              size="small"
-              fullWidth
-              value={formData.perm_ftime}
-              onChange={handleChangeTime}
-              InputLabelProps={{ shrink: true }}
-              sx={requiredStyle}
-            />
-          </Grid>
-          <Grid item xs={6} sm="auto" sx={{ width: { sm: '120px' } }}>
-            <TextField
-              label={<RequiredLabel>To Time</RequiredLabel>}
-              type="time"
-              name="perm_ttime"
-              size="small"
-              fullWidth
-              value={formData.perm_ttime}
-              onChange={handleChangeTime}
-              InputLabelProps={{ shrink: true }}
-              sx={requiredStyle}
-            />
-          </Grid>
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '100px' } }}>
-            <TextField
-              label="Hours"
-              size="small"
-              fullWidth
-              disabled
-              value={formData.no_of_hrs}
-            />
-          </Grid>
-        </Grid>
+              label={<RequiredLabel>Shift</RequiredLabel>}
+            >
+              {shifts.map(s => (
+                <MenuItem key={s.shift_id} value={s.shift_cd}>{s.shift_cd}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label={<RequiredLabel>From Time</RequiredLabel>}
+            type="time"
+            name="perm_ftime"
+            size="small"
+            sx={{ ...requiredStyle, width: '120px' }}
+            value={formData.perm_ftime}
+            onChange={handleChangeTime}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label={<RequiredLabel>To Time</RequiredLabel>}
+            type="time"
+            name="perm_ttime"
+            size="small"
+            sx={{ ...requiredStyle, width: '120px' }}
+            value={formData.perm_ttime}
+            onChange={handleChangeTime}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Hours"
+            size="small"
+            sx={{ width: '100px' }}
+            disabled
+            value={formData.no_of_hrs}
+          />
+        </Box>
 
-        <Grid container spacing={2} sx={{ mt: 1 }} style={{ width: '100%', marginLeft: 0 }}>
-          <Grid item xs={12} style={{ width: '100%' }}>
-            <TextField
-              label={<RequiredLabel>Reason for On Duty</RequiredLabel>}
-              name="reason_perm"
-              size="small"
-              fullWidth
-              multiline
-              rows={2}
-              placeholder="Enter reason for on duty..."
-              value={formData.reason_perm}
-              onChange={handleChange}
-              inputProps={{ maxLength: 200 }}
-              sx={requiredStyle}
-              style={{ width: '100%' }}
-              helperText={`${formData.reason_perm?.length || 0}/200 characters`}
-            />
-          </Grid>
-        </Grid>
+        <Box sx={{ mt: 2 }}>
+          <TextField
+            label={<RequiredLabel>Reason for On Duty</RequiredLabel>}
+            name="reason_perm"
+            size="small"
+            fullWidth
+            multiline
+            rows={2}
+            placeholder="Enter reason for on duty..."
+            value={formData.reason_perm}
+            onChange={handleChange}
+            inputProps={{ maxLength: 200 }}
+            sx={requiredStyle}
+            helperText={`${formData.reason_perm?.length || 0}/200 characters`}
+          />
+        </Box>
 
         <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button className="save-btn" onClick={saveOnDuty} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>

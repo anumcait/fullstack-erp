@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import AdvanceForm from "./AdvanceForm";
 import AdvanceTable from "./AdvanceTable";
 import AdvanceApproval from "./AdvanceApproval";
@@ -8,6 +9,14 @@ const AdvanceDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const location = useLocation();
+
+  // Reset to table view when navigating here via "Leave Anyway"
+  useEffect(() => {
+    if (location.state?.reset) {
+      setSelectedAction("table");
+    }
+  }, [location.state?.reset]);
 
   const actions = [
     { label: "New", value: "new" },
@@ -59,9 +68,9 @@ const AdvanceDashboard = () => {
         </div>
       </div>
 
-      <div className="od-dashboard-content">
-        {selectedAction === "table" && <AdvanceTable />}
-        {selectedAction === "new" && <AdvanceForm />}
+      <div className="od-dashboard-content" key={location.state?.reset || 'default'}>
+        {selectedAction === "table" && <AdvanceTable onNewEntry={() => setSelectedAction("new")} />}
+        {selectedAction === "new" && <AdvanceForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <AdvanceApproval />}
       </div>
     </div>

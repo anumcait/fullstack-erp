@@ -3,6 +3,7 @@ import LeaveGrid from "./LeaveGrid";
 import "./LeaveApplication.css";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import { formatDate } from "../../../utils/dateUtils";
 import {
   TextField, Typography, Button, Grid, Box, Paper,
@@ -22,6 +23,7 @@ const RequiredLabel = ({ label }) => (
 
 const TestApplication = ({ onClose }) => {
   const { showToast } = useToast();
+  const { setIsDirty } = useNavigationGuard();
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -126,6 +128,7 @@ const TestApplication = ({ onClose }) => {
   };
 
   const handleChange = (e) => {
+    setIsDirty(true);
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -209,6 +212,7 @@ const TestApplication = ({ onClose }) => {
       const res = await axios.post(`/api/leave/apply`, { application, leaveDetails: details });
       if (res.status === 200 || res.status === 201) {
         showToast(res.data.message || `Leave Application Saved. No: ${res.data.lno}`, "success");
+        setIsDirty(false);
         resetForm();
       }
     } catch (error) {
@@ -234,7 +238,7 @@ const TestApplication = ({ onClose }) => {
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Leave Application</Typography>
-          <IconButton onClick={onClose}><CloseIcon /></IconButton>
+          <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
         </Stack>
 
         {/* Standardized Header: Left aligned ID and Date with Time */}
@@ -386,6 +390,7 @@ const TestApplication = ({ onClose }) => {
           onSave={handleSave}
           isSaveDisabled={isInvalid}
           empId={formData.empId}
+          onDirty={() => setIsDirty(true)}
         />
       </div>
 

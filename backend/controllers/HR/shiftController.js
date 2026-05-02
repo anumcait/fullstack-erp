@@ -511,10 +511,38 @@ exports.approveShiftChange = async (req, res) => {
     if (remarks) application.remarks = remarks;
     await application.save();
 
-    res.json({ message: `Shift Change application ${application.app_status.toLowerCase()}d successfully.` });
+    res.json({ success: true, message: `Shift Change application ${application.app_status.toLowerCase()}d successfully.` });
   } catch (error) {
     console.error('❌ Error approving Shift Change application:', error);
-    res.status(500).json({ message: 'Failed to approve Shift Change application.', error });
+    res.status(500).json({ success: false, message: 'Failed to approve Shift Change application.', error });
+  }
+};
+
+exports.cancelShiftChange = async (req, res) => {
+  const { schange_no, remarks = "" } = req.body;
+  try {
+    const app = await ShiftChange.findOne({ where: { schange_no } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ app_status: 'Cancelled', remarks: remarks });
+    res.json({ success: true, message: "Shift change approval cancelled" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error cancelling shift change" });
+  }
+};
+
+exports.reopenShiftChange = async (req, res) => {
+  const { schange_no } = req.body;
+  try {
+    const app = await ShiftChange.findOne({ where: { schange_no } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ app_status: 'Pending' });
+    res.json({ success: true, message: "Shift change application reopened" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error reopening shift change" });
   }
 };
 

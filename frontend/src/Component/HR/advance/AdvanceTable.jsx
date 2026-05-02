@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import AdvancePreview from "./AdvancePreview";
 import SmartTable from "../../Common/SmartTable";
+import { formatDateTimeDot } from "../../../utils/dateUtils";
 
-const AdvanceTable = () => {
+const AdvanceTable = ({ onNewEntry }) => {
   const [data, setData] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -16,6 +17,7 @@ const AdvanceTable = () => {
           sno: index + 1,
           _expanded: false,
           ...row,
+          advance_date_formatted: formatDateTimeDot(row.advance_date),
         }));
         setData(formatted);
       } catch (err) {
@@ -37,31 +39,42 @@ const AdvanceTable = () => {
   const columns = [
     { header: "S.No.", field: "sno" },
     { header: "Advance ID", field: "advance_id" },
+    { header: "Entry Date", field: "advance_date_formatted" },
     { header: "Emp ID", field: "empid" },
     { header: "Name", field: "ename" },
     { header: "Unit", field: "unit" },
-    { header: "Division", field: "division" },
-    { header: "Designation", field: "designation" },
     { header: "Advance Type", field: "advance_type" },
+    { header: "Gross Salary", field: "gross_salary" },
     { header: "Amount", field: "advance_amount" },
+    { header: "Status", field: "status" },
     { header: "Reason", field: "reason", expandable: true },
   ];
 
-  const handleNew = () => {
-    window.location.href = '/advance?action=new';
-  };
-
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-        <button onClick={handleNew} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-          + New
-        </button>
-      </div>
       <SmartTable
         title="Advance List"
         columns={columns}
         data={data}
+        headerAction={
+          onNewEntry && (
+            <button
+              onClick={onNewEntry}
+              style={{
+                padding: '6px 14px',
+                background: '#1976d2',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
+              + Advance Application
+            </button>
+          )
+        }
         onPreview={(row) => {
           setSelectedRecord(row);
           setShowForm(true);

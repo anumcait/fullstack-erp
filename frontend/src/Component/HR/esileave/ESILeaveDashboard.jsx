@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import ESILeaveForm from "./ESILeaveForm";
 import ESILeaveTable from "./ESILeaveTable";
 import ESILeaveApproval from "./ESILeaveApproval";
@@ -8,6 +9,11 @@ const ESILeaveDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.reset) setSelectedAction("table");
+  }, [location.state?.reset]);
 
   const actions = [
     { label: "New", value: "new" },
@@ -59,9 +65,9 @@ const ESILeaveDashboard = () => {
         </div>
       </div>
 
-      <div className="od-dashboard-content">
-        {selectedAction === "table" && <ESILeaveTable />}
-        {selectedAction === "new" && <ESILeaveForm />}
+      <div className="od-dashboard-content" key={location.state?.reset || 'default'}>
+        {selectedAction === "table" && <ESILeaveTable onNewEntry={() => setSelectedAction("new")} />}
+        {selectedAction === "new" && <ESILeaveForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <ESILeaveApproval />}
       </div>
     </div>

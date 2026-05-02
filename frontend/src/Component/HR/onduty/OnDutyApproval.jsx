@@ -39,7 +39,7 @@ export default function OnDutyApprovalPage() {
 
   const fetchPendingOnDuty = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/onduty/pending`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/onduty/all`);
       console.log("API Response:", res.data);
       setRows(res.data);
     } catch (err) {
@@ -64,9 +64,9 @@ export default function OnDutyApprovalPage() {
 
   /** ---------- Grid Columns ---------- */
   const columns = useMemo(() => [
-    {
+    ...(tab === "pending" ? [{
       field: "approve",
-      headerName: "Approve",
+      headerName: "Action",
       width: 110,
       sortable: false,
       renderCell: (params) => (
@@ -78,19 +78,74 @@ export default function OnDutyApprovalPage() {
           Approve
         </Button>
       ),
+    }] : []),
+    ...(tab === "completed" ? [{
+      field: "cancel",
+      headerName: "Action",
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Button
+          size="small"
+          variant="outlined"
+          color="error"
+          onClick={() => handleCancel(params.row)}
+        >
+          Cancel Approval
+        </Button>
+      ),
+    }] : []),
+    ...(tab === "cancelled" ? [{
+      field: "reopen",
+      headerName: "Action",
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Button
+          size="small"
+          variant="outlined"
+          color="primary"
+          onClick={() => handleReopen(params.row)}
+        >
+          Re-process
+        </Button>
+      ),
+    }] : []),
+    { field: "movement_id", headerName: "On Duty App #", width: 130 },
+    { field: "movement_date", headerName: "Entry Date", width: 140,
+      valueGetter: (value) => value ? formatDateTime24Dot(value) : ""
     },
-    { field: "movement_id", headerName: "On Duty App #", width: 160 },
-    { field: "movement_date", headerName: "Date", width: 160 },
     { field: "empid", headerName: "Employee ID", width: 100 },
     { field: "ename", headerName: "Employee Name", width: 200 },
+    { field: "status", headerName: "Status", width: 120,
+      renderCell: (params) => (
+        <Chip 
+          label={params.value} 
+          size="small" 
+          color={params.value === "Approved" ? "success" : ["Cancelled", "Rejected"].includes(params.value) ? "error" : "primary"}
+          variant="outlined"
+        />
+      )
+    },
+    { field: "remarks", headerName: "HR Remarks", flex: 1, minWidth: 150 },
     { field: "unit", headerName: "Unit", width: 90 },
     { field: "division", headerName: "Division", width: 90 },
     { field: "designation", headerName: "Designation", width: 150 },
     { field: "from_place", headerName: "From Place", width: 180 },
     { field: "to_place", headerName: "To Place", width: 180 },
     { field: "purpose", headerName: "Purpose", width: 200 },
-    { field: "status", headerName: "Status", width: 100 },
-  ], []);
+  ], [tab]);
+
+  function formatDateTime24Dot(dateStr) {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear()).slice(-2);
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${day}-${month}-${year} ${hours}.${minutes}`;
+  }
 
   function formatDateDMY(dateStr) {
     const d = new Date(dateStr);
@@ -184,19 +239,80 @@ export default function OnDutyApprovalPage() {
     }
   };
 
+  const handleCancel = async (row) => {
+    const reason = window.prompt("Enter reason for cancellation:");
+    if (reason === null) return;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/onduty/cancel`, {
+        movement_id: row.movement_id,
+        remarks: reason
+      });
+      if (res.data.success) {
+        showToast("On Duty approval cancelled", "success");
+        await fetchPendingOnDuty();
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Cancel failed:", err);
+      showToast("Error cancelling On Duty", "error");
+    }
+  };
+
+  const handleReopen = async (row) => {
+    if (!window.confirm(`Are you sure you want to re-process OnDuty #${row.movement_id}?`)) return;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/onduty/reopen`, {
+        movement_id: row.movement_id
+      });
+      if (res.data.success) {
+        showToast("Application reopened", "success");
+        await fetchPendingOnDuty();
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Reopen failed:", err);
+      showToast("Error reopening application", "error");
+    }
+  };
+
+  const toYMD = (d) => {
+    if (!d) return "";
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return "";
+    return date.toISOString().split('T')[0];
+  };
+
+  /** ---------- Filtering (client side demo) ---------- */
+  const counts = useMemo(() => {
+    return {
+      pending: rows.filter(r => r.status === "Pending").length,
+      completed: rows.filter(r => r.status === "Approved").length,
+      cancelled: rows.filter(r => ["Cancelled", "Rejected"].includes(r.status)).length
+    };
+  }, [rows]);
+
   /** ---------- Filtering (client side demo) ---------- */
   const filtered = useMemo(() => {
     return rows.filter(r => {
+      const appliedDate = toYMD(r.movement_date);
       const inDate =
-        (!filters.start || new Date(r.movement_date) >= new Date(filters.start)) &&
-        (!filters.end || new Date(r.movement_date) <= new Date(filters.end));
+        (!filters.start || appliedDate >= filters.start) &&
+        (!filters.end || appliedDate <= filters.end);
       const matchApp = !filters.appNo || String(r.movement_id).includes(filters.appNo.trim());
       const matchEmp = !filters.empId || String(r.empid).includes(filters.empId.trim());
       const q = filters.q.toLowerCase();
-      const matchQ = !q || [r.ename, r.unit, r.division, r.designation, r.from_place, r.to_place, r.purpose].some(v => v.toLowerCase().includes(q));
-      return inDate && matchApp && matchEmp && matchQ && r.status === "Pending";
+      const matchQ = !q || [r.ename, r.unit, r.division, r.designation, r.from_place, r.to_place, r.purpose].some(v => v && v.toLowerCase().includes(q));
+      
+      const targetStatuses = 
+        tab === "pending" ? ["Pending"] : 
+        tab === "completed" ? ["Approved"] : 
+        ["Cancelled", "Rejected"];
+
+      return inDate && matchApp && matchEmp && matchQ && targetStatuses.includes(r.status);
     });
-  }, [filters, rows]);
+  }, [filters, rows, tab]);
 
   const dedupedRows = React.useMemo(() => {
     const seen = new Set();
@@ -273,16 +389,10 @@ export default function OnDutyApprovalPage() {
             </Button>
           </Stack>
 
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            textColor="primary"
-            indicatorColor="primary"
-            sx={{ mt: 2 }}
-          >
-            <Tab value="pending" label="Pending On Duty Approval Details" />
-            <Tab value="completed" label="Completed On Duty Approval Details" />
-            <Tab value="cancelled" label="Cancelled On Duty Applications" />
+          <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mt: 2 }}>
+            <Tab value="pending" label={`Pending (${counts.pending})`} />
+            <Tab value="completed" label={`Completed (${counts.completed})`} />
+            <Tab value="cancelled" label={`Cancelled (${counts.cancelled})`} />
           </Tabs>
         </CardContent>
       </Card>

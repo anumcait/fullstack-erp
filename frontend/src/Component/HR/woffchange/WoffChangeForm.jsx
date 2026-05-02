@@ -7,6 +7,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 import { useToast } from "../../../context/ToastContext";
+import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import axios from "axios";
 import WoffChangePreview from "./WoffChangePreview";
 import { formatDate, formatDateOnly } from "../../../utils/dateUtils";
@@ -24,6 +25,7 @@ const requiredStyle = {
 
 const WoffChangeForm = ({ onClose }) => {
   const { showToast } = useToast();
+  const { setIsDirty } = useNavigationGuard();
   const [shifts, setShifts] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -91,6 +93,7 @@ const WoffChangeForm = ({ onClose }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setIsDirty(true);
     let updatedData = { ...formData, [name]: value };
 
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -122,6 +125,7 @@ const WoffChangeForm = ({ onClose }) => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/woff/apply`, formData);
       showToast(`✅ Woff Change Saved. ID: ${response.data.data.woff_id}`, "success");
+      setIsDirty(false);
       setFormData({
         woff_id: "",
         woff_date: new Date().toISOString(),
@@ -153,7 +157,7 @@ const WoffChangeForm = ({ onClose }) => {
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Woff Change Request</Typography>
-          <IconButton onClick={onClose}><CloseIcon /></IconButton>
+          <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
         </Stack>
 
         <Box sx={{ mb: 2, display: 'flex', gap: 4, justifyContent: 'flex-start', alignItems: 'center' }}>
@@ -169,124 +173,102 @@ const WoffChangeForm = ({ onClose }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm="auto">
-            <TextField
-              label={<RequiredLabel>Emp Id</RequiredLabel>}
-              name="empid"
-              value={formData.empid}
-              onClick={openEmpPopup}
-              size="small"
-              placeholder="Select Employee"
-              fullWidth
-              sx={{ ...requiredStyle, width: { sm: '180px' } }}
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={openEmpPopup}>
-                      <SearchIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
-            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', width: '100%' }}>
-              <Typography fontWeight={600} variant="subtitle2">
-                Name: {formData.ename || "--"} • Unit: {formData.unit || "--"} • Div: {formData.division || "--"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Dept: {formData.department || "--"} • Sec: {formData.section || "--"} • Desig: {formData.designation || "--"}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+          <TextField
+            label={<RequiredLabel>Emp Id</RequiredLabel>}
+            name="empid"
+            value={formData.empid}
+            onClick={openEmpPopup}
+            size="small"
+            placeholder="Select Employee"
+            sx={{ ...requiredStyle, width: '180px' }}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={openEmpPopup}>
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', flex: 1 }}>
+            <Typography fontWeight={600} variant="subtitle2">
+              Name: {formData.ename || "--"} • Unit: {formData.unit || "--"} • Div: {formData.division || "--"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Dept: {formData.department || "--"} • Sec: {formData.section || "--"} • Desig: {formData.designation || "--"}
+            </Typography>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={1} alignItems="flex-start" sx={{ mb: 2 }}>
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
-            <TextField
-              label={<RequiredLabel>Existing Date</RequiredLabel>}
-              name="woff_from_date"
-              type="date"
-              value={formData.woff_from_date}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <TextField
+            label={<RequiredLabel>Existing Date</RequiredLabel>}
+            name="woff_from_date"
+            type="date"
+            value={formData.woff_from_date}
+            onChange={handleChange}
+            size="small"
+            sx={{ ...requiredStyle, width: '180px' }}
+            InputLabelProps={{ shrink: true }}
+            helperText={formData.current_woff_day || " "}
+            FormHelperTextProps={{ sx: { fontWeight: 'bold', color: 'primary.main', m: 0, mt: 0.5 } }}
+          />
+          <TextField
+            label={<RequiredLabel>Changed Date</RequiredLabel>}
+            name="woff_to_date"
+            type="date"
+            value={formData.woff_to_date}
+            onChange={handleChange}
+            size="small"
+            sx={{ ...requiredStyle, width: '180px' }}
+            InputLabelProps={{ shrink: true }}
+            helperText={formData.requested_woff_day || " "}
+            FormHelperTextProps={{ sx: { fontWeight: 'bold', color: 'primary.main', m: 0, mt: 0.5 } }}
+          />
+          <FormControl size="small" sx={{ ...requiredStyle, flex: '1 1 180px' }}>
+            <InputLabel><RequiredLabel>Select Shift</RequiredLabel></InputLabel>
+            <Select
+              name="shift_cd"
+              value={formData.shift_cd}
               onChange={handleChange}
-              size="small"
-              fullWidth
-              sx={requiredStyle}
-              InputLabelProps={{ shrink: true }}
-              helperText={formData.current_woff_day || " "}
-              FormHelperTextProps={{ sx: { fontWeight: 'bold', color: 'primary.main', m: 0, mt: 0.5 } }}
-            />
-          </Grid>
+              label={<RequiredLabel>Select Shift</RequiredLabel>}
+            >
+              {shifts.map(s => (
+                <MenuItem key={s.shift_id} value={s.shift_cd}>{s.shift_cd} ({s.start_time?.slice(0, 5)}-{s.end_time?.slice(0, 5)})</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Remarks"
+            name="remarks"
+            value={formData.remarks}
+            onChange={handleChange}
+            size="small"
+            sx={{ flex: '1 1 200px' }}
+            placeholder="Additional remarks..."
+          />
+        </Box>
 
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
-            <TextField
-              label={<RequiredLabel>Changed Date</RequiredLabel>}
-              name="woff_to_date"
-              type="date"
-              value={formData.woff_to_date}
-              onChange={handleChange}
-              size="small"
-              fullWidth
-              sx={requiredStyle}
-              InputLabelProps={{ shrink: true }}
-              helperText={formData.requested_woff_day || " "}
-              FormHelperTextProps={{ sx: { fontWeight: 'bold', color: 'primary.main', m: 0, mt: 0.5 } }}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
-            <FormControl size="small" fullWidth sx={requiredStyle}>
-              <InputLabel><RequiredLabel>Select Shift</RequiredLabel></InputLabel>
-              <Select
-                name="shift_cd"
-                value={formData.shift_cd}
-                onChange={handleChange}
-                label={<RequiredLabel>Select Shift</RequiredLabel>}
-              >
-                {shifts.map(s => (
-                  <MenuItem key={s.shift_id} value={s.shift_cd}>{s.shift_cd} ({s.start_time?.slice(0, 5)}-{s.end_time?.slice(0, 5)})</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
-             <TextField
-              label="Remarks"
-              name="remarks"
-              value={formData.remarks}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-              placeholder="Additional remarks..."
-            />
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={2} mt={2}>
-          <Grid item xs={12} style={{ width: '100%' }}>
-            <TextField
-              label={<RequiredLabel>Reason</RequiredLabel>}
-              name="reason"
-              value={formData.reason}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-              multiline
-              rows={2}
-              inputProps={{ maxLength: 200 }}
-              sx={requiredStyle}
-              style={{ width: '100%' }}
-              helperText={`${formData.reason?.length || 0}/200 characters`}
-              FormHelperTextProps={{ sx: { bgcolor: '#fffde7', padding: '2px 8px', borderRadius: 1 } }}
-            />
-          </Grid>
-        </Grid>
+        <Box sx={{ mt: 2 }}>
+          <TextField
+            label={<RequiredLabel>Reason</RequiredLabel>}
+            name="reason"
+            value={formData.reason}
+            onChange={handleChange}
+            fullWidth
+            size="small"
+            multiline
+            rows={2}
+            inputProps={{ maxLength: 200 }}
+            sx={requiredStyle}
+            helperText={`${formData.reason?.length || 0}/200 characters`}
+          />
+        </Box>
 
         <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '8px' }}>
           <Button variant="outlined" onClick={() => setShowPreview(true)}>Preview</Button>

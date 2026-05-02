@@ -17,7 +17,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useToast } from "../../../context/ToastContext";
 import axios from "axios";
 
-const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError, onSave, isSaveDisabled, empId }) => {
+const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError, onSave, isSaveDisabled, empId, onDirty }) => {
   const { showToast } = useToast();
   const [rows, setRows] = useState([
     { dayType: "FULL DAY", fromDate: "", toDate: "", noOfDays: "", remarks: "" },
@@ -46,6 +46,7 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
       showToast("Please fill the current row before adding a new one.", "error");
       return;
     }
+    if (onDirty) onDirty();
     setRows((prev) => [...prev, getBlankRow()]);
   };
 
@@ -53,6 +54,7 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
     const updated = [...rows];
     updated[index] = getBlankRow();
     setRows(updated);
+    if (onDirty) onDirty();
     showToast("Row reset", "info");
   };
 
@@ -60,10 +62,12 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
     const updated = rows.filter((_, i) => i !== index);
     if (!updated.length) updated.push(getBlankRow());
     setRows(updated);
+    if (onDirty) onDirty();
     showToast("Row deleted", "error");
   };
 
   const updateRow = async (index, field, value) => {
+    if (onDirty) onDirty();
     const updated = [...rows];
     updated[index][field] = value;
 

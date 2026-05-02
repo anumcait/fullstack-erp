@@ -8,6 +8,8 @@ router.get('/next-id', shiftController.getNextSchangeNumber);
 router.get('/all', shiftController.getAllSchangeApplications);
 router.get('/pending', shiftController.getPendingShiftChanges);
 router.post('/approve', shiftController.approveShiftChange);
+router.post('/cancel', shiftController.cancelShiftChange);
+router.post('/reopen', shiftController.reopenShiftChange);
 
 // Shift Master Routes
 router.get('/master/all', shiftController.getAllShifts);

@@ -182,9 +182,37 @@ exports.approveWoffChange = async (req, res) => {
     if (remarks) application.remarks = remarks;
     await application.save();
 
-    res.json({ message: `Woff application ${application.status.toLowerCase()}d successfully.` });
+    res.json({ success: true, message: `Woff application ${application.status.toLowerCase()}d successfully.` });
   } catch (error) {
     console.error('❌ Error approving Woff application:', error);
-    res.status(500).json({ message: 'Failed to approve Woff application.', error });
+    res.status(500).json({ success: false, message: 'Failed to approve Woff application.', error });
+  }
+};
+
+exports.cancelWoff = async (req, res) => {
+  const { woff_id, remarks = "" } = req.body;
+  try {
+    const app = await WoffApplication.findOne({ where: { woff_id } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ status: 'Cancelled', remarks: remarks });
+    res.json({ success: true, message: "Woff approval cancelled" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error cancelling Woff" });
+  }
+};
+
+exports.reopenWoff = async (req, res) => {
+  const { woff_id } = req.body;
+  try {
+    const app = await WoffApplication.findOne({ where: { woff_id } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ status: 'Pending' });
+    res.json({ success: true, message: "Woff application reopened" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error reopening Woff" });
   }
 };

@@ -7,5 +7,7 @@ router.get('/next-id', ondutyController.getNextOnDutyNumber);
 router.get('/all', ondutyController.getAllOnDutyApplications);
 router.get('/pending', ondutyController.getPendingOnDuty);
 router.post('/approve', ondutyController.approveOnDuty);
+router.post('/cancel', ondutyController.cancelOnDuty);
+router.post('/reopen', ondutyController.reopenOnDuty);
 
 module.exports = router;

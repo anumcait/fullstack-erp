@@ -6,6 +6,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 import { useToast } from "../../../context/ToastContext";
+import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import axios from "axios";
 import TourPreview from "./TourPreview";
 import { formatDate } from "../../../utils/dateUtils";
@@ -23,6 +24,7 @@ const requiredStyle = {
 
 const TourForm = ({ onClose }) => {
   const { showToast } = useToast();
+  const { setIsDirty } = useNavigationGuard();
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -54,7 +56,10 @@ const TourForm = ({ onClose }) => {
   const [employeeList, setEmployeeList] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setIsDirty(true);
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   useEffect(() => { fetchNextTourId(); }, []);
 
@@ -93,6 +98,7 @@ const TourForm = ({ onClose }) => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/tour/apply`, formData);
       showToast(`✅ Tour Application Saved. ID: ${response.data.data.tour_id}`, "success");
+      setIsDirty(false);
       setFormData({
         tour_id: "",
         tour_date: getCurrentISTDateTime(),
@@ -120,7 +126,7 @@ const TourForm = ({ onClose }) => {
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Tour Application</Typography>
-          <IconButton onClick={onClose}><CloseIcon /></IconButton>
+          <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
         </Stack>
 
         <Box sx={{ mb: 2, display: 'flex', gap: 4, justifyContent: 'flex-start', alignItems: 'center' }}>
@@ -136,121 +142,104 @@ const TourForm = ({ onClose }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm="auto">
-            <TextField
-              label={<RequiredLabel>Emp ID</RequiredLabel>}
-              name="empid"
-              value={formData.empid}
-              onClick={openEmpPopup}
-              size="small"
-              placeholder="Select Employee"
-              fullWidth
-              sx={{ ...requiredStyle, width: { sm: '180px' } }}
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={openEmpPopup}>
-                      <SearchIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
-            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', width: '100%' }}>
-              <Typography fontWeight={600} variant="subtitle2">
-                Name: {formData.ename || "--"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Unit: {formData.unit || "--"} • Div: {formData.division || "--"} • Desig: {formData.designation || "--"}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+          <TextField
+            label={<RequiredLabel>Emp ID</RequiredLabel>}
+            name="empid"
+            value={formData.empid}
+            onClick={openEmpPopup}
+            size="small"
+            placeholder="Select Employee"
+            sx={{ ...requiredStyle, width: '180px' }}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={openEmpPopup}>
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', flex: 1 }}>
+            <Typography fontWeight={600} variant="subtitle2">
+              Name: {formData.ename || "--"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Unit: {formData.unit || "--"} • Div: {formData.division || "--"} • Desig: {formData.designation || "--"}
+            </Typography>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={1} alignItems="center" wrap="nowrap" sx={{ mb: 2 }}>
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '150px' } }}>
-            <TextField
-              label={<RequiredLabel>Place To Go</RequiredLabel>}
-              name="destination"
-              value={formData.destination}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-              sx={requiredStyle}
-            />
-          </Grid>
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
-            <TextField
-              label={<RequiredLabel>Out Time</RequiredLabel>}
-              name="tour_from_date"
-              type="datetime-local"
-              value={formData.tour_from_date}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-              sx={requiredStyle}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
-            <TextField
-              label="In Time"
-              name="tour_to_date"
-              type="datetime-local"
-              value={formData.tour_to_date}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={6} sm="auto" sx={{ width: { sm: '100px' } }}>
-            <TextField
-              label="Est. Amt"
-              name="estimated_amount"
-              value={formData.estimated_amount}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-            />
-          </Grid>
-          <Grid item xs={6} sm sx={{ flexGrow: 1 }}>
-            <TextField
-              label="Remarks"
-              name="remarks"
-              value={formData.remarks}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-            />
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <TextField
+            label={<RequiredLabel>Place To Go</RequiredLabel>}
+            name="destination"
+            value={formData.destination}
+            onChange={handleChange}
+            size="small"
+            sx={{ ...requiredStyle, flex: '1 1 150px' }}
+          />
+          <TextField
+            label={<RequiredLabel>Out Time</RequiredLabel>}
+            name="tour_from_date"
+            type="datetime-local"
+            value={formData.tour_from_date}
+            onChange={handleChange}
+            size="small"
+            sx={{ ...requiredStyle, flex: '1 1 180px' }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="In Time"
+            name="tour_to_date"
+            type="datetime-local"
+            value={formData.tour_to_date}
+            onChange={handleChange}
+            size="small"
+            sx={{ flex: '1 1 180px' }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Est. Amt"
+            name="estimated_amount"
+            value={formData.estimated_amount}
+            onChange={handleChange}
+            size="small"
+            sx={{ flex: '1 1 100px' }}
+          />
+        </Box>
 
-        <Grid container spacing={2} mt={2}>
-          <Grid item xs={12} style={{ width: '100%' }}>
-            <TextField
-              label={<RequiredLabel>Purpose Of Tour</RequiredLabel>}
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-              multiline
-              rows={2}
-              inputProps={{ maxLength: 200 }}
-              sx={requiredStyle}
-              style={{ width: '100%' }}
-              helperText={`${formData.purpose?.length || 0}/200 characters`}
-              FormHelperTextProps={{ sx: { bgcolor: '#fffde7', padding: '2px 8px', borderRadius: 1 } }}
-            />
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <TextField
+            label="Remarks"
+            name="remarks"
+            value={formData.remarks}
+            onChange={handleChange}
+            size="small"
+            sx={{ flex: '1 1 300px' }}
+          />
+        </Box>
+
+        <Box sx={{ mt: 2 }}>
+          <TextField
+            label={<RequiredLabel>Purpose Of Tour</RequiredLabel>}
+            name="purpose"
+            value={formData.purpose}
+            onChange={handleChange}
+            fullWidth
+            size="small"
+            multiline
+            rows={2}
+            inputProps={{ maxLength: 200 }}
+            sx={requiredStyle}
+            helperText={`${formData.purpose?.length || 0}/200 characters`}
+            FormHelperTextProps={{ sx: { bgcolor: '#fffde7', padding: '2px 8px', borderRadius: 1 } }}
+          />
+        </Box>
 
         <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '8px' }}>
           <Button variant="outlined" onClick={() => setShowPreview(true)}>Preview</Button>

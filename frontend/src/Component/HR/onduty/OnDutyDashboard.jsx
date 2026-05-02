@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import OnDutyForm from "./OnDutyForm";
 import OnDutyTable from "./OnDutyTable";
 import OnDutyApproval from "./OnDutyApproval";
@@ -24,6 +25,11 @@ const OnDutyDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.reset) setSelectedAction("table");
+  }, [location.state?.reset]);
 
   const handleMenuClick = (action) => {
     setSelectedAction(action);
@@ -71,7 +77,7 @@ const OnDutyDashboard = () => {
       </div>
 
       {/* Content based on menu click */}
-      <div className="od-dashboard-content">
+      <div className="od-dashboard-content" key={location.state?.reset || 'default'}>
         {selectedAction === "table" && <OnDutyTable onNewEntry={() => setSelectedAction("new")} />}
         {selectedAction === "new" && <OnDutyForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <OnDutyApproval />}

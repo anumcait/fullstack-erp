@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import LeaveReport from "./LeaveReport";
 import './LeaveDashboard.css';
 import LeaveMaster from "./LeaveMaster";
@@ -9,6 +10,11 @@ const LeaveDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("report");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.reset) setSelectedAction("report");
+  }, [location.state?.reset]);
 
   const actions = [
     { label: "New Application", value: "new" },
@@ -53,7 +59,7 @@ const LeaveDashboard = () => {
         </div>
       </div>
 
-      <div className="leave-dashboard-content">
+      <div className="leave-dashboard-content" key={location.state?.reset || 'default'}>
         {selectedAction === "report" && <LeaveReport onNewEntry={() => setSelectedAction("new")} />}
         {selectedAction === "new" && <LeaveApplication onClose={() => setSelectedAction("report")} />}
         {selectedAction === "master" && <LeaveMaster />}

@@ -150,8 +150,8 @@ const clearFilters = () => {
       ),
     }] : []),
     { field: "id", headerName: "Leave App #", width: 160 },
-    { field: "ldate", headerName: "Entry Date", width: 180,
-      valueGetter: (value) => value ? new Date(value).toLocaleString() : ""
+    { field: "ldate", headerName: "Entry Date", width: 140,
+      valueGetter: (value) => value ? formatDateTime24Dot(value) : ""
     },
     { field: "unit", headerName: "Unit", width: 90 },
     {
@@ -225,18 +225,20 @@ const clearFilters = () => {
 }
 
 
-function formatDateDMYHM(dateStr) {
+function formatDateTime24Dot(dateStr) {
+  if (!dateStr) return "-";
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-
-  let hours = d.getHours();                  // Use d here, not dateStr
+  const year = String(d.getFullYear()).slice(-2);
+  const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;                  // convert 0 to 12 for 12 AM
+  return `${day}-${month}-${year} ${hours}.${minutes}`;
+}
 
-  return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
+function formatDateDMYHM(dateStr) {
+  return formatDateTime24Dot(dateStr);
 }
 
 function sortDays(days) {

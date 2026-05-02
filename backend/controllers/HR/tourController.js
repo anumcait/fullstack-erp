@@ -131,10 +131,38 @@ exports.approveTour = async (req, res) => {
       approved_date: new Date()
     });
 
-    res.json({ message: `Tour ${status}` });
+    res.json({ success: true, message: `Tour ${status.toLowerCase()} successfully.` });
   } catch (err) {
     console.error('Error approving tour:', err);
-    res.status(500).json({ message: 'Error approving tour' });
+    res.status(500).json({ success: false, message: 'Error approving tour' });
+  }
+};
+
+exports.cancelTour = async (req, res) => {
+  const { tour_id, remarks = "" } = req.body;
+  try {
+    const app = await TourApplication.findByPk(tour_id);
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ status: 'Cancelled', approval_remark: remarks });
+    res.json({ success: true, message: "Tour approval cancelled" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error cancelling Tour" });
+  }
+};
+
+exports.reopenTour = async (req, res) => {
+  const { tour_id } = req.body;
+  try {
+    const app = await TourApplication.findByPk(tour_id);
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ status: 'Pending' });
+    res.json({ success: true, message: "Tour application reopened" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error reopening Tour" });
   }
 };
 

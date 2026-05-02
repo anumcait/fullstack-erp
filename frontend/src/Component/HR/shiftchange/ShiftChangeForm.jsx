@@ -4,6 +4,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 import { useToast } from "../../../context/ToastContext";
+import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import axios from 'axios';
 import { formatDate } from "../../../utils/dateUtils";
 
@@ -20,6 +21,7 @@ const requiredStyle = {
 
 const ShiftChangeForm = ({ onClose }) => {
   const { showToast } = useToast();
+  const { setIsDirty } = useNavigationGuard();
   const [shifts, setShifts] = useState([]);
 
   const getCurrentISTDateTime = () => {
@@ -106,6 +108,7 @@ const ShiftChangeForm = ({ onClose }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setIsDirty(true);
     let updatedData = { ...formData, [name]: value };
 
     if (name === 'schange_from' && value && updatedData.schange_to) {
@@ -159,6 +162,7 @@ const ShiftChangeForm = ({ onClose }) => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/shift/save`, formData);
       showToast(`Shift Change Saved! ID: ${response.data.movement_id}`, "success");
+      setIsDirty(false);
       setFormData({
         schange_no: String(Number(formData.schange_no) + 1),
         schange_date: getCurrentISTDateTime(),
@@ -189,7 +193,7 @@ const ShiftChangeForm = ({ onClose }) => {
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Shift Change Request</Typography>
-          <IconButton onClick={onClose}><CloseIcon /></IconButton>
+          <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
         </Stack>
 
         <Box sx={{ mb: 2, display: 'flex', gap: 4, justifyContent: 'flex-start', alignItems: 'center' }}>
@@ -205,46 +209,41 @@ const ShiftChangeForm = ({ onClose }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm="auto">
-            <TextField
-              label={<RequiredLabel>Emp Id</RequiredLabel>}
-              name="empid"
-              value={formData.empid}
-              onClick={openEmpPopup}
-              size="small"
-              placeholder="Select Employee"
-              fullWidth
-              sx={{ ...requiredStyle, width: { sm: '180px' } }}
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={openEmpPopup}>
-                      <SearchIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
-            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', width: '100%' }}>
-              <Typography fontWeight={600} variant="subtitle2">
-                Name: {formData.empname || "--"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Dept: {formData.department || "--"} • Desig: {formData.designation || "--"}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+          <TextField
+            label={<RequiredLabel>Emp Id</RequiredLabel>}
+            name="empid"
+            value={formData.empid}
+            onClick={openEmpPopup}
+            size="small"
+            placeholder="Select Employee"
+            sx={{ ...requiredStyle, width: '180px' }}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={openEmpPopup}>
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', flex: 1 }}>
+            <Typography fontWeight={600} variant="subtitle2">
+              Name: {formData.empname || "--"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Dept: {formData.department || "--"} • Desig: {formData.designation || "--"}
+            </Typography>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={1} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={6} sm="auto" sx={{ flexGrow: { sm: 1 } }}>
-            <FormControl size="small" fullWidth sx={requiredStyle}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1, flex: '1 1 300px', alignItems: 'center' }}>
+            <FormControl size="small" sx={{ flex: 1, ...requiredStyle }}>
               <InputLabel><RequiredLabel>Actual Shift</RequiredLabel></InputLabel>
               <Select
                 name="actual_shift"
@@ -257,28 +256,12 @@ const ShiftChangeForm = ({ onClose }) => {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={3} sm="auto" sx={{ width: { sm: '70px' } }}>
-            <TextField
-              label="Start"
-              value={formData.act_start_time}
-              fullWidth size="small"
-              disabled
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={3} sm="auto" sx={{ width: { sm: '70px' } }}>
-            <TextField
-              label="End"
-              value={formData.act_end_time}
-              fullWidth size="small"
-              disabled
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
+            <TextField label="Start" value={formData.act_start_time} size="small" disabled sx={{ width: '70px' }} InputLabelProps={{ shrink: true }} />
+            <TextField label="End" value={formData.act_end_time} size="small" disabled sx={{ width: '70px' }} InputLabelProps={{ shrink: true }} />
+          </Box>
 
-          <Grid item xs={6} sm="auto" sx={{ flexGrow: { sm: 1 } }}>
-            <FormControl size="small" fullWidth sx={requiredStyle}>
+          <Box sx={{ display: 'flex', gap: 1, flex: '1 1 300px', alignItems: 'center' }}>
+            <FormControl size="small" sx={{ flex: 1, ...requiredStyle }}>
               <InputLabel><RequiredLabel>Change Shift</RequiredLabel></InputLabel>
               <Select
                 name="change_shift"
@@ -291,82 +274,58 @@ const ShiftChangeForm = ({ onClose }) => {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={3} sm="auto" sx={{ width: { sm: '70px' } }}>
-            <TextField
-              label="Start"
-              value={formData.cha_start_time}
-              fullWidth size="small"
-              disabled
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={3} sm="auto" sx={{ width: { sm: '70px' } }}>
-            <TextField
-              label="End"
-              value={formData.cha_end_time}
-              fullWidth size="small"
-              disabled
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-        </Grid>
+            <TextField label="Start" value={formData.cha_start_time} size="small" disabled sx={{ width: '70px' }} InputLabelProps={{ shrink: true }} />
+            <TextField label="End" value={formData.cha_end_time} size="small" disabled sx={{ width: '70px' }} InputLabelProps={{ shrink: true }} />
+          </Box>
+        </Box>
 
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
-            <TextField
-              label={<RequiredLabel>Change From</RequiredLabel>}
-              name="schange_from"
-              type="date"
-              value={formData.schange_from}
-              onChange={handleChange}
-              fullWidth size="small"
-              sx={requiredStyle}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} sm="auto" sx={{ width: { sm: '180px' } }}>
-            <TextField
-              label={<RequiredLabel>To Date</RequiredLabel>}
-              name="schange_to"
-              type="date"
-              value={formData.schange_to}
-              onChange={handleChange}
-              fullWidth size="small"
-              sx={requiredStyle}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} sm sx={{ flexGrow: 1 }}>
-            <TextField
-              label="Remarks"
-              name="remarks"
-              value={formData.remarks}
-              onChange={handleChange}
-              fullWidth size="small"
-              placeholder="Additional remarks..."
-            />
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <TextField
+            label={<RequiredLabel>Change From</RequiredLabel>}
+            name="schange_from"
+            type="date"
+            value={formData.schange_from}
+            onChange={handleChange}
+            size="small"
+            sx={{ ...requiredStyle, width: '180px' }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label={<RequiredLabel>To Date</RequiredLabel>}
+            name="schange_to"
+            type="date"
+            value={formData.schange_to}
+            onChange={handleChange}
+            size="small"
+            sx={{ ...requiredStyle, width: '180px' }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Remarks"
+            name="remarks"
+            value={formData.remarks}
+            onChange={handleChange}
+            size="small"
+            sx={{ flex: 1 }}
+            placeholder="Additional remarks..."
+          />
+        </Box>
 
-        <Grid container spacing={2} style={{ width: '100%', marginLeft: 0 }}>
-          <Grid item xs={12} style={{ width: '100%' }}>
-            <TextField
-              label={<RequiredLabel>Purpose</RequiredLabel>}
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleChange}
-              fullWidth
-              size="small"
-              multiline
-              rows={2}
-              inputProps={{ maxLength: 200 }}
-              sx={requiredStyle}
-              style={{ width: '100%' }}
-              helperText={`${formData.purpose?.length || 0}/200 characters`}
-            />
-          </Grid>
-        </Grid>
+        <Box sx={{ mt: 2 }}>
+          <TextField
+            label={<RequiredLabel>Purpose</RequiredLabel>}
+            name="purpose"
+            value={formData.purpose}
+            onChange={handleChange}
+            fullWidth
+            size="small"
+            multiline
+            rows={2}
+            inputProps={{ maxLength: 200 }}
+            sx={requiredStyle}
+            helperText={`${formData.purpose?.length || 0}/200 characters`}
+          />
+        </Box>d>
 
         <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button className="save-btn" onClick={saveShiftChange} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>

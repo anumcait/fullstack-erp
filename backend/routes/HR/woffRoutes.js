@@ -11,5 +11,7 @@ router.delete('/:id', woffController.deleteWoff);
 router.put('/approve/:id', woffController.approveWoff);
 router.get('/pending', woffController.getPendingWoffChanges);
 router.post('/approve', woffController.approveWoffChange);
+router.post('/cancel', woffController.cancelWoff);
+router.post('/reopen', woffController.reopenWoff);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Box, Card, CardContent, Typography, Tabs, Tab, TextField, InputAdornment,
-  IconButton, Button, Stack, Drawer, Avatar, Tooltip,
+  IconButton, Button, Stack, Drawer, Avatar, Tooltip, Chip,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
@@ -33,7 +33,7 @@ export default function ShiftChangeApprovalPage() {
 
   const fetchPendingShiftChanges = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/shift/pending`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/shift/all`);
       console.log("API Response:", res.data);
       setRows(res.data);
     } catch (err) {
@@ -56,9 +56,9 @@ export default function ShiftChangeApprovalPage() {
   };
 
   const columns = useMemo(() => [
-    {
+    ...(tab === "pending" ? [{
       field: "approve",
-      headerName: "Approve",
+      headerName: "Action",
       width: 110,
       sortable: false,
       renderCell: (params) => (
@@ -66,18 +66,63 @@ export default function ShiftChangeApprovalPage() {
           Approve
         </Button>
       ),
+    }] : []),
+    ...(tab === "completed" ? [{
+      field: "cancel",
+      headerName: "Action",
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Button size="small" variant="outlined" color="error" onClick={() => handleCancel(params.row)}>
+          Cancel Approval
+        </Button>
+      ),
+    }] : []),
+    ...(tab === "cancelled" ? [{
+      field: "reopen",
+      headerName: "Action",
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Button size="small" variant="outlined" color="primary" onClick={() => handleReopen(params.row)}>
+          Re-process
+        </Button>
+      ),
+    }] : []),
+    { field: "schange_no", headerName: "Shift Change #", width: 130 },
+    { field: "schange_date", headerName: "Entry Date", width: 140,
+      valueGetter: (value) => value ? formatDateTime24Dot(value) : ""
     },
-    { field: "schange_no", headerName: "Shift Change #", width: 160 },
-    { field: "schange_date", headerName: "Date", width: 160 },
     { field: "empid", headerName: "Employee ID", width: 100 },
     { field: "ename", headerName: "Employee Name", width: 200 },
+    { field: "app_status", headerName: "Status", width: 120,
+      renderCell: (params) => (
+        <Chip 
+          label={params.value} 
+          size="small" 
+          color={params.value === "Approved" ? "success" : ["Cancelled", "Rejected"].includes(params.value) ? "error" : "primary"}
+          variant="outlined"
+        />
+      )
+    },
+    { field: "remarks", headerName: "HR Remarks", flex: 1, minWidth: 150 },
     { field: "unit", headerName: "Unit", width: 90 },
     { field: "designation", headerName: "Designation", width: 150 },
     { field: "current_shift", headerName: "Current Shift", width: 130 },
     { field: "changed_shift", headerName: "Changed Shift", width: 130 },
     { field: "reason", headerName: "Reason", width: 200 },
-    { field: "app_status", headerName: "Status", width: 100 },
-  ], []);
+  ], [tab]);
+
+  function formatDateTime24Dot(dateStr) {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear()).slice(-2);
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${day}-${month}-${year} ${hours}.${minutes}`;
+  }
 
   function formatDateDMY(dateStr) {
     if (!dateStr) return "-";
@@ -146,18 +191,78 @@ export default function ShiftChangeApprovalPage() {
     }
   };
 
+  const handleCancel = async (row) => {
+    const reason = window.prompt("Enter reason for cancellation:");
+    if (reason === null) return;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/shift/cancel`, {
+        schange_no: row.schange_no,
+        remarks: reason
+      });
+      if (res.data.success) {
+        showToast("Shift change approval cancelled", "success");
+        await fetchPendingShiftChanges();
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Cancel failed:", err);
+      showToast("Error cancelling shift change", "error");
+    }
+  };
+
+  const handleReopen = async (row) => {
+    if (!window.confirm(`Are you sure you want to re-process Shift Change #${row.schange_no}?`)) return;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/shift/reopen`, {
+        schange_no: row.schange_no
+      });
+      if (res.data.success) {
+        showToast("Application reopened", "success");
+        await fetchPendingShiftChanges();
+      } else {
+        showToast(res.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Reopen failed:", err);
+      showToast("Error reopening application", "error");
+    }
+  };
+
+  const toYMD = (d) => {
+    if (!d) return "";
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return "";
+    return date.toISOString().split('T')[0];
+  };
+
+  const counts = useMemo(() => {
+    return {
+      pending: rows.filter(r => r.app_status === "Pending").length,
+      completed: rows.filter(r => r.app_status === "Approved").length,
+      cancelled: rows.filter(r => ["Cancelled", "Rejected"].includes(r.app_status)).length
+    };
+  }, [rows]);
+
   const filtered = useMemo(() => {
     return rows.filter(r => {
+      const appliedDate = toYMD(r.schange_date);
       const inDate =
-        (!filters.start || new Date(r.schange_date) >= new Date(filters.start)) &&
-        (!filters.end || new Date(r.schange_date) <= new Date(filters.end));
+        (!filters.start || appliedDate >= filters.start) &&
+        (!filters.end || appliedDate <= filters.end);
       const matchApp = !filters.appNo || String(r.schange_no).includes(filters.appNo.trim());
       const matchEmp = !filters.empId || String(r.empid).includes(filters.empId.trim());
       const q = filters.q.toLowerCase();
-      const matchQ = !q || [r.ename, r.unit, r.designation, r.reason].some(v => v.toLowerCase().includes(q));
-      return inDate && matchApp && matchEmp && matchQ && r.app_status === "Pending";
+      const matchQ = !q || [r.ename, r.unit, r.designation, r.reason].some(v => v && v.toLowerCase().includes(q));
+      
+      const targetStatuses = 
+        tab === "pending" ? ["Pending"] : 
+        tab === "completed" ? ["Approved"] : 
+        ["Cancelled", "Rejected"];
+
+      return inDate && matchApp && matchEmp && matchQ && targetStatuses.includes(r.app_status);
     });
-  }, [filters, rows]);
+  }, [filters, rows, tab]);
 
   const dedupedRows = React.useMemo(() => {
     const seen = new Set();
@@ -195,10 +300,10 @@ export default function ShiftChangeApprovalPage() {
             <Button variant="outlined" size="small" startIcon={<ClearIcon />} onClick={clearFilters}>Clear</Button>
           </Stack>
 
-          <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary" sx={{ mt: 2 }}>
-            <Tab value="pending" label="Pending Shift Change Approval Details" />
-            <Tab value="completed" label="Completed Shift Change Approval Details" />
-            <Tab value="cancelled" label="Cancelled Shift Change Applications" />
+          <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mt: 2 }}>
+            <Tab value="pending" label={`Pending (${counts.pending})`} />
+            <Tab value="completed" label={`Completed (${counts.completed})`} />
+            <Tab value="cancelled" label={`Cancelled (${counts.cancelled})`} />
           </Tabs>
         </CardContent>
       </Card>

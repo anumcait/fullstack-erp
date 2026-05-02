@@ -89,9 +89,42 @@ exports.approveOnDuty = async (req, res) => {
     if (remarks) application.remarks = remarks;
     await application.save();
 
-    res.json({ message: `On Duty application ${application.status.toLowerCase()}d successfully.` });
+    res.json({ success: true, message: `On Duty application ${application.status.toLowerCase()}d successfully.` });
   } catch (error) {
     console.error('❌ Error approving On Duty application:', error);
-    res.status(500).json({ message: 'Failed to approve On Duty application.', error });
+    res.status(500).json({ success: false, message: 'Failed to approve On Duty application.', error });
+  }
+};
+
+exports.cancelOnDuty = async (req, res) => {
+  const { movement_id, remarks = "" } = req.body;
+  try {
+    const app = await OnDutyApplication.findOne({ where: { movement_id } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    // Set status to Cancelled (2 or string 'Cancelled')
+    // Checking current model to see if it's string or int
+    // Based on saveOnDuty, it seems to use strings.
+    await app.update({ status: 'Cancelled', remarks: remarks });
+
+    res.json({ success: true, message: "On Duty approval cancelled" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error cancelling On Duty" });
+  }
+};
+
+exports.reopenOnDuty = async (req, res) => {
+  const { movement_id } = req.body;
+  try {
+    const app = await OnDutyApplication.findOne({ where: { movement_id } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ status: 'Pending' });
+
+    res.json({ success: true, message: "On Duty application reopened" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error reopening On Duty" });
   }
 };

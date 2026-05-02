@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import TourForm from "./TourForm";
 import TourTable from "./TourTable";
 import TourApproval from "./TourApproval";
@@ -24,6 +25,11 @@ const TourDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.reset) setSelectedAction("table");
+  }, [location.state?.reset]);
 
   const handleMenuClick = (action) => {
     setSelectedAction(action);
@@ -68,7 +74,7 @@ const TourDashboard = () => {
         </div>
       </div>
 
-      <div className="shift-dashboard-content">
+      <div className="shift-dashboard-content" key={location.state?.reset || 'default'}>
         {selectedAction === "table" && <TourTable onNewEntry={() => setSelectedAction("new")} />}
         {selectedAction === "new" && <TourForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <TourApproval />}

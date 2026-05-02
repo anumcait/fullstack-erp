@@ -9,6 +9,7 @@ import EmployeeReportForm from "./Component/HR/Employee/EmployeeMasterReport";
 import AddEmployeeForm from "./Component/HR/Employee/AddEmployee";
 import LeaveReport from "./Component/HR/LeaveApplication/LeaveReport";
 import { ToastProvider } from "./context/ToastContext";
+import { NavigationGuardProvider } from "./context/NavigationGuardContext";
 import MainLayout from "./Component/Layout/MainLayout";
 import OnDutyPreview from "./Component/HR/onduty/OnDutyPreview";
 import OnDutyDashboard from "./Component/HR/onduty/OnDutyDashboard";
@@ -99,7 +100,8 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <ToastProvider>
+      <NavigationGuardProvider>
+        <ToastProvider>
         <div className="App">
           <Router>
             <Routes>
@@ -184,6 +186,7 @@ function App() {
           </Router>
         </div>
       </ToastProvider>
+      </NavigationGuardProvider>
     </ThemeProvider>
   );
 }

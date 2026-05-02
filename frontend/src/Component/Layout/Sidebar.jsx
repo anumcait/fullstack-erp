@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useNavigationGuard } from "../../context/NavigationGuardContext";
 import {
   FiUsers,
   FiUserPlus,
@@ -52,6 +53,9 @@ import "./Sidebar.css";
 
 const Sidebar = () => {
   const location = useLocation();
+  const { isDirty, setIsDirty } = useNavigationGuard();
+  const [pendingPath, setPendingPath] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState(() => {
     return localStorage.getItem('sidebarSubmenu') || "";
   });
@@ -110,10 +114,33 @@ const Sidebar = () => {
     setOpenSubmenu(openSubmenu === menu ? "" : menu);
   };
 
+  const handleNavClick = (to, e) => {
+    e.preventDefault();
+    if (isDirty) {
+      setPendingPath(to);
+      setConfirmOpen(true);
+    } else {
+      navigate(to, { replace: true, state: { reset: Date.now() } });
+    }
+  };
+
+  const confirmLeave = () => {
+    setIsDirty(false);
+    setConfirmOpen(false);
+    navigate(pendingPath, { replace: true, state: { reset: Date.now() } });
+    setPendingPath(null);
+  };
+
+  const cancelLeave = () => {
+    setConfirmOpen(false);
+    setPendingPath(null);
+  };
+
   const SubItem = ({ to, label, icon: Icon = FiCircle }) => (
     <li>
       <NavLink
         to={to}
+        onClick={(e) => handleNavClick(to, e)}
         className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}
       >
         <Icon size={collapsed ? 20 : 16} className="submenu-icon" />
@@ -137,7 +164,7 @@ const Sidebar = () => {
           <>
             {hasPermission('ACC_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/accounts" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/accounts" onClick={(e) => handleNavClick("/accounts", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -178,7 +205,7 @@ const Sidebar = () => {
           <>
             {hasPermission('HR_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/dashboard" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/dashboard" onClick={(e) => handleNavClick("/dashboard", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -248,7 +275,7 @@ const Sidebar = () => {
           <>
             {hasPermission('STORES_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/stores" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/stores" onClick={(e) => handleNavClick("/stores", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -286,7 +313,7 @@ const Sidebar = () => {
           <>
             {hasPermission('PUR_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/purchase" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/purchase" onClick={(e) => handleNavClick("/purchase", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -323,7 +350,7 @@ const Sidebar = () => {
           <>
             {hasPermission('PROD_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/production" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/production" onClick={(e) => handleNavClick("/production", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -348,7 +375,7 @@ const Sidebar = () => {
           <>
             {hasPermission('PLAN_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/planning" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/planning" onClick={(e) => handleNavClick("/planning", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -373,7 +400,7 @@ const Sidebar = () => {
           <>
             {hasPermission('ENG_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/engineering" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/engineering" onClick={(e) => handleNavClick("/engineering", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -409,7 +436,7 @@ const Sidebar = () => {
           <>
             {hasPermission('MARK_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/marketing" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/marketing" onClick={(e) => handleNavClick("/marketing", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -435,7 +462,7 @@ const Sidebar = () => {
           <>
             {hasPermission('QUAL_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/quality" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/quality" onClick={(e) => handleNavClick("/quality", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -460,7 +487,7 @@ const Sidebar = () => {
           <>
             {hasPermission('MAINT_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/maintenance" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/maintenance" onClick={(e) => handleNavClick("/maintenance", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -485,7 +512,7 @@ const Sidebar = () => {
           <>
             {hasPermission('SUB_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <NavLink to="/subcontract" className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <NavLink to="/subcontract" onClick={(e) => handleNavClick("/subcontract", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
                   <FiHome /> {!collapsed && <span>Dashboard</span>}
                 </NavLink>
               </li>
@@ -508,14 +535,14 @@ const Sidebar = () => {
         {/* Global Bottom Links - Apply general module-level reports/settings permissions if needed */}
         {hasPermission(`${activeModule}_REPORTS`) && (
           <li className="sidebar-menu-item" style={{ marginTop: "auto" }}>
-            <NavLink to={`/${activeModule.toLowerCase()}/reports`} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+            <NavLink to={`/${activeModule.toLowerCase()}/reports`} onClick={(e) => handleNavClick(`/${activeModule.toLowerCase()}/reports`, e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
               <FiPieChart /> {!collapsed && <span>Reports</span>}
             </NavLink>
           </li>
         )}
         {hasPermission(`${activeModule}_SETTINGS`) && (
           <li className="sidebar-menu-item">
-            <NavLink to={`/${activeModule.toLowerCase()}/settings`} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+            <NavLink to={`/${activeModule.toLowerCase()}/settings`} onClick={(e) => handleNavClick(`/${activeModule.toLowerCase()}/settings`, e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
               <FiSettings /> {!collapsed && <span>Settings</span>}
             </NavLink>
           </li>
@@ -526,6 +553,39 @@ const Sidebar = () => {
           </div>
         </li>
       </ul>
+
+      {/* Navigation Guard Confirm Dialog */}
+      {confirmOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 10, padding: '28px 32px',
+            minWidth: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)'
+          }}>
+            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>⚠️ Unsaved Changes</p>
+            <p style={{ color: '#555', marginBottom: 20, fontSize: 14 }}>
+              You have unsaved changes. Are you sure you want to leave without saving?
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={cancelLeave}
+                style={{ padding: '7px 18px', borderRadius: 5, border: '1px solid #ccc', background: '#f5f5f5', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Stay
+              </button>
+              <button
+                onClick={confirmLeave}
+                style={{ padding: '7px 18px', borderRadius: 5, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Leave Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

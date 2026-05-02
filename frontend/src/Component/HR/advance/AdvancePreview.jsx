@@ -15,8 +15,7 @@ const AdvancePreview = ({ data = {}, onClose }) => {
     advance_type = "--",
     advance_amount = "--",
     reason = "--",
-    advance_from_date = "--",
-    advance_to_date = "--",
+    gross_salary = "--",
     no_of_installments = "--",
     monthly_installment = "--"
   } = data;
@@ -82,32 +81,27 @@ const AdvancePreview = ({ data = {}, onClose }) => {
               <td className="colon">:</td>
               <td className="value">{advance_type}</td>
 
+              <td className="label">Gross Salary</td>
+              <td className="colon">:</td>
+              <td className="value">{data.gross_salary || "--"}</td>
+            </tr>
+            <tr>
               <td className="label">Amount</td>
               <td className="colon">:</td>
               <td className="value">{advance_amount}</td>
-            </tr>
-            <tr>
-              <td className="label">From Date</td>
-              <td className="colon">:</td>
-              <td className="value">{formatDate(advance_from_date)}</td>
 
-              <td className="label">To Date</td>
-              <td className="colon">:</td>
-              <td className="value">{formatDate(advance_to_date)}</td>
-            </tr>
-            <tr>
               <td className="label">No of Installments</td>
               <td className="colon">:</td>
               <td className="value">{no_of_installments}</td>
-
+            </tr>
+            <tr>
               <td className="label">Monthly Installment</td>
               <td className="colon">:</td>
               <td className="value">{monthly_installment}</td>
-            </tr>
-            <tr>
+
               <td className="label">Reason</td>
               <td className="colon">:</td>
-              <td className="value" colSpan={5}>{reason}</td>
+              <td className="value">{reason}</td>
             </tr>
           </tbody>
         </table>

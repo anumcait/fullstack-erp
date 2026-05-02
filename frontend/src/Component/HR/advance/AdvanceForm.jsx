@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import {
-  TextField, Typography, Button, Grid, Box, Card, CardContent,
+  TextField, Typography, Button, Box,
   Stack, IconButton, Divider, InputAdornment, FormControl, InputLabel, Select, MenuItem
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
+import AdvancePreview from "./AdvancePreview";
 
 const RequiredLabel = ({ children }) => (
   <span>
@@ -20,8 +22,11 @@ const requiredStyle = {
   backgroundColor: '#fffde7'
 };
 
-const AdvanceForm = () => {
+const AdvanceForm = ({ onClose }) => {
   const { showToast } = useToast();
+  const { setIsDirty } = useNavigationGuard();
+  const userRole = localStorage.getItem('userRole');
+  const loggedInEmpId = localStorage.getItem('empId');
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -43,9 +48,8 @@ const AdvanceForm = () => {
     designation: "",
     advance_type: "",
     advance_amount: "",
+    gross_salary: "",
     reason: "",
-    advance_from_date: "",
-    advance_to_date: "",
     no_of_installments: "",
     monthly_installment: ""
   });
@@ -54,9 +58,28 @@ const AdvanceForm = () => {
   const [employeeList, setEmployeeList] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setIsDirty(true);
+    let updatedData = { ...formData, [name]: value };
 
-  useEffect(() => { fetchNextAdvanceId(); }, []);
+    if (name === "advance_amount" || name === "no_of_installments") {
+      const amount = Number(updatedData.advance_amount);
+      const installments = Number(updatedData.no_of_installments);
+      if (amount > 0 && installments > 0) {
+        updatedData.monthly_installment = (amount / installments).toFixed(2);
+      } else {
+        updatedData.monthly_installment = "";
+      }
+    }
+
+    setFormData(updatedData);
+  };
+
+  useEffect(() => { 
+    fetchNextAdvanceId();
+    fetchAllEmployees();
+  }, []);
 
   const fetchNextAdvanceId = async () => {
     try {
@@ -67,222 +90,215 @@ const AdvanceForm = () => {
     }
   };
 
-  const openEmpPopup = async () => {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
-    setEmployeeList(response.data);
-    setShowEmpPopup(true);
+  const fetchAllEmployees = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
+      setEmployeeList(response.data);
+      
+      // If regular user, pre-fill their own data
+      if (userRole !== 'Admin' && userRole !== 'HR' && loggedInEmpId) {
+        const currentUser = response.data.find(emp => String(emp.empid) === String(loggedInEmpId));
+        if (currentUser) {
+          selectEmployee(currentUser);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch employees:", error);
+    }
+  };
+
+  const openEmpPopup = () => {
+    if (userRole === 'Admin' || userRole === 'HR') {
+      setShowEmpPopup(true);
+    }
   };
 
   const selectEmployee = (emp) => {
-    setFormData({
-      ...formData,
+    let gross = 0;
+    if (emp.salary) {
+      const s = emp.salary;
+      gross = (Number(s.basic) || 0) + 
+              (Number(s.hra) || 0) + 
+              (Number(s.conveyance) || 0) + 
+              (Number(s.washing_allowance) || 0) +
+              (Number(s.others1) || 0) + (Number(s.others2) || 0) + (Number(s.others3) || 0) +
+              (Number(s.others4) || 0) + (Number(s.others5) || 0) + (Number(s.others6) || 0) +
+              (Number(s.others7) || 0) + (Number(s.others8) || 0) + (Number(s.others9) || 0);
+    }
+
+    setFormData(prev => ({
+      ...prev,
       empid: emp.empid,
       ename: emp.ename,
       unit: emp.uname,
       division: emp.divname,
       designation: emp.designation,
-    });
+      gross_salary: gross
+    }));
     setShowEmpPopup(false);
   };
 
   const saveAdvance = async () => {
-    if (!formData.empid || !formData.advance_type || !formData.advance_amount) {
+    if (!formData.empid || !formData.advance_type || !formData.advance_amount || !formData.no_of_installments || !formData.reason) {
       showToast("❌ Please fill all required fields.", "error");
       return;
     }
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/advance/save`, formData);
       showToast(`✅ Advance Saved. ID: ${response.data.advance_id}`, "success");
-      setFormData({
-        advance_id: "",
-        advance_date: getCurrentISTDateTime(),
-        empid: "",
-        ename: "",
-        unit: "",
-        division: "",
-        designation: "",
-        advance_type: "",
-        advance_amount: "",
-        reason: "",
-        advance_from_date: "",
-        advance_to_date: "",
-        no_of_installments: "",
-        monthly_installment: ""
-      });
-      fetchNextAdvanceId();
+      setIsDirty(false);
+      onClose();
     } catch (err) {
       console.error("Save error:", err);
       showToast("❌ Error saving Advance application", "error");
     }
   };
 
+  const canSelectEmployee = userRole === 'Admin' || userRole === 'HR';
+
   return (
     <Box>
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Advance Request</Typography>
-          <IconButton onClick={() => setShowPreview(true)}><CloseIcon /></IconButton>
+          <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
         </Stack>
 
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <Box display="flex" alignItems="center">
-              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                Advance No:
-              </Typography>
-              <Typography fontWeight={600}>{formData.advance_id}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={6}>
-            <Box display="flex" alignItems="center">
-              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                Entry Date:
-              </Typography>
-              <Typography fontWeight={600}>
-                {formData.advance_date.replace("T", " ")}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">Advance No:</Typography>
+            <Typography fontWeight={600}>{formData.advance_id}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">Entry Date:</Typography>
+            <Typography fontWeight={600}>{formData.advance_date.replace("T", " ")}</Typography>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={3}>
-            <TextField
-              label="Emp Id"
-              name="empid"
-              value={formData.empid}
-              onClick={openEmpPopup}
-              size="small"
-              placeholder="Select Employee"
-              fullWidth
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={openEmpPopup}>
-                      <SearchIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ bgcolor: 'white', '& .MuiOutlinedInput-root': { paddingRight: 1 } }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={9}>
-            <Typography fontWeight={600}>
-              Name: {formData.ename || "--"} • Unit: {formData.unit || "--"} • Division: {formData.division || "--"} • Designation: {formData.designation || "--"}
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+          <TextField
+            label="Emp Id"
+            name="empid"
+            value={formData.empid}
+            onClick={openEmpPopup}
+            size="small"
+            placeholder={canSelectEmployee ? "Select Employee" : "Logged in User"}
+            sx={{ width: '150px', bgcolor: canSelectEmployee ? 'white' : '#f5f5f5' }}
+            InputProps={{
+              readOnly: true,
+              endAdornment: canSelectEmployee && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={openEmpPopup}>
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', flex: 1 }}>
+            <Typography fontWeight={600} variant="subtitle2">
+              Name: {formData.ename || "--"}
             </Typography>
-          </Grid>
-        </Grid>
+            <Typography variant="body2" color="text.secondary">
+              Unit: {formData.unit || "--"} • Div: {formData.division || "--"} • Desig: {formData.designation || "--"}
+            </Typography>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={3}>
-            <FormControl size="small" fullWidth>
-              <InputLabel>Advance Type</InputLabel>
-              <Select
-                name="advance_type"
-                value={formData.advance_type}
-                onChange={handleChange}
-                label="Advance Type"
-              >
-                <MenuItem value="Salary Advance">Salary Advance</MenuItem>
-                <MenuItem value="Festival Advance">Festival Advance</MenuItem>
-                <MenuItem value="Emergency Advance">Emergency Advance</MenuItem>
-                <MenuItem value="Travel Advance">Travel Advance</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <TextField
-              label="Advance Amount"
-              name="advance_amount"
-              type="number"
-              size="small"
-              fullWidth
-              value={formData.advance_amount}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <FormControl size="small" sx={{ flex: '1 1 200px', ...requiredStyle }}>
+            <InputLabel><RequiredLabel>Advance Type</RequiredLabel></InputLabel>
+            <Select
+              name="advance_type"
+              value={formData.advance_type}
               onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <TextField
-              label="From Date"
-              name="advance_from_date"
-              type="date"
-              size="small"
-              fullWidth
-              value={formData.advance_from_date}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <TextField
-              label="To Date"
-              name="advance_to_date"
-              type="date"
-              size="small"
-              fullWidth
-              value={formData.advance_to_date}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-        </Grid>
+              label={<RequiredLabel>Advance Type</RequiredLabel>}
+            >
+              <MenuItem value="Salary Advance">Salary Advance</MenuItem>
+              <MenuItem value="Festival Advance">Festival Advance</MenuItem>
+              <MenuItem value="Medical Advance">Medical Advance</MenuItem>
+              <MenuItem value="Personal Advance">Personal Advance</MenuItem>
+            </Select>
+          </FormControl>
 
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={3}>
-            <TextField
-              label="No of Installments"
+          <TextField
+            label="Gross Salary"
+            name="gross_salary"
+            type="number"
+            size="small"
+            sx={{ flex: '1 1 150px', bgcolor: '#f5f5f5' }}
+            value={formData.gross_salary}
+            InputProps={{ readOnly: true }}
+          />
+
+          <TextField
+            label={<RequiredLabel>Advance Amount</RequiredLabel>}
+            name="advance_amount"
+            type="number"
+            size="small"
+            sx={{ flex: '1 1 150px', ...requiredStyle }}
+            value={formData.advance_amount}
+            onChange={handleChange}
+          />
+        </Box>
+
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <FormControl size="small" sx={{ flex: '1 1 150px', ...requiredStyle }}>
+            <InputLabel><RequiredLabel>Installments</RequiredLabel></InputLabel>
+            <Select
               name="no_of_installments"
-              type="number"
-              size="small"
-              fullWidth
               value={formData.no_of_installments}
               onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <TextField
-              label="Monthly Installment"
-              name="monthly_installment"
-              type="number"
-              size="small"
-              fullWidth
-              value={formData.monthly_installment}
-              onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Reason"
-              name="reason"
-              size="small"
-              fullWidth
-              multiline
-              rows={2}
-              value={formData.reason}
-              onChange={handleChange}
-              inputProps={{ maxLength: 200 }}
-              sx={requiredStyle}
-              helperText={`${formData.reason?.length || 0}/200 characters`}
-            />
-          </Grid>
-        </Grid>
+              label={<RequiredLabel>Installments</RequiredLabel>}
+            >
+              <MenuItem value={1}>1 Installment</MenuItem>
+              <MenuItem value={2}>2 Installments</MenuItem>
+              <MenuItem value={3}>3 Installments</MenuItem>
+              <MenuItem value={4}>4 Installments</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Monthly Repayment"
+            name="monthly_installment"
+            type="number"
+            size="small"
+            sx={{ flex: '1 1 150px', bgcolor: '#f5f5f5' }}
+            value={formData.monthly_installment}
+            InputProps={{ readOnly: true }}
+            helperText="Auto-calculated"
+          />
+
+          <TextField
+            label={<RequiredLabel>Purpose of Advance</RequiredLabel>}
+            name="reason"
+            size="small"
+            sx={{ flex: '1 1 300px', ...requiredStyle }}
+            multiline
+            rows={1}
+            value={formData.reason}
+            onChange={handleChange}
+            inputProps={{ maxLength: 200 }}
+            helperText={`${formData.reason?.length || 0}/200 characters`}
+          />
+        </Box>
 
         <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '8px' }}>
-          <Button variant="outlined" onClick={() => setShowPreview(true)}>Close</Button>
+          <Button variant="outlined" onClick={() => setShowPreview(true)}>Preview</Button>
           <button className="save-btn" onClick={saveAdvance} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-            💾 <u>S</u>ave
+            💾 Save Application
           </button>
         </div>
       </div>
 
-      <EmployeeSelectDialog open={showEmpPopup} onClose={() => setShowEmpPopup(false)} onSelect={selectEmployee} data={employeeList} />
-      {showPreview && <AdvancePreview formData={formData} onClose={() => setShowPreview(false)} />}
+      {canSelectEmployee && (
+        <EmployeeSelectDialog open={showEmpPopup} onClose={() => setShowEmpPopup(false)} onSelect={selectEmployee} data={employeeList} />
+      )}
+      {showPreview && <AdvancePreview data={formData} onClose={() => setShowPreview(false)} />}
     </Box>
   );
 };

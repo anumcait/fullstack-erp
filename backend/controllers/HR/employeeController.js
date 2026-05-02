@@ -73,11 +73,18 @@ exports.getAllEmployees = async (req, res) => {
 
     const employees = await EmployeeMaster.findAll({
       where,
-      include: [{
-        model: LeaveMaster,
-        attributes: ['cls_utilised', 'els_utilised', 'cls_balance', 'els_balance', 'final_status'],
-        required: false
-      }],
+      include: [
+        {
+          model: LeaveMaster,
+          attributes: ['cls_utilised', 'els_utilised', 'cls_balance', 'els_balance', 'final_status'],
+          required: false
+        },
+        {
+          model: EmpSalary,
+          as: 'salary',
+          required: false
+        }
+      ],
       order: [['empid', 'ASC']]
     });
     res.json(employees);

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import WoffChangeForm from "./WoffChangeForm";
 import WoffChangeTable from "./WoffChangeTable";
 import WoffApproval from "./WoffApproval";
@@ -8,6 +9,11 @@ const WoffChangeDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.reset) setSelectedAction("table");
+  }, [location.state?.reset]);
 
   const actions = [
     { label: "New", value: "new" },
@@ -59,7 +65,7 @@ const WoffChangeDashboard = () => {
         </div>
       </div>
 
-      <div className="woff-dashboard-content">
+      <div className="woff-dashboard-content" key={location.state?.reset || 'default'}>
         {selectedAction === "table" && <WoffChangeTable onNewEntry={() => setSelectedAction("new")} />}
         {selectedAction === "new" && <WoffChangeForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <WoffApproval />}

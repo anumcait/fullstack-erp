@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import ShiftChangeForm from "./ShiftChangeForm";
 import ShiftChangeTable from "./ShiftChangeTable";
 import ShiftChangeApproval from "./ShiftChangeApproval";
@@ -24,6 +25,11 @@ const ShiftChangeDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("table");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.reset) setSelectedAction("table");
+  }, [location.state?.reset]);
 
   const handleMenuClick = (action) => {
     setSelectedAction(action);
@@ -71,7 +77,7 @@ const ShiftChangeDashboard = () => {
       </div>
 
       {/* Content based on menu click */}
-      <div className="shift-dashboard-content">
+      <div className="shift-dashboard-content" key={location.state?.reset || 'default'}>
         {selectedAction === "table" && <ShiftChangeTable onNewEntry={() => setSelectedAction("new")} />}
         {selectedAction === "new" && <ShiftChangeForm onClose={() => setSelectedAction("table")} />}
         {selectedAction === "approval" && <ShiftChangeApproval />}

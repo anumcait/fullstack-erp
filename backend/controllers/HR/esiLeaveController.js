@@ -88,9 +88,37 @@ exports.approveESILeave = async (req, res) => {
     if (remarks) application.remarks = remarks;
     await application.save();
 
-    res.json({ message: `ESI Leave application ${application.status.toLowerCase()}d successfully.` });
+    res.json({ success: true, message: `ESI Leave application ${application.status.toLowerCase()}d successfully.` });
   } catch (error) {
     console.error('❌ Error approving ESI Leave application:', error);
-    res.status(500).json({ message: 'Failed to approve ESI Leave application.', error });
+    res.status(500).json({ success: false, message: 'Failed to approve ESI Leave application.', error });
+  }
+};
+
+exports.cancelESILeave = async (req, res) => {
+  const { esi_leave_id, remarks = "" } = req.body;
+  try {
+    const app = await ESILeaveApplication.findOne({ where: { esi_leave_id } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ status: 'Cancelled', remarks: remarks });
+    res.json({ success: true, message: "ESI Leave approval cancelled" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error cancelling ESI Leave" });
+  }
+};
+
+exports.reopenESILeave = async (req, res) => {
+  const { esi_leave_id } = req.body;
+  try {
+    const app = await ESILeaveApplication.findOne({ where: { esi_leave_id } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    await app.update({ status: 'Pending' });
+    res.json({ success: true, message: "ESI Leave application reopened" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error reopening ESI Leave" });
   }
 };
