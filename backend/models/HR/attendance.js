@@ -38,12 +38,21 @@ module.exports = (sequelize, DataTypes) => {
     division: DataTypes.STRING(40),
     department: DataTypes.STRING(40),
     app_ot: DataTypes.STRING(10),
-    app_status: DataTypes.INTEGER,
+    app_status: {
+      type: DataTypes.STRING(20),
+      defaultValue: '0'
+    },
     app_remarks: DataTypes.STRING(150),
     hr_app_ot: DataTypes.STRING(10),
-    hr_app_status: DataTypes.INTEGER,
+    hr_app_status: {
+      type: DataTypes.STRING(20),
+      defaultValue: '0'
+    },
     hr_remarks: DataTypes.STRING(150),
-    final_status: DataTypes.INTEGER,
+    final_status: {
+      type: DataTypes.STRING(20),
+      defaultValue: '0'
+    },
     last_upd_id: DataTypes.INTEGER,
     last_upd_dt: DataTypes.DATE,
     gempid: DataTypes.STRING(40),

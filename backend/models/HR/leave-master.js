@@ -55,8 +55,9 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE
     },
     final_status: { // C_FINAL_STATUS
-      type: DataTypes.INTEGER,
-      allowNull: false
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: '0'
     },
     gempid: { // C_GEMPID
       type: DataTypes.STRING(40)

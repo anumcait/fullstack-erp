@@ -25,7 +25,10 @@ module.exports = (sequelize, DataTypes) => {
     C_REMARKS: DataTypes.STRING(100),
     C_UNIT: DataTypes.STRING(40),
     C_DIVISION: DataTypes.STRING(40),
-    C_FINAL_STATUS: DataTypes.INTEGER,
+    C_FINAL_STATUS: {
+      type: DataTypes.STRING(20),
+      defaultValue: '0'
+    },
     C_GEMPID: DataTypes.STRING(40),
     created_at: {
       type: DataTypes.DATE,
