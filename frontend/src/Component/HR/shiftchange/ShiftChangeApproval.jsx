@@ -13,6 +13,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useToast } from "../../../context/ToastContext";
 import axios from 'axios';
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 export default function ShiftChangeApprovalPage() {
   const { showToast } = useToast();
@@ -108,20 +109,23 @@ export default function ShiftChangeApprovalPage() {
     { field: "remarks", headerName: "HR Remarks", flex: 1, minWidth: 150 },
     { field: "unit", headerName: "Unit", width: 90 },
     { field: "designation", headerName: "Designation", width: 150 },
-    { field: "current_shift", headerName: "Current Shift", width: 130 },
-    { field: "changed_shift", headerName: "Changed Shift", width: 130 },
-    { field: "reason", headerName: "Reason", width: 200 },
+    { field: "act_shift", headerName: "Current Shift", width: 130 },
+    { field: "change_shift", headerName: "Changed Shift", width: 130 },
+    { field: "purpose", headerName: "Reason", width: 200 },
   ], [tab]);
 
   function formatDateTime24Dot(dateStr) {
     if (!dateStr) return "-";
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = String(d.getFullYear()).slice(-2);
-    const hours = String(d.getHours()).padStart(2, "0");
+    const year = d.getFullYear();
+    let hours = d.getHours();
     const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${day}-${month}-${year} ${hours}.${minutes}`;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
   }
 
   function formatDateDMY(dateStr) {
@@ -135,7 +139,7 @@ export default function ShiftChangeApprovalPage() {
 
   const openDrawer = (row) => {
     setSelected(row);
-    setSanction({ remarks: "", final_status: row.current_shift });
+    setSanction({ remarks: "", final_status: row.act_shift });
     setDrawerOpen(true);
   };
 
@@ -163,8 +167,7 @@ export default function ShiftChangeApprovalPage() {
       closeDrawer();
     } catch (err) {
       console.error("Approval failed:", err);
-      const errorMessage = err.response?.data?.message || err.message;
-      showToast(errorMessage, "error");
+      showToast(getErrorMessage(err, "Approval failed"), "error");
     }
   };
 
@@ -186,8 +189,7 @@ export default function ShiftChangeApprovalPage() {
       closeDrawer();
     } catch (err) {
       console.error("Rejection failed:", err);
-      const errorMessage = err.response?.data?.message || err.message;
-      showToast(errorMessage, "error");
+      showToast(getErrorMessage(err, "Rejection failed"), "error");
     }
   };
 
@@ -362,9 +364,9 @@ export default function ShiftChangeApprovalPage() {
                     <Typography><b>Employee:</b> {selected.ename} (ID: {selected.empid})</Typography>
                     <Typography><b>Unit:</b> {selected.unit}</Typography>
                     <Typography><b>Designation:</b> {selected.designation}</Typography>
-                    <Typography><b>Current Shift:</b> {selected.current_shift}</Typography>
-                    <Typography><b>Changed Shift:</b> {selected.changed_shift}</Typography>
-                    <Typography><b>Reason:</b> {selected.reason}</Typography>
+                    <Typography><b>Current Shift:</b> {selected.act_shift}</Typography>
+                    <Typography><b>Changed Shift:</b> {selected.change_shift}</Typography>
+                    <Typography><b>Reason:</b> {selected.purpose}</Typography>
                     <Typography><b>Status:</b> {selected.app_status}</Typography>
                   </Stack>
                 </CardContent>
@@ -393,3 +395,4 @@ export default function ShiftChangeApprovalPage() {
     </Box>
   );
 }
+

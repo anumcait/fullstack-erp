@@ -12,6 +12,10 @@ import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, headerAction }) => {
   const [visibleColumns, setVisibleColumns] = useState(columns.map(col => col.field));
   const [tempVisibleColumns, setTempVisibleColumns] = useState([...visibleColumns]);
+
+  useEffect(() => {
+    setVisibleColumns(columns.map(col => col.field));
+  }, [columns]);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [sortConfig, setSortConfig] = useState({ field: null, direction: 'asc' });
   const [filters, setFilters] = useState({});
@@ -261,7 +265,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, h
             {pagedData.map((row) => (
               <tr key={row.sno}>
                 {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
-                  <td key={colIdx} style={{ textAlign: col.align || 'left' }}>
+                  <td key={colIdx} style={{ textAlign: col.align || 'left', ...(col.expandable && row._expanded ? { whiteSpace: 'normal', wordBreak: 'break-word' } : {}) }}>
                     {col.expandable ? (
                       <div
                         className={`reason-container ${row._expanded ? "expanded" : ""}`}

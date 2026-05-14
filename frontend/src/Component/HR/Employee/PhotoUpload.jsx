@@ -10,6 +10,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 import { useToast } from '../../../context/ToastContext';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -119,7 +120,7 @@ export default function PhotoUpload() {
           setPhotoFile(null);
         } catch (err) {
           console.error('Upload error:', err);
-          showToast('Failed to upload photo', 'error');
+          showToast(getErrorMessage(err, 'Failed to upload photo'), 'error');
         } finally {
           setSaving(false);
         }
@@ -141,7 +142,7 @@ export default function PhotoUpload() {
       setPhotoFile(null);
       showToast('Photo removed successfully', 'success');
     } catch (err) {
-      showToast('Failed to remove photo', 'error');
+      showToast(getErrorMessage(err, 'Failed to remove photo'), 'error');
     } finally {
       setSaving(false);
     }

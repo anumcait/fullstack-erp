@@ -1,15 +1,54 @@
-const { ShiftChange, ShiftMaster, ShiftSchedule, EmployeeMaster, Attendance, Holiday, EmpSalary, WoffApplication } = require('../../models');
+const { ShiftChange, ShiftMaster, ShiftSchedule, EmployeeMaster, Attendance, Holiday, EmpSalary, WoffApplication, Payslip } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
 
 exports.saveSChange = async (req, res) => {
   const application = req.body;
-  const { empid, schange_from, actual_shift, change_shift } = application;
-
-  if (!empid || !schange_from || !actual_shift || !change_shift) {
+  const { empid, schange_from, act_shift, change_shift } = application;
+  
+  if (!empid || !schange_from || !act_shift || !change_shift) {
     return res.status(400).json({ message: 'Missing required fields: Emp ID, Date, Actual Shift, and Change Shift are mandatory.' });
   }
 
   try {
+    // 🛑 Check if any payslip is already generated for this employee (Find Max Month/Year)
+    const [y, m, d] = schange_from.split('-').map(Number);
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const monthMap = {};
+    monthNames.forEach((name, idx) => { monthMap[name] = idx + 1; });
+
+    const monthOrder = `CASE 
+      WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
+      WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
+      WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
+      WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
+      WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
+      WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
+      WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
+      WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
+      WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
+      WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
+      WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
+      WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
+      ELSE 0 END`;
+
+    const latestPayslip = await Payslip.findOne({
+      attributes: ['C_MONTH', 'C_YEAR'],
+      order: [['C_YEAR', 'DESC'], [Sequelize.literal(monthOrder), 'DESC']],
+      raw: true
+    });
+
+    if (latestPayslip) {
+      const finalMonthStr = (latestPayslip.C_MONTH || "").trim().toUpperCase();
+      const latestMonthNum = monthMap[finalMonthStr] || 0;
+      const latestYearNum = Number(latestPayslip.C_YEAR);
+      const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
+
+      if (isClosed) {
+        return res.status(400).json({ 
+          message: `Cannot apply for Shift Change. Payroll already processed up to ${finalMonthStr} ${latestYearNum}.` 
+        });
+      }
+    }
     const existing = await ShiftChange.findOne({
       where: {
         empid,
@@ -569,9 +608,11 @@ exports.getShiftChangeReport = async (req, res) => {
       schange_date: r.schange_date,
       empid: r.empid,
       ename: r.employee?.ename || '',
-      current_shift: r.current_shift,
-      requested_shift: r.requested_shift,
-      reason: r.reason,
+      act_shift: r.act_shift,
+      act_time: `${r.act_sstart_time || '--'} - ${r.act_send_time || '--'}`,
+      change_shift: r.change_shift,
+      cha_time: `${r.cha_sstart_time || '--'} - ${r.cha_send_time || '--'}`,
+      reason: r.purpose || r.reason || '',
       status: r.app_status || 'Pending'
     }));
     
@@ -615,5 +656,42 @@ exports.getWoffChangeReport = async (req, res) => {
   } catch (error) {
     console.error('Error fetching woff change report:', error);
     res.status(500).json({ message: 'Error fetching report' });
+  }
+};
+
+exports.getShiftByEmpAndDate = async (req, res) => {
+  try {
+    const { empid, date } = req.query;
+    if (!empid || !date) {
+      return res.status(400).json({ message: 'EmpID and Date are required' });
+    }
+
+    const schedule = await ShiftSchedule.findOne({
+      where: { empid, shift_date: date }
+    });
+
+    if (!schedule) {
+      return res.status(404).json({ message: 'No shift scheduled for this date' });
+    }
+
+    const shiftMaster = await ShiftMaster.findOne({
+      where: { shift_cd: schedule.shift_cd }
+    });
+
+    const formatTime = (date) => {
+      if (!date) return '';
+      const d = new Date(date);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+
+    res.json({
+      shift_cd: schedule.shift_cd,
+      shift_name: shiftMaster ? shiftMaster.shift_name : schedule.shift_cd,
+      start_time: formatTime(schedule.shift_start_time),
+      end_time: formatTime(schedule.shift_end_time)
+    });
+  } catch (error) {
+    console.error('Error fetching shift by date:', error);
+    res.status(500).json({ message: 'Error fetching shift details' });
   }
 };

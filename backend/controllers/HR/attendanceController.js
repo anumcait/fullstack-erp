@@ -732,7 +732,7 @@ exports.getOTForApproval = async (req, res) => {
       unit: a.employee?.unit_id || '',
       date: a.att_date,
       ot_hrs: parseFloat(a.ot_hrs) || 0,
-      app_ot: a.app_ot || '',
+      app_ot: a.app_ot ? a.app_ot.toString().slice(0, 5) : '',
       app_status: a.app_status,
       app_remarks: a.app_remarks || '',
       hr_app_ot: a.hr_app_ot ? a.hr_app_ot.toString().slice(0, 5) : '',
@@ -780,9 +780,9 @@ exports.approveOT = async (req, res) => {
       if (!otStr.includes(':')) {
         const hours = Math.floor(parseFloat(otStr));
         const mins = Math.round((parseFloat(otStr) - hours) * 60);
-        updateData.app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`;
+        updateData.app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
       } else {
-        updateData.app_ot = otStr;
+        updateData.app_ot = otStr.slice(0, 5);
       }
     } else if (app_status === 1 && existing.ot_hrs) {
       // Auto-fill calculated OT when approving
@@ -795,9 +795,9 @@ exports.approveOT = async (req, res) => {
       if (!otStr.includes(':')) {
         const hours = Math.floor(parseFloat(otStr));
         const mins = Math.round((parseFloat(otStr) - hours) * 60);
-        updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`;
+        updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
       } else {
-        updateData.hr_app_ot = otStr;
+        updateData.hr_app_ot = otStr.slice(0, 5);
       }
     }
 
@@ -850,11 +850,11 @@ exports.bulkApproveOT = async (req, res) => {
           if (recAppOt !== undefined && recAppOt !== null && recAppOt !== "") {
             const otStr = recAppOt.toString();
             if (otStr.includes(':')) {
-              updateData.app_ot = otStr;
+              updateData.app_ot = otStr.slice(0, 5);
             } else {
               const hours = Math.floor(parseFloat(otStr));
               const mins = Math.round((parseFloat(otStr) - hours) * 60);
-              updateData.app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`;
+              updateData.app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
             }
           } else if (recAppStatus === 1 && existing.ot_hrs) {
             updateData.app_ot = existing.ot_hrs.toString();
@@ -863,11 +863,11 @@ exports.bulkApproveOT = async (req, res) => {
           if (recHrOt !== undefined && recHrOt !== null && recHrOt !== "") {
             const otStr = recHrOt.toString();
             if (otStr.includes(':')) {
-              updateData.hr_app_ot = otStr;
+              updateData.hr_app_ot = otStr.slice(0, 5);
             } else {
               const hours = Math.floor(parseFloat(otStr));
               const mins = Math.round((parseFloat(otStr) - hours) * 60);
-              updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`;
+              updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
             }
           }
 
@@ -880,7 +880,7 @@ exports.bulkApproveOT = async (req, res) => {
               else {
                 const hours = Math.floor(parseFloat(v));
                 const mins = Math.round((parseFloat(v) - hours) * 60);
-                updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`;
+                updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
               }
             }
           }

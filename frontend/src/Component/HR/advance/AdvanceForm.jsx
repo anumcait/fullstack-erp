@@ -10,6 +10,8 @@ import { useToast } from "../../../context/ToastContext";
 import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 import AdvancePreview from "./AdvancePreview";
+import { formatDateTimeAMPM } from "../../../utils/dateUtils";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 const RequiredLabel = ({ children }) => (
   <span>
@@ -23,6 +25,18 @@ const requiredStyle = {
 };
 
 const AdvanceForm = ({ onClose }) => {
+  const advanceTypeRef = React.useRef(null);
+  const amountRef = React.useRef(null);
+  const installmentsRef = React.useRef(null);
+  const reasonRef = React.useRef(null);
+
+  const fieldRefs = {
+    advance_type: advanceTypeRef,
+    advance_amount: amountRef,
+    no_of_installments: installmentsRef,
+    reason: reasonRef,
+  };
+
   const { showToast } = useToast();
   const { setIsDirty } = useNavigationGuard();
   const userRole = localStorage.getItem('userRole');
@@ -57,10 +71,12 @@ const AdvanceForm = ({ onClose }) => {
   const [showEmpPopup, setShowEmpPopup] = useState(false);
   const [employeeList, setEmployeeList] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setIsDirty(true);
+    setFieldErrors(prev => ({ ...prev, [name]: null }));
     let updatedData = { ...formData, [name]: value };
 
     if (name === "advance_amount" || name === "no_of_installments") {
@@ -139,10 +155,23 @@ const AdvanceForm = ({ onClose }) => {
   };
 
   const saveAdvance = async () => {
-    if (!formData.empid || !formData.advance_type || !formData.advance_amount || !formData.no_of_installments || !formData.reason) {
-      showToast("❌ Please fill all required fields.", "error");
+    let hasError = false;
+    const newErrors = {};
+    let firstRef = null;
+
+    if (!formData.empid) { newErrors.empid = "Employee is required"; hasError = true; }
+    if (!formData.advance_type) { newErrors.advance_type = "Required"; hasError = true; if (!firstRef) firstRef = advanceTypeRef; }
+    if (!formData.advance_amount) { newErrors.advance_amount = "Required"; hasError = true; if (!firstRef) firstRef = amountRef; }
+    if (!formData.no_of_installments) { newErrors.no_of_installments = "Required"; hasError = true; if (!firstRef) firstRef = installmentsRef; }
+    if (!formData.reason) { newErrors.reason = "Required"; hasError = true; if (!firstRef) firstRef = reasonRef; }
+
+    if (hasError) {
+      setFieldErrors(newErrors);
+      showToast("Please fill all required fields.", "error");
+      if (firstRef && firstRef.current) firstRef.current.focus();
       return;
     }
+
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/advance/save`, formData);
       showToast(`✅ Advance Saved. ID: ${response.data.advance_id}`, "success");
@@ -150,7 +179,7 @@ const AdvanceForm = ({ onClose }) => {
       onClose();
     } catch (err) {
       console.error("Save error:", err);
-      showToast("❌ Error saving Advance application", "error");
+      showToast(getErrorMessage(err, "Error saving Advance application"), "error");
     }
   };
 
@@ -171,7 +200,7 @@ const AdvanceForm = ({ onClose }) => {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="body2" color="text.secondary">Entry Date:</Typography>
-            <Typography fontWeight={600}>{formData.advance_date.replace("T", " ")}</Typography>
+            <Typography fontWeight={600}>{formatDateTimeAMPM(formData.advance_date)}</Typography>
           </Box>
         </Box>
 
@@ -196,6 +225,8 @@ const AdvanceForm = ({ onClose }) => {
                 </InputAdornment>
               ),
             }}
+            error={!!fieldErrors.empid}
+            helperText={fieldErrors.empid}
           />
           <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', flex: 1 }}>
             <Typography fontWeight={600} variant="subtitle2">
@@ -214,9 +245,17 @@ const AdvanceForm = ({ onClose }) => {
             <InputLabel><RequiredLabel>Advance Type</RequiredLabel></InputLabel>
             <Select
               name="advance_type"
+              inputRef={advanceTypeRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (amountRef.current) amountRef.current.focus();
+                }
+              }}
               value={formData.advance_type}
               onChange={handleChange}
               label={<RequiredLabel>Advance Type</RequiredLabel>}
+              error={!!fieldErrors.advance_type}
             >
               <MenuItem value="Salary Advance">Salary Advance</MenuItem>
               <MenuItem value="Festival Advance">Festival Advance</MenuItem>
@@ -238,11 +277,19 @@ const AdvanceForm = ({ onClose }) => {
           <TextField
             label={<RequiredLabel>Advance Amount</RequiredLabel>}
             name="advance_amount"
+            inputRef={amountRef}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (installmentsRef.current) installmentsRef.current.focus();
+              }
+            }}
             type="number"
             size="small"
             sx={{ flex: '1 1 150px', ...requiredStyle }}
             value={formData.advance_amount}
             onChange={handleChange}
+            error={!!fieldErrors.advance_amount}
           />
         </Box>
 
@@ -251,9 +298,17 @@ const AdvanceForm = ({ onClose }) => {
             <InputLabel><RequiredLabel>Installments</RequiredLabel></InputLabel>
             <Select
               name="no_of_installments"
+              inputRef={installmentsRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (reasonRef.current) reasonRef.current.focus();
+                }
+              }}
               value={formData.no_of_installments}
               onChange={handleChange}
               label={<RequiredLabel>Installments</RequiredLabel>}
+              error={!!fieldErrors.no_of_installments}
             >
               <MenuItem value={1}>1 Installment</MenuItem>
               <MenuItem value={2}>2 Installments</MenuItem>
@@ -276,6 +331,7 @@ const AdvanceForm = ({ onClose }) => {
           <TextField
             label={<RequiredLabel>Purpose of Advance</RequiredLabel>}
             name="reason"
+            inputRef={reasonRef}
             size="small"
             sx={{ flex: '1 1 300px', ...requiredStyle }}
             multiline
@@ -283,14 +339,15 @@ const AdvanceForm = ({ onClose }) => {
             value={formData.reason}
             onChange={handleChange}
             inputProps={{ maxLength: 200 }}
-            helperText={`${formData.reason?.length || 0}/200 characters`}
+            error={!!fieldErrors.reason}
+            helperText={fieldErrors.reason || `${formData.reason?.length || 0}/200 characters`}
           />
         </Box>
 
         <div className="save-btn-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '8px' }}>
           <Button variant="outlined" onClick={() => setShowPreview(true)}>Preview</Button>
           <button className="save-btn" onClick={saveAdvance} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-            💾 Save Application
+            Save Application
           </button>
         </div>
       </div>

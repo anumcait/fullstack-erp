@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./LeavePreview.css";
+import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
 import logo from "../../../assets/images/EQIC_Image.jpg"; // replace with your logo path
 
 const LeavePreview = ({ data, onClose }) => {
@@ -8,7 +9,7 @@ const LeavePreview = ({ data, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-// Fetch full leave data based on lno
+  // Fetch full leave data based on lno
   useEffect(() => {
     const fetchLeaveDetails = async () => {
       try {
@@ -18,15 +19,13 @@ const LeavePreview = ({ data, onClose }) => {
         setLeaveData(res.data);
       } catch (err) {
         console.error("Failed to fetch leave details:", err);
+        setError("Failed to fetch leave details.");
       } finally {
         setLoading(false);
       }
     };
     fetchLeaveDetails();
   }, [data]);
- useEffect(() => {
-    console.log("Full leaveData object:", leaveData);
-  }, [leaveData]);
 
   if (loading) {
     return (
@@ -74,273 +73,263 @@ const LeavePreview = ({ data, onClose }) => {
     absentDays = "",
     reportDate = "",
     leaves = [],
-    leavesApplied ="",
-  }  = leaveData || {};
-
+    leavesApplied = ""
+  } = leaveData || {};
 
   return (
     <div className="leave-print-overlay">
       <div className="leave-print-container">
-        {/* Header Table */}
-        <table style={{ width: "100%" }}>
-          <tbody>
-            <tr>
-              <td rowSpan={2} style={{ width: 56, textAlign: "center", verticalAlign: "top" }}>
-                <img src={logo} alt="Logo" style={{ width: "46px" }} />
-              </td>
-              <td colSpan={5} style={{ fontWeight: "bold", fontSize: "17px", textAlign: "center" }}>
-                EQIC DIES & MOULDS ENGINEERS PVT. LTD
-              </td>
-              <td style={{ width: 135, textAlign: "center", verticalAlign: "top" }}>
-                <div style={{
-                  border: "1px solid #000",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  padding: "3px 10px",
-                  display: "inline-block",
-                }}>AFTER SUBMISSION</div>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={6} style={{
-                fontWeight: "bold",
-                fontSize: "16px",
-                textAlign: "center",
-                paddingBottom: "6px",
-              }}>
-                LEAVE APPLICATION
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {/* Standardized Header */}
+        <div className="onduty-print-header">
+          <img src={logo} alt="Logo" className="onduty-logo" style={{ height: "40px" }} />
+          <div className="onduty-company-title">
+            AUCTOR HOME APPLIANCES LLP
+            <br />
+            <span className="onduty-slip-title">LEAVE APPLICATION SLIP</span>
+          </div>
+          <div className="onduty-before-box">AFTER SUBMISSION</div>
+        </div>
 
         {/* Basic Info Table */}
-        <table style={{ width: "100%", fontSize: "14px", marginBottom: "7px", marginTop: "5px" }}>
+        <table className="onduty-field-table" style={{ marginTop: "10px" }}>
           <tbody>
             <tr>
-              <td style={{ width: 116 }}>Leave app. No</td><td>:</td>
-              <td className="left-align">{leaveAppNo}</td>
-              <td style={{ width: 40 }}>Date</td><td>:</td>
-              <td>{leaveDate}</td>
+              <td className="label">Leave app. No</td>
+              <td className="colon">:</td>
+              <td className="value">{leaveAppNo}</td>
+
+              <td className="label">Date</td>
+              <td className="colon">:</td>
+              <td className="value">{leaveDate}</td>
             </tr>
             <tr>
-              <td>Emp No</td><td>:</td>
-              <td style={{ fontWeight: "bold", color: "#2b2b2b" }}>{empNo}</td>
-              <td>Emp name</td><td>:</td>
-              <td style={{ width: "165px", verticalAlign: "top" }}>{empName}</td>
+              <td className="label">Emp Id</td>
+              <td className="colon">:</td>
+              <td className="value">{empNo}</td>
+
+              <td className="label">Emp Name</td>
+              <td className="colon">:</td>
+              <td className="value">{empName}</td>
             </tr>
             <tr>
-              <td>Designation</td><td>:</td>
-              <td>{designation}</td>
-              <td>Department</td><td>:</td>
-              <td>{department}</td>
+              <td className="label">Designation</td>
+              <td className="colon">:</td>
+              <td className="value">{designation}</td>
+
+              <td className="label">Department</td>
+              <td className="colon">:</td>
+              <td className="value">{department}</td>
             </tr>
             <tr>
-              <td style={{ width: "200px" }}>Leaves Applied (days)</td><td>:</td>
-              <td>{leavesApplied}</td>
-              <td>Section</td><td>:</td>
-              <td>{section}</td>
+              <td className="label">Leaves Applied</td>
+              <td className="colon">:</td>
+              <td className="value">{leavesApplied ? parseFloat(leavesApplied).toString() : ""} (days)</td>
+
+              <td className="label">Section</td>
+              <td className="colon">:</td>
+              <td className="value">{section}</td>
             </tr>
           </tbody>
         </table>
 
         {/* Leaves Dates Table */}
-        <table style={{ width: "100%", fontSize: "14px", marginBottom: "3px"  }}>
+        <div style={{ marginTop: "10px" }}>
+          <table className="onduty-field-table">
+            <tbody>
+              <tr>
+                <td className="label" style={{ verticalAlign: 'top' }}>Leaves date(s)</td>
+                <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
+                <td>
+                  <table style={{ borderCollapse: "collapse", width: "300px", border: "1px solid #ccc" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ border: "1px solid #ccc", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>From</th>
+                        <th style={{ border: "1px solid #ccc", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>To</th>
+                        <th style={{ border: "1px solid #ccc", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>Day</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaves.map((leave, index) => (
+                        <tr key={index}>
+                          <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveFrom}</td>
+                          <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveTo}</td>
+                          <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveDay ? parseFloat(leave.leaveDay).toString() : ""}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Purpose, Address, Phone */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: "5px" }}>
           <tbody>
             <tr>
-              <td style={{ width: 116 , height: "135px" }}>Leaves date(s)</td><td>:</td>
-              <td>
-                <table style={{ borderCollapse: "collapse", width: "300px" }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ border: "1px solid #aaa", textAlign: "center", padding: "1px 6px", fontSize: "13px" }}>From</td>
-                      <td style={{ border: "1px solid #aaa", textAlign: "center", padding: "1px 6px", fontSize: "13px" }}>To</td>
-                      <td style={{ border: "1px solid #aaa", textAlign: "center", padding: "1px 6px", fontSize: "13px" }}>Day</td>
-                    </tr>
-                    {leaves.length > 0 ? (
-                      leaves.map((leave, index) => (
-                        <tr key={index}>
-                          <td style={{ border: "1px solid #aaa", textAlign: "center", padding: "1px 6px", fontSize: "13px" }}>{leave.leaveFrom}</td>
-                          <td style={{ border: "1px solid #aaa", textAlign: "center", padding: "1px 6px", fontSize: "13px" }}>{leave.leaveTo}</td>
-                          <td style={{ border: "1px solid #aaa", textAlign: "center", padding: "1px 6px", fontSize: "13px" }}>{leave.leaveDay}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={3} style={{ textAlign: "center" }}>No leaves found</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </td>
-              <td colSpan={3}></td>
+              <td className="label" style={{ width: '80px', fontWeight: 'bold', verticalAlign: 'top', padding: '2px 6px' }}>Purpose</td>
+              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '2px 6px' }}>:</td>
+              <td style={{ wordBreak: 'break-word', verticalAlign: 'top', padding: '2px 6px' }}>{purpose}</td>
             </tr>
             <tr>
-              <td>Purpose</td><td>:</td>
-              <td>{purpose}</td>
-              <td colSpan={3}></td>
+              <td className="label" style={{ width: '80px', fontWeight: 'bold', verticalAlign: 'top', padding: '2px 6px' }}>Address</td>
+              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '2px 6px' }}>:</td>
+              <td style={{ wordBreak: 'break-word', verticalAlign: 'top', padding: '2px 6px' }}>{addressReason}</td>
             </tr>
             <tr>
-              <td>Address/Reason</td><td>:</td>
-              <td>{addressReason}</td>
-              <td colSpan={3}></td>
-            </tr>
-            <tr>
-              <td>Phone No</td><td>:</td>
-              <td>{phoneNo}</td>
-              <td colSpan={3}></td>
+              <td className="label" style={{ width: '80px', fontWeight: 'bold', verticalAlign: 'top', padding: '2px 6px' }}>Phone No</td>
+              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '2px 6px' }}>:</td>
+              <td style={{ verticalAlign: 'top', padding: '2px 6px' }}>{phoneNo}</td>
             </tr>
           </tbody>
         </table>
-{/* Additional Info and Footers */}
-        <div style={{ fontWeight: 'bold', fontSize: '13px', padding: '3px' }}>
+
+        <div style={{ fontWeight: 'bold', fontSize: '12px', padding: '10px 5px 0' }}>
           I agree that my increment may be postponed if not reporting back in time.
         </div>
 
-        <table style={{ width: '100%' }}>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "5px", fontSize: "12px" }}>
+          <span>Date: {leaveDateShort}</span>
+          <span>Employee Signature</span>
+        </div>
+
+        <hr style={{ margin: "10px 0" }} />
+
+        <div style={{ fontSize: '13px', fontWeight: '800', textAlign: 'center', background: "#eee", padding: "2px" }}>
+          For Office Use
+        </div>
+
+        <div style={{ display: "flex", gap: "20px", marginTop: "10px" }}>
+          <div>
+            <table style={{ fontSize: '12px', borderCollapse: 'collapse', width: '260px' }}>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Eligible</th>
+                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Utilised</th>
+                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CLs</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{clsEligible ? parseFloat(clsEligible).toString() : ""}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{clsUtilised ? parseFloat(clsUtilised).toString() : ""}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{clsBalance ? parseFloat(clsBalance).toString() : ""}</td>
+                </tr>
+                <tr>
+                  <td>ELs</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{elsEligible ? parseFloat(elsEligible).toString() : ""}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{elsUtilised ? parseFloat(elsUtilised).toString() : ""}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{elsBalance ? parseFloat(elsBalance).toString() : ""}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style={{ fontWeight: 'bold', fontSize: '12px', marginTop: '10px', textAlign: "center" }}>LOP</div>
+            <table style={{ fontSize: '12px', borderCollapse: 'collapse', width: '260px' }}>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Prev</th>
+                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Pres</th>
+                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Others</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersPrev}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersPres}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersTotal}</td>
+                </tr>
+                <tr>
+                  <td>ESI</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopEsi}</td>
+                  <td style={{ border: '1px solid #ccc' }}></td>
+                  <td style={{ border: '1px solid #ccc' }}></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <table style={{ fontSize: '12px', width: '100%' }}>
+              <tbody>
+                <tr>
+                  <td style={{ width: '140px' }}>Sanction day(s)</td><td>:</td>
+                  <td>{sanctionDays}</td>
+                </tr>
+                <tr>
+                  <td>Reporting to duty on</td><td>:</td>
+                  <td>{reportingDutyOn}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table style={{ borderCollapse: 'collapse', fontSize: '11px', marginTop: '10px', width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Company<br />Days</th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Employee<br />Present</th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Employee<br />Absent</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{companyDays}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{presentDays}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{absentDays}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style={{ fontSize: '9px', marginTop: '5px', color: '#666' }}>* Data up to one day before approval.</div>
+          </div>
+        </div>
+
+        <hr style={{ margin: "15px 0" }} />
+
+        {/* Standardized Signatures */}
+        <table className="onduty-signature-grid">
           <tbody>
             <tr>
-              <td style={{ width: '245px', fontSize: '13px' }}>Date<span style={{ marginLeft: '10px' }}>:&nbsp;{leaveDateShort}</span>
-              </td>
-              <td style={{ textAlign: 'right', fontSize: '13px' }}>
+              <td>
+                <br /><br />
+                <strong>Recommended</strong><br />
                 Signature
               </td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Office Use and Leave Balances Table */}
-        <table style={{ width: '100%', marginTop: '7px' }}>
-          <tbody>
-            <tr>
-              <td colSpan={6} style={{ fontSize: '13px', fontWeight:'800', borderBottom: '1px solid #333', paddingTop: '4px', paddingBottom: '4px',textAlign:'center' }}>
-                For Office Use
-              
+              <td>
+                <br /><br />
+                <strong>Approved</strong><br />
+                Signature
               </td>
-
-            </tr>
-                  <tr>
-              <td style={{ verticalAlign: 'top', width: '300px', marginTop: '10px', paddingTop: '10px', paddingBottom: '6px' }}>
-                <table style={{ fontSize: '13px', borderCollapse: 'collapse', width: '260px', marginBottom: '7px' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: 56 }}></td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', width: 54 }}>Eligible</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', width: 54 }}>Utilised</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', width: 54 }}>Balance</td>
-                    </tr>
-                    <tr>
-                      <td>CLs</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{clsEligible}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{clsUtilised}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{clsBalance}</td>
-                    </tr>
-                    <tr>
-                      <td>ELs</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{elsEligible}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{elsUtilised}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{elsBalance}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <span style={{ fontWeight: 'bold', fontSize: '13px',paddingLeft:'150px'}}>LOP</span>
-                <table style={{ fontSize: '13px', borderCollapse: 'collapse', width: '260px', marginTop: '2px' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: 50 }}></td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', width: 60 }}>Previous</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', width: 60 }}>Present</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', width: 60 }}>Total</td>
-                    </tr>
-                    <tr>
-                      <td>Others</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{lopOthersPrev}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{lopOthersPres}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{lopOthersTotal}</td>
-                    </tr>
-                    <tr>
-                      <td>ESI</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{lopEsi}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}></td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}></td>
-                    </tr>
-                    <tr>
-                      <td>Total</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{lopOthersPrev}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{lopOthersPres}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center' }}>{lopOthersTotal}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <td>
+                <br /><br />
+                <strong>Authorized</strong><br />
+                Signature
               </td>
-              <td style={{ verticalAlign: 'top', paddingLeft: '12px' }}>
-                <table style={{ fontSize: '8px', borderCollapse: 'collapse', width: '280px', marginBottom: '7px' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: '120px' }}>Sanction day(s)</td><td>:</td>
-                      <td style={{ width: '120px' }}>{sanctionDays}</td>
-                    </tr>
-                    <tr>
-                      <td style={{ width: '200px' }}>Reporting to duty on</td><td>:</td>
-                      <td>{reportingDutyOn}</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <table style={{ borderCollapse: 'collapse', fontSize: '12px', marginTop: '6px', width: '100%', marginBottom: '4px' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{
-                        border: '1px solid #777',
-                        padding: '2px 5px', textAlign: 'center', fontSize: '12px', width: '85px'
-                      }}>Company<br />Working Days</td>
-                      <td style={{
-                        border: '1px solid #777',
-                        padding: '2px 5px', textAlign: 'center', fontSize: '12px', width: '85px'
-                      }}>Employee<br />Present Days</td>
-                      <td style={{
-                        border: '1px solid #777',
-                        padding: '2px 5px', textAlign: 'center', fontSize: '12px', width: '85px'
-                      }}>Employee<br />Absent Days</td>
-                    </tr>
-                    <tr>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', fontSize: '13px' }}>{companyDays}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', fontSize: '13px' }}>{presentDays}</td>
-                      <td style={{ border: '1px solid #777', textAlign: 'center', fontSize: '13px' }}>{absentDays}</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div style={{ fontSize: '10px', paddingLeft: '2px', color: '#444' }}>* Information upto one day before and attendance respective to HR approval</div>
+              <td>
+                <br /><br />
+                <strong>GM</strong><br />
+                Signature
+              </td>
+              <td>
+                <br /><br />
+                <strong>DIRECTOR</strong>
               </td>
             </tr>
           </tbody>
         </table>
 
-        {/* Signature Table */}
-        <table style={{ width: '100%', marginBottom: '16px', marginTop: '40px',fontSize: '13px' }}>
-          <tbody>
-            <tr>
-              <td style={{ width: '25%', textAlign: 'center' }}>Recommended By</td>
-              <td style={{ width: '25%', textAlign: 'center' }}>Approved By</td>
-              <td style={{ width: '25%', textAlign: 'center' }}>GM</td>
-              <td style={{ width: '25%', textAlign: 'center' }}>DIRECTOR</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div style={{ fontSize: '11px', textAlign: 'right', marginTop: '10px', marginBottom: '2px' }}>
-          Report Dated : {reportDate}
+        <div style={{ fontSize: '10px', textAlign: 'right', marginTop: '10px' }} className="no-print">
+          Report Dated: {reportDate}
         </div>
-        {/* Buttons */}
-        <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "16px" }} className="no-print">
-          <button onClick={() => window.print()} style={{
-            background: '#007bff', color: '#fff', border: 'none', padding: '6px 12px',
-            borderRadius: '4px', fontSize: '12px', cursor: 'pointer'
-          }}>Print</button>
-          <button onClick={onClose} style={{
-            background: '#007bff', color: '#fff', border: 'none', padding: '6px 12px',
-            borderRadius: '4px', fontSize: '12px', cursor: 'pointer'
-          }}>Close</button>
+
+        {/* Standardized Actions */}
+        <div className="onduty-actions no-print">
+          <button onClick={() => window.print()}>Print</button>
+          <button onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
@@ -348,4 +337,3 @@ const LeavePreview = ({ data, onClose }) => {
 };
 
 export default LeavePreview;
-

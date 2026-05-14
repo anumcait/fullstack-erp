@@ -10,6 +10,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 const SalarySetup = () => {
   const { showToast } = useToast();
@@ -70,7 +71,7 @@ const SalarySetup = () => {
       setEditDialog(false);
       fetchSalaryDetails();
     } catch (err) {
-      showToast("❌ Error saving salary details", "error");
+      showToast(getErrorMessage(err, "Error saving salary details"), "error");
     }
   };
 
@@ -93,7 +94,7 @@ const SalarySetup = () => {
               showToast('Salaries imported successfully', 'success');
               fetchSalaryDetails();
             } catch (err) {
-              showToast('Error importing salaries', 'error');
+              showToast(getErrorMessage(err, "Error importing salaries"), "error");
             }
           }}>
             Import from CSV

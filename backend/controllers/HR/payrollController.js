@@ -366,6 +366,50 @@ exports.getYearsWithSalary = async (req, res) => {
   }
 };
 
+exports.getLatestProcessedDate = async (req, res) => {
+  try {
+    const monthOrder = `CASE 
+      WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
+      WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
+      WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
+      WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
+      WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
+      WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
+      WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
+      WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
+      WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
+      WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
+      WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
+      WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
+      ELSE 0 END`;
+
+    const latest = await Payslip.findOne({
+      attributes: ['C_MONTH', 'C_YEAR'],
+      order: [['C_YEAR', 'DESC'], [Sequelize.literal(monthOrder), 'DESC']],
+      raw: true
+    });
+
+    if (!latest) {
+      // If no payroll has ever been processed, default to start of previous year dynamically
+      const prevYear = new Date().getFullYear() - 1;
+      return res.json({ year: prevYear, month: 1 }); 
+    }
+
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const monthFull = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    
+    let m = 0;
+    const finalMonthStr = (latest.C_MONTH || "").trim().toUpperCase();
+    monthNames.forEach((name, idx) => { if (name === finalMonthStr) m = idx + 1; });
+    if (m === 0) monthFull.forEach((name, idx) => { if (name === finalMonthStr) m = idx + 1; });
+
+    res.json({ year: Number(latest.C_YEAR), month: m, monthName: finalMonthStr });
+  } catch (error) {
+    console.error('Error fetching latest processed date:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 exports.getAllEmployees = async (req, res) => {
   try {
     const employees = await EmployeeMaster.findAll({
@@ -639,17 +683,103 @@ exports.saveSalaryDetails = async (req, res) => {
 exports.checkPayslipStatus = async (req, res) => {
   try {
     const { empid, year, month } = req.query;
-    const monthStr = getMonthName(parseInt(month));
-    const payslip = await Payslip.findOne({
-      where: {
-        C_EMPID: parseInt(empid),
-        C_YEAR: parseInt(year),
-        C_MONTH: monthStr
-      }
+    const y = parseInt(year);
+    const m = parseInt(month);
+
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const monthFull = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    const monthMap = {};
+    monthNames.forEach((name, idx) => { 
+      monthMap[name] = idx + 1; 
+      monthMap[monthFull[idx]] = idx + 1;
+      monthMap[String(idx + 1)] = idx + 1;
+      monthMap[String(idx + 1).padStart(2, '0')] = idx + 1;
     });
-    res.json({ generated: !!payslip });
+    
+    const monthOrder = `CASE 
+      WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
+      WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
+      WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
+      WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
+      WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
+      WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
+      WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
+      WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
+      WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
+      WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
+      WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
+      WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
+      ELSE 0 END`;
+
+    const latest = await Payslip.findOne({
+      attributes: ['C_MONTH', 'C_YEAR'],
+      order: [
+        ['C_YEAR', 'DESC'],
+        [Sequelize.literal(monthOrder), 'DESC']
+      ],
+      raw: true
+    });
+
+    if (!latest) {
+      return res.json({ generated: false, count: 0 });
+    }
+
+    const finalMonthStr = (latest.C_MONTH || "").trim().toUpperCase();
+    const latestMonthNum = monthMap[finalMonthStr] || 0;
+    const latestYearNum = Number(latest.C_YEAR);
+    
+    const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
+
+    res.json({ 
+      generated: isClosed, 
+      details: { C_MONTH: finalMonthStr, C_YEAR: latestYearNum }
+    });
   } catch (error) {
     console.error('Error checking payslip status:', error);
     res.status(500).json({ message: 'Error checking status' });
+  }
+};
+
+exports.getLatestProcessedDate = async (req, res) => {
+  try {
+    const monthOrder = `CASE 
+      WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
+      WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
+      WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
+      WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
+      WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
+      WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
+      WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
+      WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
+      WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
+      WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
+      WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
+      WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
+      ELSE 0 END`;
+
+    const latest = await Payslip.findOne({
+      attributes: ['C_MONTH', 'C_YEAR'],
+      order: [['C_YEAR', 'DESC'], [Sequelize.literal(monthOrder), 'DESC']],
+      raw: true
+    });
+
+    if (!latest) {
+      const prevYear = new Date().getFullYear() - 1;
+      return res.json({ year: prevYear, month: 1 });
+    }
+
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const monthFull = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    const monthMap = {};
+    monthNames.forEach((name, idx) => { monthMap[name] = idx + 1; });
+    monthFull.forEach((name, idx) => { monthMap[name] = idx + 1; });
+
+    const finalMonthStr = (latest.C_MONTH || "").trim().toUpperCase();
+    const m = monthMap[finalMonthStr] || 0;
+
+    res.json({ year: Number(latest.C_YEAR), month: m, monthName: finalMonthStr });
+  } catch (error) {
+    console.error('Error fetching latest processed date:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };

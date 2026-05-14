@@ -10,6 +10,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 const SalaryProcessing = () => {
   const { showToast } = useToast();
@@ -61,7 +62,7 @@ const months = [
       showToast(`✅ Payslip processed for ${months[month - 1].label} ${year}`, "success");
       fetchSalaryRegister();
     } catch (err) {
-      showToast("❌ Error processing payslip", "error");
+      showToast(getErrorMessage(err, "Error processing payslip"), "error");
     } finally {
       setProcessing(false);
     }
@@ -83,7 +84,7 @@ const months = [
           fetchAttSummary();
         }
       } else {
-        showToast("❌ Error generating data", "error");
+        showToast(getErrorMessage(err, "Error generating data"), "error");
       }
     } finally {
       setGenerating(false);

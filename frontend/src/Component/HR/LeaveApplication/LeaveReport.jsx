@@ -64,7 +64,7 @@ const LeaveReport = ({ onNewEntry }) => {
     { header: "Designation", field: "designation" },
     { header: "Department", field: "department" },
     { header: "Reason", field: "pofl", expandable: true },
-    { header: "Address", field: "address" },
+    { header: "Address", field: "address", expandable: true },
     { header: "Phone", field: "phno" },
     { header: "Status", field: "statusText" },
     //{ header: "To", field: "to_date" },

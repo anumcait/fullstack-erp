@@ -4,15 +4,15 @@ import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
 
 const formatMovDate = (dateStr) => {
-  if (!dateStr) return "--";
+  if (!dateStr) return "";
   const date = new Date(dateStr);
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
-  return `${day}-${month}-${year}`; 
+  return `${day}-${month}-${year}`;
 };
 const formatTime = (timeStr) => {
-  if (!timeStr) return "--";
+  if (!timeStr) return "";
   const date = new Date(`1970-01-01T${timeStr}`);
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -20,31 +20,31 @@ const formatTime = (timeStr) => {
 };
 const OnDutyPreview = ({ data = {}, onClose }) => {
   const {
-    movement_id = "--",
-    movement_date = "--",
-    empid = "--",
-    ename = "--",
-    unit = "--",
-    division = "--",
-    designation = "--",
-    section = "--",
-    shift = "--",
-    act_date="--",
-    perm_ftime = "--",
-    perm_ttime = "--",
-    no_of_hrs = "--",
-    reason_perm = "--"
+    movement_id = "",
+    movement_date = "",
+    empid = "",
+    ename = "",
+    unit = "",
+    division = "",
+    designation = "",
+    section = "",
+    shift = "",
+    act_date = "",
+    perm_ftime = "",
+    perm_ttime = "",
+    no_of_hrs = "",
+    reason_perm = ""
   } = data;
-let submissionStatus = "";
-if (act_date && movement_date) {
-  const movement = new Date(movement_date);
-  const actual = new Date(act_date);
-  if (actual > movement) {
-    submissionStatus = "BEFORE SUBMISSION";
-  } else {
-    submissionStatus = "AFTER SUBMISSION";
+  let submissionStatus = "";
+  if (act_date && movement_date) {
+    const movement = new Date(movement_date);
+    const actual = new Date(act_date);
+    if (actual > movement) {
+      submissionStatus = "BEFORE SUBMISSION";
+    } else {
+      submissionStatus = "AFTER SUBMISSION";
+    }
   }
-}
   return (
     <div className="onduty-print-overlay">
       <div className="onduty-print-container">
@@ -56,9 +56,9 @@ if (act_date && movement_date) {
             <br />
             <span className="onduty-slip-title">ON DUTY PERMISSION SLIP</span>
           </div>
-        {submissionStatus && (
-  <div className="onduty-before-box">{submissionStatus}</div>
-)}
+          {submissionStatus && (
+            <div className="onduty-before-box">{submissionStatus}</div>
+          )}
         </div>
 
         {/* Details Table */}
@@ -119,35 +119,32 @@ if (act_date && movement_date) {
             <tr>
               <td className="label">Movement Date</td>
               <td className="colon">:</td>
-              <td className="value">{act_date?.slice(0, 10).split('-').reverse().join('-')}</td>
+              <td className="value">{formatMovDate(act_date)}</td>
 
               <td className="label">From</td>
               <td className="colon">:</td>
               <td className="value">{formatTime(perm_ftime)}</td>
-
+            </tr>
+            <tr>
               <td className="label">To</td>
               <td className="colon">:</td>
               <td className="value">{formatTime(perm_ttime)}</td>
 
               <td className="label">Hours</td>
               <td className="colon">:</td>
-              <td className="value">{no_of_hrs}</td>
+              <td className="value">{no_of_hrs ? parseFloat(no_of_hrs).toString() : ""}</td>
             </tr>
+          </tbody>
+        </table>
+
+        {/* Reason (separate table for full-width wrapping) */}
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
             <tr>
-              <td className="label">Reason</td>
-              <td className="colon">:</td>
-              <td className="value" colSpan={9}>{reason_perm}</td>
+              <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Reason</td>
+              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
+              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{reason_perm}</td>
             </tr>
-            {/* <tr>
-  <td className="label">Movement Date</td>
-  <td className="colon">:</td>
-  <td className="value" colSpan={6} style={{ whiteSpace: "nowrap" }}>
-    {formatDate(movement_date)}&nbsp;&nbsp;
-    <strong>From:</strong>&nbsp;{perm_ftime}&nbsp;&nbsp;
-    <strong>To:</strong>&nbsp;{perm_ttime}&nbsp;&nbsp;
-    <strong>Hours:</strong>&nbsp;{no_of_hrs || "--"}
-  </td>
-</tr> */}
           </tbody>
         </table>
 

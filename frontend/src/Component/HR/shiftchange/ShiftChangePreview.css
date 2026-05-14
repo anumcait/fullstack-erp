@@ -7,7 +7,7 @@
   background-color: rgba(0, 0, 0, 0.3);
   z-index: 9999;
   justify-content: center;
-  display: block; 
+  display: block;
   text-align: center;
   font-size: 8px;
 }
@@ -16,12 +16,12 @@
   background: #fff;
   width: 90%;
   max-width: 750px;
-  padding:  20px;
-  font-family: 'Arial', sans-serif; 
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
   color: #000;
-  display: inline-block; 
-  margin-top: 20px; 
-  text-align: left; 
+  display: inline-block;
+  margin-top: 20px;
+  text-align: left;
   font-size: 11px !important;
 }
 
@@ -130,16 +130,21 @@
     size: A4 portrait;
     margin: 10mm;
   }
+
   body * {
     visibility: hidden;
   }
-  .onduty-print-container, .onduty-print-container * {
+
+  .onduty-print-container,
+  .onduty-print-container * {
     visibility: visible;
   }
+
   .onduty-print-overlay {
     position: static;
     background: none;
   }
+
   .onduty-actions.no-print {
     display: none;
   }

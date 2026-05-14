@@ -15,6 +15,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 const HRAttendance = () => {
   const { showToast } = useToast();
@@ -193,7 +194,7 @@ const HRAttendance = () => {
       setEditDialog(false);
       fetchData();
     } catch (err) {
-      showToast("Error updating attendance", "error");
+      showToast(getErrorMessage(err, "Error updating attendance"), "error");
     }
   };
 
@@ -221,7 +222,7 @@ const HRAttendance = () => {
       setBulkDialog(false);
       fetchData();
     } catch (err) {
-      showToast("Error saving attendance", "error");
+      showToast(getErrorMessage(err, "Error saving attendance"), "error");
     }
   };
 
@@ -232,7 +233,7 @@ const HRAttendance = () => {
       showToast("Deleted", "success");
       fetchData();
     } catch (err) {
-      showToast("Error deleting", "error");
+      showToast(getErrorMessage(err, "Error deleting record"), "error");
     }
   };
 

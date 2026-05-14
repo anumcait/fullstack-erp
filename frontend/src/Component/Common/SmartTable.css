@@ -190,8 +190,11 @@
 }
 
 .reason-container.expanded {
-  white-space: normal;
+  white-space: normal !important;
   overflow: visible;
+  max-width: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .expand-icon-cell,

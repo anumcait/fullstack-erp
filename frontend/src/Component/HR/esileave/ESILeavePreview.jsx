@@ -1,5 +1,6 @@
 import React from "react";
 import "./ESILeavePreview.css";
+import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
 

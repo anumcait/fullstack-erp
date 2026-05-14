@@ -17,7 +17,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useToast } from "../../../context/ToastContext";
 import axios from "axios";
 
-const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError, onSave, isSaveDisabled, empId, onDirty }) => {
+const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError, onSave, isSaveDisabled, empId, onDirty, minDateLimit, maxDateLimit }) => {
   const { showToast } = useToast();
   const [rows, setRows] = useState([
     { dayType: "FULL DAY", fromDate: "", toDate: "", noOfDays: "", remarks: "" },
@@ -76,19 +76,18 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // 1. Backdated Validation (30 days - 1 Month)
-      const diffDays = Math.ceil((today - selectedDate) / (1000 * 60 * 60 * 24));
-      if (diffDays > 30) {
-        showToast("Cannot apply leave older than 30 days (1 month).", "error");
+      // 1. Dynamic Boundary Validation
+      if (minDateLimit && value < minDateLimit) {
+        const fmt = (s) => s ? s.split('-').reverse().join('-') : "";
+        showToast(`Cannot apply leave before ${fmt(minDateLimit)} (Payroll processed).`, "error");
         updated[index][field] = "";
         setRows(updated);
         return;
       }
 
-      // 2. Future Validation (60 days - 2 Months)
-      const futureDiff = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24));
-      if (futureDiff > 60) {
-        showToast("Cannot apply leave more than 60 days (2 months) in advance.", "error");
+      if (maxDateLimit && value > maxDateLimit) {
+        const fmt = (s) => s ? s.split('-').reverse().join('-') : "";
+        showToast(`Cannot apply leave after ${fmt(maxDateLimit)}.`, "error");
         updated[index][field] = "";
         setRows(updated);
         return;
@@ -220,6 +219,10 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                 InputLabelProps={{ shrink: true }}
                 value={row.fromDate}
                 onChange={(e) => updateRow(i, "fromDate", e.target.value)}
+                inputProps={{
+                  min: minDateLimit,
+                  max: maxDateLimit
+                }}
               />
             </Grid>
 
@@ -232,6 +235,10 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                 InputLabelProps={{ shrink: true }}
                 value={row.toDate}
                 onChange={(e) => updateRow(i, "toDate", e.target.value)}
+                inputProps={{
+                  min: minDateLimit,
+                  max: maxDateLimit
+                }}
               />
             </Grid>
 
@@ -253,6 +260,7 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                 size="small"
                 value={row.remarks}
                 onChange={(e) => updateRow(i, "remarks", e.target.value)}
+                inputProps={{ maxLength: 150 }}
               />
             </Grid>
 

@@ -13,6 +13,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useToast } from "../../../context/ToastContext";
 import axios from 'axios';
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 export default function AdvanceApprovalPage() {
   const { showToast } = useToast();
@@ -116,12 +117,15 @@ export default function AdvanceApprovalPage() {
   function formatDateTime24Dot(dateStr) {
     if (!dateStr) return "-";
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = String(d.getFullYear()).slice(-2);
-    const hours = String(d.getHours()).padStart(2, "0");
+    const year = d.getFullYear();
+    let hours = d.getHours();
     const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${day}-${month}-${year} ${hours}.${minutes}`;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
   }
 
   function formatDateDMY(dateStr) {
@@ -162,8 +166,7 @@ export default function AdvanceApprovalPage() {
       closeDrawer();
     } catch (err) {
       console.error("Approval failed:", err);
-      const errorMessage = err.response?.data?.message || err.message;
-      showToast(errorMessage, "error");
+      showToast(getErrorMessage(err, "Approval failed"), "error");
     }
   };
 
@@ -185,8 +188,7 @@ export default function AdvanceApprovalPage() {
       closeDrawer();
     } catch (err) {
       console.error("Rejection failed:", err);
-      const errorMessage = err.response?.data?.message || err.message;
-      showToast(errorMessage, "error");
+      showToast(getErrorMessage(err, "Rejection failed"), "error");
     }
   };
 
@@ -206,7 +208,7 @@ export default function AdvanceApprovalPage() {
       }
     } catch (err) {
       console.error("Cancel failed:", err);
-      showToast("Error cancelling Advance", "error");
+      showToast(getErrorMessage(err, "Error cancelling Advance"), "error");
     }
   };
 
@@ -224,7 +226,7 @@ export default function AdvanceApprovalPage() {
       }
     } catch (err) {
       console.error("Reopen failed:", err);
-      showToast("Error reopening application", "error");
+      showToast(getErrorMessage(err, "Error reopening application"), "error");
     }
   };
 
@@ -508,3 +510,4 @@ export default function AdvanceApprovalPage() {
     </Box>
   );
 }
+

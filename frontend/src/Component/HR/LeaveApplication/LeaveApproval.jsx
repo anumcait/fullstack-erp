@@ -15,6 +15,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useToast } from "../../../context/ToastContext";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 const toYMD = (d) => {
   if (!d) return "";
@@ -228,13 +229,15 @@ const clearFilters = () => {
 function formatDateTime24Dot(dateStr) {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "-";
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = String(d.getFullYear()).slice(-2);
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${day}-${month}-${year} ${hours}.${minutes}`;
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
 }
 
 function formatDateDMYHM(dateStr) {
@@ -330,8 +333,7 @@ function sortDays(days) {
       }
     } catch (err) {
       console.error("Approval failed:", err);
-      const errorMessage = err.response?.data?.message || err.message;
-      showToast(errorMessage, "error");
+      showToast(getErrorMessage(err, "Approval failed"), "error");
     }
   };
 
@@ -351,7 +353,7 @@ function sortDays(days) {
       }
     } catch (err) {
       console.error("Rejection failed:", err);
-      showToast("Error rejecting leave", "error");
+      showToast(getErrorMessage(err, "Rejection failed"), "error");
     }
   };
   const [leaveType, setLeaveType] = useState('');
@@ -395,7 +397,7 @@ function sortDays(days) {
       }
     } catch (err) {
       console.error("Cancel failed:", err);
-      showToast("Error during cancellation", "error");
+      showToast(getErrorMessage(err, "Error during cancellation"), "error");
     }
   };
 
@@ -423,7 +425,7 @@ function sortDays(days) {
       }
     } catch (err) {
       console.error("Reopen failed:", err);
-      showToast("Error reopening leave", "error");
+      showToast(getErrorMessage(err, "Error reopening leave"), "error");
     }
   };
 
@@ -917,3 +919,4 @@ function CompactTotal({ label, value, color = "default" }) {
     </Card>
   );
 }
+

@@ -1,42 +1,44 @@
 import React from "react";
-import "./WoffChangePreview.css";
+import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate, formatDateOnly } from "../../../utils/dateUtils";
 
 const WoffChangePreview = ({ data = {}, onClose }) => {
   const {
-    woff_id = "--",
-    woff_date = "--",
-    empid = "--",
-    ename = "--",
-    unit = "--",
-    division = "--",
-    designation = "--",
-    department = "--",
-    section = "--",
-    current_woff_day = "--",
-    requested_woff_day = "--",
-    woff_from_date = "--",
-    woff_to_date = "--",
-    shift_cd = "--",
-    reason = "--",
-    remarks = "--"
+    woff_id = "",
+    woff_date = "",
+    empid = "",
+    ename = "",
+    unit = "",
+    division = "",
+    designation = "",
+    department = "",
+    section = "",
+    current_woff_day = "",
+    requested_woff_day = "",
+    woff_from_date = "",
+    woff_to_date = "",
+    shift_cd = "",
+    reason = "",
+    remarks = "",
+    status = "Pending"
   } = data;
 
   return (
-    <div className="onduty-print-overlay" onClick={onClose}>
-      <div className="onduty-print-container" onClick={(e) => e.stopPropagation()}>
+    <div className="onduty-print-overlay">
+      <div className="onduty-print-container">
         {/* Header */}
         <div className="onduty-print-header">
           <img src={logo} alt="Logo" className="onduty-logo" />
           <div className="onduty-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
-            <span className="onduty-slip-title">WEEKLY OFF CHANGE APPLICATION</span>
+            <span className="onduty-slip-title">WEEKLY OFF CHANGE SLIP</span>
           </div>
+          <div className={`onduty-before-box status-${status.toLowerCase()}`}>{status}</div>
         </div>
 
-        {/* Employee Details Table */}
+        {/* Details Table */}
         <table className="onduty-field-table">
           <tbody>
             <tr>
@@ -108,22 +110,28 @@ const WoffChangePreview = ({ data = {}, onClose }) => {
               <td className="colon"></td>
               <td className="value"></td>
             </tr>
+          </tbody>
+        </table>
+
+        {/* Reason & Remarks (separate tables for full-width wrapping) */}
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
             <tr>
-              <td className="label">Reason</td>
-              <td className="colon">:</td>
-              <td className="value" colSpan={4}>{reason}</td>
+              <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Reason</td>
+              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
+              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{reason}</td>
             </tr>
             <tr>
-              <td className="label">Remarks</td>
-              <td className="colon">:</td>
-              <td className="value" colSpan={4}>{remarks}</td>
+              <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Remarks</td>
+              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
+              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{remarks}</td>
             </tr>
           </tbody>
         </table>
 
         <hr />
 
-        {/* Signature Grid */}
+        {/* Signatures */}
         <table className="onduty-signature-grid">
           <tbody>
             <tr>

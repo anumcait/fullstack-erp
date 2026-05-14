@@ -5,6 +5,7 @@ import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import { formatDate } from "../../../utils/dateUtils";
+import { getErrorMessage } from "../../../utils/errorUtils";
 import {
   TextField, Typography, Button, Grid, Box, Paper,
   Stack, IconButton, Divider, InputAdornment, FormControl, InputLabel, Select, MenuItem
@@ -21,9 +22,19 @@ const RequiredLabel = ({ label }) => (
   </span>
 );
 
-const TestApplication = ({ onClose }) => {
+const LeaveApplication = ({ onClose }) => {
   const { showToast } = useToast();
   const { setIsDirty } = useNavigationGuard();
+
+  const purposeRef = useRef(null);
+  const phoneRef = useRef(null);
+  const addressRef = useRef(null);
+
+  const fieldRefs = {
+    purpose: purposeRef,
+    phone: phoneRef,
+    address: addressRef,
+  };
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -74,9 +85,7 @@ const TestApplication = ({ onClose }) => {
   const [totalDays, setTotalDays] = useState(0);
   const [isInvalid, setIsInvalid] = useState(false);
   const [gridKey, setGridKey] = useState(Date.now());
-  const purposeRef = useRef(null);
-  const phoneRef = useRef(null);
-  const addressRef = useRef(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleEnter = (e, nextRef) => {
     if (e.key === "Enter") {
@@ -91,7 +100,7 @@ const TestApplication = ({ onClose }) => {
       setEmployeeList(res.data);
       setShowEmpPopup(true);
     } catch (err) {
-      showToast("Failed to load employee list", "error");
+      showToast(getErrorMessage(err, "Failed to load employee list"), "error");
     }
   };
 
@@ -100,7 +109,7 @@ const TestApplication = ({ onClose }) => {
       ...prev,
       empId: emp.empid,
       ename: emp.ename,
-      department: emp.department,
+      department: emp.deptname || emp.department || "",
       designation: emp.designation,
       clUsed: 0,
       clBalance: 0,
@@ -119,7 +128,7 @@ const TestApplication = ({ onClose }) => {
         elBalance: res.data.els_balance || 0,
       }));
     } catch (error) {
-      showToast("Failed to fetch leave balance", "error");
+      showToast(getErrorMessage(error, "Failed to fetch leave balance"), "error");
     }
 
     setTimeout(() => {
@@ -128,8 +137,17 @@ const TestApplication = ({ onClose }) => {
   };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setIsDirty(true);
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    if (name === "phone") {
+      // Only allow numbers and max 10 digits
+      const cleaned = value.replace(/\D/g, "").slice(0, 10);
+      setFormData({ ...formData, [name]: cleaned });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+    setFieldErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const resetForm = async () => {
@@ -154,25 +172,28 @@ const TestApplication = ({ onClose }) => {
       setLeaveDetails([{ dayType: "FULL DAY", fromDate: "", toDate: "", noOfDays: "", remarks: "" }]);
       setGridKey(Date.now());
     } catch (error) {
-      showToast("Failed to fetch next leave number", "error");
+      showToast(getErrorMessage(error, "Failed to fetch next leave number"), "error");
     }
   };
 
   const handleSave = async () => {
-    if (!formData.empId) {
-      showToast("Employee selection is mandatory", "error");
-      return;
+    let hasError = false;
+    const newErrors = {};
+    let firstRef = null;
+
+    if (!formData.empId) { showToast("Employee selection is mandatory", "error"); hasError = true; }
+    if (!formData.purpose) { newErrors.purpose = "Required"; hasError = true; if (!firstRef) firstRef = purposeRef; }
+    if (!formData.phone) { 
+      newErrors.phone = "Required"; hasError = true; if (!firstRef) firstRef = phoneRef; 
+    } else if (formData.phone.length !== 10) {
+      newErrors.phone = "Must be 10 digits"; hasError = true; if (!firstRef) firstRef = phoneRef;
     }
-    if (!formData.purpose) {
-      showToast("Purpose of leave is mandatory", "error");
-      return;
-    }
-    if (!formData.phone) {
-      showToast("Phone number is mandatory", "error");
-      return;
-    }
-    if (!formData.address) {
-      showToast("Address/Reason is mandatory", "error");
+    if (!formData.address) { newErrors.address = "Required"; hasError = true; if (!firstRef) firstRef = addressRef; }
+
+    if (hasError) {
+      setFieldErrors(newErrors);
+      showToast("Please fill all required fields.", "error");
+      if (firstRef && firstRef.current) firstRef.current.focus();
       return;
     }
 
@@ -216,8 +237,7 @@ const TestApplication = ({ onClose }) => {
         resetForm();
       }
     } catch (error) {
-      const errMsg = error.response?.data?.message || error.message || "Error saving leave!";
-      showToast(errMsg, "error");
+      showToast(getErrorMessage(error, "Error saving leave application"), "error");
     }
   };
 
@@ -228,6 +248,37 @@ const TestApplication = ({ onClose }) => {
     }, 0);
     setTotalDays(total);
   }, [leaveDetails]);
+
+  const [minDateLimit, setMinDateLimit] = useState(() => {
+    const currentYear = new Date().getFullYear();
+    return `${currentYear - 1}-01-01`;
+  });
+
+  useEffect(() => {
+    const fetchLatestProcessed = async () => {
+      try {
+        const res = await axios.get(`/api/payroll/latest-processed`);
+        if (res.data && res.data.year && res.data.month) {
+          let nextMonth = res.data.month + 1;
+          let nextYear = res.data.year;
+          if (nextMonth > 12) {
+            nextMonth = 1;
+            nextYear += 1;
+          }
+          const minDateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+          setMinDateLimit(minDateStr);
+        }
+      } catch (err) {
+      }
+    };
+    fetchLatestProcessed();
+  }, []);
+
+  const maxDateLimit = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 90); // Allow up to 90 days for leave application
+    return d.toISOString().split('T')[0];
+  })();
 
   useEffect(() => {
     resetForm();
@@ -301,6 +352,7 @@ const TestApplication = ({ onClose }) => {
                   label={<RequiredLabel label="Purpose" />}
                   inputRef={purposeRef}
                   onKeyDown={(e) => handleEnter(e, phoneRef)}
+                  error={!!fieldErrors.purpose}
                 >
                   <MenuItem value="PERSONAL">PERSONAL</MenuItem>
                   <MenuItem value="SICK">SICK</MenuItem>
@@ -316,6 +368,13 @@ const TestApplication = ({ onClose }) => {
                 sx={{ flex: 1 }}
                 inputRef={phoneRef}
                 onKeyDown={(e) => handleEnter(e, addressRef)}
+                error={!!fieldErrors.phone}
+                helperText={fieldErrors.phone}
+                inputProps={{ 
+                  maxLength: 10,
+                  inputMode: 'numeric',
+                  pattern: '[0-9]*'
+                }}
               />
             </Box>
             {/* Row 3: Address (full width) */}
@@ -327,8 +386,15 @@ const TestApplication = ({ onClose }) => {
               size="small"
               fullWidth
               placeholder="Address or reason..."
-              inputProps={{ maxLength: 200 }}
+              inputProps={{ maxLength: 100 }}
               inputRef={addressRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  // End of main fields
+                }
+              }}
+              error={!!fieldErrors.address}
+              helperText={fieldErrors.address || `${formData.address?.length || 0}/100 characters`}
             />
           </Box>
 
@@ -391,6 +457,8 @@ const TestApplication = ({ onClose }) => {
           isSaveDisabled={isInvalid}
           empId={formData.empId}
           onDirty={() => setIsDirty(true)}
+          minDateLimit={minDateLimit}
+          maxDateLimit={maxDateLimit}
         />
       </div>
 
@@ -404,4 +472,4 @@ const TestApplication = ({ onClose }) => {
   );
 };
 
-export default TestApplication;
+export default LeaveApplication;

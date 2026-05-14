@@ -1,5 +1,5 @@
-const { TourApplication, EmployeeMaster } = require('../../models');
-const { Op } = require('sequelize');
+const { TourApplication, EmployeeMaster, Payslip } = require('../../models');
+const { Op, Sequelize } = require('sequelize');
 
 exports.getAllTours = async (req, res) => {
   try {
@@ -53,6 +53,47 @@ exports.createTour = async (req, res) => {
   try {
     const { empid, ename, unit, division, designation, tour_from_date, tour_to_date, purpose, destination, estimated_amount } = req.body;
     
+    // 🛑 Check if payroll is already generated (Find Max Month/Year)
+    if (tour_from_date && empid) {
+      const [y, m, d] = tour_from_date.split('-').map(Number);
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const monthMap = {};
+      monthNames.forEach((name, idx) => { monthMap[name] = idx + 1; });
+
+      const monthOrder = `CASE 
+        WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
+        WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
+        WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
+        WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
+        WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
+        WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
+        WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
+        WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
+        WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
+        WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
+        WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
+        WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
+        ELSE 0 END`;
+
+      const latestPayslip = await Payslip.findOne({
+        attributes: ['C_MONTH', 'C_YEAR'],
+        order: [['C_YEAR', 'DESC'], [Sequelize.literal(monthOrder), 'DESC']],
+        raw: true
+      });
+
+      if (latestPayslip) {
+        const finalMonthStr = (latestPayslip.C_MONTH || "").trim().toUpperCase();
+        const latestMonthNum = monthMap[finalMonthStr] || 0;
+        const latestYearNum = Number(latestPayslip.C_YEAR);
+        const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
+
+        if (isClosed) {
+          return res.status(400).json({ 
+            message: `Cannot apply for Tour. Payroll already processed up to ${finalMonthStr} ${latestYearNum}.` 
+          });
+        }
+      }
+    }
     const maxId = await TourApplication.max('tour_id') || 0;
     const newTourId = maxId + 1;
 

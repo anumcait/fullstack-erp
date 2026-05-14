@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import { useToast } from "../../context/ToastContext";
+import { formatDateTimeAMPM } from "../../utils/dateUtils";
 import PrintIcon from "@mui/icons-material/Print";
 import DownloadIcon from "@mui/icons-material/Download";
 import CloseIcon from "@mui/icons-material/Close";
@@ -242,7 +243,7 @@ const Reports = () => {
       case "ot":
         return ["Date", "Emp ID", "Name", "Actual OT", "Manager OT", "HR OT", "Status"];
       case "shift-change":
-        return ["App No", "Date", "Emp ID", "Name", "Current Shift", "Requested Shift", "Reason", "Status"];
+        return ["App No", "Entry Date", "Emp ID", "Name", "Actual Shift", "Change Shift", "Reason", "Status"];
       case "woff-change":
         return ["App No", "Date", "Emp ID", "Name", "Current Woff", "Requested Woff", "Reason", "Status"];
       case "tour":
@@ -282,6 +283,8 @@ const Reports = () => {
         return [row.att_date, row.empid, row.ename, row.in_time, row.out_time, row.status, row.late_hrs, row.ot_hrs];
       case "ot":
         return [row.att_date, row.empid, row.ename, row.ot_hrs, row.app_ot, row.hr_app_ot, row.app_status];
+      case "shift-change":
+        return [row.schange_no, formatDateTimeAMPM(row.schange_date), row.empid, row.ename, row.act_shift, row.change_shift, row.reason, row.status];
       case "late-coming":
         return [row.att_date, row.empid, row.ename, row.in_time, row.shift_start, row.late_hrs, row.late_ded];
       case "advance":

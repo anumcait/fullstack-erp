@@ -10,6 +10,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { getErrorMessage } from "../../../utils/errorUtils";
 import { formatDateOnly } from "../../../utils/dateUtils";
 
 const HolidayMaster = () => {
@@ -39,6 +40,7 @@ const HolidayMaster = () => {
       setHolidays(res.data);
     } catch (err) {
       console.error("Error fetching holidays:", err);
+      showToast(getErrorMessage(err, "Error fetching holidays"), "error");
     } finally {
       setLoading(false);
     }
@@ -84,7 +86,7 @@ const HolidayMaster = () => {
       setDialog(false);
       fetchHolidays();
     } catch (err) {
-      showToast("❌ Error saving holiday", "error");
+      showToast(getErrorMessage(err, "Error saving holiday"), "error");
     }
   };
 
@@ -95,7 +97,7 @@ const HolidayMaster = () => {
       showToast("✅ Holiday deleted", "success");
       fetchHolidays();
     } catch (err) {
-      showToast("❌ Error deleting holiday", "error");
+      showToast(getErrorMessage(err, "Error deleting holiday"), "error");
     }
   };
 

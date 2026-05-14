@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ShiftChangePreview from "./ShiftChangePreview";
 import SmartTable from "../../Common/SmartTable";
+import { formatDateOnly, formatDateTimeAMPM } from "../../../utils/dateUtils";
 
 const ShiftChangeTable = ({ onNewEntry }) => {
   const [data, setData] = useState([]);
@@ -16,6 +17,11 @@ const ShiftChangeTable = ({ onNewEntry }) => {
           sno: index + 1,
           _expanded: false,
           ...row,
+          entry_date: formatDateTimeAMPM(row.schange_date),
+          from_date: formatDateOnly(row.schange_from),
+          to_date: formatDateOnly(row.schange_to),
+          act_shift_display: row.act_shift,
+          cha_shift_display: row.change_shift,
         }));
         setData(formatted);
       } catch (err) {
@@ -27,7 +33,7 @@ const ShiftChangeTable = ({ onNewEntry }) => {
 
   const handleExpand = (targetRow) => {
     const updated = data.map((row) =>
-      row.movement_id === targetRow.movement_id
+      row.schange_no === targetRow.schange_no
         ? { ...row, _expanded: !row._expanded }
         : row
     );
@@ -36,15 +42,15 @@ const ShiftChangeTable = ({ onNewEntry }) => {
 
   const columns = [
     { header: "S.No.", field: "sno" },
-    { header: "Schange No", field: "schange_no" },
-    { header: "Schange Date", field: "schange_date" },
-    
+    { header: "App No", field: "schange_no" },
+    { header: "Entry Date", field: "entry_date" },
     { header: "Emp ID", field: "empid" },
     { header: "Name", field: "empname" },
-    { header: "Unit", field: "unit" },
-    // { header: "Division", field: "division" },
-    // { header: "Designation", field: "designation" },
-    // { header: "Reason", field: "reason_perm", expandable: true },
+    { header: "From Date", field: "from_date" },
+    { header: "To Date", field: "to_date" },
+    { header: "Actual Shift", field: "act_shift_display" },
+    { header: "Change Shift", field: "cha_shift_display" },
+    { header: "Status", field: "app_status" },
   ];
 
   return (

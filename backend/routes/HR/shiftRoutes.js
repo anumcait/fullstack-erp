@@ -23,6 +23,7 @@ router.post('/schedule/save', shiftController.saveSchedule);
 router.post('/schedule/save-bulk', shiftController.saveBulkSchedules);
 router.delete('/schedule/:id', shiftController.deleteSchedule);
 router.post('/generate-monthly', shiftController.generateMonthlyData);
+router.get('/schedule/by-date', shiftController.getShiftByEmpAndDate);
 
 // Report Routes
 router.get('/change-report', shiftController.getShiftChangeReport);

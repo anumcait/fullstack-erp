@@ -10,6 +10,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
 import { useToast } from '../../../context/ToastContext';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -33,7 +34,7 @@ export default function ProfileRequestApproval() {
       setRequests(res.data);
     } catch (err) {
       console.error('Error fetching requests:', err);
-      showToast('Failed to load requests', 'error');
+      showToast(getErrorMessage(err, 'Failed to load requests'), 'error');
     } finally {
       setLoading(false);
     }
@@ -47,7 +48,7 @@ export default function ProfileRequestApproval() {
       fetchRequests();
     } catch (err) {
       console.error('Error approving request:', err);
-      showToast('Failed to approve request', 'error');
+      showToast(getErrorMessage(err, 'Failed to approve request'), 'error');
     } finally {
       setProcessing(false);
     }
@@ -71,7 +72,7 @@ export default function ProfileRequestApproval() {
       fetchRequests();
     } catch (err) {
       console.error('Error rejecting request:', err);
-      showToast('Failed to reject request', 'error');
+      showToast(getErrorMessage(err, 'Failed to reject request'), 'error');
     } finally {
       setProcessing(false);
     }

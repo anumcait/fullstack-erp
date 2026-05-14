@@ -56,9 +56,3 @@
 .shift-dropdown-menu li:hover {
   background-color: #f0f0f0;
 }
-
-.shift-dashboard-content {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-}

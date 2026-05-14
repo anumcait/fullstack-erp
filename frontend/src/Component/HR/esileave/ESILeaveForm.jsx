@@ -9,6 +9,8 @@ import { useToast } from "../../../context/ToastContext";
 import { useNavigationGuard } from "../../../context/NavigationGuardContext";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 import ESILeavePreview from "./ESILeavePreview";
+import { formatDateTimeAMPM } from "../../../utils/dateUtils";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 const RequiredLabel = ({ children }) => (
   <span>
@@ -22,8 +24,11 @@ const requiredStyle = {
 };
 
 const ESILeaveForm = ({ onClose }) => {
+  const dateInputRef = React.useRef(null);
+  const toDateRef = React.useRef(null);
   const { showToast } = useToast();
   const { setIsDirty } = useNavigationGuard();
+  const [fieldErrors, setFieldErrors] = useState({ leave_from_date: null });
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -59,6 +64,7 @@ const ESILeaveForm = ({ onClose }) => {
   const handleChange = (e) => {
     setIsDirty(true);
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFieldErrors(prev => ({ ...prev, [e.target.name]: null }));
   };
 
   useEffect(() => { fetchNextESILeaveId(); }, []);
@@ -69,6 +75,7 @@ const ESILeaveForm = ({ onClose }) => {
       setFormData(prev => ({ ...prev, esi_leave_id: response.data.nextESILeaveId }));
     } catch (error) {
       console.error("Failed to fetch next ESI Leave ID:", error);
+      showToast(getErrorMessage(error, "Failed to fetch next ESI Leave ID"), "error");
     }
   };
 
@@ -78,7 +85,7 @@ const ESILeaveForm = ({ onClose }) => {
       setEmployeeList(response.data);
       setShowEmpPopup(true);
     } catch (error) {
-      showToast("❌ Failed to fetch employees", "error");
+      showToast(getErrorMessage(error, "Failed to fetch employees"), "error");
     }
   };
 
@@ -104,10 +111,64 @@ const ESILeaveForm = ({ onClose }) => {
       setFormData(prev => ({ ...prev, no_of_days: diffDays }));
     }
   }, [formData.leave_from_date, formData.leave_to_date]);
+  const checkPayslipStatus = async (date, empid) => {
+    if (!date) return;
+    try {
+      const dObj = new Date(date);
+      const y = dObj.getFullYear();
+      const m = dObj.getMonth() + 1;
+      if (isNaN(y) || y < 1900) return;
+
+      if (y > 2099 || y < 2000) {
+        setFieldErrors(prev => ({ ...prev, leave_from_date: "Invalid Year (Range: 2000-2099)" }));
+        if (dateInputRef.current) dateInputRef.current.focus();
+        return;
+      }
+
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/payroll/check-status`, {
+        params: { empid, year: y, month: m }
+      });
+
+      if (res.data.generated) {
+        const { C_MONTH, C_YEAR } = res.data.details || {};
+        const msg = `Payroll already processed up to ${C_MONTH} ${C_YEAR}. Backdated entries not allowed.`;
+        setFieldErrors(prev => ({ ...prev, leave_from_date: msg }));
+        if (dateInputRef.current) dateInputRef.current.focus();
+      } else {
+        setFieldErrors(prev => ({ ...prev, leave_from_date: null }));
+        // Successful validation: move to next field
+        if (toDateRef.current) toDateRef.current.focus();
+      }
+    } catch (err) {
+      console.error("Error checking payslip status:", err);
+      setFieldErrors(prev => ({ ...prev, leave_from_date: "Server error checking status." }));
+    }
+  };
+
+  useEffect(() => {
+    if (formData.leave_from_date) {
+      checkPayslipStatus(formData.leave_from_date, formData.empid);
+    }
+  }, [formData.leave_from_date, formData.empid]);
 
   const saveESILeave = async () => {
-    if (!formData.empid || !formData.leave_from_date || !formData.leave_to_date) {
+    let hasError = false;
+    const newErrors = { ...fieldErrors };
+    let firstRef = null;
+
+    if (!formData.empid) { newErrors.empid = "Please select an employee"; hasError = true; }
+    if (!formData.leave_from_date) { newErrors.leave_from_date = "Please select from date"; hasError = true; if (!firstRef) firstRef = dateInputRef; }
+    if (!formData.leave_to_date) { newErrors.leave_to_date = "Please select to date"; hasError = true; if (!firstRef) firstRef = toDateRef; }
+    if (!formData.reason) { newErrors.reason = "Please specify a reason"; hasError = true; }
+
+    if (hasError) {
+      setFieldErrors(newErrors);
       showToast("❌ Please fill all required fields.", "error");
+      if (firstRef && firstRef.current) firstRef.current.focus();
+      return;
+    }
+    if (fieldErrors.leave_from_date) {
+      if (dateInputRef.current) dateInputRef.current.focus();
       return;
     }
     try {
@@ -133,13 +194,21 @@ const ESILeaveForm = ({ onClose }) => {
       fetchNextESILeaveId();
     } catch (err) {
       console.error("Save error:", err);
-      showToast("❌ Error saving ESI Leave application", "error");
+      showToast(getErrorMessage(err, "Error saving ESI Leave application"), "error");
+    }
+  };
+
+  const handleGlobalFocus = (e) => {
+    if (fieldErrors.leave_from_date && dateInputRef.current && e.target !== dateInputRef.current) {
+      e.stopPropagation();
+      dateInputRef.current.focus();
     }
   };
 
   return (
-    <Box>
-      <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
+    <Box onFocusCapture={handleGlobalFocus}>
+      <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow"
+        style={fieldErrors.leave_from_date ? { pointerEvents: 'none' } : {}}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>ESI Leave Request</Typography>
           <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
@@ -152,7 +221,7 @@ const ESILeaveForm = ({ onClose }) => {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="body2" color="text.secondary">Entry Date:</Typography>
-            <Typography fontWeight={600}>{formData.esi_leave_date.replace("T", " ")}</Typography>
+            <Typography fontWeight={600}>{formatDateTimeAMPM(formData.esi_leave_date)}</Typography>
           </Box>
         </Box>
 
@@ -160,10 +229,13 @@ const ESILeaveForm = ({ onClose }) => {
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
           <TextField
-            label="Emp ID *"
+            label={<RequiredLabel>Emp ID</RequiredLabel>}
+            name="empid"
+            value={formData.empid}
+            onClick={openEmpPopup}
             size="small"
-            value={formData.empid || ""}
-            sx={{ width: '150px', bgcolor: 'white' }}
+            placeholder="Select Employee"
+            sx={{ ...requiredStyle, width: '180px' }}
             InputProps={{
               readOnly: true,
               endAdornment: (
@@ -174,24 +246,28 @@ const ESILeaveForm = ({ onClose }) => {
                 </InputAdornment>
               ),
             }}
-            onClick={openEmpPopup}
+            error={!!fieldErrors.empid}
+            helperText={fieldErrors.empid}
           />
-          <Typography fontWeight={600} sx={{ flex: 1 }}>
-            Name: {formData.ename || ""} • Unit: {formData.unit || "--"} • Div: {formData.division || "--"} • Desig: {formData.designation || "--"}
-          </Typography>
-          <TextField
-            label="ESI No"
-            name="esi_no"
-            size="small"
-            sx={{ width: '180px' }}
-            value={formData.esi_no}
-            onChange={handleChange}
-          />
+          <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0', flex: 1 }}>
+            <Typography fontWeight={600} variant="subtitle2">
+              {formData.ename || "Select Employee"}
+              {formData.ename && ` • ${formData.unit || "--"} • ${formData.division || "--"} • ${formData.designation || "--"}`}
+            </Typography>
+          </Box>
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <TextField
+            label="ESI No"
+            name="esi_no"
+            size="small"
+            sx={{ flex: '1 1 180px' }}
+            value={formData.esi_no}
+            onChange={handleChange}
+          />
           <TextField
             label="ESI Dispencery"
             name="esi_dispencery"
@@ -208,49 +284,78 @@ const ESILeaveForm = ({ onClose }) => {
             value={formData.hospital_name}
             onChange={handleChange}
           />
-          <TextField
-            label="From Date"
-            name="leave_from_date"
-            type="date"
-            size="small"
-            sx={{ flex: '1 1 150px' }}
-            value={formData.leave_from_date}
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="To Date"
-            name="leave_to_date"
-            type="date"
-            size="small"
-            sx={{ flex: '1 1 150px' }}
-            value={formData.leave_to_date}
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-          />
         </Box>
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <Box sx={{ flex: '1 1 180px' }} style={{ pointerEvents: 'auto' }}>
+            <TextField
+              label={<RequiredLabel>From Date</RequiredLabel>}
+              name="leave_from_date"
+              type="date"
+              inputRef={dateInputRef}
+              size="small"
+              fullWidth
+              sx={requiredStyle}
+              value={formData.leave_from_date}
+              onChange={handleChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !fieldErrors.leave_from_date) {
+                  e.preventDefault();
+                  if (toDateRef.current) toDateRef.current.focus();
+                } else if ((e.key === 'Tab' || e.key === 'Enter') && fieldErrors.leave_from_date) {
+                  e.preventDefault();
+                  if (dateInputRef.current) dateInputRef.current.focus();
+                }
+              }}
+              onBlur={() => checkPayslipStatus(formData.leave_from_date, formData.empid)}
+              InputLabelProps={{ shrink: true }}
+              error={!!fieldErrors.leave_from_date}
+              inputProps={{
+                max: "2099-12-31",
+                min: "2000-01-01"
+              }}
+            />
+            {fieldErrors.leave_from_date && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block', fontWeight: 500 }}>
+                {fieldErrors.leave_from_date}
+              </Typography>
+            )}
+          </Box>
+          <TextField
+            label={<RequiredLabel>To Date</RequiredLabel>}
+            name="leave_to_date"
+            type="date"
+            inputRef={toDateRef}
+            size="small"
+            sx={{ ...requiredStyle, flex: '1 1 180px' }}
+            value={formData.leave_to_date}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            error={!!fieldErrors.leave_to_date}
+            helperText={fieldErrors.leave_to_date}
+          />
           <TextField
             label="No of Days"
             name="no_of_days"
             type="number"
             size="small"
-            sx={{ width: '100px' }}
+            sx={{ flex: '1 1 180px' }}
             value={formData.no_of_days}
             disabled
           />
+        </Box>
+
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
           <TextField
-            label="Reason"
+            label={<RequiredLabel>Reason</RequiredLabel>}
             name="reason"
             size="small"
             sx={{ flex: '1 1 400px', ...requiredStyle }}
-            multiline
-            rows={1}
             value={formData.reason}
             onChange={handleChange}
             inputProps={{ maxLength: 200 }}
-            helperText={`${formData.reason?.length || 0}/200 characters`}
+            helperText={fieldErrors.reason || `${formData.reason?.length || 0}/200 characters`}
+            error={!!fieldErrors.reason}
           />
         </Box>
 

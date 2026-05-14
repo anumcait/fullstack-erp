@@ -13,6 +13,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 const OTApproval = () => {
   const { showToast } = useToast();
@@ -118,7 +119,7 @@ const OTApproval = () => {
       }
     } catch (err) {
       console.error("Error fetching ext OT:", err);
-      showToast("Error: " + (err.response?.data?.message || err.message), "error");
+      showToast(getErrorMessage(err, "Failed to load Weekly Off/Holiday OT data"), "error");
     } finally {
       setLoading(false);
     }
@@ -159,7 +160,7 @@ const OTApproval = () => {
       setEditDialog(false);
       fetchData();
     } catch (err) {
-      showToast("Error: " + (err.response?.data?.message || err.message), "error");
+      showToast(getErrorMessage(err, "Failed to save OT approval"), "error");
     }
   };
 
@@ -180,14 +181,14 @@ const OTApproval = () => {
   };
 
   const getStatusChip = (appStatus, hrStatus) => {
-    if (hrStatus === 1) return <Chip size="small" label="HR Approved" color="success" />;
-    if (appStatus === 1) return <Chip size="small" label="Manager Approved" color="primary" />;
+    if (Number(hrStatus) === 1) return <Chip size="small" label="HR Approved" color="success" />;
+    if (Number(appStatus) === 1) return <Chip size="small" label="Manager Approved" color="primary" />;
     return <Chip size="small" label="Pending" color="warning" />;
   };
 
   const getExtStatusChip = (status) => {
-    if (status === 2) return <Chip size="small" label="HR Approved" color="success" />;
-    if (status === 1) return <Chip size="small" label="Manager Approved" color="primary" />;
+    if (Number(status) === 2) return <Chip size="small" label="HR Approved" color="success" />;
+    if (Number(status) === 1) return <Chip size="small" label="Manager Approved" color="primary" />;
     return <Chip size="small" label="Pending" color="warning" />;
   };
 
@@ -259,7 +260,7 @@ const OTApproval = () => {
       setExtOtApprovalDialog(false);
       fetchExtOtData();
     } catch (err) {
-      showToast("Error: " + (err.response?.data?.message || err.message), "error");
+      showToast(getErrorMessage(err, "Failed to save Weekly Off/Holiday OT approval"), "error");
     }
   };
 
@@ -456,7 +457,10 @@ const OTApproval = () => {
           <Box sx={{ p: 2, display: "flex", gap: 2, alignItems: "center", bgcolor: "#e3f2fd", borderTop: "2px solid #e65100" }}>
             <Typography variant="body2" sx={{ fontWeight: "bold" }}>{extOtSelectedRows.length} selected</Typography>
             <Button variant="contained" color="primary" size="small" onClick={async () => {
-              const ids = extOtSelectedRows.filter(id => extOtData.find(r => r.id === id)?.app_status === 0);
+              const ids = extOtSelectedRows.filter(id => {
+                const row = extOtData.find(r => r.id === id);
+                return Number(row?.app_status || 0) === 0;
+              });
               if (ids.length === 0) { showToast("No pending records in selection", "warning"); return; }
               try {
                 await axios.post(`${import.meta.env.VITE_API_URL}/api/ext-ot/manager-bulk-approve`, { ids, manager_remarks: "Bulk Approved" });
@@ -464,13 +468,16 @@ const OTApproval = () => {
                 setExtOtSelectedRows([]);
                 fetchExtOtData();
               } catch (err) {
-                showToast("Error: " + (err.response?.data?.message || err.message), "error");
+                showToast(getErrorMessage(err, "Bulk Manager approval failed"), "error");
               }
             }}>
               Manager Approve Selected
             </Button>
             <Button variant="contained" color="success" size="small" onClick={async () => {
-              const ids = extOtSelectedRows.filter(id => extOtData.find(r => r.id === id)?.app_status === 1);
+              const ids = extOtSelectedRows.filter(id => {
+                const row = extOtData.find(r => r.id === id);
+                return Number(row?.app_status) === 1;
+              });
               if (ids.length === 0) { showToast("No manager-approved records in selection", "warning"); return; }
               try {
                 await axios.post(`${import.meta.env.VITE_API_URL}/api/ext-ot/hr-bulk-approve`, { ids, hr_remarks: "Bulk HR Approved" });
@@ -478,7 +485,7 @@ const OTApproval = () => {
                 setExtOtSelectedRows([]);
                 fetchExtOtData();
               } catch (err) {
-                showToast("Error: " + (err.response?.data?.message || err.message), "error");
+                showToast(getErrorMessage(err, "Bulk HR approval failed"), "error");
               }
             }}>
               HR Approve Selected
@@ -564,7 +571,7 @@ const OTApproval = () => {
               setExtOtDialog(false);
               setTimeout(() => fetchExtOtData(), 300);
             } catch (err) {
-              showToast("Error: " + (err.response?.data?.message || err.message), "error");
+              showToast(getErrorMessage(err, "Failed to save record"), "error");
             }
           }}>
             Save
@@ -602,13 +609,13 @@ const OTApproval = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setExtOtApprovalDialog(false)}>Cancel</Button>
-          {selectedExtOtRow?.app_status === 0 && (
+          {Number(selectedExtOtRow?.app_status || 0) === 0 && (
             <Button variant="contained" color="primary" onClick={saveExtOtApproval}>Manager Approve</Button>
           )}
-          {selectedExtOtRow?.app_status === 1 && (
+          {Number(selectedExtOtRow?.app_status) === 1 && (
             <Button variant="contained" color="success" onClick={saveExtOtApproval}>HR Approve</Button>
           )}
-          {selectedExtOtRow?.app_status === 2 && (
+          {Number(selectedExtOtRow?.app_status) === 2 && (
             <Button variant="contained" color="info" onClick={async () => {
               try {
                 await axios.put(`${import.meta.env.VITE_API_URL}/api/ext-ot/hr-update/${selectedExtOtRow.id}`, { ot_hrs: selectedExtOtRow.edit_ot_hrs });
@@ -616,7 +623,7 @@ const OTApproval = () => {
                 setExtOtApprovalDialog(false);
                 fetchExtOtData();
               } catch (err) {
-                showToast("Error: " + (err.response?.data?.message || err.message), "error");
+                showToast(getErrorMessage(err, "Failed to update OT hours"), "error");
               }
             }}>Update OT Hrs</Button>
           )}
@@ -652,23 +659,52 @@ const OTApproval = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setEditDialog(false)}>Cancel</Button>
-          {selectedRow?.app_status === 0 && (
+          {Number(selectedRow?.app_status || 0) === 0 && (
             <Button variant="contained" color="primary" onClick={() => {
-              setSelectedRow({ ...selectedRow, app_status_edit: 1 });
-              setTimeout(() => saveApproval(), 100);
+              const updatedRow = { ...selectedRow, app_status_edit: 1 };
+              setSelectedRow(updatedRow);
+              // Pass updated values directly to saveApproval logic or use setTimeout as existing
+              setTimeout(() => {
+                axios.put(`${import.meta.env.VITE_API_URL}/api/attendance/ot-approval/${selectedRow.id}`, {
+                  app_ot: updatedRow.app_ot_edit || null,
+                  app_status: 1,
+                  app_remarks: updatedRow.app_remarks_edit || null,
+                  hr_app_ot: updatedRow.hr_app_ot_edit || null,
+                  hr_app_status: updatedRow.hr_app_status_edit,
+                  hr_remarks: updatedRow.hr_remarks_edit || null
+                }).then(() => {
+                  showToast("OT approved by Manager", "success");
+                  setEditDialog(false);
+                  fetchData();
+                }).catch(err => showToast(getErrorMessage(err, "Manager approval failed"), "error"));
+              }, 100);
             }}>
               Manager Approve
             </Button>
           )}
-          {selectedRow?.app_status === 1 && selectedRow?.hr_app_status === 0 && (
+          {Number(selectedRow?.app_status) === 1 && Number(selectedRow?.hr_app_status || 0) === 0 && (
             <Button variant="contained" color="success" onClick={() => {
-              setSelectedRow({ ...selectedRow, hr_app_status_edit: 1 });
-              setTimeout(() => saveApproval(), 100);
+              const updatedRow = { ...selectedRow, hr_app_status_edit: 1 };
+              setSelectedRow(updatedRow);
+              setTimeout(() => {
+                axios.put(`${import.meta.env.VITE_API_URL}/api/attendance/ot-approval/${selectedRow.id}`, {
+                  app_ot: updatedRow.app_ot_edit || null,
+                  app_status: updatedRow.app_status_edit,
+                  app_remarks: updatedRow.app_remarks_edit || null,
+                  hr_app_ot: updatedRow.hr_app_ot_edit || null,
+                  hr_app_status: 1,
+                  hr_remarks: updatedRow.hr_remarks_edit || null
+                }).then(() => {
+                  showToast("OT approved by HR", "success");
+                  setEditDialog(false);
+                  fetchData();
+                }).catch(err => showToast(getErrorMessage(err, "HR approval failed"), "error"));
+              }, 100);
             }}>
               HR Approve
             </Button>
           )}
-          {(selectedRow?.app_status === 1 && selectedRow?.hr_app_status === 1) && (
+          {(Number(selectedRow?.app_status) === 1 && Number(selectedRow?.hr_app_status) === 1) && (
             <Button variant="contained" color="info" onClick={saveApproval}>
               Update OT Hrs
             </Button>
@@ -680,3 +716,4 @@ const OTApproval = () => {
 };
 
 export default OTApproval;
+

@@ -17,9 +17,9 @@ const TourTable = ({ onNewEntry }) => {
           ...row,
           sno: index + 1,
           _expanded: false,
-          tour_from_date: row.tour_from_date ? formatDate(row.tour_from_date) : "-",
-          tour_to_date: row.tour_to_date ? formatDate(row.tour_to_date) : "-",
-          tour_date: row.tour_date ? formatDate(row.tour_date) : "-",
+          tour_from_date_display: row.tour_from_date ? formatDate(row.tour_from_date) : "",
+          tour_to_date_display: row.tour_to_date ? formatDate(row.tour_to_date) : "",
+          tour_date_display: row.tour_date ? formatDate(row.tour_date) : "",
         }));
         setData(formatted);
       } catch (err) {
@@ -41,13 +41,15 @@ const TourTable = ({ onNewEntry }) => {
   const columns = [
     { header: "S.No.", field: "sno" },
     { header: "Tour ID", field: "tour_id" },
+    { header: "Entry Date", field: "tour_date_display" },
     { header: "Emp ID", field: "empid" },
     { header: "Name", field: "ename" },
     { header: "Unit", field: "unit" },
     { header: "Division", field: "division" },
-    { header: "Destination", field: "destination" },
-    { header: "From Date", field: "tour_from_date" },
-    { header: "To Date", field: "tour_to_date" },
+    { header: "Destination", field: "destination", expandable: true },
+    { header: "Purpose", field: "purpose", expandable: true },
+    { header: "From Date", field: "tour_from_date_display" },
+    { header: "To Date", field: "tour_to_date_display" },
     { header: "Status", field: "status" },
   ];
 

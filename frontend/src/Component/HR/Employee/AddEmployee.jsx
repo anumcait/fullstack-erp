@@ -13,6 +13,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import { useToast } from "../../../context/ToastContext";
 import axios from 'axios';
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
@@ -252,7 +253,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
 
     } catch (err) {
       console.error("Error fetching employee details:", err);
-      showToast("Error loading employee data", "error");
+      showToast(getErrorMessage(err, "Error loading employee data"), "error");
     }
   };
 
@@ -377,7 +378,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
   const [salaryDetails, setSalaryDetails] = useState({ ...initSalary });
   const [incrementDetails, setIncrementDetails] = useState([{ ...initIncrement }]);
   const [canteenDetails, setCanteenDetails] = useState({ ...initCanteen });
-  const [licDetails, setLICDetails] = useState({ ...initLIC });
+  const [licDetails, setLICDetails] = useState([{ ...initLIC }]);
   const [transferDetails, setTransferDetails] = useState([{ ...initTransfer }]);
   const [officialDetails, setOfficialDetails] = useState({ ...initOfficial });
 
@@ -478,28 +479,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
       // Include other details like familyDetails, qualDetails if needed here
     };
     console.log(payload);
-    //const payload = { ...formData };
-    // console.log(formData);
-    //    const payload = {
-    //      personal:formData,
-    // commAddress,
-    // permAddress,
-    // sameAsComm,
-    // familyDetails,
-    // qualDetails,
-    // expDetails,
-    // promotionDetails,
-    // trainingDetails,
-    // awardDetails,
-    // discDetails,
-    // salaryDetails,
-    // incrementDetails,
-    // canteenDetails,
-    // licDetails,
-    // transferDetails,
-    // officialDetails,
-    //};
-
+    
     const resetForm = () => {
       setFormData({
         empid: '',
@@ -512,7 +492,6 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         divname: '', deptname: '', secname: '',
         pob: '', bgroup: '', mother_tounge: '', idfm1: '', idfm2: '',
         lang_known: ''
-        // ... other personal fields
       });
 
       setCommAddress({
@@ -520,7 +499,6 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         city: '',
         state: '',
         zip: ''
-        // ... other comm address fields
       });
 
       setPermAddress({
@@ -528,7 +506,6 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         city: '',
         state: '',
         zip: ''
-        // ... other perm address fields
       });
 
       setSameAsComm(false);
@@ -550,7 +527,6 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
 
     if (!validateForm()) return;
 
-    console.log("📦 Payload JSON string:", JSON.stringify(payload));
     try {
       const url = isEdit ? `/api/employees/${formData.empid}` : `/api/employees/add-employee`;
       const method = isEdit ? 'PUT' : 'POST';
@@ -573,12 +549,11 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           navigate('/employee-report');
         }
       } else {
-        console.log('Data here is ', data);
         throw new Error(data.message || 'Failed to save employee');
       }
     } catch (error) {
       console.error('Save failed:', error);
-      showToast('Error saving employee!', 'error');
+      showToast(getErrorMessage(error, 'Error saving employee!'), 'error');
     }
   };
 
@@ -596,7 +571,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         throw new Error(data.message || 'Update failed');
       }
     } catch (error) {
-      showToast(error.message, 'error');
+      showToast(getErrorMessage(error, 'Update failed'), 'error');
     }
   };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import HRAttendancePreview from "./HRAttendance"; // Create a preview component similar to OnDutyPreview
+import HRAttendancePreview from "./HRAttendancePreview";
 import SmartTable from "../../Common/SmartTable";
 
 const HRAttendanceTable = () => {
