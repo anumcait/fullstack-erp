@@ -268,11 +268,7 @@ const formatLeaveApp = (app) => {
       if (!isNaN(maxDate.getTime())) to = maxDate.toISOString().split('T')[0];
     }
 
-    let statusStr = "Unknown";
-    const s = Number(app.status || 0);
-    if (s === 0) statusStr = "Pending";
-    else if (s === 1) statusStr = "Approved";
-    else if (s === 2) statusStr = "Cancelled";
+    let statusStr = app.status || "Pending";
 
     return {
       id: app.lno,
@@ -308,7 +304,7 @@ const formatLeaveApp = (app) => {
 exports.getPendingLeaveApplications = async (req, res) => {
   try {
     const apps = await LeaveApplication.findAll({
-      where: { status: 0 },
+      where: { status: 'Pending' },
       include: [
         { model: LeaveDetails, as: 'leaveDetails', attributes: ['frmdt', 'todate', 'daydt', 'remarks', 'leave_type'] },
         { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance'] }
@@ -340,7 +336,7 @@ exports.getAllLeaveApplications = async (req, res) => {
 
 exports.approveLeave = async (req, res) => {
   const { lno, cl_sanction = 0, el_sanction = 0, days = [] } = req.body;
-  const status = 1; // Default to Approved
+  const status = 'Approved'; // Default to Approved
   const t = await LeaveApplication.sequelize.transaction();
   try {
     const app = await LeaveApplication.findOne({ where: { lno }, transaction: t });
@@ -355,7 +351,7 @@ exports.approveLeave = async (req, res) => {
     // Update individual LeaveDetails with status and type
     for (const day of days) {
       await LeaveDetails.update(
-        { c_hr_app_status: 1, leave_type: day.type }, 
+        { c_hr_app_status: 'Approved', leave_type: day.type }, 
         { where: { lno, frmdt: day.date }, transaction: t }
       );
     }
@@ -390,7 +386,7 @@ exports.approveLeave = async (req, res) => {
 
 exports.rejectLeave = async (req, res) => {
   const { lno, app_remarks } = req.body;
-  const status = 2; // Default to Rejected
+  const status = 'Rejected'; // Default to Rejected
   const t = await LeaveApplication.sequelize.transaction();
   try {
     const app = await LeaveApplication.findOne({ where: { lno }, transaction: t });
@@ -401,7 +397,7 @@ exports.rejectLeave = async (req, res) => {
     
     await app.update({ status, remarks: app_remarks }, { transaction: t });
     await LeaveDetails.update(
-      { c_hr_app_status: 2, c_hr_app_remarks: app_remarks }, 
+      { c_hr_app_status: 'Rejected', c_hr_app_remarks: app_remarks }, 
       { where: { lno }, transaction: t }
     );
 
@@ -424,7 +420,7 @@ exports.cancelApproval = async (req, res) => {
       transaction: t 
     });
 
-    if (!app || app.status !== 1) {
+    if (!app || app.status !== 'Approved') {
        await t.rollback();
        return res.status(400).json({ message: "Application not found or not in approved state" });
     }
@@ -454,11 +450,11 @@ exports.cancelApproval = async (req, res) => {
     }
 
     // Set Application Status to Cancelled (2)
-    await app.update({ status: 2 }, { transaction: t });
+    await app.update({ status: 'Cancelled' }, { transaction: t });
 
     // Reset Details Status and type
     await LeaveDetails.update(
-       { c_hr_app_status: 0, leave_type: null },
+       { c_hr_app_status: 'Pending', leave_type: null },
        { where: { lno }, transaction: t }
     );
 
@@ -529,15 +525,15 @@ exports.cancelPartialApproval = async (req, res) => {
     // Update individual Details back to pending (0)
     for (const d of detailsToCancel) {
        await d.update({
-          c_hr_app_status: 0,
+          c_hr_app_status: 'Pending',
           leave_type: null,
           c_hr_app_remarks: remarks
        }, { transaction: t });
     }
 
     // Set main application to Rejected/Cancelled (2) so it appears in the cancelled list
-    console.log(`Updating LApp #${lno} status to 2 (Cancelled)`);
-    await app.update({ status: 2, remarks: remarks }, { transaction: t });
+    console.log(`Updating LApp #${lno} status to 'Cancelled'`);
+    await app.update({ status: 'Cancelled', remarks: remarks }, { transaction: t });
 
     await t.commit();
     console.log(`LApp #${lno} cancellation committed.`);
@@ -556,11 +552,11 @@ exports.reopenLeave = async (req, res) => {
     if (!app) return res.status(404).json({ message: "Application not found" });
 
     // Set status to 0 (Pending)
-    await app.update({ status: 0 });
+    await app.update({ status: 'Pending' });
     
-    // Also reset details status to 0
+    // Also reset details status to 'Pending'
     await LeaveDetails.update(
-       { c_hr_app_status: 0, leave_type: null },
+       { c_hr_app_status: 'Pending', leave_type: null },
        { where: { lno } }
     );
 
@@ -601,9 +597,9 @@ exports.getLeaveStats = async (req, res) => {
 
     const stats = await LeaveApplication.findAll({
       attributes: [
-        [Sequelize.literal("COUNT(CASE WHEN status = 0 THEN 1 END)"), 'pending'],
-        [Sequelize.literal("COUNT(CASE WHEN status = 1 THEN 1 END)"), 'approved'],
-        [Sequelize.literal("COUNT(CASE WHEN status = 2 THEN 1 END)"), 'rejected'],
+        [Sequelize.literal("COUNT(CASE WHEN status = 'Pending' THEN 1 END)"), 'pending'],
+        [Sequelize.literal("COUNT(CASE WHEN status = 'Approved' THEN 1 END)"), 'approved'],
+        [Sequelize.literal("COUNT(CASE WHEN status = 'Rejected' THEN 1 END)"), 'rejected'],
         [Sequelize.literal("COUNT(*)"), 'total']
       ],
       where: Sequelize.where(Sequelize.fn('EXTRACT', Sequelize.literal('MONTH FROM ldate')), currentMonth),

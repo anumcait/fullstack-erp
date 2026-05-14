@@ -56,8 +56,8 @@ exports.hrSummary = async (req, res) => {
     });
 
     // Leave stats
-    const pendingLeaves = await LeaveDetails.count({ where: { status: 'Pending' } });
-    const approvedLeaves = await LeaveDetails.count({ where: { status: 'Approved' } });
+    const pendingLeaves = await LeaveDetails.count({ where: { c_hr_app_status: 'Pending' } });
+    const approvedLeaves = await LeaveDetails.count({ where: { c_hr_app_status: 'Approved' } });
 
     // Avg leave duration (last 30 days, approved)
     const recentApprovedLeavesHR = await LeaveDetails.findAll({
@@ -234,12 +234,12 @@ exports.managerSummary = async (req, res) => {
 
     // Pending leaves for team
     const pendingLeaves = await LeaveDetails.count({
-      where: { empid: { [Op.in]: teamEmpIds }, status: 'Pending' },
+      where: { empid: { [Op.in]: teamEmpIds }, c_hr_app_status: 'Pending' },
     });
 
     // Pending approvals
     const pendingLeaveApprovals = await LeaveDetails.findAll({
-      where: { empid: { [Op.in]: teamEmpIds }, status: 'Pending' },
+      where: { empid: { [Op.in]: teamEmpIds }, c_hr_app_status: 'Pending' },
       attributes: ['empid', 'from_date', 'to_date', 'leave_type'],
       raw: true,
       limit: 10,
@@ -279,7 +279,7 @@ exports.managerSummary = async (req, res) => {
 
     // Leave by type
     const leaveByTypeRaw = await LeaveDetails.findAll({
-      where: { empid: { [Op.in]: teamEmpIds }, status: { [Op.ne]: 'Pending' } },
+      where: { empid: { [Op.in]: teamEmpIds }, c_hr_app_status: { [Op.ne]: 'Pending' } },
       attributes: ['leave_type', [fn('COUNT', col('leave_type')), 'count']],
       group: ['leave_type'],
       raw: true,
@@ -371,8 +371,8 @@ exports.employeeSummary = async (req, res) => {
     // Leave summary
     let pendingLeaves = 0, approvedLeaves = 0;
     try {
-      pendingLeaves = await LeaveDetails.count({ where: { empno: empId, c_hr_app_status: 0 } });
-      approvedLeaves = await LeaveDetails.count({ where: { empno: empId, c_hr_app_status: 1 } });
+      pendingLeaves = await LeaveDetails.count({ where: { empno: empId, c_hr_app_status: 'Pending' } });
+      approvedLeaves = await LeaveDetails.count({ where: { empno: empId, c_hr_app_status: 'Approved' } });
     } catch (e) { console.error('Error fetching leave counts:', e.message); }
 
     // Use real leave balance from LeaveMaster instead of hardcoded value
@@ -493,7 +493,7 @@ exports.employeeSummary = async (req, res) => {
         from_date: l.frmdt,
         to_date: l.todate,
         leave_type: l.leave_type || 'Leave',
-        status: l.c_hr_app_status === 1 ? 'Approved' : l.c_hr_app_status === 2 ? 'Rejected' : 'Pending',
+        status: l.c_hr_app_status || 'Pending',
         nod: l.nod
       })),
       latestPayslip:

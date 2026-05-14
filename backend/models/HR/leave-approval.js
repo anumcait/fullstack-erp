@@ -47,8 +47,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     app_status: {
      // field: 'C_HR_APP_STATUS',
-      type: DataTypes.BIGINT,
-      defaultValue: 0
+      type: DataTypes.STRING(20),
+      defaultValue: 'Pending'
     },
     app_remarks: {
      // field: 'C_HR_APP_REMARKS',
@@ -65,9 +65,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     final_status: {
       //field: 'C_FINAL_STATUS',
-      type: DataTypes.BIGINT,
+      type: DataTypes.STRING(20),
       allowNull: false,
-      defaultValue: 0
+      defaultValue: '0'
     },
     gempid: {
       //field: 'C_GEMPID',
