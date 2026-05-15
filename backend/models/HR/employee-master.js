@@ -14,6 +14,16 @@ module.exports = (sequelize) => {
         primaryKey: true,
         allowNull: false,
       },
+      created: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        allowNull: true
+      },
+      updated: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        allowNull: true
+      },
 
       // 🔹 Employment Details
       company_id: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
@@ -60,6 +70,22 @@ module.exports = (sequelize) => {
       padd_mobile: { type: DataTypes.STRING(50) },
       padd_pin: { type: DataTypes.STRING(50) },
       padd_email: { type: DataTypes.STRING(100) },
+      c_eff_date: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
+      },
+      c_status: {
+        type: DataTypes.CHAR(1),
+        allowNull: true
+      },
+      c_gen_user: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+      },
+      c_gen_date: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
 
       // 🔹 Employment Status
       employment_status: {
