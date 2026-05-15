@@ -35,6 +35,14 @@ module.exports = (sequelize) => {
       hr_remarks: { type: DataTypes.STRING(500) },
       reviewed_by: { type: DataTypes.INTEGER },
       reviewed_at: { type: DataTypes.DATE },
+      created: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
+      updated: {
+        type: DataTypes.DATE,
+        allowNull: true
+      }
     },
     {
       tableName: 'profile_update_requests',
