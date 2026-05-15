@@ -33,9 +33,9 @@ module.exports = (sequelize) => {
       // 🔹 Personal Details
       gender: { type: DataTypes.STRING(10) },
       marital_status: { type: DataTypes.STRING(20) },
-      ename: { type: DataTypes.STRING(100), allowNull: false },
+      ename: { type: DataTypes.STRING(100), allowNull: true },
       fname: { type: DataTypes.STRING(100) },
-      dob: { type: DataTypes.DATE, allowNull: false },
+      dob: { type: DataTypes.DATE, allowNull: true },
       pob: { type: DataTypes.STRING(50) },
       bgroup: { type: DataTypes.STRING(10) },
       mother_tongue: { type: DataTypes.STRING(50) },
