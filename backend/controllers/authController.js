@@ -7,8 +7,11 @@ exports.login = async (req, res) => {
   try {
     const { Op } = require('sequelize');
     console.log('Login attempt for ID:', username);
-    const totalUsers = await User.count();
-    console.log('Total users in database:', totalUsers);
+    const users = await User.findAll({ attributes: ['username', 'empid'] });
+    console.log('Users found in DB:', users.map(u => `ID: ${u.empid} / User: ${u.username}`).join(', '));
+    
+    const empCount = await EmployeeMaster.count();
+    console.log('Total Employees in DB:', empCount);
 
     const user = await User.findOne({
       where: {
