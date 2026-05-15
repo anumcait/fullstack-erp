@@ -14,7 +14,7 @@ module.exports = (sequelize) => {
         allowNull: false,
       },
       request_type: {
-        type: DataTypes.ENUM('address', 'phone', 'both'),
+        type: DataTypes.STRING(20),
         allowNull: false,
       },
       old_comm_address: { type: DataTypes.STRING(500) },
@@ -30,7 +30,7 @@ module.exports = (sequelize) => {
       old_perm_mobile: { type: DataTypes.STRING(50) },
       new_perm_mobile: { type: DataTypes.STRING(50) },
       status: {
-        type: DataTypes.ENUM('Pending', 'Approved', 'Rejected'),
+        type: DataTypes.STRING(20),
         defaultValue: 'Pending',
       },
       hr_remarks: { type: DataTypes.STRING(500) },

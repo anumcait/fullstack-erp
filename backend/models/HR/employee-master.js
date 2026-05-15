@@ -31,8 +31,8 @@ module.exports = (sequelize) => {
       secname: { type: DataTypes.STRING(100) },
 
       // 🔹 Personal Details
-      gender: { type: DataTypes.ENUM('M', 'F', 'O') },
-      marital_status: { type: DataTypes.ENUM('Single', 'Married', 'Divorced', 'Widowed') },
+      gender: { type: DataTypes.STRING(10) },
+      marital_status: { type: DataTypes.STRING(20) },
       ename: { type: DataTypes.STRING(100), allowNull: false },
       fname: { type: DataTypes.STRING(100) },
       dob: { type: DataTypes.DATE, allowNull: false },
@@ -63,10 +63,7 @@ module.exports = (sequelize) => {
 
       // 🔹 Employment Status
       employment_status: {
-        type: DataTypes.ENUM(
-          'Active', 'Resigned', 'Terminated', 'On Leave',
-          'Permanent', 'Contract', 'Intern'   // frontend empType values
-        ),
+        type: DataTypes.STRING(20),
         defaultValue: 'Active'
       },
       status: {
