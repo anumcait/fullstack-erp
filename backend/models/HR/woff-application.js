@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     woff_date: DataTypes.DATE,
     empid: {
       type: DataTypes.BIGINT,
-      allowNull: false
+      allowNull: true
     },
     ename: DataTypes.STRING(100),
     unit: DataTypes.STRING(50),
@@ -18,7 +18,10 @@ module.exports = (sequelize, DataTypes) => {
     section: DataTypes.STRING(100),
     current_woff_day: DataTypes.STRING(20),
     requested_woff_day: DataTypes.STRING(20),
-    woff_from_date: DataTypes.DATE,
+    woff_from_date: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     woff_to_date: DataTypes.DATE,
     shift_cd: DataTypes.STRING(20),
     reason: DataTypes.TEXT,

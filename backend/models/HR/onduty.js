@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     movement_date: DataTypes.DATE,
     empid: {
       type: DataTypes.BIGINT,
-      allowNull: false
+      allowNull: true
     },
     ename: DataTypes.STRING(100),
     unit: DataTypes.STRING(50),

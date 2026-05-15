@@ -5,11 +5,7 @@ module.exports = (sequelize) => {
     empid: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      primaryKey: true,
-      references: {
-        model: 'employee_master',
-        key: 'empid'
-      }
+      primaryKey: true
     },
     doi: {
       type: DataTypes.DATE,

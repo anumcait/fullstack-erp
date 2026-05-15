@@ -7,11 +7,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     empid: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: true
     },
     att_date: {
       type: DataTypes.DATEONLY,
-      allowNull: false
+      allowNull: true
     },
     shift: DataTypes.STRING(10),
     shift_start: DataTypes.TIME,

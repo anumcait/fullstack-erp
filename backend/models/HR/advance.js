@@ -5,10 +5,13 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       autoIncrement: false
     },
-    advance_date: DataTypes.DATE,
+    advance_date: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     empid: {
       type: DataTypes.BIGINT,
-      allowNull: false
+      allowNull: true
     },
     ename: DataTypes.STRING(100),
     unit: DataTypes.STRING(50),

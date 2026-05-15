@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     esi_leave_date: DataTypes.DATE,
     empid: {
       type: DataTypes.BIGINT,
-      allowNull: false
+      allowNull: true
     },
     ename: DataTypes.STRING(100),
     unit: DataTypes.STRING(50),
@@ -17,7 +17,10 @@ module.exports = (sequelize, DataTypes) => {
     esi_no: DataTypes.STRING(50),
     esi_dispencery: DataTypes.STRING(100),
     hospital_name: DataTypes.STRING(100),
-    leave_from_date: DataTypes.DATE,
+    leave_from_date: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     leave_to_date: DataTypes.DATE,
     no_of_days: DataTypes.INTEGER,
     reason: DataTypes.TEXT,

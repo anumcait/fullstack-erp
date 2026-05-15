@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     tour_date: DataTypes.DATE,
     empid: {
       type: DataTypes.BIGINT,
-      allowNull: false
+      allowNull: true
     },
     ename: DataTypes.STRING(100),
     unit: DataTypes.STRING(50),
@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
     designation: DataTypes.STRING(50),
     tour_from_date: {
       type: DataTypes.DATE,
-      allowNull: false
+      allowNull: true
     },
     tour_to_date: DataTypes.DATE,
     purpose: DataTypes.TEXT,

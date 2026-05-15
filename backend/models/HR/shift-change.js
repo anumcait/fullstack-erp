@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
     schange_date: DataTypes.DATE,
     empid: {
       type: DataTypes.BIGINT,
-      allowNull: false
+      allowNull: true
     },
     empname: DataTypes.STRING(100),
     designation: DataTypes.STRING(100),
