@@ -12,8 +12,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     c_hr_app_status: {
-      type: DataTypes.STRING(20),
-      defaultValue: 'Pending'
+      type: DataTypes.STRING(20)
     },
     c_hr_app_remarks: DataTypes.STRING(150),
     c_cl_sanction: {

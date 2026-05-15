@@ -30,8 +30,7 @@ module.exports = (sequelize) => {
       old_perm_mobile: { type: DataTypes.STRING(50) },
       new_perm_mobile: { type: DataTypes.STRING(50) },
       status: {
-        type: DataTypes.STRING(20),
-        defaultValue: 'Pending',
+        type: DataTypes.STRING(20)
       },
       hr_remarks: { type: DataTypes.STRING(500) },
       reviewed_by: { type: DataTypes.INTEGER },

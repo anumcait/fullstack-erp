@@ -47,8 +47,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     app_status: {
      // field: 'C_HR_APP_STATUS',
-      type: DataTypes.STRING(20),
-      defaultValue: 'Pending'
+      type: DataTypes.STRING(20)
     },
     app_remarks: {
      // field: 'C_HR_APP_REMARKS',

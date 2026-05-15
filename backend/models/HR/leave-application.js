@@ -27,8 +27,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false
       },
       status: {
-        type: DataTypes.STRING(20),
-        defaultValue: 'Pending' // Pending, Approved, Rejected
+        type: DataTypes.STRING(20) // Pending, Approved, Rejected
       },
       remarks: {
         type: DataTypes.STRING(255)

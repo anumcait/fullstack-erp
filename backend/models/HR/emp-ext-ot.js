@@ -22,8 +22,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     app_status: {
-      type: DataTypes.STRING(20),
-      defaultValue: 'Pending'
+      type: DataTypes.STRING(20)
     },
     emp_remarks: DataTypes.STRING(200),
     manager_remarks: DataTypes.STRING(200),

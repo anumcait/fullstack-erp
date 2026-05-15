@@ -24,7 +24,6 @@ module.exports = (sequelize, DataTypes) => {
     schange_to: DataTypes.DATE,
     app_status: {
       type: DataTypes.STRING(20),
-      defaultValue: 'Pending',
       allowNull: false
     },
     cancel_status: DataTypes.STRING(20),

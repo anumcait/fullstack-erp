@@ -26,8 +26,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.NOW
     },
     status: {
-      type: DataTypes.STRING(20),
-      defaultValue: 'Pending'
+      type: DataTypes.STRING(20)
     }
   }, {
     tableName: 'advance_permission',

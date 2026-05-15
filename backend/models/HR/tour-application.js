@@ -28,8 +28,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.NOW
     },
     status: {
-      type: DataTypes.STRING(20),
-      defaultValue: 'Pending'
+      type: DataTypes.STRING(20)
     },
     approval_remark: DataTypes.STRING(200),
     approved_by: DataTypes.STRING(50),
