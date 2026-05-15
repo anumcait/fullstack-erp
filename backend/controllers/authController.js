@@ -7,13 +7,15 @@ exports.login = async (req, res) => {
   try {
     const { Op } = require('sequelize');
     console.log('Login attempt for ID:', username);
+    const totalUsers = await User.count();
+    console.log('Total users in database:', totalUsers);
+
     const user = await User.findOne({
       where: {
         [Op.or]: [
           { username: username },
           { empid: isNaN(username) ? -1 : parseInt(username) }
-        ],
-        is_active: true
+        ]
       },
       include: [{
         model: EmployeeMaster,
