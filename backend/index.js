@@ -49,7 +49,13 @@ async function startServer(retries = MAX_RETRIES) {
       await db.sequelize.authenticate();
       console.log(`✅ Connected to ${ENV} database`);
 
-      const syncOptions = ENV === 'production' ? { force: false } : { alter: true };
+      const FORCE_SYNC = process.env.DB_SYNC_FORCE === 'true';
+      const syncOptions = FORCE_SYNC ? { force: true } : (ENV === 'production' ? { force: false } : { alter: true });
+      
+      if (FORCE_SYNC) {
+        console.warn('⚠️ WARNING: DB_SYNC_FORCE is enabled. All tables will be dropped and recreated!');
+      }
+
       await db.sequelize.sync(syncOptions);
       console.log('✅ Database synced (tables created/updated).');
 
