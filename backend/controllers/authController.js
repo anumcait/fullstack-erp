@@ -6,21 +6,14 @@ exports.login = async (req, res) => {
 
   try {
     const { Op } = require('sequelize');
-    console.log('Login attempt for ID:', username);
-    const users = await User.findAll({ attributes: ['username', 'empid'] });
-    console.log('Users found in DB:', users.map(u => `ID: ${u.empid} / User: ${u.username}`).join(', '));
-
-    const empCount = await EmployeeMaster.count();
-    const employees = await EmployeeMaster.findAll({ attributes: ['empid', 'ename'] });
-    console.log('Total Employees in DB:', empCount);
-    console.log('Employees in DB:', employees.map(e => `ID: ${e.empid} (${e.ename})`).join(', '));
 
     const user = await User.findOne({
       where: {
         [Op.or]: [
           { username: username },
           { empid: isNaN(username) ? -1 : parseInt(username) }
-        ]
+        ],
+        is_active: true
       },
       include: [{
         model: EmployeeMaster,
@@ -30,15 +23,11 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      console.log('User NOT found for ID:', username);
-      return res.status(401).json({ message: 'Employee not found' });
+      return res.status(401).json({ message: 'Invalid username or password' });
     }
-
-    console.log('User found:', user.username || user.empid, '| Hash in DB:', user.password_hash ? 'Present' : 'MISSING');
 
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
-      console.log('Password mismatch for user:', user.username || user.empid);
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
