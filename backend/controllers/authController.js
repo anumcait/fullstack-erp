@@ -5,8 +5,15 @@ exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
+    const { Op } = require('sequelize');
     const user = await User.findOne({
-      where: { username, is_active: true },
+      where: {
+        [Op.or]: [
+          { username: username },
+          { empid: isNaN(username) ? -1 : parseInt(username) }
+        ],
+        is_active: true
+      },
       include: [{
         model: EmployeeMaster,
         as: 'employee',
