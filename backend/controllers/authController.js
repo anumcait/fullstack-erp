@@ -9,9 +9,11 @@ exports.login = async (req, res) => {
     console.log('Login attempt for ID:', username);
     const users = await User.findAll({ attributes: ['username', 'empid'] });
     console.log('Users found in DB:', users.map(u => `ID: ${u.empid} / User: ${u.username}`).join(', '));
-    
+
     const empCount = await EmployeeMaster.count();
+    const employees = await EmployeeMaster.findAll({ attributes: ['empid', 'ename'] });
     console.log('Total Employees in DB:', empCount);
+    console.log('Employees in DB:', employees.map(e => `ID: ${e.empid} (${e.ename})`).join(', '));
 
     const user = await User.findOne({
       where: {
