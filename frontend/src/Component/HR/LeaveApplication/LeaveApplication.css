@@ -7,7 +7,7 @@
   max-width: 1100px;
   margin: 10px auto;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-  color:#222;
+  color: #222;
 
 }
 
@@ -31,7 +31,7 @@
 
 .leave-form-grid label {
   display: block;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: #222;
   margin-bottom: 4px;
@@ -42,7 +42,7 @@
 .leave-form-grid textarea {
   width: 100%;
   padding: 8px 10px;
-  font-size: 14px;
+  font-size: 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
   background: #fcfcfc;
@@ -56,7 +56,7 @@
 .leave-form-grid textarea:focus {
   outline: none;
   border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0,123,255,0.2);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
 textarea {
@@ -84,11 +84,13 @@ textarea {
   margin-bottom: 10px;
 }
 
- .summary-grid {
+.summary-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* Exactly 2 columns */
+  grid-template-columns: repeat(2, 1fr);
+  /* Exactly 2 columns */
   gap: 10px;
-} 
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: max-content max-content;
@@ -149,15 +151,18 @@ textarea {
   border-radius: 5px;
   cursor: pointer;
 }
+
 .save-btn:disabled {
   background-color: #cccccc;
   color: #666666;
   cursor: not-allowed;
   opacity: 0.7;
 }
+
 .save-btn:hover {
   background-color: #0088bb;
 }
+
 .add-row-btn {
   background-color: #ffc107;
   color: #000;
@@ -168,12 +173,14 @@ textarea {
   border-radius: 4px;
   cursor: pointer;
 }
+
 .add-row-btn:disabled {
   background-color: #cccccc;
   color: #666666;
   cursor: not-allowed;
   opacity: 0.7;
 }
+
 .add-row-btn:hover {
   background-color: #0088bb;
 }
@@ -192,7 +199,8 @@ textarea {
   transition: background-color 0.3s ease;
 }
 
-.del-btn, .reset-btn {
+.del-btn,
+.reset-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -203,9 +211,11 @@ textarea {
 .del-btn:hover {
   color: red;
 }
+
 .reset-btn:hover {
   color: #007bff;
 }
+
 .del-btn:disabled,
 .reset-btn:disabled {
   opacity: 0.5;
@@ -304,8 +314,9 @@ textarea {
   background-color: #0088bb;
   z-index: 1;
 }
+
 .form-header {
-  color:#FFF;
+  color: #FFF;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -329,7 +340,7 @@ textarea {
   color: #FFF;
   cursor: pointer;
   transition: color 0.2s ease;
-  padding:1px 0 !important;
+  padding: 1px 0 !important;
 }
 
 .close-btn:hover {
@@ -339,8 +350,11 @@ textarea {
 /* popup display */
 .popup-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -391,12 +405,14 @@ textarea {
   border-collapse: collapse;
 }
 
-.popup-table th, .popup-table td {
+.popup-table th,
+.popup-table td {
   padding: 0.5rem;
   border-bottom: 1px solid #ccc;
 }
 
-.popup-table tr:hover, .popup-table tr:focus {
+.popup-table tr:hover,
+.popup-table tr:focus {
   background: #eef;
   cursor: pointer;
 }
@@ -409,7 +425,8 @@ textarea {
 
 .emp-input-wrapper input {
   width: 100%;
-  padding-right: 30px; /* Make space for icon */
+  padding-right: 30px;
+  /* Make space for icon */
 }
 
 .dropdown-icon {
@@ -441,8 +458,9 @@ textarea {
   color: #0088bb;
   background-color: lightgray;
   padding: 3px 8px;
-  margin:0;
+  margin: 0;
 }
+
 .more-btn:hover {
   background-color: #e9ecef;
   border-radius: 4px;
@@ -486,4 +504,3 @@ textarea {
   background-color: #ffe5e5 !important;
   border: 1px solid #cc0000;
 }
-

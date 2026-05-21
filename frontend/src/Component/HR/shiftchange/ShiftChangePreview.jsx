@@ -1,7 +1,8 @@
 import React from "react";
-import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
+import "./ShiftChangePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDateTimeAMPM } from "../../../utils/dateUtils";
+import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
 
 const ShiftChangePreview = ({ data = {}, onClose }) => {
   const calculateDays = (from, to) => {
@@ -37,24 +38,38 @@ const ShiftChangePreview = ({ data = {}, onClose }) => {
     app_status = "Pending"
   } = data;
 
+  let submissionStatus = "";
+  if (schange_from && schange_date) {
+    const entryDate = new Date(schange_date);
+    const fromDate = new Date(schange_from);
+    if (fromDate > entryDate) {
+      submissionStatus = "BEFORE SUBMISSION";
+    } else {
+      submissionStatus = "AFTER SUBMISSION";
+    }
+  }
+
   const displayDays = (no_of_hrs && no_of_hrs !== "") ? no_of_hrs : calculateDays(schange_from, schange_to);
 
   return (
-    <div className="onduty-print-overlay">
-      <div className="onduty-print-container">
+    <div className="schange-print-overlay">
+      <div className="schange-print-container">
         {/* Header */}
-        <div className="onduty-print-header">
-          <img src={logo} alt="Logo" className="onduty-logo" />
-          <div className="onduty-company-title">
+        <div className="schange-print-header">
+          <img src={logo} alt="Logo" className="schange-logo" />
+          <div className="schange-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
-            <span className="onduty-slip-title">SHIFT CHANGE SLIP</span>
+            <span className="schange-slip-title">SHIFT CHANGE SLIP</span>
           </div>
-          <div className={`onduty-before-box status-${app_status.toLowerCase()}`}>{app_status}</div>
+          {submissionStatus && (
+            <div className="schange-before-box">{submissionStatus}</div>
+          )}
         </div>
 
         {/* Details Table */}
-        <table className="onduty-field-table">
+        <table className="schange-field-table">
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">Schange No</td>
@@ -98,7 +113,8 @@ const ShiftChangePreview = ({ data = {}, onClose }) => {
         <hr />
 
         {/* Shift Details */}
-        <table className="onduty-field-table">
+        <table className="schange-field-table">
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">Actual Shift</td>
@@ -126,21 +142,15 @@ const ShiftChangePreview = ({ data = {}, onClose }) => {
               <td className="colon"></td>
               <td className="value"></td>
             </tr>
-          </tbody>
-        </table>
-
-        {/* Purpose & Remarks (separate tables for full-width wrapping) */}
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <tbody>
             <tr>
-              <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Purpose</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{purpose}</td>
+              <td className="label">Purpose</td>
+              <td className="colon">:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top' }}>{purpose}</td>
             </tr>
             <tr>
-              <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Remarks</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{remarks}</td>
+              <td className="label">Remarks</td>
+              <td className="colon">:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top' }}>{remarks}</td>
             </tr>
           </tbody>
         </table>
@@ -148,7 +158,7 @@ const ShiftChangePreview = ({ data = {}, onClose }) => {
         <hr />
 
         {/* Signatures */}
-        <table className="onduty-signature-grid">
+        <table className="schange-signature-grid">
           <tbody>
             <tr>
               <td>
@@ -182,13 +192,13 @@ const ShiftChangePreview = ({ data = {}, onClose }) => {
         </table>
 
         {/* Notes */}
-        <div className="onduty-note">
+        <div className="schange-note">
           * Application should be submitted at least 24 hours prior to the shift change.<br />
           * Subject to departmental exigencies and final approval by HR.
         </div>
 
         {/* Actions */}
-        <div className="onduty-actions no-print">
+        <div className="schange-actions no-print">
           <button onClick={() => window.print()}>Print</button>
           <button onClick={onClose}>Close</button>
         </div>

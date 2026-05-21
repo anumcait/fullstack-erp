@@ -10,7 +10,6 @@ import {
   FaClipboardList,
   FaCheckCircle,
 } from "react-icons/fa";
-import ChatBotIcon from "../../ChatBot/ChatBotIcon";
 const API = import.meta.env.VITE_API_URL || "";
 
 const formatDate = (dateStr) => {
@@ -188,10 +187,6 @@ const EmployeeDashboard = () => {
         />
       </div>
 
-      {/* Chatbot Icon */}
-      <div className="fixed bottom-6 right-6">
-        <ChatBotIcon />
-      </div>
     </div>
   );
 };

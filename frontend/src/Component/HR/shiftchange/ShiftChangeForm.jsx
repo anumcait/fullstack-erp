@@ -20,6 +20,9 @@ const requiredStyle = {
   backgroundColor: '#fffde7'
 };
 
+const getUserRole = () => localStorage.getItem('userRole') || '';
+const isAdminUser = () => getUserRole().toLowerCase() === 'admin';
+
 const ShiftChangeForm = ({ onClose }) => {
   const dateInputRef = React.useRef(null);
   const toDateRef = React.useRef(null);
@@ -44,6 +47,7 @@ const ShiftChangeForm = ({ onClose }) => {
   const { setIsDirty } = useNavigationGuard();
   const [shifts, setShifts] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({ schange_from: null, schange_to: null });
+  const [isAdmin, setIsAdmin] = useState(isAdminUser());
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -78,6 +82,7 @@ const ShiftChangeForm = ({ onClose }) => {
   const [showEmpPopup, setShowEmpPopup] = useState(false);
   const [employeeList, setEmployeeList] = useState([]);
   const openEmpPopup = async () => {
+    if (!isAdmin) return;
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
       setEmployeeList(response.data);
@@ -103,28 +108,69 @@ const ShiftChangeForm = ({ onClose }) => {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
-      if (e.key === "F9" || e.keyCode === 120) {
+      if (isAdmin && (e.key === "F9" || e.keyCode === 120)) {
         e.preventDefault();
         openEmpPopup();
       }
     };
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, []);
+  }, [isAdmin]);
 
-  useEffect(() => {
-    fetchShifts();
-    fetchNextSchangeId();
-  }, []);
-
-  const fetchNextSchangeId = async () => {
+  const resetForm = async () => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/shift/next-id`);
-      setFormData(prev => ({ ...prev, schange_no: String(res.data.nextSchangeId) }));
+      
+      const loggedInEmpId = localStorage.getItem('empId') || "";
+      const loggedInEmpName = localStorage.getItem('empName') || "";
+      const loggedInDept = localStorage.getItem('deptname') || "";
+      const loggedInDesig = localStorage.getItem('designation') || "";
+
+      setFormData({
+        schange_no: String(res.data.nextSchangeId),
+        schange_date: getCurrentISTDateTime(),
+        empid: loggedInEmpId,
+        empname: loggedInEmpName,
+        department: loggedInDept,
+        designation: loggedInDesig,
+        actual_shift: '',
+        act_start_time: '',
+        act_end_time: '',
+        change_shift: '',
+        cha_start_time: '',
+        cha_end_time: '',
+        schange_from: '',
+        schange_to: '',
+        no_of_hrs: '',
+        remarks: '',
+        purpose: ''
+      });
+      setFieldErrors({ schange_from: null, schange_to: null });
+
+      if (loggedInEmpId) {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/employees/${loggedInEmpId}`)
+          .then((empRes) => {
+            const emp = empRes.data;
+            setFormData(prev => ({
+              ...prev,
+              empname: emp.ename,
+              department: emp.deptname || emp.department || prev.department,
+              designation: emp.designation || prev.designation,
+            }));
+          })
+          .catch((error) => {
+            console.error("Failed to fetch employee master details", error);
+          });
+      }
     } catch (err) {
       console.error("Error fetching next ID:", err);
     }
   };
+
+  useEffect(() => {
+    fetchShifts();
+    resetForm();
+  }, []);
 
   const fetchShifts = async () => {
     try {
@@ -454,26 +500,7 @@ const ShiftChangeForm = ({ onClose }) => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/shift/save`, payload);
       showToast(`Shift Change Saved! ID: ${response.data.movement_id}`, "success");
       setIsDirty(false);
-      setFormData({
-        schange_no: String(Number(formData.schange_no) + 1),
-        schange_date: getCurrentISTDateTime(),
-        empid: '',
-        empname: '',
-        department: '',
-        designation: '',
-        actual_shift: '',
-        act_start_time: '',
-        act_end_time: '',
-        change_shift: '',
-        cha_start_time: '',
-        cha_end_time: '',
-        schange_from: '',
-        schange_to: '',
-        no_of_hrs: '',
-        remarks: '',
-        purpose: ''
-      });
-      fetchNextSchangeId();
+      resetForm();
     } catch (err) {
       console.error("Save error:", err);
       showToast(getErrorMessage(err, "Error saving Shift Change"), "error");
@@ -538,20 +565,25 @@ const ShiftChangeForm = ({ onClose }) => {
             label={<RequiredLabel>Emp Id</RequiredLabel>}
             name="empid"
             value={formData.empid}
-            onClick={openEmpPopup}
+            onClick={isAdmin ? openEmpPopup : undefined}
             onKeyDown={(e) => handleKeyDown(e, 'empid', actualShiftRef)}
             size="small"
-            placeholder="Select Employee"
-            sx={{ ...requiredStyle, width: '180px' }}
+            placeholder={isAdmin ? "Select Employee" : ""}
+            sx={{ 
+              ...requiredStyle, 
+              width: '180px',
+              bgcolor: isAdmin ? '#fffde7' : '#f5f5f5',
+              cursor: isAdmin ? 'pointer' : 'default'
+            }}
             InputProps={{
               readOnly: true,
-              endAdornment: (
+              endAdornment: isAdmin ? (
                 <InputAdornment position="end">
                   <IconButton size="small" onClick={openEmpPopup}>
                     <SearchIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
-              ),
+              ) : null,
             }}
             error={!!fieldErrors.empid}
             helperText={fieldErrors.empid}

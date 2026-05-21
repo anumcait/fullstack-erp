@@ -1,7 +1,8 @@
 import React from "react";
-import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
+import "./WoffChangePreview.css"; // Dedicated styling sheet
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate, formatDateOnly } from "../../../utils/dateUtils";
+import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
 
 const WoffChangePreview = ({ data = {}, onClose }) => {
   const {
@@ -24,22 +25,36 @@ const WoffChangePreview = ({ data = {}, onClose }) => {
     status = "Pending"
   } = data;
 
+  let submissionStatus = "";
+  if (woff_to_date && woff_date) {
+    const entryDate = new Date(woff_date);
+    const requestedDate = new Date(woff_to_date);
+    if (requestedDate > entryDate) {
+      submissionStatus = "BEFORE SUBMISSION";
+    } else {
+      submissionStatus = "AFTER SUBMISSION";
+    }
+  }
+
   return (
-    <div className="onduty-print-overlay">
-      <div className="onduty-print-container">
+    <div className="woff-print-overlay">
+      <div className="woff-print-container">
         {/* Header */}
-        <div className="onduty-print-header">
-          <img src={logo} alt="Logo" className="onduty-logo" />
-          <div className="onduty-company-title">
+        <div className="woff-print-header">
+          <img src={logo} alt="Logo" className="woff-logo" />
+          <div className="woff-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
-            <span className="onduty-slip-title">WEEKLY OFF CHANGE SLIP</span>
+            <span className="woff-slip-title">WEEKLY OFF CHANGE SLIP</span>
           </div>
-          <div className={`onduty-before-box status-${status.toLowerCase()}`}>{status}</div>
+          {submissionStatus && (
+            <div className="woff-before-box">{submissionStatus}</div>
+          )}
         </div>
 
         {/* Details Table */}
-        <table className="onduty-field-table">
+        <table className="woff-field-table">
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">Woff ID</td>
@@ -91,7 +106,8 @@ const WoffChangePreview = ({ data = {}, onClose }) => {
         <hr />
 
         {/* Change Details */}
-        <table className="onduty-field-table">
+        <table className="woff-field-table">
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">Existing Date</td>
@@ -110,21 +126,15 @@ const WoffChangePreview = ({ data = {}, onClose }) => {
               <td className="colon"></td>
               <td className="value"></td>
             </tr>
-          </tbody>
-        </table>
-
-        {/* Reason & Remarks (separate tables for full-width wrapping) */}
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <tbody>
             <tr>
-              <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Reason</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{reason}</td>
+              <td className="label">Reason</td>
+              <td className="colon">:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top' }}>{reason}</td>
             </tr>
             <tr>
-              <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Remarks</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{remarks}</td>
+              <td className="label">Remarks</td>
+              <td className="colon">:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top' }}>{remarks}</td>
             </tr>
           </tbody>
         </table>
@@ -132,7 +142,7 @@ const WoffChangePreview = ({ data = {}, onClose }) => {
         <hr />
 
         {/* Signatures */}
-        <table className="onduty-signature-grid">
+        <table className="woff-signature-grid">
           <tbody>
             <tr>
               <td>
@@ -166,13 +176,13 @@ const WoffChangePreview = ({ data = {}, onClose }) => {
         </table>
 
         {/* Notes */}
-        <div className="onduty-note">
+        <div className="woff-note">
           * Employee must submit this form at least 24 hours in advance.<br />
           * Approval from Department Head and HR is mandatory for processing Weekly Off changes.
         </div>
 
         {/* Actions */}
-        <div className="onduty-actions no-print">
+        <div className="woff-actions no-print">
           <button onClick={() => window.print()}>Print</button>
           <button onClick={onClose}>Close</button>
         </div>

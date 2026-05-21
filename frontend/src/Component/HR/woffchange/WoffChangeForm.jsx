@@ -24,6 +24,9 @@ const requiredStyle = {
   backgroundColor: '#fffde7'
 };
 
+const getUserRole = () => localStorage.getItem('userRole') || '';
+const isAdminUser = () => getUserRole().toLowerCase() === 'admin';
+
 const WoffChangeForm = ({ onClose }) => {
   const dateInputRef = React.useRef(null);
   const toDateRef = React.useRef(null);
@@ -44,6 +47,7 @@ const WoffChangeForm = ({ onClose }) => {
   const { setIsDirty } = useNavigationGuard();
   const [shifts, setShifts] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({ woff_from_date: null });
+  const [isAdmin, setIsAdmin] = useState(isAdminUser());
 
   const [formData, setFormData] = useState({
     woff_id: "",
@@ -176,7 +180,59 @@ const WoffChangeForm = ({ onClose }) => {
     }
   };
 
-  useEffect(() => { fetchNextWoffId(); fetchShifts(); }, []);
+  const resetForm = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/woff/next-id`);
+      
+      const loggedInEmpId = localStorage.getItem('empId') || "";
+      const loggedInEmpName = localStorage.getItem('empName') || "";
+      const loggedInDept = localStorage.getItem('deptname') || "";
+      const loggedInDesig = localStorage.getItem('designation') || "";
+
+      setFormData({
+        woff_id: response.data.nextWoffId,
+        woff_date: new Date().toISOString(),
+        empid: loggedInEmpId,
+        ename: loggedInEmpName,
+        unit: "",
+        division: "",
+        designation: loggedInDesig,
+        department: loggedInDept,
+        section: "",
+        current_woff_day: "",
+        requested_woff_day: "",
+        woff_from_date: "",
+        woff_to_date: "",
+        shift_cd: "",
+        reason: "",
+        remarks: ""
+      });
+      setFieldErrors({ woff_from_date: null });
+
+      if (loggedInEmpId) {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/employees/${loggedInEmpId}`)
+          .then((empRes) => {
+            const emp = empRes.data;
+            setFormData(prev => ({
+              ...prev,
+              ename: emp.ename,
+              unit: emp.uname || prev.unit,
+              division: emp.divname || prev.division,
+              department: emp.deptname || emp.department || prev.department,
+              section: emp.secname || emp.section || prev.section,
+              designation: emp.designation || prev.designation,
+            }));
+          })
+          .catch((error) => {
+            console.error("Failed to fetch employee master details", error);
+          });
+      }
+    } catch (error) {
+      console.error("Failed to fetch next woff ID:", error);
+    }
+  };
+
+  useEffect(() => { resetForm(); fetchShifts(); }, []);
 
   const fetchShifts = async () => {
     try {
@@ -187,16 +243,8 @@ const WoffChangeForm = ({ onClose }) => {
     }
   };
 
-  const fetchNextWoffId = async () => {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/woff/next-id`);
-      setFormData(prev => ({ ...prev, woff_id: response.data.nextWoffId }));
-    } catch (error) {
-      console.error("Failed to fetch next woff ID:", error);
-    }
-  };
-
   const openEmpPopup = async () => {
+    if (!isAdmin) return;
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
       setEmployeeList(response.data);
@@ -277,25 +325,7 @@ const WoffChangeForm = ({ onClose }) => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/woff/apply`, formData);
       showToast(`✅ Woff Change Saved. ID: ${response.data.data.woff_id}`, "success");
       setIsDirty(false);
-      setFormData({
-        woff_id: "",
-        woff_date: new Date().toISOString(),
-        empid: "",
-        ename: "",
-        unit: "",
-        division: "",
-        designation: "",
-        department: "",
-        section: "",
-        current_woff_day: "",
-        requested_woff_day: "",
-        woff_from_date: "",
-        woff_to_date: "",
-        shift_cd: "",
-        reason: "",
-        remarks: ""
-      });
-      fetchNextWoffId();
+      resetForm();
     } catch (err) {
       console.error("Save error:", err);
       showToast(getErrorMessage(err, "Error saving woff application"), "error");
@@ -360,20 +390,25 @@ const WoffChangeForm = ({ onClose }) => {
             label={<RequiredLabel>Emp Id</RequiredLabel>}
             name="empid"
             value={formData.empid}
-            onClick={openEmpPopup}
+            onClick={isAdmin ? openEmpPopup : undefined}
             onKeyDown={(e) => handleKeyDown(e, 'empid', dateInputRef)}
             size="small"
-            placeholder="Select Employee"
-            sx={{ ...requiredStyle, width: '180px' }}
+            placeholder={isAdmin ? "Select Employee" : ""}
+            sx={{ 
+              ...requiredStyle, 
+              width: '180px',
+              bgcolor: isAdmin ? '#fffde7' : '#f5f5f5',
+              cursor: isAdmin ? 'pointer' : 'default'
+            }}
             InputProps={{
               readOnly: true,
-              endAdornment: (
+              endAdornment: isAdmin ? (
                 <InputAdornment position="end">
                   <IconButton size="small" onClick={openEmpPopup}>
                     <SearchIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
-              ),
+              ) : null,
             }}
             error={!!fieldErrors.empid}
             helperText={fieldErrors.empid}

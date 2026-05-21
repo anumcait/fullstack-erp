@@ -23,12 +23,16 @@ const requiredStyle = {
   backgroundColor: '#fffde7'
 };
 
+const getUserRole = () => localStorage.getItem('userRole') || '';
+const isAdminUser = () => getUserRole().toLowerCase() === 'admin';
+
 const ESILeaveForm = ({ onClose }) => {
   const dateInputRef = React.useRef(null);
   const toDateRef = React.useRef(null);
   const { showToast } = useToast();
   const { setIsDirty } = useNavigationGuard();
   const [fieldErrors, setFieldErrors] = useState({ leave_from_date: null });
+  const [isAdmin, setIsAdmin] = useState(isAdminUser());
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -67,19 +71,59 @@ const ESILeaveForm = ({ onClose }) => {
     setFieldErrors(prev => ({ ...prev, [e.target.name]: null }));
   };
 
-  useEffect(() => { fetchNextESILeaveId(); }, []);
-
-  const fetchNextESILeaveId = async () => {
+  const resetForm = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/esileave/next-id`);
-      setFormData(prev => ({ ...prev, esi_leave_id: response.data.nextESILeaveId }));
+      
+      const loggedInEmpId = localStorage.getItem('empId') || "";
+      const loggedInEmpName = localStorage.getItem('empName') || "";
+      const loggedInDept = localStorage.getItem('deptname') || "";
+      const loggedInDesig = localStorage.getItem('designation') || "";
+
+      setFormData({
+        esi_leave_id: response.data.nextESILeaveId,
+        esi_leave_date: getCurrentISTDateTime(),
+        empid: loggedInEmpId,
+        ename: loggedInEmpName,
+        unit: "",
+        division: "",
+        designation: loggedInDesig,
+        esi_no: "",
+        esi_dispencery: "",
+        hospital_name: "",
+        leave_from_date: "",
+        leave_to_date: "",
+        no_of_days: "",
+        reason: ""
+      });
+      setFieldErrors({ leave_from_date: null });
+
+      if (loggedInEmpId) {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/employees/${loggedInEmpId}`)
+          .then((empRes) => {
+            const emp = empRes.data;
+            setFormData(prev => ({
+              ...prev,
+              ename: emp.ename,
+              unit: emp.uname || prev.unit,
+              division: emp.divname || prev.division,
+              designation: emp.designation || prev.designation,
+              esi_no: emp.esiNo || prev.esi_no || ""
+            }));
+          })
+          .catch((error) => {
+            console.error("Failed to fetch employee master details", error);
+          });
+      }
     } catch (error) {
       console.error("Failed to fetch next ESI Leave ID:", error);
-      showToast(getErrorMessage(error, "Failed to fetch next ESI Leave ID"), "error");
     }
   };
 
+  useEffect(() => { resetForm(); }, []);
+
   const openEmpPopup = async () => {
+    if (!isAdmin) return;
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
       setEmployeeList(response.data);
@@ -175,23 +219,7 @@ const ESILeaveForm = ({ onClose }) => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/esileave/save`, formData);
       showToast(`✅ ESI Leave Saved. ID: ${response.data.esi_leave_id}`, "success");
       setIsDirty(false);
-      setFormData({
-        esi_leave_id: "",
-        esi_leave_date: getCurrentISTDateTime(),
-        empid: "",
-        ename: "",
-        unit: "",
-        division: "",
-        designation: "",
-        esi_no: "",
-        esi_dispencery: "",
-        hospital_name: "",
-        leave_from_date: "",
-        leave_to_date: "",
-        no_of_days: "",
-        reason: ""
-      });
-      fetchNextESILeaveId();
+      resetForm();
     } catch (err) {
       console.error("Save error:", err);
       showToast(getErrorMessage(err, "Error saving ESI Leave application"), "error");
@@ -232,19 +260,24 @@ const ESILeaveForm = ({ onClose }) => {
             label={<RequiredLabel>Emp ID</RequiredLabel>}
             name="empid"
             value={formData.empid}
-            onClick={openEmpPopup}
+            onClick={isAdmin ? openEmpPopup : undefined}
             size="small"
-            placeholder="Select Employee"
-            sx={{ ...requiredStyle, width: '180px' }}
+            placeholder={isAdmin ? "Select Employee" : ""}
+            sx={{ 
+              ...requiredStyle, 
+              width: '180px',
+              bgcolor: isAdmin ? '#fffde7' : '#f5f5f5',
+              cursor: isAdmin ? 'pointer' : 'default'
+            }}
             InputProps={{
               readOnly: true,
-              endAdornment: (
+              endAdornment: isAdmin ? (
                 <InputAdornment position="end">
                   <IconButton size="small" onClick={openEmpPopup}>
                     <SearchIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
-              ),
+              ) : null,
             }}
             error={!!fieldErrors.empid}
             helperText={fieldErrors.empid}
@@ -368,7 +401,7 @@ const ESILeaveForm = ({ onClose }) => {
       </div>
 
       <EmployeeSelectDialog open={showEmpPopup} onClose={() => setShowEmpPopup(false)} onSelect={selectEmployee} data={employeeList} />
-      {showPreview && <ESILeavePreview formData={formData} onClose={() => setShowPreview(false)} />}
+      {showPreview && <ESILeavePreview data={formData} onClose={() => setShowPreview(false)} />}
     </Box>
   );
 };

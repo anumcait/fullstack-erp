@@ -263,48 +263,90 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, h
           </thead>
           <tbody>
             {pagedData.map((row) => (
-              <tr key={row.sno}>
-                {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
-                  <td key={colIdx} style={{ textAlign: col.align || 'left', ...(col.expandable && row._expanded ? { whiteSpace: 'normal', wordBreak: 'break-word' } : {}) }}>
-                    {col.expandable ? (
-                      <div
-                        className={`reason-container ${row._expanded ? "expanded" : ""}`}
-                        title={!row._expanded ? row[col.field] : ""}
-                      >
-                        <span className="reason-text">{row[col.field]}</span>
-                      </div>
-                    ) : (
-                      row[col.field]
-                    )}
+              <React.Fragment key={row.sno}>
+                <tr className={row._expanded ? "row-expanded" : ""}>
+                  {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
+                    <td key={colIdx} style={{ textAlign: col.align || 'left', ...(col.expandable && row._expanded ? { whiteSpace: 'normal', wordBreak: 'break-word' } : {}) }}>
+                      {col.expandable ? (
+                        <div
+                          className={`reason-container ${row._expanded ? "expanded" : ""}`}
+                          title={!row._expanded ? row[col.field] : ""}
+                        >
+                          <span className="reason-text">{row[col.field]}</span>
+                        </div>
+                      ) : (
+                        row[col.field]
+                      )}
+                    </td>
+                  ))}
+                  <td className="preview-icon-cell">
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                      <a href="#" onClick={(e) => { e.preventDefault(); onPreview && onPreview(row); }} title="Preview">
+                        <FaSearch size={18} color="#007bff" />
+                      </a>
+                      <a href="#" onClick={(e) => { e.preventDefault(); onEdit && onEdit(row); }} title="Edit">
+                        <FaEdit size={18} color="#28a745" />
+                      </a>
+                    </div>
                   </td>
-                ))}
-                <td className="preview-icon-cell">
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                    <a href="#" onClick={(e) => { e.preventDefault(); onPreview && onPreview(row); }} title="Preview">
-                      <FaSearch size={18} color="#007bff" />
-                    </a>
-                    <a href="#" onClick={(e) => { e.preventDefault(); onEdit && onEdit(row); }} title="Edit">
-                      <FaEdit size={18} color="#28a745" />
-                    </a>
-                  </div>
-                </td>
-                <td className="expand-icon-cell">
-                  <div
-                    className="expand-wrapper"
-                    title={row._expanded ? "Collapse row" : "View all row content"}
-                    onClick={() => onToggleExpand && onToggleExpand(row)}
-                  >
-                    <svg
-                      viewBox="0 0 18 18"
-                      width="18"
-                      height="18"
-                      className={`unfold-icon ${row._expanded ? "rotated" : ""}`}
+                  <td className="expand-icon-cell">
+                    <div
+                      className={`expand-wrapper ${row._expanded ? "is-expanded" : ""}`}
+                      title={row._expanded ? "Collapse row" : "View all row content"}
+                      onClick={(e) => { e.stopPropagation(); onToggleExpand && onToggleExpand(row); }}
+                      style={{ 
+                        background: row._expanded ? '#e3f2fd' : '#f5f5f5',
+                        padding: '8px',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
                     >
-                      <path d="M3.5 4.5L2 6l7 7 7-7-1.5-1.5L9 10 3.5 4.5z" />
-                    </svg>
-                  </div>
-                </td>
-              </tr>
+                      <svg
+                        viewBox="0 0 18 18"
+                        width="24"
+                        height="24"
+                        className={`unfold-icon ${row._expanded ? "rotated" : ""}`}
+                        style={{ fill: row._expanded ? '#1976d2' : '#757575' }}
+                      >
+                        <path d="M3.5 4.5L2 6l7 7 7-7-1.5-1.5L9 10 3.5 4.5z" />
+                      </svg>
+                    </div>
+                  </td>
+                </tr>
+                {row._expanded && row.leaveDetails && row.leaveDetails.length > 1 && (
+                  <tr className="expanded-detail-row">
+                    <td colSpan={visibleColumns.length + 2} className="expanded-detail-cell">
+                      <div className="nested-grid-container">
+                        <table className="nested-detail-table">
+                          <thead>
+                            <tr>
+                              <th>From Date</th>
+                              <th>To Date</th>
+                              <th>Days</th>
+                              <th>Type</th>
+                              <th>Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {row.leaveDetails.map((detail, dIdx) => (
+                              <tr key={dIdx}>
+                                <td>{detail.frmdt ? new Date(detail.frmdt).toLocaleDateString('en-GB').replace(/\//g, '-') : '-'}</td>
+                                <td>{detail.todate ? new Date(detail.todate).toLocaleDateString('en-GB').replace(/\//g, '-') : '-'}</td>
+                                <td>{parseFloat(detail.nod || 0).toString()}</td>
+                                <td>{detail.daydt || "FULL DAY"}</td>
+                                <td>{detail.remarks || "-"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>

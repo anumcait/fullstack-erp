@@ -21,6 +21,17 @@ const TourPreview = ({ data = {}, onClose }) => {
     status = ""
   } = data;
 
+  let submissionStatus = "";
+  if (tour_from_date && tour_date) {
+    const entryDate = new Date(tour_date);
+    const fromDate = new Date(tour_from_date);
+    if (fromDate > entryDate) {
+      submissionStatus = "BEFORE SUBMISSION";
+    } else {
+      submissionStatus = "AFTER SUBMISSION";
+    }
+  }
+
   return (
     <div className="onduty-print-overlay">
       <div className="onduty-print-container">
@@ -32,7 +43,9 @@ const TourPreview = ({ data = {}, onClose }) => {
             <br />
             <span className="onduty-slip-title">TOUR APPLICATION SLIP</span>
           </div>
-          <div className={`onduty-before-box status-${status.toLowerCase()}`}>{status}</div>
+          {submissionStatus && (
+            <div className="onduty-before-box">{submissionStatus}</div>
+          )}
         </div>
 
         {/* Details Table */}
@@ -91,40 +104,29 @@ const TourPreview = ({ data = {}, onClose }) => {
             <tr>
               <td className="label">From Date</td>
               <td className="colon">:</td>
-              <td className="value" style={{ paddingLeft: '10px' }}>{formatDate(tour_from_date)}</td>
+              <td className="value">{formatDate(tour_from_date)}</td>
 
               <td className="label">To Date</td>
               <td className="colon">:</td>
-              <td className="value" style={{ paddingLeft: '10px' }}>{formatDate(tour_to_date)}</td>
+              <td className="value">{formatDate(tour_to_date)}</td>
 
               <td className="label">Days</td>
               <td className="colon">:</td>
-              <td className="value" style={{ paddingLeft: '10px' }}>{
+              <td className="value">{
                 tour_from_date && tour_to_date ?
                   Math.ceil((new Date(tour_to_date) - new Date(tour_from_date)) / (1000 * 60 * 60 * 24)) + 1
                   : ""
               }</td>
             </tr>
-          </tbody>
-        </table>
-
-        {/* Destination & Purpose (separate tables for full-width wrapping) */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          <colgroup>
-            <col style={{ width: '110px' }} />
-            <col style={{ width: '20px' }} />
-            <col style={{ width: '620px' }} />
-          </colgroup>
-          <tbody>
             <tr>
-              <td className="label" style={{ fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Destination</td>
-              <td className="colon" style={{ textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px 4px 10px' }}>{destination}</td>
+              <td className="label">Destination</td>
+              <td className="colon">:</td>
+              <td colSpan={7} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px 4px 10px' }}>{destination}</td>
             </tr>
             <tr>
-              <td className="label" style={{ fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Purpose</td>
-              <td className="colon" style={{ textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px 4px 10px' }}>{purpose}</td>
+              <td className="label">Purpose</td>
+              <td className="colon">:</td>
+              <td colSpan={7} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px 4px 10px' }}>{purpose}</td>
             </tr>
           </tbody>
         </table>

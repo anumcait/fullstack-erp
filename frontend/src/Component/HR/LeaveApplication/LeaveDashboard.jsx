@@ -13,6 +13,14 @@ const LeaveDashboard = () => {
   const location = useLocation();
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const action = params.get('action');
+    if (action && ['new', 'report', 'master', 'approval'].includes(action)) {
+      setSelectedAction(action);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
     if (location.state?.reset) setSelectedAction("report");
   }, [location.state?.reset]);
 

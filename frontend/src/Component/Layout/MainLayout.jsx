@@ -3,7 +3,8 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from "../Partials/Header";
 import Footer from "../Partials/Footer";
- import Sidebar from './Sidebar';
+import Sidebar from './Sidebar';
+import ChatBotIcon from '../ChatBot/ChatBotIcon';
 import './Layout.css';
 
 const MainLayout = () => {
@@ -16,6 +17,7 @@ const MainLayout = () => {
           <Outlet /> {/* This will render the nested route components */}
         </main>
       </div>
+      <ChatBotIcon />
       <Footer />
     </div>
   );

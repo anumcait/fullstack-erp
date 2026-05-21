@@ -46,12 +46,12 @@ module.exports = (sequelize, DataTypes) => {
       as: 'leaveDetails'
     });
 
-  // New association to LeaveMaster
-  // LeaveApplication.belongsTo(models.LeaveMaster, {
-  //   foreignKey: 'empid',
-  //   targetKey: 'empid',
-  //   as: 'leaveMaster'
-  // });
+    // Association to LeaveMaster
+    LeaveApplication.belongsTo(models.LeaveMaster, {
+      foreignKey: 'empid',
+      targetKey: 'empid',
+      as: 'leaveMaster'
+    });
 
 
     // LeaveApplication.hasOne(models.LeaveApproval, {  // must be inside associate

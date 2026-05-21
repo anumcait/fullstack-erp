@@ -2,6 +2,8 @@ import React from "react";
 import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
+import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
+import PreviewFieldTableColgroup3 from "../common/PreviewFieldTableColgroup3";
 
 const HRAttendancePreview = ({ data = {}, onClose }) => {
   const {
@@ -116,8 +118,8 @@ const HRAttendancePreview = ({ data = {}, onClose }) => {
           <tbody>
             <tr>
               <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Remarks</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{remarks}</td>
+              <td className="colon" style={{ verticalAlign: 'top', padding: '4px 6px' }}>:</td>
+              <td className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{remarks}</td>
             </tr>
           </tbody>
         </table>

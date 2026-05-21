@@ -23,6 +23,9 @@ const requiredStyle = {
   backgroundColor: '#fffde7'
 };
 
+const getUserRole = () => localStorage.getItem('userRole') || '';
+const isAdminUser = () => getUserRole().toLowerCase() === 'admin';
+
 const OnDutyForm = ({ onClose }) => {
   const empIdRef = React.useRef(null);
   const dateInputRef = React.useRef(null);
@@ -123,6 +126,7 @@ const OnDutyForm = ({ onClose }) => {
   const { setIsDirty } = useNavigationGuard();
   const [shifts, setShifts] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [isAdmin, setIsAdmin] = useState(isAdminUser());
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -255,7 +259,54 @@ const OnDutyForm = ({ onClose }) => {
     }
   };
 
-  useEffect(() => { fetchNextMovementId(); fetchShifts(); }, []);
+  const resetForm = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/onduty/next-id`);
+      
+      const loggedInEmpId = localStorage.getItem('empId') || "";
+      const loggedInEmpName = localStorage.getItem('empName') || "";
+      const loggedInDept = localStorage.getItem('deptname') || "";
+      const loggedInDesig = localStorage.getItem('designation') || "";
+
+      setFormData({
+        movement_id: response.data.nextMovementId,
+        movement_date: getCurrentISTDateTime(),
+        empid: loggedInEmpId,
+        ename: loggedInEmpName,
+        unit: "",
+        division: "",
+        designation: loggedInDesig,
+        shift: "",
+        act_date: "",
+        perm_ftime: "",
+        perm_ttime: "",
+        no_of_hrs: "",
+        reason_perm: ""
+      });
+      setFieldErrors({});
+
+      if (loggedInEmpId) {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/employees/${loggedInEmpId}`)
+          .then((empRes) => {
+            const emp = empRes.data;
+            setFormData(prev => ({
+              ...prev,
+              ename: emp.ename,
+              unit: emp.uname || prev.unit,
+              division: emp.divname || prev.division,
+              designation: emp.designation || prev.designation,
+            }));
+          })
+          .catch((error) => {
+            console.error("Failed to fetch employee master details", error);
+          });
+      }
+    } catch (error) {
+      console.error("Failed to fetch next movement ID:", error);
+    }
+  };
+
+  useEffect(() => { resetForm(); fetchShifts(); }, []);
 
   const fetchShifts = async () => {
     try {
@@ -266,16 +317,8 @@ const OnDutyForm = ({ onClose }) => {
     }
   };
 
-  const fetchNextMovementId = async () => {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/onduty/next-id`);
-      setFormData(prev => ({ ...prev, movement_id: response.data.nextMovementId }));
-    } catch (error) {
-      console.error("Failed to fetch next movement ID:", error);
-    }
-  };
-
   const openEmpPopup = async () => {
+    if (!isAdmin) return;
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
       setEmployeeList(response.data);
@@ -335,22 +378,7 @@ const OnDutyForm = ({ onClose }) => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/onduty/save`, formData);
       showToast(`On Duty Saved. ID: ${response.data.movement_id}`, "success");
       setIsDirty(false);
-      setFormData({
-        movement_id: "",
-        movement_date: getCurrentISTDateTime(),
-        empid: "",
-        ename: "",
-        unit: "",
-        division: "",
-        designation: "",
-        shift: "",
-        act_date: "",
-        perm_ftime: "",
-        perm_ttime: "",
-        no_of_hrs: "",
-        reason_perm: ""
-      });
-      fetchNextMovementId();
+      resetForm();
     } catch (err) {
       console.error("Save error:", err);
       showToast(getErrorMessage(err, "Error saving On Duty application"), "error");
@@ -416,20 +444,25 @@ const OnDutyForm = ({ onClose }) => {
             name="empid"
             inputRef={empIdRef}
             value={formData.empid}
-            onClick={openEmpPopup}
+            onClick={isAdmin ? openEmpPopup : undefined}
             onKeyDown={(e) => handleKeyDown(e, 'empid', dateInputRef)}
             size="small"
-            placeholder="Select Employee"
-            sx={{ ...requiredStyle, width: '180px' }}
+            placeholder={isAdmin ? "Select Employee" : ""}
+            sx={{ 
+              ...requiredStyle, 
+              width: '180px',
+              bgcolor: isAdmin ? '#fffde7' : '#f5f5f5',
+              cursor: isAdmin ? 'pointer' : 'default'
+            }}
             InputProps={{
               readOnly: true,
-              endAdornment: (
+              endAdornment: isAdmin ? (
                 <InputAdornment position="end">
                   <IconButton size="small" onClick={openEmpPopup}>
                     <SearchIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
-              ),
+              ) : null,
             }}
             error={!!fieldErrors.empid}
             helperText={fieldErrors.empid}

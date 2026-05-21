@@ -11,6 +11,14 @@ const AdvanceDashboard = () => {
   const dropdownRef = useRef(null);
   const location = useLocation();
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const action = params.get('action');
+    if (action && ['new', 'table', 'approval'].includes(action)) {
+      setSelectedAction(action);
+    }
+  }, [location.search]);
+
   // Reset to table view when navigating here via "Leave Anyway"
   useEffect(() => {
     if (location.state?.reset) {

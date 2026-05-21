@@ -109,16 +109,6 @@ services:
     networks: [hr-network]
     restart: unless-stopped
 
-  # genai:
-  #   build:
-  #     context: ./genai
-  #   container_name: hr-genai
-  #   volumes:
-  #     - ./genai:/app
-  #   ports:
-  #     - "5001:5001"
-  #   networks: [hr-network]
-
   nginx:
     image: nginx:latest
     container_name: hr-nginx

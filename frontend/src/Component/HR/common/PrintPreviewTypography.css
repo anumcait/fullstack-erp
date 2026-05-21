@@ -1,0 +1,305 @@
+/**
+ * Overrides index.css `* { font-size: 14px }` inside HR print/preview slips.
+ * Sizes tuned for readable on-screen preview (compact but not tiny).
+ */
+
+/* ─── Leave ─── */
+.leave-print-container {
+  font-size: 14px !important;
+}
+
+.leave-print-container .leave-company-title {
+  font-size: 16px !important;
+}
+
+.leave-print-container .leave-slip-title {
+  font-size: 14px !important;
+}
+
+.leave-print-container .leave-before-box {
+  font-size: 12px !important;
+}
+
+.leave-print-container .leave-field-table td,
+.leave-print-container .leave-field-table .label,
+.leave-print-container .leave-field-table .colon,
+.leave-print-container .leave-field-table td * {
+  font-size: 14px !important;
+}
+
+.leave-print-container .leave-field-table .value,
+.leave-print-container .leave-field-table .value * {
+  font-size: 13px !important;
+}
+
+.leave-print-container table:not(.leave-field-table):not(.leave-office-table):not(.leave-company-days-table):not(.leave-signature-grid) td,
+.leave-print-container table:not(.leave-field-table):not(.leave-office-table):not(.leave-company-days-table):not(.leave-signature-grid) th,
+.leave-print-container table:not(.leave-field-table):not(.leave-office-table):not(.leave-company-days-table):not(.leave-signature-grid) td *,
+.leave-print-container table:not(.leave-field-table):not(.leave-office-table):not(.leave-company-days-table):not(.leave-signature-grid) th * {
+  font-size: 13px !important;
+}
+
+.leave-print-container .label,
+.leave-print-container .colon {
+  font-size: 14px !important;
+}
+
+.leave-print-container .leave-office-table {
+  font-size: 11px !important;
+}
+
+.leave-print-container .leave-office-table th,
+.leave-print-container .leave-office-table td,
+.leave-print-container .leave-office-table th *,
+.leave-print-container .leave-office-table td * {
+  font-size: 11px !important;
+}
+
+.leave-print-container .leave-office-table th:not(:first-child),
+.leave-print-container .leave-office-table td:not(:first-child) {
+  font-size: 12px !important;
+}
+
+.leave-print-container .leave-company-days-table,
+.leave-print-container .leave-company-days-table th,
+.leave-print-container .leave-company-days-table td,
+.leave-print-container .leave-company-days-table th *,
+.leave-print-container .leave-company-days-table td * {
+  font-size: 12px !important;
+}
+
+.leave-print-container .leave-note,
+.leave-print-container .leave-date-sign,
+.leave-print-container .leave-date-sign *,
+.leave-print-container .leave-signatures-row,
+.leave-print-container .leave-signatures-row *,
+.leave-print-container .leave-report-date {
+  font-size: 11px !important;
+}
+
+.leave-print-container .leave-signature-grid,
+.leave-print-container .leave-signature-grid td {
+  font-size: 12px !important;
+}
+
+.leave-print-container .leave-signature-grid td * {
+  font-size: 13px !important;
+}
+
+/* ─── Advance ─── */
+.adv-print-container {
+  font-size: 12px !important;
+}
+
+.adv-print-container .adv-company-title {
+  font-size: 16px !important;
+}
+
+.adv-print-container .adv-slip-title {
+  font-size: 14px !important;
+}
+
+.adv-print-container .adv-field-table td,
+.adv-print-container .adv-field-table .label,
+.adv-print-container .adv-field-table .colon,
+.adv-print-container .adv-field-table .value,
+.adv-print-container .adv-field-table td * {
+  font-size: 14px !important;
+}
+
+.adv-print-container table:not(.adv-field-table):not(.adv-signature-grid) td,
+.adv-print-container table:not(.adv-field-table):not(.adv-signature-grid) .label,
+.adv-print-container table:not(.adv-field-table):not(.adv-signature-grid) .colon,
+.adv-print-container table:not(.adv-field-table):not(.adv-signature-grid) .value,
+.adv-print-container table:not(.adv-field-table):not(.adv-signature-grid) td * {
+  font-size: 13px !important;
+}
+
+.adv-print-container .adv-section-title {
+  font-size: 13px !important;
+}
+
+.adv-print-container .adv-signature-grid,
+.adv-print-container .adv-signature-grid td,
+.adv-print-container .adv-signature-grid td * {
+  font-size: 12px !important;
+}
+
+/* ─── ESI / On Duty / Woff / Shift Change ─── */
+.esi-print-container,
+.onduty-print-container,
+.woff-print-container,
+.schange-print-container {
+  font-size: 12px !important;
+}
+
+.esi-print-container .esi-company-title,
+.onduty-print-container .onduty-company-title,
+.woff-print-container .woff-company-title,
+.schange-print-container .schange-company-title {
+  font-size: 16px !important;
+}
+
+.esi-print-container .esi-slip-title,
+.onduty-print-container .onduty-slip-title,
+.woff-print-container .woff-slip-title,
+.schange-print-container .schange-slip-title {
+  font-size: 14px !important;
+}
+
+.onduty-print-container .onduty-before-box,
+.woff-print-container .woff-before-box,
+.schange-print-container .schange-before-box {
+  font-size: 12px !important;
+}
+
+.esi-print-container .esi-field-table td,
+.esi-print-container .esi-field-table .label,
+.esi-print-container .esi-field-table .colon,
+.esi-print-container .esi-field-table .value,
+.esi-print-container .esi-field-table td *,
+.onduty-print-container .onduty-field-table td,
+.onduty-print-container .onduty-field-table .label,
+.onduty-print-container .onduty-field-table .colon,
+.onduty-print-container .onduty-field-table .value,
+.onduty-print-container .onduty-field-table td *,
+.woff-print-container .woff-field-table td,
+.woff-print-container .woff-field-table .label,
+.woff-print-container .woff-field-table .colon,
+.woff-print-container .woff-field-table .value,
+.woff-print-container .woff-field-table td *,
+.schange-print-container .schange-field-table td,
+.schange-print-container .schange-field-table .label,
+.schange-print-container .schange-field-table .colon,
+.schange-print-container .schange-field-table .value,
+.schange-print-container .schange-field-table td * {
+  font-size: 12px !important;
+}
+
+.esi-print-container .label,
+.esi-print-container .colon,
+.esi-print-container .value,
+.onduty-print-container .label,
+.onduty-print-container .colon,
+.onduty-print-container .value,
+.woff-print-container .label,
+.woff-print-container .colon,
+.woff-print-container .value,
+.schange-print-container .label,
+.schange-print-container .colon,
+.schange-print-container .value {
+  font-size: 12px !important;
+}
+
+.onduty-print-container .onduty-note,
+.woff-print-container .woff-note,
+.schange-print-container .schange-note,
+.onduty-print-container .onduty-note *,
+.woff-print-container .woff-note *,
+.schange-print-container .schange-note * {
+  font-size: 11px !important;
+}
+
+.esi-print-container .esi-signature-grid,
+.esi-print-container .esi-signature-grid td,
+.esi-print-container .esi-signature-grid td *,
+.onduty-print-container .onduty-signature-grid,
+.onduty-print-container .onduty-signature-grid td,
+.onduty-print-container .onduty-signature-grid td *,
+.woff-print-container .woff-signature-grid,
+.woff-print-container .woff-signature-grid td,
+.woff-print-container .woff-signature-grid td *,
+.schange-print-container .schange-signature-grid,
+.schange-print-container .schange-signature-grid td,
+.schange-print-container .schange-signature-grid td * {
+  font-size: 12px !important;
+}
+
+/* Fixed 6-column grid so ":" lines up across rows and tables */
+.leave-print-container .leave-field-table col.preview-col-label,
+.adv-print-container .adv-field-table col.preview-col-label,
+.esi-print-container .esi-field-table col.preview-col-label,
+.onduty-print-container .onduty-field-table col.preview-col-label,
+.woff-print-container .woff-field-table col.preview-col-label,
+.schange-print-container .schange-field-table col.preview-col-label,
+.onduty-print-container .onduty-field-table--single col.preview-col-label {
+  width: 125px;
+}
+
+.onduty-print-container .onduty-field-table--single col.preview-col-colon {
+  width: 18px;
+}
+
+.leave-print-container .leave-field-table col.preview-col-colon,
+.adv-print-container .adv-field-table col.preview-col-colon,
+.esi-print-container .esi-field-table col.preview-col-colon,
+.onduty-print-container .onduty-field-table col.preview-col-colon,
+.woff-print-container .woff-field-table col.preview-col-colon,
+.schange-print-container .schange-field-table col.preview-col-colon {
+  width: 18px;
+}
+
+.leave-print-container .leave-field-table,
+.adv-print-container .adv-field-table,
+.esi-print-container .esi-field-table,
+.onduty-print-container .onduty-field-table,
+.onduty-print-container .onduty-field-table--single,
+.woff-print-container .woff-field-table,
+.schange-print-container .schange-field-table {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+.leave-print-container .leave-field-table .label,
+.adv-print-container .adv-field-table .label,
+.esi-print-container .esi-field-table .label,
+.onduty-print-container .onduty-field-table .label,
+.woff-print-container .woff-field-table .label,
+.schange-print-container .schange-field-table .label {
+  width: auto !important;
+  max-width: none !important;
+}
+
+.leave-print-container .leave-field-table .value,
+.adv-print-container .adv-field-table .value,
+.esi-print-container .esi-field-table .value,
+.onduty-print-container .onduty-field-table .value,
+.woff-print-container .woff-field-table .value,
+.schange-print-container .schange-field-table .value {
+  width: auto !important;
+}
+
+/* ─── Colon column: left-aligned, same vertical line ─── */
+.leave-print-container .colon,
+.adv-print-container .colon,
+.esi-print-container .colon,
+.onduty-print-container .colon,
+.woff-print-container .colon,
+.schange-print-container .colon {
+  width: 18px !important;
+  min-width: 18px !important;
+  max-width: 18px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+  text-align: left !important;
+  vertical-align: top !important;
+  white-space: nowrap !important;
+}
+
+/* Highlight field data; same left edge as colon column */
+.leave-print-container .value,
+.adv-print-container .value,
+.esi-print-container .value,
+.onduty-print-container .value,
+.woff-print-container .value,
+.schange-print-container .value,
+.leave-print-container .preview-field-data,
+.adv-print-container .preview-field-data,
+.esi-print-container .preview-field-data,
+.onduty-print-container .preview-field-data,
+.woff-print-container .preview-field-data,
+.schange-print-container .preview-field-data {
+  padding-left: 4px !important;
+  font-weight: 600 !important;
+  color: #000 !important;
+}

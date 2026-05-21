@@ -13,7 +13,7 @@ const leaveRoutes = require('./routes/HR/leaveRoutes');
 const ondutyRoutes = require('./routes/HR/ondutyRoutes');
 const shiftRoutes = require('./routes/HR/shiftRoutes');
 const jasperRoutes = require('./routes/jasperRoutes');
-// const gptRoutes = require('./routes/gptRoutes'); // Disabled LLM features
+const gptRoutes = require('./routes/gptRoutes');
 const dashboardRoutes = require('./routes/HR/dashboardRoutes');
 const tourRoutes = require('./routes/HR/tourRoutes');
 const woffRoutes = require('./routes/HR/woffRoutes');
@@ -56,14 +56,29 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 //   }
 // }));
 
+const pgSession = require('connect-pg-simple')(session);
+const { Pool } = require('pg');
+
+const pgPool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT || 5432,
+});
+
 app.use(session({
+  store: new pgSession({
+    pool: pgPool,
+    tableName: 'session'
+  }),
   secret: process.env.SESSION_SECRET || 'change-me-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true with HTTPS in prod
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 // 1 hour
+    maxAge: 1000 * 60 * 60 * 24 // 24 hours
   }
 }));
 
@@ -74,7 +89,7 @@ app.use('/api/onduty', ondutyRoutes);
 app.use('/api/shift', shiftRoutes);
 app.use('/api/jasper', jasperRoutes);
 app.use('/api/auth', authRoutes);
-// app.use('/api/gpt', gptRoutes); // Disabled LLM features
+app.use('/api/gpt', gptRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tour', tourRoutes);
 app.use('/api/woff', woffRoutes);

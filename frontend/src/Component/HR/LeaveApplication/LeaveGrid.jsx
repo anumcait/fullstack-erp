@@ -115,15 +115,13 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
       // 4. Database Overlap Check
       if (empId && updated[index].fromDate && updated[index].toDate) {
         try {
-          const overlapRes = await axios.get(`/api/leave/check-overlap`, {
-            params: { 
-              empid: empId, 
-              fromDate: updated[index].fromDate, 
-              toDate: updated[index].toDate 
-            }
+          const overlapRes = await axios.post(`/api/leave/check-overlap`, {
+            empid: empId, 
+            fromDate: updated[index].fromDate, 
+            toDate: updated[index].toDate 
           });
-          if (overlapRes.data.overlapping) {
-            showToast("Leave already exists for this date range in the database.", "error");
+          if (overlapRes.data.overlap) {
+            showToast(`Leave already exists for ${new Date(overlapRes.data.overlapDate).toLocaleDateString('en-GB').replace(/\//g, '-')} (Application #${overlapRes.data.lno})`, "error");
             updated[index][field] = "";
             setRows(updated);
             return;
@@ -173,7 +171,31 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
     }
     setOverlapIndexes([...new Set(indexes)]);
     if (onValidationError) onValidationError(indexes.length > 0);
-  }, [rows]);
+
+    // Re-validate all rows against DB when empId changes
+    const checkAllOverlaps = async () => {
+      if (!empId) return;
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (r.fromDate && r.toDate) {
+          try {
+            const res = await axios.post(`/api/leave/check-overlap`, {
+              empid: empId, fromDate: r.fromDate, toDate: r.toDate
+            });
+            if (res.data.overlap) {
+              showToast(`Row ${i+1}: Leave already exists for ${new Date(res.data.overlapDate).toLocaleDateString('en-GB').replace(/\//g, '-')} (#${res.data.lno})`, "error");
+              const updated = [...rows];
+              updated[i].fromDate = "";
+              updated[i].toDate = "";
+              updated[i].noOfDays = "";
+              setRows(updated);
+            }
+          } catch (err) {}
+        }
+      }
+    };
+    checkAllOverlaps();
+  }, [rows, empId]);
 
   return (
     <Box sx={{ mt: 1 }}>

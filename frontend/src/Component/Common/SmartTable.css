@@ -3,6 +3,7 @@
   width: 100%;
   position: relative;
 }
+
 /* Top mirror scrollbar */
 .smart-table-top-scroll {
   overflow-x: auto;
@@ -14,7 +15,6 @@
 
 .smart-table-top-scroll-inner {
   height: 1px;
-  min-width: 1200px; /* matches table min-width */
 }
 
 .smart-table-container {
@@ -23,7 +23,7 @@
 }
 
 .smart-table {
-  min-width: 1000px;
+  width: auto;
 }
 
 
@@ -44,10 +44,54 @@
 .smart-header-actions {
   display: flex;
   align-items: center;
-  gap: 4px; /* Reduced gap */
+  gap: 4px;
+  /* Reduced gap */
 }
 
-/* Reuse common icon button styles */
+/* Nested Detail Grid Styles */
+.expanded-detail-row {}
+
+.expanded-detail-cell {
+  padding: 10px 40px !important;
+}
+
+.nested-grid-container {
+  padding: 5px 15px;
+}
+
+.nested-detail-table {
+  width: auto;
+  min-width: 400px;
+  max-width: 800px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.nested-detail-table th {
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.nested-detail-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.nested-detail-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.row-expanded {}
+
+.row-expanded td {
+  font-weight: 500;
+}
+
 .icon-button {
   background: none;
   border: none;
@@ -65,12 +109,14 @@
 /* Specific styles for Excel and PDF */
 .excel-btn {
   color: white;
-  background-color: #217346; /* Excel green */
+  background-color: #217346;
+  /* Excel green */
 }
 
 .pdf-btn {
   color: white;
-  background-color: #d32f2f; /* PDF red */
+  background-color: #d32f2f;
+  /* PDF red */
 }
 
 .excel-btn:hover {
@@ -161,8 +207,7 @@
 }
 
 .smart-table {
-  width: 100%;
-  min-width: 1000px;
+  width: auto;
   border-collapse: collapse;
 }
 
@@ -223,6 +268,7 @@
   font-size: 14px;
   gap: 8px;
 }
+
 .dropdown-count {
   font-size: 14px;
   color: #333;
@@ -263,10 +309,12 @@
   border-top: 1px solid #e0e0e0;
   margin: 0 0 10px 0;
 }
+
 .sortable-header {
   position: relative;
   cursor: pointer;
 }
+
 .sort-icon {
   margin-left: 6px;
   color: #888;
@@ -289,7 +337,8 @@
 
 .pagination-row {
   display: flex;
-  justify-content: flex-end; /* Right-aligned */
+  justify-content: flex-end;
+  /* Right-aligned */
   margin-top: 12px;
   padding: 0 10px;
 }
@@ -307,6 +356,7 @@
   border: 1px solid #ccc;
   font-size: 14px;
 }
+
 .rows-per-page {
   display: flex;
   align-items: center;

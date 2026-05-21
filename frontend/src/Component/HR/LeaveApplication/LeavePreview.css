@@ -102,18 +102,21 @@
   text-overflow: ellipsis;
 }
 
-.label {
-  width: 95px;
-  font-weight: bold;
+.leave-print-container .label {
+  font-weight: normal !important;
+  white-space: nowrap;
+  font-size: 12px !important;
 }
 
-.colon {
-  width: 8px;
-  text-align: center;
+.leave-print-container .colon {
+  font-size: 12px !important;
 }
 
-.value {
-  width: 130px;
+.leave-print-container .value {
+  word-break: break-word;
+  font-weight: 600 !important;
+  white-space: normal;
+  font-size: 12px !important;
 }
 
 .leave-note {

@@ -23,6 +23,9 @@ const requiredStyle = {
   backgroundColor: '#fffde7'
 };
 
+const getUserRole = () => localStorage.getItem('userRole') || '';
+const isAdminUser = () => getUserRole().toLowerCase() === 'admin';
+
 const TourForm = ({ onClose }) => {
   const destinationRef = React.useRef(null);
   const dateInputRef = React.useRef(null);
@@ -43,6 +46,7 @@ const TourForm = ({ onClose }) => {
   const { showToast } = useToast();
   const { setIsDirty } = useNavigationGuard();
   const [fieldErrors, setFieldErrors] = useState({ tour_from_date: null });
+  const [isAdmin, setIsAdmin] = useState(isAdminUser());
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -203,18 +207,57 @@ const TourForm = ({ onClose }) => {
     }
   };
 
-  useEffect(() => { fetchNextTourId(); }, []);
-
-  const fetchNextTourId = async () => {
+  const resetForm = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tour/next-id`);
-      setFormData(prev => ({ ...prev, tour_id: response.data.nextTourId }));
+      
+      const loggedInEmpId = localStorage.getItem('empId') || "";
+      const loggedInEmpName = localStorage.getItem('empName') || "";
+      const loggedInDept = localStorage.getItem('deptname') || "";
+      const loggedInDesig = localStorage.getItem('designation') || "";
+
+      setFormData({
+        tour_id: response.data.nextTourId,
+        tour_date: getCurrentISTDateTime(),
+        empid: loggedInEmpId,
+        ename: loggedInEmpName,
+        unit: "",
+        division: "",
+        designation: loggedInDesig,
+        tour_from_date: "",
+        tour_to_date: "",
+        destination: "",
+        purpose: "",
+        estimated_amount: "",
+        remarks: ""
+      });
+      setFieldErrors({ tour_from_date: null });
+
+      if (loggedInEmpId) {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/employees/${loggedInEmpId}`)
+          .then((empRes) => {
+            const emp = empRes.data;
+            setFormData(prev => ({
+              ...prev,
+              ename: emp.ename,
+              unit: emp.uname || prev.unit,
+              division: emp.divname || prev.division,
+              designation: emp.designation || prev.designation,
+            }));
+          })
+          .catch((error) => {
+            console.error("Failed to fetch employee master details", error);
+          });
+      }
     } catch (error) {
       console.error("Failed to fetch next tour ID:", error);
     }
   };
 
+  useEffect(() => { resetForm(); }, []);
+
   const openEmpPopup = async () => {
+    if (!isAdmin) return;
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
       setEmployeeList(response.data);
@@ -270,22 +313,7 @@ const TourForm = ({ onClose }) => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/tour/apply`, formData);
       showToast(`✅ Tour Application Saved. ID: ${response.data.data.tour_id}`, "success");
       setIsDirty(false);
-      setFormData({
-        tour_id: "",
-        tour_date: getCurrentISTDateTime(),
-        empid: "",
-        ename: "",
-        unit: "",
-        division: "",
-        designation: "",
-        tour_from_date: "",
-        tour_to_date: "",
-        destination: "",
-        purpose: "",
-        estimated_amount: "",
-        remarks: ""
-      });
-      fetchNextTourId();
+      resetForm();
     } catch (err) {
       console.error("Save error:", err);
       showToast(getErrorMessage(err, "Error saving Tour application"), "error");
@@ -350,20 +378,25 @@ const TourForm = ({ onClose }) => {
             label={<RequiredLabel>Emp ID</RequiredLabel>}
             name="empid"
             value={formData.empid}
-            onClick={openEmpPopup}
+            onClick={isAdmin ? openEmpPopup : undefined}
             onKeyDown={(e) => handleKeyDown(e, 'empid', destinationRef)}
             size="small"
-            placeholder="Select Employee"
-            sx={{ ...requiredStyle, width: '180px' }}
+            placeholder={isAdmin ? "Select Employee" : ""}
+            sx={{ 
+              ...requiredStyle, 
+              width: '180px',
+              bgcolor: isAdmin ? '#fffde7' : '#f5f5f5',
+              cursor: isAdmin ? 'pointer' : 'default'
+            }}
             InputProps={{
               readOnly: true,
-              endAdornment: (
+              endAdornment: isAdmin ? (
                 <InputAdornment position="end">
                   <IconButton size="small" onClick={openEmpPopup}>
                     <SearchIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
-              ),
+              ) : null,
             }}
             error={!!fieldErrors.empid}
             helperText={fieldErrors.empid}

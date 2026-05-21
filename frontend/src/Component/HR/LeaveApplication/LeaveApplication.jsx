@@ -18,33 +18,57 @@ axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
 const RequiredLabel = ({ label }) => (
   <span>
-    {label} <span style={{ color: "red" }}>*</span>
+    {label} <span style={{ color: 'red', marginLeft: 2 }}>*</span>
   </span>
 );
 
+// Helper to get user role and admin status
+const getUserRole = () => localStorage.getItem('userRole') || '';
+const isAdminUser = () => getUserRole().toLowerCase() === 'admin';
+
+const getCurrentISTDateTime = () => {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+};
+
 const LeaveApplication = ({ onClose }) => {
   const { showToast } = useToast();
-  const { setIsDirty } = useNavigationGuard();
+  const [isDirty, setIsDirty] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(isAdminUser());
+  const [formData, setFormData] = useState({
+    lappNo: "",
+    date: getCurrentISTDateTime(),
+    empId: "",
+    ename: "",
+    department: "",
+    designation: "",
+    purpose: "",
+    address: "",
+    phone: "",
+    clUsed: 0,
+    clBalance: 0,
+    elUsed: 0,
+    elBalance: 0,
+  });
 
   const purposeRef = useRef(null);
   const phoneRef = useRef(null);
   const addressRef = useRef(null);
+  const empIdRef = useRef(null);
 
   const fieldRefs = {
     purpose: purposeRef,
     phone: phoneRef,
     address: addressRef,
+    empId: empIdRef,
   };
 
-  const getCurrentISTDateTime = () => {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-  };
+  // Duplicate getCurrentISTDateTime removed
 
   const formatDateTimeAMPM = (dateInput) => {
     if (!dateInput) return "";
@@ -60,21 +84,7 @@ const LeaveApplication = ({ onClose }) => {
     return `${d}-${m}-${y} ${hours}:${mins} ${ampm}`;
   };
 
-  const [formData, setFormData] = useState({
-    lappNo: "",
-    date: getCurrentISTDateTime(),
-    empId: "",
-    ename: "",
-    department: "",
-    designation: "",
-    purpose: "",
-    clUsed: 0,
-    clBalance: 0,
-    elUsed: 0,
-    elBalance: 0,
-    address: "",
-    phone: "",
-  });
+  // Removed duplicate formData initialization – keep the earlier one.
 
   const [leaveDetails, setLeaveDetails] = useState([
     { dayType: "FULL DAY", fromDate: "", toDate: "", noOfDays: "", remarks: "" },
@@ -95,22 +105,28 @@ const LeaveApplication = ({ onClose }) => {
   };
 
   const loadEmpList = async () => {
+    if (!isAdmin) return;
     try {
-      const res = await axios.get(`/api/employees`);
+      const res = await axios.get('/api/employees');
       setEmployeeList(res.data);
       setShowEmpPopup(true);
-    } catch (err) {
-      showToast(getErrorMessage(err, "Failed to load employee list"), "error");
+    } catch (error) {
+      showToast(getErrorMessage(error, "Failed to load employee list"), "error");
     }
   };
 
   const selectEmployee = async (emp) => {
+    const address = [emp.cadd_sa, emp.cadd_city, emp.cadd_state].filter(Boolean).join(', ').slice(0, 100);
+    const phone = (emp.cadd_mobile || emp.cadd_phone || '').replace(/\D/g, "").slice(0, 10);
+
     setFormData((prev) => ({
       ...prev,
       empId: emp.empid,
       ename: emp.ename,
       department: emp.deptname || emp.department || "",
       designation: emp.designation,
+      address: address,
+      phone: phone,
       clUsed: 0,
       clBalance: 0,
       elUsed: 0,
@@ -153,14 +169,20 @@ const LeaveApplication = ({ onClose }) => {
   const resetForm = async () => {
     try {
       const res = await axios.get(`/api/leave/next-lno`);
+
+      const loggedInEmpId = localStorage.getItem('empId') || "";
+      const loggedInEmpName = localStorage.getItem('empName') || "";
+      const loggedInDept = localStorage.getItem('deptname') || "";
+      const loggedInDesig = localStorage.getItem('designation') || "";
+
       setFormData((prev) => ({
         ...prev,
         lappNo: res.data.nextLno,
         date: getCurrentISTDateTime(),
-        empId: "",
-        ename: "",
-        department: "",
-        designation: "",
+        empId: loggedInEmpId,
+        ename: loggedInEmpName,
+        department: loggedInDept,
+        designation: loggedInDesig,
         purpose: "",
         address: "",
         phone: "",
@@ -171,6 +193,43 @@ const LeaveApplication = ({ onClose }) => {
       }));
       setLeaveDetails([{ dayType: "FULL DAY", fromDate: "", toDate: "", noOfDays: "", remarks: "" }]);
       setGridKey(Date.now());
+
+      if (loggedInEmpId) {
+        // Fetch employee master details to get address and phone
+        axios.get(`/api/employees/${loggedInEmpId}`)
+          .then((empRes) => {
+            const emp = empRes.data;
+            const address = [emp.cadd_sa, emp.cadd_city, emp.cadd_state].filter(Boolean).join(', ').slice(0, 100);
+            const phone = (emp.cadd_mobile || emp.cadd_phone || '').replace(/\D/g, "").slice(0, 10);
+
+            setFormData((prev) => ({
+              ...prev,
+              ename: emp.ename,
+              department: emp.deptname || emp.department || prev.department,
+              designation: emp.designation || prev.designation,
+              address: address,
+              phone: phone,
+            }));
+          })
+          .catch((error) => {
+            console.error("Failed to fetch employee master details", error);
+          });
+
+        axios.get(`/api/leave/balance/${loggedInEmpId}`)
+          .then((balRes) => {
+            setFormData((prev) => ({
+              ...prev,
+              clUsed: balRes.data.cls_utilised || 0,
+              clBalance: balRes.data.cls_balance || 0,
+              elUsed: balRes.data.els_utilised || 0,
+              elBalance: balRes.data.els_balance || 0,
+            }));
+          })
+          .catch((error) => {
+            showToast(getErrorMessage(error, "Failed to fetch leave balance"), "error");
+          });
+      }
+
     } catch (error) {
       showToast(getErrorMessage(error, "Failed to fetch next leave number"), "error");
     }
@@ -181,14 +240,32 @@ const LeaveApplication = ({ onClose }) => {
     const newErrors = {};
     let firstRef = null;
 
-    if (!formData.empId) { showToast("Employee selection is mandatory", "error"); hasError = true; }
-    if (!formData.purpose) { newErrors.purpose = "Required"; hasError = true; if (!firstRef) firstRef = purposeRef; }
-    if (!formData.phone) { 
-      newErrors.phone = "Required"; hasError = true; if (!firstRef) firstRef = phoneRef; 
-    } else if (formData.phone.length !== 10) {
-      newErrors.phone = "Must be 10 digits"; hasError = true; if (!firstRef) firstRef = phoneRef;
+    // Employee selection mandatory only for admin users
+    if (isAdmin && !formData.empId) {
+      newErrors.empId = "Employee selection is mandatory";
+      hasError = true;
+      if (!firstRef) firstRef = empIdRef;
     }
-    if (!formData.address) { newErrors.address = "Required"; hasError = true; if (!firstRef) firstRef = addressRef; }
+
+    if (!formData.purpose) {
+      newErrors.purpose = "Required";
+      hasError = true;
+      if (!firstRef) firstRef = purposeRef;
+    }
+    if (!formData.phone) {
+      newErrors.phone = "Required";
+      hasError = true;
+      if (!firstRef) firstRef = phoneRef;
+    } else if (formData.phone.length !== 10) {
+      newErrors.phone = "Must be 10 digits";
+      hasError = true;
+      if (!firstRef) firstRef = phoneRef;
+    }
+    if (!formData.address) {
+      newErrors.address = "Required";
+      hasError = true;
+      if (!firstRef) firstRef = addressRef;
+    }
 
     if (hasError) {
       setFieldErrors(newErrors);
@@ -197,13 +274,35 @@ const LeaveApplication = ({ onClose }) => {
       return;
     }
 
-    // Validate that all rows have dates
+    // Overlap check (same as original)
+    if (formData.empId && leaveDetails.length > 0) {
+      try {
+        for (const row of leaveDetails) {
+          if (!row.fromDate || !row.toDate) continue;
+          const res = await axios.post('/api/leave/check-overlap', {
+            empid: formData.empId,
+            fromDate: row.fromDate,
+            toDate: row.toDate,
+          });
+          if (res.data.overlap) {
+            showToast(`⚠️ Overlap detected! Leave already exists for: ${res.data.overlapDate}`,
+              "error");
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Overlap check failed", err);
+      }
+    }
+
+    // Ensure all grid rows have dates
     const incompleteRow = leaveDetails.find(item => !item.fromDate || !item.toDate);
     if (incompleteRow) {
       showToast("Please fill all From and To dates in the leave grid.", "error");
       return;
     }
 
+    // Build payload
     const application = {
       lno: parseInt(formData.lappNo),
       ldate: new Date().toISOString(),
@@ -217,8 +316,7 @@ const LeaveApplication = ({ onClose }) => {
       c_unit: "UNIT1",
       c_gempid: "admin",
     };
-
-    const details = leaveDetails.map((item) => ({
+    const details = leaveDetails.map(item => ({
       daydt: item.dayType,
       frmdt: item.fromDate,
       todate: item.toDate,
@@ -232,7 +330,8 @@ const LeaveApplication = ({ onClose }) => {
     try {
       const res = await axios.post(`/api/leave/apply`, { application, leaveDetails: details });
       if (res.status === 200 || res.status === 201) {
-        showToast(res.data.message || `Leave Application Saved. No: ${res.data.lno}`, "success");
+        showToast(res.data.message || `Leave Application Saved. No: ${res.data.lno}`,
+          "success");
         setIsDirty(false);
         resetForm();
       }
@@ -240,6 +339,7 @@ const LeaveApplication = ({ onClose }) => {
       showToast(getErrorMessage(error, "Error saving leave application"), "error");
     }
   };
+
 
   useEffect(() => {
     const total = leaveDetails.reduce((sum, row) => {
@@ -320,19 +420,24 @@ const LeaveApplication = ({ onClose }) => {
                 label={<RequiredLabel label="Emp Id" />}
                 name="empId"
                 value={formData.empId}
-                onClick={loadEmpList}
+                onClick={isAdmin ? loadEmpList : undefined}
                 size="small"
-                placeholder="Select"
-                sx={{ width: '140px', minWidth: '140px', bgcolor: '#fffde7' }}
+                placeholder={isAdmin ? "Select" : ""}
+                sx={{
+                  width: '140px',
+                  minWidth: '140px',
+                  bgcolor: isAdmin ? '#fffde7' : '#f5f5f5',
+                  cursor: isAdmin ? 'pointer' : 'default'
+                }}
                 InputProps={{
                   readOnly: true,
-                  endAdornment: (
+                  endAdornment: isAdmin ? (
                     <InputAdornment position="end">
                       <IconButton size="small" onClick={loadEmpList}>
                         <SearchIcon fontSize="small" />
                       </IconButton>
                     </InputAdornment>
-                  ),
+                  ) : null,
                 }}
               />
               <Box sx={{ flex: 1, py: 0.5, px: 1, bgcolor: '#fff', borderRadius: 1, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', minHeight: '36px' }}>
@@ -370,7 +475,7 @@ const LeaveApplication = ({ onClose }) => {
                 onKeyDown={(e) => handleEnter(e, addressRef)}
                 error={!!fieldErrors.phone}
                 helperText={fieldErrors.phone}
-                inputProps={{ 
+                inputProps={{
                   maxLength: 10,
                   inputMode: 'numeric',
                   pattern: '[0-9]*'

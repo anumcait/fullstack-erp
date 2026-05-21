@@ -66,7 +66,13 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'leave_master',
     timestamps: false
   });
-  //LeaveMaster.belongsTo(EmployeeMaster, { foreignKey: 'empid', targetKey: 'empid' });
+  LeaveMaster.associate = (models) => {
+    LeaveMaster.hasMany(models.LeaveApplication, {
+      foreignKey: 'empid',
+      sourceKey: 'empid',
+      as: 'leaveApplications'
+    });
+  };
 
   return LeaveMaster;
 };

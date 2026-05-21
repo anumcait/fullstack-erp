@@ -23,7 +23,6 @@ import {
   Legend,
 } from "recharts";
 import { saveAs } from "file-saver";
-import ChatBotIcon from "../../ChatBot/ChatBotIcon";
 
 const API = import.meta.env.VITE_API_URL || "";
 const COLORS = ["#3B82F6", "#F97316", "#10B981", "#F43F5E", "#8B5CF6"];
@@ -264,10 +263,6 @@ const ManagerDashboard = () => {
         </div>
       </div>
 
-      {/* Chatbot */}
-      <div className="fixed bottom-6 right-6">
-        <ChatBotIcon />
-      </div>
     </div>
   );
 };

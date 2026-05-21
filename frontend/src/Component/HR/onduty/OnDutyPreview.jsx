@@ -2,6 +2,7 @@ import React from "react";
 import "./OnDutyPreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
+import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
 
 const formatMovDate = (dateStr) => {
   if (!dateStr) return "";
@@ -11,13 +12,15 @@ const formatMovDate = (dateStr) => {
   const year = date.getFullYear();
   return `${day}-${month}-${year}`;
 };
+
 const formatTime = (timeStr) => {
   if (!timeStr) return "";
   const date = new Date(`1970-01-01T${timeStr}`);
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`; // Output: 21:00
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 };
+
 const OnDutyPreview = ({ data = {}, onClose }) => {
   const {
     movement_id = "",
@@ -63,6 +66,7 @@ const OnDutyPreview = ({ data = {}, onClose }) => {
 
         {/* Details Table */}
         <table className="onduty-field-table">
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">S.No</td>
@@ -113,8 +117,9 @@ const OnDutyPreview = ({ data = {}, onClose }) => {
 
         <hr />
 
-        {/* Movement Details (One Row) */}
-        <table className="onduty-field-table">
+        {/* Movement Details — same label : value layout as above (not one inline line) */}
+        <table className="onduty-field-table onduty-movement-table">
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">Movement Date</td>
@@ -134,16 +139,10 @@ const OnDutyPreview = ({ data = {}, onClose }) => {
               <td className="colon">:</td>
               <td className="value">{no_of_hrs ? parseFloat(no_of_hrs).toString() : ""}</td>
             </tr>
-          </tbody>
-        </table>
-
-        {/* Reason (separate table for full-width wrapping) */}
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <tbody>
             <tr>
-              <td className="label" style={{ width: '80px', fontWeight: 'bold', whiteSpace: 'nowrap', verticalAlign: 'top', padding: '4px 6px' }}>Reason</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '4px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{reason_perm}</td>
+              <td className="label">Onduty Reason</td>
+              <td className="colon">:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{reason_perm}</td>
             </tr>
           </tbody>
         </table>

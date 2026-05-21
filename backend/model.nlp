@@ -1,0 +1,2358 @@
+{
+  "settings": {
+    "languages": [
+      "en"
+    ],
+    "forceNER": true,
+    "tag": "nlp",
+    "threshold": 0.5,
+    "autoLoad": true,
+    "autoSave": true,
+    "modelFileName": "model.nlp",
+    "executeActionsBeforeAnswers": false,
+    "calculateSentiment": true
+  },
+  "nluManager": {
+    "settings": {
+      "tag": "nlu-manager"
+    },
+    "locales": [
+      "en"
+    ],
+    "languageNames": {},
+    "domainManagers": {
+      "en": {
+        "settings": {
+          "locale": "en",
+          "trainByDomain": false,
+          "tag": "domain-manager-en",
+          "nluByDomain": {
+            "default": {
+              "className": "NeuralNlu",
+              "settings": {}
+            }
+          },
+          "useStemDict": true
+        },
+        "stemDict": {
+          "hello": {
+            "intent": "greeting.hello",
+            "domain": "default"
+          },
+          "hi": {
+            "intent": "greeting.hello",
+            "domain": "default"
+          },
+          "good,morn": {
+            "intent": "greeting.hello",
+            "domain": "default"
+          },
+          "bye": {
+            "intent": "greeting.bye",
+            "domain": "default"
+          },
+          "goodby": {
+            "intent": "greeting.bye",
+            "domain": "default"
+          },
+          "thank,you": {
+            "intent": "greeting.thanks",
+            "domain": "default"
+          },
+          "thank": {
+            "intent": "greeting.thanks",
+            "domain": "default"
+          },
+          "go,leav,to": {
+            "intent": "navigation.goto",
+            "domain": "default"
+          },
+          "open,tour": {
+            "intent": "navigation.goto",
+            "domain": "default"
+          },
+          "appli,for,onduti": {
+            "intent": "navigation.goto",
+            "domain": "default"
+          },
+          "me,payrol,take,to": {
+            "intent": "navigation.goto",
+            "domain": "default"
+          },
+          "employe,me,show": {
+            "intent": "navigation.goto",
+            "domain": "default"
+          },
+          "chang,open,shift": {
+            "intent": "navigation.goto",
+            "domain": "default"
+          },
+          "applic,onduti": {
+            "intent": "onduty.apply",
+            "domain": "default"
+          },
+          "appli,for,onduti,permiss": {
+            "intent": "onduty.apply",
+            "domain": "default"
+          },
+          "applic,duti,form,on": {
+            "intent": "onduty.apply",
+            "domain": "default"
+          },
+          "duti,i,need,on,permiss": {
+            "intent": "onduty.apply",
+            "domain": "default"
+          },
+          "appli,for,tour": {
+            "intent": "tour.apply",
+            "domain": "default"
+          },
+          "applic,form,tour": {
+            "intent": "tour.apply",
+            "domain": "default"
+          },
+          "regist,tour": {
+            "intent": "tour.apply",
+            "domain": "default"
+          },
+          "busi,form,trip": {
+            "intent": "tour.apply",
+            "domain": "default"
+          },
+          "holiday,is,next,the,when": {
+            "intent": "holiday.next",
+            "domain": "default"
+          },
+          "holiday,upcom": {
+            "intent": "holiday.next",
+            "domain": "default"
+          },
+          "a,holiday,is,tomorrow": {
+            "intent": "holiday.next",
+            "domain": "default"
+          },
+          "is,late,today,who": {
+            "intent": "attendance.late",
+            "domain": "default"
+          },
+          "comer,late,list": {
+            "intent": "attendance.late",
+            "domain": "default"
+          },
+          "attend,status": {
+            "intent": "attendance.status",
+            "domain": "default"
+          },
+          "how,mani,present,today": {
+            "intent": "attendance.status",
+            "domain": "default"
+          },
+          "is,leav,on,who": {
+            "intent": "leave.status",
+            "domain": "default"
+          },
+          "absent,employe,list": {
+            "intent": "leave.status",
+            "domain": "default"
+          },
+          "appli,for,how,leav,to": {
+            "intent": "leave.apply",
+            "domain": "default"
+          },
+          "appli,for,leav,me": {
+            "intent": "leave.apply",
+            "domain": "default"
+          },
+          "appli,behalf,can,mine,of,you": {
+            "intent": "leave.apply",
+            "domain": "default"
+          },
+          "appli,for,leav": {
+            "intent": "leave.apply",
+            "domain": "default"
+          },
+          "a,break,i,take,to,want": {
+            "intent": "leave.apply",
+            "domain": "default"
+          },
+          "applic,leav,pend": {
+            "intent": "leave.pending",
+            "domain": "default"
+          },
+          "is,my,salari,what": {
+            "intent": "salary.personal",
+            "domain": "default"
+          },
+          "earn,my,show": {
+            "intent": "salary.personal",
+            "domain": "default"
+          },
+          "detail,payslip": {
+            "intent": "salary.personal",
+            "domain": "default"
+          },
+          "help,me": {
+            "intent": "help.general",
+            "domain": "default"
+          },
+          "app,how,this,to,use": {
+            "intent": "help.general",
+            "domain": "default"
+          },
+          "an,error,have,i": {
+            "intent": "help.error",
+            "domain": "default"
+          }
+        },
+        "intentDict": {
+          "greeting.hello": "default",
+          "greeting.bye": "default",
+          "greeting.thanks": "default",
+          "navigation.goto": "default",
+          "onduty.apply": "default",
+          "tour.apply": "default",
+          "holiday.next": "default",
+          "attendance.late": "default",
+          "attendance.status": "default",
+          "leave.status": "default",
+          "leave.apply": "default",
+          "leave.pending": "default",
+          "salary.personal": "default",
+          "help.general": "default",
+          "help.error": "default"
+        },
+        "sentences": [
+          {
+            "domain": "default",
+            "utterance": "hello",
+            "intent": "greeting.hello"
+          },
+          {
+            "domain": "default",
+            "utterance": "hi",
+            "intent": "greeting.hello"
+          },
+          {
+            "domain": "default",
+            "utterance": "good morning",
+            "intent": "greeting.hello"
+          },
+          {
+            "domain": "default",
+            "utterance": "bye",
+            "intent": "greeting.bye"
+          },
+          {
+            "domain": "default",
+            "utterance": "goodbye",
+            "intent": "greeting.bye"
+          },
+          {
+            "domain": "default",
+            "utterance": "thank you",
+            "intent": "greeting.thanks"
+          },
+          {
+            "domain": "default",
+            "utterance": "thanks",
+            "intent": "greeting.thanks"
+          },
+          {
+            "domain": "default",
+            "utterance": "go to leave",
+            "intent": "navigation.goto"
+          },
+          {
+            "domain": "default",
+            "utterance": "open tour",
+            "intent": "navigation.goto"
+          },
+          {
+            "domain": "default",
+            "utterance": "apply for onduty",
+            "intent": "navigation.goto"
+          },
+          {
+            "domain": "default",
+            "utterance": "take me to payroll",
+            "intent": "navigation.goto"
+          },
+          {
+            "domain": "default",
+            "utterance": "show me employees",
+            "intent": "navigation.goto"
+          },
+          {
+            "domain": "default",
+            "utterance": "open shift change",
+            "intent": "navigation.goto"
+          },
+          {
+            "domain": "default",
+            "utterance": "onduty application",
+            "intent": "onduty.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "apply for onduty permission",
+            "intent": "onduty.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "on duty application form",
+            "intent": "onduty.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "i need on duty permission",
+            "intent": "onduty.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "apply for tour",
+            "intent": "tour.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "tour application form",
+            "intent": "tour.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "register tour",
+            "intent": "tour.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "business trip form",
+            "intent": "tour.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "when is the next holiday",
+            "intent": "holiday.next"
+          },
+          {
+            "domain": "default",
+            "utterance": "upcoming holidays",
+            "intent": "holiday.next"
+          },
+          {
+            "domain": "default",
+            "utterance": "is tomorrow a holiday",
+            "intent": "holiday.next"
+          },
+          {
+            "domain": "default",
+            "utterance": "who is late today",
+            "intent": "attendance.late"
+          },
+          {
+            "domain": "default",
+            "utterance": "list late comers",
+            "intent": "attendance.late"
+          },
+          {
+            "domain": "default",
+            "utterance": "attendance status",
+            "intent": "attendance.status"
+          },
+          {
+            "domain": "default",
+            "utterance": "how many present today",
+            "intent": "attendance.status"
+          },
+          {
+            "domain": "default",
+            "utterance": "who is on leave",
+            "intent": "leave.status"
+          },
+          {
+            "domain": "default",
+            "utterance": "list absent employees",
+            "intent": "leave.status"
+          },
+          {
+            "domain": "default",
+            "utterance": "how to apply for leave",
+            "intent": "leave.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "apply leave for me",
+            "intent": "leave.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "can you apply behalf of mine",
+            "intent": "leave.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "apply for leave",
+            "intent": "leave.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "i want to take a break",
+            "intent": "leave.apply"
+          },
+          {
+            "domain": "default",
+            "utterance": "pending leave applications",
+            "intent": "leave.pending"
+          },
+          {
+            "domain": "default",
+            "utterance": "what is my salary",
+            "intent": "salary.personal"
+          },
+          {
+            "domain": "default",
+            "utterance": "show my earnings",
+            "intent": "salary.personal"
+          },
+          {
+            "domain": "default",
+            "utterance": "payslip details",
+            "intent": "salary.personal"
+          },
+          {
+            "domain": "default",
+            "utterance": "help me",
+            "intent": "help.general"
+          },
+          {
+            "domain": "default",
+            "utterance": "how to use this app",
+            "intent": "help.general"
+          },
+          {
+            "domain": "default",
+            "utterance": "i have an error",
+            "intent": "help.error"
+          }
+        ],
+        "domains": {
+          "master_domain": {
+            "settings": {
+              "locale": "en",
+              "tag": "nlu-en",
+              "keepStopwords": true,
+              "nonefeatureValue": 1,
+              "nonedeltaMultiplier": 1.2,
+              "spellCheck": false,
+              "spellCheckDistance": 1,
+              "filterZeros": true,
+              "log": true
+            },
+            "features": {
+              "hello": 1,
+              "hi": 1,
+              "good": 1,
+              "morn": 1,
+              "bye": 1,
+              "goodby": 1,
+              "thank": 1,
+              "you": 1,
+              "go": 1,
+              "to": 1,
+              "leav": 1,
+              "open": 1,
+              "tour": 1,
+              "appli": 1,
+              "for": 1,
+              "onduti": 1,
+              "take": 1,
+              "me": 1,
+              "payrol": 1,
+              "show": 1,
+              "employe": 1,
+              "shift": 1,
+              "chang": 1,
+              "applic": 1,
+              "permiss": 1,
+              "on": 1,
+              "duti": 1,
+              "form": 1,
+              "i": 1,
+              "need": 1,
+              "regist": 1,
+              "busi": 1,
+              "trip": 1,
+              "when": 1,
+              "is": 1,
+              "the": 1,
+              "next": 1,
+              "holiday": 1,
+              "upcom": 1,
+              "tomorrow": 1,
+              "a": 1,
+              "who": 1,
+              "late": 1,
+              "today": 1,
+              "list": 1,
+              "comer": 1,
+              "attend": 1,
+              "status": 1,
+              "how": 1,
+              "mani": 1,
+              "present": 1,
+              "absent": 1,
+              "can": 1,
+              "behalf": 1,
+              "of": 1,
+              "mine": 1,
+              "want": 1,
+              "break": 1,
+              "pend": 1,
+              "what": 1,
+              "my": 1,
+              "salari": 1,
+              "earn": 1,
+              "payslip": 1,
+              "detail": 1,
+              "help": 1,
+              "use": 1,
+              "this": 1,
+              "app": 1,
+              "have": 1,
+              "an": 1,
+              "error": 1
+            },
+            "intents": {
+              "greeting.hello": 1,
+              "greeting.bye": 1,
+              "greeting.thanks": 1,
+              "navigation.goto": 1,
+              "onduty.apply": 1,
+              "tour.apply": 1,
+              "holiday.next": 1,
+              "attendance.late": 1,
+              "attendance.status": 1,
+              "leave.status": 1,
+              "leave.apply": 1,
+              "leave.pending": 1,
+              "salary.personal": 1,
+              "help.general": 1,
+              "help.error": 1
+            },
+            "intentFeatures": {
+              "greeting.hello": {
+                "hello": 1,
+                "hi": 1,
+                "good": 1,
+                "morn": 1
+              },
+              "greeting.bye": {
+                "bye": 1,
+                "goodby": 1
+              },
+              "greeting.thanks": {
+                "thank": 1,
+                "you": 1
+              },
+              "navigation.goto": {
+                "go": 1,
+                "to": 1,
+                "leav": 1,
+                "open": 1,
+                "tour": 1,
+                "appli": 1,
+                "for": 1,
+                "onduti": 1,
+                "take": 1,
+                "me": 1,
+                "payrol": 1,
+                "show": 1,
+                "employe": 1,
+                "shift": 1,
+                "chang": 1
+              },
+              "onduty.apply": {
+                "onduti": 1,
+                "applic": 1,
+                "appli": 1,
+                "for": 1,
+                "permiss": 1,
+                "on": 1,
+                "duti": 1,
+                "form": 1,
+                "i": 1,
+                "need": 1
+              },
+              "tour.apply": {
+                "appli": 1,
+                "for": 1,
+                "tour": 1,
+                "applic": 1,
+                "form": 1,
+                "regist": 1,
+                "busi": 1,
+                "trip": 1
+              },
+              "holiday.next": {
+                "when": 1,
+                "is": 1,
+                "the": 1,
+                "next": 1,
+                "holiday": 1,
+                "upcom": 1,
+                "tomorrow": 1,
+                "a": 1
+              },
+              "attendance.late": {
+                "who": 1,
+                "is": 1,
+                "late": 1,
+                "today": 1,
+                "list": 1,
+                "comer": 1
+              },
+              "attendance.status": {
+                "attend": 1,
+                "status": 1,
+                "how": 1,
+                "mani": 1,
+                "present": 1,
+                "today": 1
+              },
+              "leave.status": {
+                "who": 1,
+                "is": 1,
+                "on": 1,
+                "leav": 1,
+                "list": 1,
+                "absent": 1,
+                "employe": 1
+              },
+              "leave.apply": {
+                "how": 1,
+                "to": 1,
+                "appli": 1,
+                "for": 1,
+                "leav": 1,
+                "me": 1,
+                "can": 1,
+                "you": 1,
+                "behalf": 1,
+                "of": 1,
+                "mine": 1,
+                "i": 1,
+                "want": 1,
+                "take": 1,
+                "a": 1,
+                "break": 1
+              },
+              "leave.pending": {
+                "pend": 1,
+                "leav": 1,
+                "applic": 1
+              },
+              "salary.personal": {
+                "what": 1,
+                "is": 1,
+                "my": 1,
+                "salari": 1,
+                "show": 1,
+                "earn": 1,
+                "payslip": 1,
+                "detail": 1
+              },
+              "help.general": {
+                "help": 1,
+                "me": 1,
+                "how": 1,
+                "to": 1,
+                "use": 1,
+                "this": 1,
+                "app": 1
+              },
+              "help.error": {
+                "i": 1,
+                "have": 1,
+                "an": 1,
+                "error": 1
+              }
+            },
+            "featuresToIntent": {
+              "hello": [
+                "greeting.hello"
+              ],
+              "hi": [
+                "greeting.hello"
+              ],
+              "good": [
+                "greeting.hello"
+              ],
+              "morn": [
+                "greeting.hello"
+              ],
+              "bye": [
+                "greeting.bye"
+              ],
+              "goodby": [
+                "greeting.bye"
+              ],
+              "thank": [
+                "greeting.thanks"
+              ],
+              "you": [
+                "greeting.thanks",
+                "leave.apply"
+              ],
+              "go": [
+                "navigation.goto"
+              ],
+              "to": [
+                "navigation.goto",
+                "leave.apply",
+                "help.general"
+              ],
+              "leav": [
+                "navigation.goto",
+                "leave.status",
+                "leave.apply",
+                "leave.pending"
+              ],
+              "open": [
+                "navigation.goto"
+              ],
+              "tour": [
+                "navigation.goto",
+                "tour.apply"
+              ],
+              "appli": [
+                "navigation.goto",
+                "onduty.apply",
+                "tour.apply",
+                "leave.apply"
+              ],
+              "for": [
+                "navigation.goto",
+                "onduty.apply",
+                "tour.apply",
+                "leave.apply"
+              ],
+              "onduti": [
+                "navigation.goto",
+                "onduty.apply"
+              ],
+              "take": [
+                "navigation.goto",
+                "leave.apply"
+              ],
+              "me": [
+                "navigation.goto",
+                "leave.apply",
+                "help.general"
+              ],
+              "payrol": [
+                "navigation.goto"
+              ],
+              "show": [
+                "navigation.goto",
+                "salary.personal"
+              ],
+              "employe": [
+                "navigation.goto",
+                "leave.status"
+              ],
+              "shift": [
+                "navigation.goto"
+              ],
+              "chang": [
+                "navigation.goto"
+              ],
+              "applic": [
+                "onduty.apply",
+                "tour.apply",
+                "leave.pending"
+              ],
+              "permiss": [
+                "onduty.apply"
+              ],
+              "on": [
+                "onduty.apply",
+                "leave.status"
+              ],
+              "duti": [
+                "onduty.apply"
+              ],
+              "form": [
+                "onduty.apply",
+                "tour.apply"
+              ],
+              "i": [
+                "onduty.apply",
+                "leave.apply",
+                "help.error"
+              ],
+              "need": [
+                "onduty.apply"
+              ],
+              "regist": [
+                "tour.apply"
+              ],
+              "busi": [
+                "tour.apply"
+              ],
+              "trip": [
+                "tour.apply"
+              ],
+              "when": [
+                "holiday.next"
+              ],
+              "is": [
+                "holiday.next",
+                "attendance.late",
+                "leave.status",
+                "salary.personal"
+              ],
+              "the": [
+                "holiday.next"
+              ],
+              "next": [
+                "holiday.next"
+              ],
+              "holiday": [
+                "holiday.next"
+              ],
+              "upcom": [
+                "holiday.next"
+              ],
+              "tomorrow": [
+                "holiday.next"
+              ],
+              "a": [
+                "holiday.next",
+                "leave.apply"
+              ],
+              "who": [
+                "attendance.late",
+                "leave.status"
+              ],
+              "late": [
+                "attendance.late"
+              ],
+              "today": [
+                "attendance.late",
+                "attendance.status"
+              ],
+              "list": [
+                "attendance.late",
+                "leave.status"
+              ],
+              "comer": [
+                "attendance.late"
+              ],
+              "attend": [
+                "attendance.status"
+              ],
+              "status": [
+                "attendance.status"
+              ],
+              "how": [
+                "attendance.status",
+                "leave.apply",
+                "help.general"
+              ],
+              "mani": [
+                "attendance.status"
+              ],
+              "present": [
+                "attendance.status"
+              ],
+              "absent": [
+                "leave.status"
+              ],
+              "can": [
+                "leave.apply"
+              ],
+              "behalf": [
+                "leave.apply"
+              ],
+              "of": [
+                "leave.apply"
+              ],
+              "mine": [
+                "leave.apply"
+              ],
+              "want": [
+                "leave.apply"
+              ],
+              "break": [
+                "leave.apply"
+              ],
+              "pend": [
+                "leave.pending"
+              ],
+              "what": [
+                "salary.personal"
+              ],
+              "my": [
+                "salary.personal"
+              ],
+              "salari": [
+                "salary.personal"
+              ],
+              "earn": [
+                "salary.personal"
+              ],
+              "payslip": [
+                "salary.personal"
+              ],
+              "detail": [
+                "salary.personal"
+              ],
+              "help": [
+                "help.general"
+              ],
+              "use": [
+                "help.general"
+              ],
+              "this": [
+                "help.general"
+              ],
+              "app": [
+                "help.general"
+              ],
+              "have": [
+                "help.error"
+              ],
+              "an": [
+                "help.error"
+              ],
+              "error": [
+                "help.error"
+              ]
+            },
+            "neuralNetwork": {
+              "settings": {
+                "locale": "en",
+                "tag": "nlu-en",
+                "keepStopwords": true,
+                "nonefeatureValue": 1,
+                "nonedeltaMultiplier": 1.2,
+                "spellCheck": false,
+                "spellCheckDistance": 1,
+                "filterZeros": true,
+                "log": true
+              },
+              "features": [
+                "hello",
+                "hi",
+                "good",
+                "morn",
+                "bye",
+                "goodby",
+                "thank",
+                "you",
+                "go",
+                "to",
+                "leav",
+                "open",
+                "tour",
+                "appli",
+                "for",
+                "onduti",
+                "take",
+                "me",
+                "payrol",
+                "show",
+                "employe",
+                "shift",
+                "chang",
+                "applic",
+                "permiss",
+                "on",
+                "duti",
+                "form",
+                "i",
+                "need",
+                "regist",
+                "busi",
+                "trip",
+                "when",
+                "is",
+                "the",
+                "next",
+                "holiday",
+                "upcom",
+                "tomorrow",
+                "a",
+                "who",
+                "late",
+                "today",
+                "list",
+                "comer",
+                "attend",
+                "status",
+                "how",
+                "mani",
+                "present",
+                "absent",
+                "can",
+                "behalf",
+                "of",
+                "mine",
+                "want",
+                "break",
+                "pend",
+                "what",
+                "my",
+                "salari",
+                "earn",
+                "payslip",
+                "detail",
+                "help",
+                "use",
+                "this",
+                "app",
+                "have",
+                "an",
+                "error"
+              ],
+              "intents": [
+                "greeting.hello",
+                "greeting.bye",
+                "greeting.thanks",
+                "navigation.goto",
+                "onduty.apply",
+                "tour.apply",
+                "holiday.next",
+                "attendance.late",
+                "attendance.status",
+                "leave.status",
+                "leave.apply",
+                "leave.pending",
+                "salary.personal",
+                "help.general",
+                "help.error"
+              ],
+              "perceptrons": [
+                [
+                  11.625527381896973,
+                  11.624045372009277,
+                  5.81509256362915,
+                  5.81509256362915,
+                  -2.653078317642212,
+                  -2.652207851409912,
+                  -2.6519010066986084,
+                  -0.889356791973114,
+                  -0.5573305487632751,
+                  -1.1133776903152466,
+                  -1.0042309761047363,
+                  -1.238179326057434,
+                  -1.694284200668335,
+                  -0.9297996759414673,
+                  -0.720839262008667,
+                  -1.2861120700836182,
+                  -0.30757638812065125,
+                  -1.6458392143249512,
+                  -0.24750731885433197,
+                  -1.0166776180267334,
+                  -0.921079695224762,
+                  -0.7083883881568909,
+                  -0.7083883881568909,
+                  -1.368726372718811,
+                  -0.4145145118236542,
+                  -0.5204851031303406,
+                  -0.48966819047927856,
+                  -1.0732120275497437,
+                  -0.9254025816917419,
+                  -0.3049469590187073,
+                  -0.9605333805084229,
+                  -0.7908546924591064,
+                  -0.7908546924591064,
+                  -0.18233826756477356,
+                  -0.961076021194458,
+                  -0.18233826756477356,
+                  -0.18233826756477356,
+                  -1.5194659233093262,
+                  -1.1353222131729126,
+                  -0.17093786597251892,
+                  -0.2206932008266449,
+                  -0.2180480659008026,
+                  -0.8329387903213501,
+                  -0.749100923538208,
+                  -1.1852781772613525,
+                  -0.6367303729057312,
+                  -1.3273804187774658,
+                  -1.3273804187774658,
+                  -0.8000544905662537,
+                  -0.5528925657272339,
+                  -0.5528925657272339,
+                  -0.548539400100708,
+                  -0.20895420014858246,
+                  -0.20895420014858246,
+                  -0.20895420014858246,
+                  -0.20895420014858246,
+                  -0.0439603291451931,
+                  -0.0439603291451931,
+                  -0.2924053966999054,
+                  -0.3499070703983307,
+                  -0.9940524101257324,
+                  -0.3499070703983307,
+                  -0.6441377401351929,
+                  -1.327346920967102,
+                  -1.327346920967102,
+                  -1.00882887840271,
+                  -0.2471553236246109,
+                  -0.2471553236246109,
+                  -0.2471553236246109,
+                  -0.5764873623847961,
+                  -0.5764873623847961,
+                  -0.5764873623847961,
+                  2.6549292459043694
+                ],
+                [
+                  -2.119232416152954,
+                  -2.1179468631744385,
+                  -1.0616049766540527,
+                  -1.0616049766540527,
+                  12.156731605529785,
+                  12.15512752532959,
+                  -2.122321844100952,
+                  -0.7109580636024475,
+                  -0.45200788974761963,
+                  -0.8916440010070801,
+                  -0.8100742697715759,
+                  -0.9915286302566528,
+                  -1.352704405784607,
+                  -0.7410643696784973,
+                  -0.5730172991752625,
+                  -1.0320560932159424,
+                  -0.24095997214317322,
+                  -1.3117010593414307,
+                  -0.18953140079975128,
+                  -0.8096242547035217,
+                  -0.7337436079978943,
+                  -0.5663429498672485,
+                  -0.5663429498672485,
+                  -1.0920994281768799,
+                  -0.33022060990333557,
+                  -0.41264215111732483,
+                  -0.39029669761657715,
+                  -0.8529894948005676,
+                  -0.7435493469238281,
+                  -0.24768511950969696,
+                  -0.7714418768882751,
+                  -0.635599672794342,
+                  -0.635599672794342,
+                  -0.1489659547805786,
+                  -0.7611101269721985,
+                  -0.1489659547805786,
+                  -0.1489659547805786,
+                  -1.2132441997528076,
+                  -0.9108893871307373,
+                  -0.1371658593416214,
+                  -0.1767776906490326,
+                  -0.16703496873378754,
+                  -0.6640538573265076,
+                  -0.5972754955291748,
+                  -0.9501948952674866,
+                  -0.5099719166755676,
+                  -1.0620616674423218,
+                  -1.0620616674423218,
+                  -0.6405208706855774,
+                  -0.4431934058666229,
+                  -0.4431934058666229,
+                  -0.4402206838130951,
+                  -0.16804632544517517,
+                  -0.16804632544517517,
+                  -0.16804632544517517,
+                  -0.16804632544517517,
+                  -0.03566261753439903,
+                  -0.03566261753439903,
+                  -0.23552295565605164,
+                  -0.28232836723327637,
+                  -0.7984307408332825,
+                  -0.28232836723327637,
+                  -0.516101062297821,
+                  -1.0620503425598145,
+                  -1.0620503425598145,
+                  -0.8123900890350342,
+                  -0.1973259299993515,
+                  -0.1973259299993515,
+                  -0.1973259299993515,
+                  -0.46019819378852844,
+                  -0.46019819378852844,
+                  -0.46019819378852844,
+                  2.123958816958628
+                ],
+                [
+                  -0.965271532535553,
+                  -0.9644133448600769,
+                  -0.48559561371803284,
+                  -0.48559561371803284,
+                  -0.9632109999656677,
+                  -0.9622611999511719,
+                  13.06576919555664,
+                  0.40925878286361694,
+                  -0.24160757660865784,
+                  -0.5098141431808472,
+                  -0.3701974153518677,
+                  -0.5198338627815247,
+                  -0.6827850341796875,
+                  -1.0956517457962036,
+                  -0.28928670287132263,
+                  -0.48145559430122375,
+                  -0.1632889062166214,
+                  -0.6714227795600891,
+                  -0.1351870894432068,
+                  -0.4262692332267761,
+                  -0.3844514489173889,
+                  -0.2538231313228607,
+                  -0.2538231313228607,
+                  -0.519180417060852,
+                  -0.1976708322763443,
+                  -0.26792100071907043,
+                  -0.24436011910438538,
+                  -0.4553738534450531,
+                  -0.3664896488189697,
+                  -0.12417273223400116,
+                  -0.2916468679904938,
+                  -0.2704763114452362,
+                  -0.2704763114452362,
+                  -0.1045873612165451,
+                  -0.46448326110839844,
+                  -0.1045873612165451,
+                  -0.1045873612165451,
+                  -0.5984041690826416,
+                  -0.37564003467559814,
+                  -0.08718440681695938,
+                  -0.11164596676826477,
+                  -0.12346610426902771,
+                  -0.3464038074016571,
+                  -0.31421318650245667,
+                  -0.42021676898002625,
+                  -0.2349943071603775,
+                  -0.4869321882724762,
+                  -0.4869321882724762,
+                  -0.2757425010204315,
+                  -0.20223091542720795,
+                  -0.20223091542720795,
+                  -0.17718026041984558,
+                  -0.7963100075721741,
+                  -0.7963100075721741,
+                  -0.7963100075721741,
+                  -0.7963100075721741,
+                  -0.014798500575125217,
+                  -0.014798500575125217,
+                  -0.08571304380893707,
+                  -0.10761555284261703,
+                  -0.32958248257637024,
+                  -0.10761555284261703,
+                  -0.21914561092853546,
+                  -0.4867361783981323,
+                  -0.4867361783981323,
+                  -0.30186727643013,
+                  -0.06333789229393005,
+                  -0.06333789229393005,
+                  -0.06333789229393005,
+                  -0.2028866559267044,
+                  -0.2028866559267044,
+                  -0.2028866559267044,
+                  0.9762708459105353
+                ],
+                [
+                  -0.7059450745582581,
+                  -0.7037148475646973,
+                  -0.378706157207489,
+                  -0.378706157207489,
+                  -0.7014958262443542,
+                  -0.6998404860496521,
+                  -0.7010580897331238,
+                  -0.3318555951118469,
+                  9.600692749023438,
+                  6.508079528808594,
+                  -2.571124315261841,
+                  13.336092948913574,
+                  -0.3017299175262451,
+                  0.04352477937936783,
+                  0.21066567301750183,
+                  11.687886238098145,
+                  1.5851500034332275,
+                  1.7449649572372437,
+                  3.659858226776123,
+                  5.7963786125183105,
+                  5.895282745361328,
+                  0.17295075953006744,
+                  0.17295075953006744,
+                  -11.953679084777832,
+                  -12.213396072387695,
+                  -0.7168256044387817,
+                  -0.42383402585983276,
+                  -1.1618645191192627,
+                  -2.354538917541504,
+                  -0.15963515639305115,
+                  -2.280444860458374,
+                  -0.33838650584220886,
+                  -0.33838650584220886,
+                  -0.21600282192230225,
+                  -0.9469148516654968,
+                  -0.21600282192230225,
+                  -0.21600282192230225,
+                  -0.9669046998023987,
+                  -0.5155988335609436,
+                  -0.11935879290103912,
+                  -2.2560834884643555,
+                  -0.43104201555252075,
+                  -0.5410892367362976,
+                  -0.424674928188324,
+                  -3.4619898796081543,
+                  -0.306169331073761,
+                  -0.6658129692077637,
+                  -0.6658129692077637,
+                  -4.926023006439209,
+                  -0.18756632506847382,
+                  -0.18756632506847382,
+                  -3.092949151992798,
+                  -0.1334819495677948,
+                  -0.1334819495677948,
+                  -0.1334819495677948,
+                  -0.1334819495677948,
+                  -2.0754690170288086,
+                  -2.0754690170288086,
+                  0,
+                  -0.05113319307565689,
+                  -3.2548952102661133,
+                  -0.05113319307565689,
+                  -3.191807270050049,
+                  -0.4421829879283905,
+                  -0.4421829879283905,
+                  -3.0558383464813232,
+                  -0.7507323622703552,
+                  -0.7507323622703552,
+                  -0.7507323622703552,
+                  -0.028150996193289757,
+                  -0.028150996193289757,
+                  -0.028150996193289757,
+                  0.6749525010126164
+                ],
+                [
+                  -0.16441918909549713,
+                  -0.15884321928024292,
+                  -0.12291286885738373,
+                  -0.12291286885738373,
+                  -0.15522228181362152,
+                  -0.1502814143896103,
+                  -0.16681931912899017,
+                  -0.2762894332408905,
+                  0,
+                  -0.5221552848815918,
+                  -3.930227518081665,
+                  -0.038331832736730576,
+                  -6.347296714782715,
+                  -3.0979528427124023,
+                  -2.843254804611206,
+                  7.921885013580322,
+                  -0.22313657402992249,
+                  -0.3734497129917145,
+                  0,
+                  -0.12569278478622437,
+                  -0.14274834096431732,
+                  -0.038331832736730576,
+                  -0.038331832736730576,
+                  7.582662582397461,
+                  12.980189323425293,
+                  3.490461587905884,
+                  4.152556419372559,
+                  0.11022559553384781,
+                  -2.81343150138855,
+                  -2.134483814239502,
+                  -0.09335251152515411,
+                  -0.5227185487747192,
+                  -0.5227185487747192,
+                  -0.10384068638086319,
+                  -1.008431077003479,
+                  -0.10384068638086319,
+                  -0.10384068638086319,
+                  -0.45466282963752747,
+                  -0.18891525268554688,
+                  -0.07576855272054672,
+                  -0.33146002888679504,
+                  -0.7325119972229004,
+                  -0.2642762064933777,
+                  -0.23327404260635376,
+                  -0.3333074748516083,
+                  -0.1486167013645172,
+                  -0.23767682909965515,
+                  -0.23767682909965515,
+                  -0.40525010228157043,
+                  -0.1180887222290039,
+                  -0.1180887222290039,
+                  -0.1404700130224228,
+                  -0.1945633590221405,
+                  -0.1945633590221405,
+                  -0.1945633590221405,
+                  -0.1945633590221405,
+                  -0.22313657402992249,
+                  -0.22313657402992249,
+                  -2.402833938598633,
+                  -0.006769201718270779,
+                  -0.1383620798587799,
+                  -0.006769201718270779,
+                  -0.12503521144390106,
+                  -0.14990219473838806,
+                  -0.14990219473838806,
+                  -0.064777672290802,
+                  -0.003818218130618334,
+                  -0.003818218130618334,
+                  -0.003818218130618334,
+                  -0.3564445972442627,
+                  -0.3564445972442627,
+                  -0.3564445972442627,
+                  -1.2377273503143296
+                ],
+                [
+                  -0.3544889986515045,
+                  -0.34313198924064636,
+                  -0.24988241493701935,
+                  -0.24988241493701935,
+                  -0.32376086711883545,
+                  -0.3133249282836914,
+                  -0.3722982704639435,
+                  -0.4688970446586609,
+                  -0.0016354989493265748,
+                  -0.48742860555648804,
+                  -4.1841020584106445,
+                  -8.921234130859375,
+                  9.925714492797852,
+                  2.417996883392334,
+                  2.775829553604126,
+                  -4.170374870300293,
+                  -0.09950213134288788,
+                  -0.8254839181900024,
+                  -0.005228692200034857,
+                  -0.23806597292423248,
+                  -0.2509081959724426,
+                  -0.02728363499045372,
+                  -0.02728363499045372,
+                  -0.12736672163009644,
+                  -0.6748479008674622,
+                  -2.6498355865478516,
+                  -2.552551507949829,
+                  5.468976020812988,
+                  -0.2839537560939789,
+                  0,
+                  5.345822811126709,
+                  4.880540370941162,
+                  4.880540370941162,
+                  -0.14988018572330475,
+                  -0.7386443018913269,
+                  -0.14988018572330475,
+                  -0.14988018572330475,
+                  -0.6816325187683105,
+                  -0.28373757004737854,
+                  -0.11126522719860077,
+                  -0.23770013451576233,
+                  -0.2370562106370926,
+                  -0.42819058895111084,
+                  -0.35759925842285156,
+                  -0.5282231569290161,
+                  -0.2481992393732071,
+                  -0.3640514314174652,
+                  -0.3640514314174652,
+                  -0.5809496641159058,
+                  -0.18063285946846008,
+                  -0.18063285946846008,
+                  -0.22923476994037628,
+                  -0.32320138812065125,
+                  -0.32320138812065125,
+                  -0.32320138812065125,
+                  -0.32320138812065125,
+                  -0.081978939473629,
+                  -0.081978939473629,
+                  -0.2819088399410248,
+                  -0.06840212643146515,
+                  -0.30588966608047485,
+                  -0.06840212643146515,
+                  -0.21772660315036774,
+                  -0.28920263051986694,
+                  -0.28920263051986694,
+                  -0.15807892382144928,
+                  -0.046587321907281876,
+                  -0.046587321907281876,
+                  -0.046587321907281876,
+                  -0.16097180545330048,
+                  -0.16097180545330048,
+                  -0.16097180545330048,
+                  -0.961743111281095
+                ],
+                [
+                  -0.4366692304611206,
+                  -0.4357321858406067,
+                  -0.23629233241081238,
+                  -0.23629233241081238,
+                  -0.43533357977867126,
+                  -0.4352788031101227,
+                  -0.43532708287239075,
+                  -0.24475792050361633,
+                  0,
+                  -0.5694605708122253,
+                  -0.8329623937606812,
+                  -0.24367733299732208,
+                  -0.3083127439022064,
+                  -0.3258477449417114,
+                  -0.18984921276569366,
+                  -0.16417832672595978,
+                  -0.44919002056121826,
+                  -0.31884318590164185,
+                  -0.004153338726609945,
+                  -0.13282640278339386,
+                  -0.22039149701595306,
+                  -0.121461421251297,
+                  -0.121461421251297,
+                  -0.2879008948802948,
+                  -0.0038107451982796192,
+                  -0.6036360859870911,
+                  -0.023766228929162025,
+                  -0.1977241188287735,
+                  -0.5566193461418152,
+                  -0.0038107451982796192,
+                  -0.1435185819864273,
+                  -0.13101445138454437,
+                  -0.13101445138454437,
+                  1.2833372354507446,
+                  1.3532943725585938,
+                  1.2833372354507446,
+                  1.2833372354507446,
+                  8.647088050842285,
+                  5.203267574310303,
+                  2.1604840755462646,
+                  1.6895273923873901,
+                  -1.2419179677963257,
+                  -0.7894173264503479,
+                  -0.7619848847389221,
+                  -0.3522520959377289,
+                  -0.14223124086856842,
+                  -0.30843478441238403,
+                  -0.30843478441238403,
+                  -0.25356975197792053,
+                  -0.12175659090280533,
+                  -0.12175659090280533,
+                  -0.1687828004360199,
+                  -0.10776437819004059,
+                  -0.10776437819004059,
+                  -0.10776437819004059,
+                  -0.10776437819004059,
+                  -0.4401763081550598,
+                  -0.4401763081550598,
+                  -0.0585826076567173,
+                  -0.7791771292686462,
+                  -0.8906264305114746,
+                  -0.7791771292686462,
+                  -0.0822002962231636,
+                  -0.2530779540538788,
+                  -0.2530779540538788,
+                  -0.20254766941070557,
+                  -0.03381192684173584,
+                  -0.03381192684173584,
+                  -0.03381192684173584,
+                  -0.07706815749406815,
+                  -0.07706815749406815,
+                  -0.07706815749406815,
+                  0.43532649049772637
+                ],
+                [
+                  -0.1582413762807846,
+                  -0.1529475450515747,
+                  -0.11351278424263,
+                  -0.11351278424263,
+                  -0.14799532294273376,
+                  -0.14336711168289185,
+                  -0.1800890564918518,
+                  -0.16144762933254242,
+                  -0.0010628054151311517,
+                  -0.1884455382823944,
+                  -1.8657687902450562,
+                  -0.1458543986082077,
+                  -0.17507007718086243,
+                  -0.23909029364585876,
+                  -0.14398489892482758,
+                  -0.0773656964302063,
+                  -0.09070184826850891,
+                  -0.18842251598834991,
+                  -0.009794729761779308,
+                  -0.0922967866063118,
+                  -1.343584418296814,
+                  -0.06315621733665466,
+                  -0.06315621733665466,
+                  -0.17610369622707367,
+                  -0.008363830856978893,
+                  -1.6982803344726562,
+                  -0.028312651440501213,
+                  -0.11911114305257797,
+                  -0.18258891999721527,
+                  -0.008363830856978893,
+                  -0.06257461756467819,
+                  -0.06502293795347214,
+                  -0.06502293795347214,
+                  -0.2688733637332916,
+                  1.2261513471603394,
+                  -0.2688733637332916,
+                  -0.2688733637332916,
+                  -0.6309027075767517,
+                  -0.028741151094436646,
+                  -0.29894548654556274,
+                  -0.38495826721191406,
+                  2.2492475509643555,
+                  7.785395622253418,
+                  2.9362552165985107,
+                  2.53926944732666,
+                  3.872396230697632,
+                  -0.23228704929351807,
+                  -0.23228704929351807,
+                  -1.0714149475097656,
+                  -0.9767469167709351,
+                  -0.9767469167709351,
+                  -1.3298161029815674,
+                  -0.0738639384508133,
+                  -0.0738639384508133,
+                  -0.0738639384508133,
+                  -0.0738639384508133,
+                  -0.06816144287586212,
+                  -0.06816144287586212,
+                  -0.034610565751791,
+                  -0.4176996648311615,
+                  -0.5147349834442139,
+                  -0.4176996648311615,
+                  -0.07146438211202621,
+                  -0.1345042884349823,
+                  -0.1345042884349823,
+                  -0.09870347380638123,
+                  -0.026511352509260178,
+                  -0.026511352509260178,
+                  -0.026511352509260178,
+                  -0.08008383214473724,
+                  -0.08008383214473724,
+                  -0.08008383214473724,
+                  0.0886555579783472
+                ],
+                [
+                  -0.6385282874107361,
+                  -0.6356427669525146,
+                  -0.3588649034500122,
+                  -0.3588649034500122,
+                  -0.6340036392211914,
+                  -0.6338748931884766,
+                  -0.6343034505844116,
+                  -0.294599711894989,
+                  0,
+                  -1.3507628440856934,
+                  -0.8087390661239624,
+                  -0.35173022747039795,
+                  -0.44235318899154663,
+                  -0.7001469135284424,
+                  -0.5836645364761353,
+                  -0.24928253889083862,
+                  -0.07394993305206299,
+                  -0.42830243706703186,
+                  -0.0007701353169977665,
+                  -0.2721974849700928,
+                  -0.3243013620376587,
+                  -0.18105649948120117,
+                  -0.18105649948120117,
+                  -0.42839911580085754,
+                  -0.047604236751794815,
+                  -0.20421737432479858,
+                  -0.08662789314985275,
+                  -0.28332680463790894,
+                  -0.32775816321372986,
+                  -0.047604236751794815,
+                  -0.23313523828983307,
+                  -0.205337792634964,
+                  -0.205337792634964,
+                  -0.019408000633120537,
+                  -1.3481849431991577,
+                  -0.019408000633120537,
+                  -0.019408000633120537,
+                  -0.34900370240211487,
+                  -0.3178056478500366,
+                  -0.004421684425324202,
+                  -0.08520219475030899,
+                  -1.1792821884155273,
+                  -1.0806015729904175,
+                  2.9284982681274414,
+                  -0.30402523279190063,
+                  -0.014809411019086838,
+                  6.825892925262451,
+                  6.825892925262451,
+                  2.729858636856079,
+                  3.9967188835144043,
+                  3.9967188835144043,
+                  -0.28282612562179565,
+                  -0.08378405123949051,
+                  -0.08378405123949051,
+                  -0.08378405123949051,
+                  -0.08378405123949051,
+                  -0.0702410414814949,
+                  -0.0702410414814949,
+                  -0.08462692052125931,
+                  -0.11520243436098099,
+                  -0.37017926573753357,
+                  -0.11520243436098099,
+                  -0.23127487301826477,
+                  -0.3876892626285553,
+                  -0.3876892626285553,
+                  -0.3425416946411133,
+                  -0.7010102868080139,
+                  -0.7010102868080139,
+                  -0.7010102868080139,
+                  -0.18014223873615265,
+                  -0.18014223873615265,
+                  -0.18014223873615265,
+                  0.6339171979546729
+                ],
+                [
+                  -0.15401721000671387,
+                  -0.14825081825256348,
+                  -0.12828238308429718,
+                  -0.12828238308429718,
+                  -0.13793185353279114,
+                  -0.13276082277297974,
+                  -0.20046502351760864,
+                  -0.17166216671466827,
+                  -1.1506608724594116,
+                  -1.5207432508468628,
+                  3.2821054458618164,
+                  -0.1385856419801712,
+                  -0.13183264434337616,
+                  -1.3838468790054321,
+                  -1.2875640392303467,
+                  -0.02525448426604271,
+                  -0.06905540078878403,
+                  -1.9395806789398193,
+                  -0.003386623691767454,
+                  -1.6900506019592285,
+                  4.235199451446533,
+                  -0.04589666426181793,
+                  -0.04589666426181793,
+                  -1.7844607830047607,
+                  -0.8237527012825012,
+                  4.947100639343262,
+                  -1.6655387878417969,
+                  -0.8864052891731262,
+                  -1.0233737230300903,
+                  -0.8237527012825012,
+                  -0.032557565718889236,
+                  -0.027238834649324417,
+                  -0.027238834649324417,
+                  -0.3614543080329895,
+                  2.5873465538024902,
+                  -0.3614543080329895,
+                  -0.3614543080329895,
+                  -0.8949411511421204,
+                  -0.017203805968165398,
+                  -0.4932343363761902,
+                  -0.5884939432144165,
+                  4.07974100112915,
+                  -3.5193030834198,
+                  -2.537043571472168,
+                  4.837384223937988,
+                  -0.9812708497047424,
+                  -0.010349366813898087,
+                  -0.010349366813898087,
+                  -0.24636229872703552,
+                  -0.0020735464058816433,
+                  -0.0020735464058816433,
+                  5.82379150390625,
+                  -0.05902436375617981,
+                  -0.05902436375617981,
+                  -0.05902436375617981,
+                  -0.05902436375617981,
+                  -0.0585269071161747,
+                  -0.0585269071161747,
+                  -0.8944277763366699,
+                  -0.6249483823776245,
+                  -0.7267754673957825,
+                  -0.6249483823776245,
+                  -0.07865728437900543,
+                  -0.13644343614578247,
+                  -0.13644343614578247,
+                  -0.07322252541780472,
+                  -0.035323191434144974,
+                  -0.035323191434144974,
+                  -0.035323191434144974,
+                  -0.07676652818918228,
+                  -0.07676652818918228,
+                  -0.07676652818918228,
+                  -0.6106710709741648
+                ],
+                [
+                  -0.1768980324268341,
+                  -0.1698777675628662,
+                  -0.1546528935432434,
+                  -0.1546528935432434,
+                  -0.15701091289520264,
+                  -0.15077747404575348,
+                  -0.7124577760696411,
+                  1.7660064697265625,
+                  -4.184900283813477,
+                  -0.7999298572540283,
+                  7.605928897857666,
+                  -0.10799269378185272,
+                  -6.2744221687316895,
+                  5.660015106201172,
+                  3.286080837249756,
+                  -6.268122673034668,
+                  2.1584911346435547,
+                  0.5399138927459717,
+                  -1.924028754234314,
+                  -0.3610403537750244,
+                  -0.1428394764661789,
+                  -0.02042648382484913,
+                  -0.02042648382484913,
+                  -2.486039876937866,
+                  -1.7248042821884155,
+                  -1.5802242755889893,
+                  -0.07309360057115555,
+                  -0.009471739642322063,
+                  3.4445955753326416,
+                  -0.06673905998468399,
+                  0,
+                  -0.004024997819215059,
+                  -0.004024997819215059,
+                  -0.0005033655324950814,
+                  -1.9052737951278687,
+                  -0.0005033655324950814,
+                  -0.0005033655324950814,
+                  -0.18403242528438568,
+                  -0.003966291435062885,
+                  -0.1751590073108673,
+                  3.900531768798828,
+                  -1.4742448329925537,
+                  -0.0029592819046229124,
+                  -0.0013230126351118088,
+                  -0.0029592819046229124,
+                  -0.0029592819046229124,
+                  -0.002835240215063095,
+                  -0.002835240215063095,
+                  1.228046178817749,
+                  -0.0013230126351118088,
+                  -0.0013230126351118088,
+                  0,
+                  2.3764421939849854,
+                  2.3764421939849854,
+                  2.3764421939849854,
+                  2.3764421939849854,
+                  4.094831466674805,
+                  4.094831466674805,
+                  -2.465141534805298,
+                  -0.15967190265655518,
+                  -0.3782569169998169,
+                  -0.15967190265655518,
+                  -0.1509561538696289,
+                  -0.21878677606582642,
+                  -0.21878677606582642,
+                  -0.5017881393432617,
+                  -0.6201807856559753,
+                  -0.6201807856559753,
+                  -0.6201807856559753,
+                  -0.5200579762458801,
+                  -0.5200579762458801,
+                  -0.5200579762458801,
+                  -2.6194224958185086
+                ],
+                [
+                  -0.08246283233165741,
+                  -0.07931384444236755,
+                  -0.0698394700884819,
+                  -0.0698394700884819,
+                  -0.07363154739141464,
+                  -0.07081714272499084,
+                  -0.1187657043337822,
+                  -0.049559254199266434,
+                  -1.4324650764465332,
+                  -1.6997781991958618,
+                  3.908721685409546,
+                  -0.0652809664607048,
+                  -1.115828275680542,
+                  -1.5660905838012695,
+                  -1.5660905838012695,
+                  -2.673771619796753,
+                  -0.007668002042919397,
+                  -0.49913933873176575,
+                  -0.007668002042919397,
+                  -0.08523936569690704,
+                  -0.018611431121826172,
+                  -0.031481653451919556,
+                  -0.031481653451919556,
+                  3.450741767883301,
+                  -0.008712418377399445,
+                  -1.3740531206130981,
+                  -0.506614089012146,
+                  -1.6089527606964111,
+                  -0.06458751112222672,
+                  -0.0014271658146753907,
+                  -0.0017059838864952326,
+                  -0.000011759855624404736,
+                  -0.000011759855624404736,
+                  -0.0037429630756378174,
+                  -0.9201813340187073,
+                  -0.0037429630756378174,
+                  -0.0037429630756378174,
+                  -0.01887725479900837,
+                  -0.007646746467798948,
+                  -0.0022039939649403095,
+                  -0.0022039939649403095,
+                  -0.8380370736122131,
+                  -0.010615932755172253,
+                  -0.006030574906617403,
+                  -0.011117471382021904,
+                  -0.0071702455170452595,
+                  -0.007553867530077696,
+                  -0.007553867530077696,
+                  -0.2279444932937622,
+                  -0.0030236858874559402,
+                  -0.0030236858874559402,
+                  -0.0019347016932442784,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  7.702091693878174,
+                  -0.04869496822357178,
+                  -0.13077567517757416,
+                  -0.04869496822357178,
+                  -0.06107592582702637,
+                  -0.08431928604841232,
+                  -0.08431928604841232,
+                  -0.05904660373926163,
+                  -0.03628271073102951,
+                  -0.03628271073102951,
+                  -0.03628271073102951,
+                  -0.059586696326732635,
+                  -0.059586696326732635,
+                  -0.059586696326732635,
+                  -0.7763651191872427
+                ],
+                [
+                  -0.8447659015655518,
+                  -0.8414794206619263,
+                  -0.48711809515953064,
+                  -0.48711809515953064,
+                  -0.8397701382637024,
+                  -0.8396400213241577,
+                  -0.8442971706390381,
+                  -0.3621462285518646,
+                  -0.15713541209697723,
+                  -0.5191034078598022,
+                  -0.5806999802589417,
+                  -0.48091238737106323,
+                  -0.62633216381073,
+                  -0.35086166858673096,
+                  -0.30028480291366577,
+                  -0.47132381796836853,
+                  -0.060421716421842575,
+                  -1.9036451578140259,
+                  -0.05313374474644661,
+                  2.5723652839660645,
+                  -1.508535623550415,
+                  -0.22327034175395966,
+                  -0.22327034175395966,
+                  -0.4139990210533142,
+                  -0.13513284921646118,
+                  -0.558343768119812,
+                  -0.16965726017951965,
+                  -0.41119179129600525,
+                  -0.39816296100616455,
+                  -0.06279664486646652,
+                  -0.25004151463508606,
+                  -0.24159476161003113,
+                  -0.24159476161003113,
+                  -0.3912957012653351,
+                  0.9644825458526611,
+                  -0.3912957012653351,
+                  -0.3912957012653351,
+                  -1.0751862525939941,
+                  -0.10900454968214035,
+                  -0.5001401305198669,
+                  -0.5023138523101807,
+                  -0.8907579183578491,
+                  -0.624405026435852,
+                  -0.5505300760269165,
+                  -0.16848500072956085,
+                  -0.11426476389169693,
+                  -0.4279397428035736,
+                  -0.4279397428035736,
+                  -0.3066306412220001,
+                  -0.04407515004277229,
+                  -0.04407515004277229,
+                  -0.04029730707406998,
+                  -0.04221644625067711,
+                  -0.04221644625067711,
+                  -0.04221644625067711,
+                  -0.04221644625067711,
+                  -0.0010722497245296836,
+                  -0.0010722497245296836,
+                  -0.012611615471541882,
+                  2.817885160446167,
+                  6.845769882202148,
+                  2.817885160446167,
+                  4.027884006500244,
+                  6.7230048179626465,
+                  6.7230048179626465,
+                  -0.33011549711227417,
+                  -0.23061437904834747,
+                  -0.23061437904834747,
+                  -0.23061437904834747,
+                  -0.3042229413986206,
+                  -0.3042229413986206,
+                  -0.3042229413986206,
+                  0.8396917365560205
+                ],
+                [
+                  -0.4844990372657776,
+                  -0.48265060782432556,
+                  -0.28184691071510315,
+                  -0.28184691071510315,
+                  -0.48153287172317505,
+                  -0.48142245411872864,
+                  -0.48638737201690674,
+                  -0.18537478148937225,
+                  -0.4405118227005005,
+                  0.07583177089691162,
+                  -1.8393670320510864,
+                  -0.2712816894054413,
+                  -0.3466580808162689,
+                  -1.4580986499786377,
+                  -1.4580986499786377,
+                  -0.23860450088977814,
+                  -2.4943583011627197,
+                  4.274241924285889,
+                  -2.3370425701141357,
+                  -2.3690378665924072,
+                  -2.386430025100708,
+                  -0.10506977885961533,
+                  -0.10506977885961533,
+                  -0.2428053319454193,
+                  -0.03599057346582413,
+                  -0.07654063403606415,
+                  -0.07306990772485733,
+                  -0.21651561558246613,
+                  -0.3450984060764313,
+                  -0.02012746036052704,
+                  -0.1347496658563614,
+                  -0.13245123624801636,
+                  -0.13245123624801636,
+                  -0.04045791178941727,
+                  -0.21254214644432068,
+                  -0.04045791178941727,
+                  -0.04045791178941727,
+                  -0.28314656019210815,
+                  -0.19825783371925354,
+                  -0.02481846883893013,
+                  -0.16555830836296082,
+                  -0.032145027071237564,
+                  -0.17761170864105225,
+                  -0.9088703989982605,
+                  -0.16321665048599243,
+                  -0.14058755338191986,
+                  -0.2407003790140152,
+                  -0.2407003790140152,
+                  2.1711575984954834,
+                  -0.8718461394309998,
+                  -0.8718461394309998,
+                  -0.013864878565073013,
+                  0,
+                  0,
+                  0,
+                  0,
+                  -0.12138296663761139,
+                  -0.12138296663761139,
+                  0,
+                  -0.08787708729505539,
+                  -0.09311405569314957,
+                  -0.08787708729505539,
+                  -0.002934606745839119,
+                  -0.24069133400917053,
+                  -0.24069133400917053,
+                  9.52947998046875,
+                  3.852418899536133,
+                  3.852418899536133,
+                  3.852418899536133,
+                  -0.15056490898132324,
+                  -0.15056490898132324,
+                  -0.15056490898132324,
+                  0.48144200998366815
+                ],
+                [
+                  -0.18203718960285187,
+                  -0.17948459088802338,
+                  -0.12491968274116516,
+                  -0.12491968274116516,
+                  -0.17065177857875824,
+                  -0.16791291534900665,
+                  -0.20763614773750305,
+                  -0.10488732159137726,
+                  -0.0529160350561142,
+                  -0.6440228819847107,
+                  -0.06919659674167633,
+                  -0.15005239844322205,
+                  -0.16498929262161255,
+                  -0.1128469780087471,
+                  -0.09745460748672485,
+                  -0.14645789563655853,
+                  -0.5778489708900452,
+                  -0.1392597109079361,
+                  -0.02934800647199154,
+                  -0.10030905902385712,
+                  -0.10105869174003601,
+                  -0.06464735418558121,
+                  -0.06464735418558121,
+                  -0.12054096162319183,
+                  -0.7221477031707764,
+                  -0.735515296459198,
+                  -0.730984091758728,
+                  -0.1061755120754242,
+                  2.5697414875030518,
+                  -0.6966867446899414,
+                  -0.045048050582408905,
+                  -0.0521775484085083,
+                  -0.0521775484085083,
+                  -0.029013266786932945,
+                  -0.10817433148622513,
+                  -0.029013266786932945,
+                  -0.029013266786932945,
+                  -0.12157457321882248,
+                  -0.06441779434680939,
+                  -0.014651495032012463,
+                  -0.5568096041679382,
+                  -0.02979392558336258,
+                  -0.07910574227571487,
+                  -0.07654774934053421,
+                  -0.08399549126625061,
+                  -0.04714208468794823,
+                  -0.08599946647882462,
+                  -0.08599946647882462,
+                  -0.04468641057610512,
+                  -0.044649358838796616,
+                  -0.044649358838796616,
+                  -0.029733434319496155,
+                  -0.010515918023884296,
+                  -0.010515918023884296,
+                  -0.010515918023884296,
+                  -0.010515918023884296,
+                  -0.5354866981506348,
+                  -0.5354866981506348,
+                  -0.00270335772074759,
+                  -0.015227284282445908,
+                  -0.04576659947633743,
+                  -0.015227284282445908,
+                  -0.0297086201608181,
+                  -0.0766720324754715,
+                  -0.0766720324754715,
+                  -0.026507694274187088,
+                  -0.000014635836123488843,
+                  -0.000014635836123488843,
+                  -0.000014635836123488843,
+                  3.8588192462921143,
+                  3.8588192462921143,
+                  3.8588192462921143,
+                  0.13951519958034703
+                ]
+              ]
+            }
+          }
+        }
+      }
+    },
+    "intentDomains": {},
+    "extraSentences": [
+      [
+        "en",
+        "hello"
+      ],
+      [
+        "en",
+        "hi"
+      ],
+      [
+        "en",
+        "good morning"
+      ],
+      [
+        "en",
+        "bye"
+      ],
+      [
+        "en",
+        "goodbye"
+      ],
+      [
+        "en",
+        "thank you"
+      ],
+      [
+        "en",
+        "thanks"
+      ],
+      [
+        "en",
+        "go to leave"
+      ],
+      [
+        "en",
+        "open tour"
+      ],
+      [
+        "en",
+        "apply for onduty"
+      ],
+      [
+        "en",
+        "take me to payroll"
+      ],
+      [
+        "en",
+        "show me employees"
+      ],
+      [
+        "en",
+        "open shift change"
+      ],
+      [
+        "en",
+        "onduty application"
+      ],
+      [
+        "en",
+        "apply for onduty permission"
+      ],
+      [
+        "en",
+        "on duty application form"
+      ],
+      [
+        "en",
+        "i need on duty permission"
+      ],
+      [
+        "en",
+        "apply for tour"
+      ],
+      [
+        "en",
+        "tour application form"
+      ],
+      [
+        "en",
+        "register tour"
+      ],
+      [
+        "en",
+        "business trip form"
+      ],
+      [
+        "en",
+        "when is the next holiday"
+      ],
+      [
+        "en",
+        "upcoming holidays"
+      ],
+      [
+        "en",
+        "is tomorrow a holiday"
+      ],
+      [
+        "en",
+        "who is late today"
+      ],
+      [
+        "en",
+        "list late comers"
+      ],
+      [
+        "en",
+        "attendance status"
+      ],
+      [
+        "en",
+        "how many present today"
+      ],
+      [
+        "en",
+        "who is on leave"
+      ],
+      [
+        "en",
+        "list absent employees"
+      ],
+      [
+        "en",
+        "how to apply for leave"
+      ],
+      [
+        "en",
+        "apply leave for me"
+      ],
+      [
+        "en",
+        "can you apply behalf of mine"
+      ],
+      [
+        "en",
+        "apply for leave"
+      ],
+      [
+        "en",
+        "i want to take a break"
+      ],
+      [
+        "en",
+        "pending leave applications"
+      ],
+      [
+        "en",
+        "what is my salary"
+      ],
+      [
+        "en",
+        "show my earnings"
+      ],
+      [
+        "en",
+        "payslip details"
+      ],
+      [
+        "en",
+        "help me"
+      ],
+      [
+        "en",
+        "how to use this app"
+      ],
+      [
+        "en",
+        "i have an error"
+      ]
+    ]
+  },
+  "ner": {
+    "settings": {
+      "tag": "ner",
+      "entityPreffix": "%",
+      "entitySuffix": "%"
+    },
+    "rules": {}
+  },
+  "nlgManager": {
+    "settings": {
+      "tag": "nlg-manager"
+    },
+    "responses": {}
+  },
+  "actionManager": {
+    "settings": {
+      "tag": "action-manager"
+    },
+    "actions": {}
+  },
+  "slotManager": {}
+}

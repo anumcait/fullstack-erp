@@ -1,8 +1,8 @@
 import React from "react";
-import "./ESILeavePreview.css";
-import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
+import "./ESILeavePreview.css"; // Dedicated styling sheet
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
+import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
 
 const ESILeavePreview = ({ data = {}, onClose }) => {
   const {
@@ -23,18 +23,22 @@ const ESILeavePreview = ({ data = {}, onClose }) => {
   } = data;
 
   return (
-    <div className="onduty-print-overlay">
-      <div className="onduty-print-container">
-        <div className="onduty-print-header">
-          <img src={logo} alt="Logo" className="onduty-logo" />
-          <div className="onduty-company-title">
+    <div className="esi-print-overlay">
+      <div className="esi-print-container">
+        {/* Header */}
+        <div className="esi-print-header">
+          <img src={logo} alt="Logo" className="esi-logo" />
+          <div className="esi-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
-            <span className="onduty-slip-title">ESI LEAVE REQUEST</span>
+            <span className="esi-slip-title">ESI LEAVE REQUEST</span>
           </div>
+          <div style={{ width: '80px' }}></div> {/* Spacer to perfectly center company title */}
         </div>
 
-        <table className="onduty-field-table">
+        {/* Details Table */}
+        <table className="esi-field-table">
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">ESI Leave No</td>
@@ -77,7 +81,9 @@ const ESILeavePreview = ({ data = {}, onClose }) => {
 
         <hr />
 
-        <table className="onduty-field-table">
+        {/* ESI Details Table */}
+        <table className="esi-field-table">
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">ESI Dispencery</td>
@@ -100,22 +106,23 @@ const ESILeavePreview = ({ data = {}, onClose }) => {
             <tr>
               <td className="label">No of Days</td>
               <td className="colon">:</td>
-              <td className="value">{no_of_days}</td>
-              <td></td>
+              <td className="value">{no_of_days ? parseFloat(no_of_days).toString() : "--"}</td>
+              <td className="label"></td>
               <td className="colon"></td>
-              <td></td>
+              <td className="value"></td>
             </tr>
             <tr>
               <td className="label">Reason</td>
               <td className="colon">:</td>
-              <td className="value" colSpan={5}>{reason}</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{reason}</td>
             </tr>
           </tbody>
         </table>
 
         <hr />
 
-        <table className="onduty-signature-grid">
+        {/* Signatures */}
+        <table className="esi-signature-grid">
           <tbody>
             <tr>
               <td>
@@ -148,7 +155,8 @@ const ESILeavePreview = ({ data = {}, onClose }) => {
           </tbody>
         </table>
 
-        <div className="onduty-actions no-print">
+        {/* Actions */}
+        <div className="esi-actions no-print">
           <button onClick={() => window.print()}>Print</button>
           <button onClick={onClose}>Close</button>
         </div>

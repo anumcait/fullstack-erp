@@ -24,6 +24,12 @@ const requiredStyle = {
   backgroundColor: '#fffde7'
 };
 
+const getUserRole = () => localStorage.getItem('userRole') || '';
+const isAdminUser = () => {
+  const r = getUserRole().toLowerCase();
+  return r === 'admin' || r === 'hr';
+};
+
 const AdvanceForm = ({ onClose }) => {
   const advanceTypeRef = React.useRef(null);
   const amountRef = React.useRef(null);
@@ -39,8 +45,7 @@ const AdvanceForm = ({ onClose }) => {
 
   const { showToast } = useToast();
   const { setIsDirty } = useNavigationGuard();
-  const userRole = localStorage.getItem('userRole');
-  const loggedInEmpId = localStorage.getItem('empId');
+  const [isAdmin, setIsAdmin] = useState(isAdminUser());
 
   const getCurrentISTDateTime = () => {
     const now = new Date();
@@ -65,7 +70,8 @@ const AdvanceForm = ({ onClose }) => {
     gross_salary: "",
     reason: "",
     no_of_installments: "",
-    monthly_installment: ""
+    monthly_installment: "",
+    doj: ""
   });
 
   const [showEmpPopup, setShowEmpPopup] = useState(false);
@@ -92,39 +98,85 @@ const AdvanceForm = ({ onClose }) => {
     setFormData(updatedData);
   };
 
-  useEffect(() => { 
-    fetchNextAdvanceId();
-    fetchAllEmployees();
-  }, []);
-
-  const fetchNextAdvanceId = async () => {
+  const resetForm = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/advance/next-id`);
-      setFormData(prev => ({ ...prev, advance_id: response.data.nextAdvanceId }));
+      
+      const loggedInEmpId = localStorage.getItem('empId') || "";
+      const loggedInEmpName = localStorage.getItem('empName') || "";
+      const loggedInDept = localStorage.getItem('deptname') || "";
+      const loggedInDesig = localStorage.getItem('designation') || "";
+
+      setFormData({
+        advance_id: response.data.nextAdvanceId,
+        advance_date: getCurrentISTDateTime(),
+        empid: loggedInEmpId,
+        ename: loggedInEmpName,
+        unit: "",
+        division: "",
+        designation: loggedInDesig,
+        advance_type: "",
+        advance_amount: "",
+        gross_salary: "",
+        reason: "",
+        no_of_installments: "",
+        monthly_installment: "",
+        doj: ""
+      });
+      setFieldErrors({});
+
+      if (loggedInEmpId) {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/employees/${loggedInEmpId}`)
+          .then((empRes) => {
+            const emp = empRes.data;
+            let gross = 0;
+            if (emp.salary) {
+              const s = emp.salary;
+              gross = (Number(s.basic) || 0) + 
+                      (Number(s.hra) || 0) + 
+                      (Number(s.conveyance) || 0) + 
+                      (Number(s.washing_allowance) || 0) +
+                      (Number(s.others1) || 0) + (Number(s.others2) || 0) + (Number(s.others3) || 0) +
+                      (Number(s.others4) || 0) + (Number(s.others5) || 0) + (Number(s.others6) || 0) +
+                      (Number(s.others7) || 0) + (Number(s.others8) || 0) + (Number(s.others9) || 0);
+            }
+            setFormData(prev => ({
+              ...prev,
+              ename: emp.ename,
+              unit: emp.uname || prev.unit,
+              division: emp.divname || prev.division,
+              designation: emp.designation || prev.designation,
+              gross_salary: gross,
+              doj: emp.doj || ""
+            }));
+          })
+          .catch((error) => {
+            console.error("Failed to fetch employee details", error);
+          });
+      }
     } catch (error) {
       console.error("Failed to fetch next advance ID:", error);
     }
   };
 
+  useEffect(() => { 
+    resetForm();
+    if (isAdmin) {
+      fetchAllEmployees();
+    }
+  }, []);
+
   const fetchAllEmployees = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
       setEmployeeList(response.data);
-      
-      // If regular user, pre-fill their own data
-      if (userRole !== 'Admin' && userRole !== 'HR' && loggedInEmpId) {
-        const currentUser = response.data.find(emp => String(emp.empid) === String(loggedInEmpId));
-        if (currentUser) {
-          selectEmployee(currentUser);
-        }
-      }
     } catch (error) {
       console.error("Failed to fetch employees:", error);
     }
   };
 
   const openEmpPopup = () => {
-    if (userRole === 'Admin' || userRole === 'HR') {
+    if (isAdmin) {
       setShowEmpPopup(true);
     }
   };
@@ -149,7 +201,8 @@ const AdvanceForm = ({ onClose }) => {
       unit: emp.uname,
       division: emp.divname,
       designation: emp.designation,
-      gross_salary: gross
+      gross_salary: gross,
+      doj: emp.doj || ""
     }));
     setShowEmpPopup(false);
   };
@@ -176,14 +229,14 @@ const AdvanceForm = ({ onClose }) => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/advance/save`, formData);
       showToast(`✅ Advance Saved. ID: ${response.data.advance_id}`, "success");
       setIsDirty(false);
-      onClose();
+      resetForm();
     } catch (err) {
       console.error("Save error:", err);
       showToast(getErrorMessage(err, "Error saving Advance application"), "error");
     }
   };
 
-  const canSelectEmployee = userRole === 'Admin' || userRole === 'HR';
+  const canSelectEmployee = isAdmin;
 
   return (
     <Box>
@@ -211,19 +264,23 @@ const AdvanceForm = ({ onClose }) => {
             label="Emp Id"
             name="empid"
             value={formData.empid}
-            onClick={openEmpPopup}
+            onClick={isAdmin ? openEmpPopup : undefined}
             size="small"
-            placeholder={canSelectEmployee ? "Select Employee" : "Logged in User"}
-            sx={{ width: '150px', bgcolor: canSelectEmployee ? 'white' : '#f5f5f5' }}
+            placeholder={isAdmin ? "Select Employee" : ""}
+            sx={{ 
+              width: '150px',
+              bgcolor: isAdmin ? 'white' : '#f5f5f5',
+              cursor: isAdmin ? 'pointer' : 'default'
+            }}
             InputProps={{
               readOnly: true,
-              endAdornment: canSelectEmployee && (
+              endAdornment: isAdmin ? (
                 <InputAdornment position="end">
                   <IconButton size="small" onClick={openEmpPopup}>
                     <SearchIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
-              ),
+              ) : null,
             }}
             error={!!fieldErrors.empid}
             helperText={fieldErrors.empid}

@@ -14,7 +14,7 @@ router.post('/cancel-partial', leaveController.cancelPartialApproval);
 router.post('/reopen', leaveController.reopenLeave);
 router.get('/pendingleaves', leaveController.getPendingLeaveApplications);
 router.get('/all-leaves', leaveController.getAllLeaveApplications);
-router.get('/check-overlap', leaveController.checkLeaveOverlap);
+router.post('/check-overlap', leaveController.checkLeaveOverlap);
 
 router.get('/:lno', leaveController.getLeaveApp);
 

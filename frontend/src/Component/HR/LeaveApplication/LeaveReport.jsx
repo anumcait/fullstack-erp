@@ -28,13 +28,35 @@ const LeaveReport = ({ onNewEntry }) => {
           }
 
           const statusMap = { 0: "Pending", 1: "Approved", 2: "Rejected" };
-
           return {
             sno: index + 1,
-            _expanded: false,
+            _expanded: false, // Hidden by default, click arrow to open
             ...row,
             ldate: formattedDate,
-            statusText: statusMap[row.status] || "Unknown"
+            statusText: statusMap[row.status] || "Unknown",
+            from_date: row.leaveDetails?.length > 1 
+              ? <span 
+                  onClick={(e) => { e.stopPropagation(); handleExpand(row); }} 
+                  style={{ color: '#1976d2', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
+                >
+                  Multi-Row
+                </span> 
+              : (row.leaveDetails?.length === 1 
+                ? new Date(row.leaveDetails[0].frmdt).toLocaleDateString('en-GB').replace(/\//g, '-') 
+                : '-'),
+            to_date: row.leaveDetails?.length > 1 
+              ? <span 
+                  onClick={(e) => { e.stopPropagation(); handleExpand(row); }} 
+                  style={{ color: '#1976d2', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
+                >
+                  See Grid ⬇️
+                </span> 
+              : (row.leaveDetails?.length === 1 
+                ? new Date(row.leaveDetails[0].todate).toLocaleDateString('en-GB').replace(/\//g, '-') 
+                : '-'),
+            total_days: row.leaveDetails?.length > 0
+              ? row.leaveDetails.reduce((sum, d) => sum + (parseFloat(d.nod) || 0), 0)
+              : 0
           };
         });
         setData(formatted);
@@ -47,12 +69,12 @@ const LeaveReport = ({ onNewEntry }) => {
   }, []);
 
   const handleExpand = (targetRow) => {
-    const updated = data.map((row) =>
+    if (!targetRow || !targetRow.lno) return;
+    setData(prevData => prevData.map((row) =>
       row.lno === targetRow.lno
         ? { ...row, _expanded: !row._expanded }
         : row
-    );
-    setData(updated);
+    ));
   };
 
   const columns = [
@@ -61,14 +83,15 @@ const LeaveReport = ({ onNewEntry }) => {
     { header: "Date", field: "ldate" },
     { header: "Emp ID", field: "empid" },
     { header: "Name", field: "ename" },
+    { header: "From", field: "from_date" },
+    { header: "To", field: "to_date" },
+    { header: "Days", field: "total_days" },
     { header: "Designation", field: "designation" },
     { header: "Department", field: "department" },
     { header: "Reason", field: "pofl", expandable: true },
     { header: "Address", field: "address", expandable: true },
     { header: "Phone", field: "phno" },
     { header: "Status", field: "statusText" },
-    //{ header: "To", field: "to_date" },
-
   ];
 
   return (

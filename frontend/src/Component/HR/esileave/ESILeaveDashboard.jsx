@@ -12,6 +12,14 @@ const ESILeaveDashboard = () => {
   const location = useLocation();
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const action = params.get('action');
+    if (action && ['new', 'table', 'approval'].includes(action)) {
+      setSelectedAction(action);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
     if (location.state?.reset) setSelectedAction("table");
   }, [location.state?.reset]);
 

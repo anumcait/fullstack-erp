@@ -72,6 +72,33 @@ exports.applyLeave = async (req, res) => {
   const t = await LeaveApplication.sequelize.transaction();
 
   try {
+    // --- Overlap Validation ---
+    for (const d of leaveDetails) {
+      const overlap = await LeaveDetails.findOne({
+        where: {
+          empno: application.empid,
+          [Sequelize.Op.or]: [
+            {
+              frmdt: { [Sequelize.Op.lte]: new Date(d.todate) },
+              todate: { [Sequelize.Op.gte]: new Date(d.frmdt) }
+            }
+          ]
+        },
+        include: [{
+          model: LeaveApplication,
+          as: 'application',
+          where: { status: { [Sequelize.Op.in]: ["0", "1"] } }
+        }],
+        transaction: t
+      });
+
+      if (overlap) {
+        await t.rollback();
+        const oDate = new Date(overlap.frmdt).toLocaleDateString('en-GB').replace(/\//g, '-');
+        return res.status(400).json({ message: `⚠️ Overlap detected! Leave already exists for: ${oDate} (Application #${overlap.lno})` });
+      }
+    }
+
     const maxLnoResult = await LeaveApplication.findOne({
       attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('lno')), 0), 'maxLno']],
       raw: true
@@ -119,14 +146,14 @@ exports.applyLeave = async (req, res) => {
   } catch (error) {
     if (t) await t.rollback();
     console.error("❌ Error in /api/leave/apply:", error);
-    
+
     let errMsg = 'Failed to submit leave application.';
     if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
       errMsg = error.errors.map(e => e.message).join(', ');
     } else if (error.message) {
       errMsg = error.message;
     }
-    
+
     res.status(500).json({ message: errMsg });
   }
 };
@@ -147,6 +174,11 @@ exports.getNextLeaveNumber = async (req, res) => {
 exports.getAllLeaves = async (req, res) => {
   try {
     const leaves = await LeaveApplication.findAll({
+      include: [{
+        model: LeaveDetails,
+        as: 'leaveDetails',
+        attributes: ['frmdt', 'todate', 'nod', 'daydt', 'remarks']
+      }],
       order: [['lno', 'DESC']]
     });
     res.json(leaves);
@@ -213,6 +245,26 @@ exports.getLeaveApp = async (req, res) => {
 
     const stats = attendanceStats[0] || { present: 0, absent: 0, total: 0 };
 
+    // Calculate leave balances
+    const clsEligible = Number(app.leaveMaster?.cls_eligible || 0);
+    const clsUtilised = Number(app.leaveMaster?.cls_utilised || 0);
+    const clsBalance = clsEligible - clsUtilised;
+    const elsEligible = Number(app.leaveMaster?.els_eligible || 0);
+    const elsUtilised = Number(app.leaveMaster?.els_utilised || 0);
+    const elsBalance = elsEligible - elsUtilised;
+
+    // Calculate LOP: if applied leaves > available CL+EL balance, excess goes to LOP Present
+    const leavesApplied = Number(pos?.leaves_applied || app.leaveDetails.reduce((sum, d) => sum + Number(d.nod || 0), 0));
+    const totalAvailableBalance = Math.max(0, clsBalance) + Math.max(0, elsBalance);
+    const lopPresentCalc = leavesApplied > totalAvailableBalance
+      ? Number((leavesApplied - totalAvailableBalance).toFixed(2))
+      : 0;
+
+    // Read previous LOP from LeavePosition (carried forward from earlier months)
+    const lopPrev = Number(pos?.previous_lop_days || 0);
+    const lopPres = lopPresentCalc || Number(pos?.present_lop_days || 0);
+    const lopTotal = Number((lopPrev + lopPres).toFixed(2));
+
     // Format for LeavePreview component
     const formatted = {
       leaveAppNo: app.lno,
@@ -225,17 +277,23 @@ exports.getLeaveApp = async (req, res) => {
       purpose: app.pofl,
       addressReason: app.address,
       phoneNo: app.phno,
-      clsEligible: app.leaveMaster?.cls_eligible || 0,
-      clsUtilised: app.leaveMaster?.cls_utilised || 0,
-      clsBalance: app.leaveMaster?.cls_balance || 0,
-      elsEligible: app.leaveMaster?.els_eligible || 0,
-      elsUtilised: app.leaveMaster?.els_utilised || 0,
-      elsBalance: app.leaveMaster?.els_balance || 0,
-      leavesApplied: pos?.leaves_applied || app.leaveDetails.reduce((sum, d) => sum + Number(d.nod || 0), 0),
+      clsEligible,
+      clsUtilised,
+      clsBalance,
+      elsEligible,
+      elsUtilised,
+      elsBalance,
+      lopOthersPrev: lopPrev,
+      lopOthersPres: lopPres,
+      lopOthersTotal: lopTotal,
+      lopEsi: Number(pos?.tot_lop_days || 0),
+      leavesApplied,
       companyDays: today.getDate(), // Working days till today
       presentDays: stats.present || 0,
       absentDays: stats.absent || 0,
       reportDate: formatDateTime24(new Date()),
+      ldateRaw: app.ldate,
+      firstFromDate: app.leaveDetails?.[0]?.frmdt,
       leaves: app.leaveDetails.map(d => ({
         leaveFrom: formatDate(d.frmdt),
         leaveTo: formatDate(d.todate),
@@ -255,7 +313,7 @@ const formatLeaveApp = (app) => {
     const details = app.leaveDetails || [];
     const fromDates = details.map(d => d.frmdt ? new Date(d.frmdt) : null).filter(d => d && !isNaN(d.getTime()));
     const toDates = details.map(d => d.todate ? new Date(d.todate) : null).filter(d => d && !isNaN(d.getTime()));
-    
+
     let from = null;
     let to = null;
 
@@ -291,7 +349,7 @@ const formatLeaveApp = (app) => {
       days: details.map(d => ({
         date: d.frmdt,
         dayType: d.daydt || "FULL DAY",
-        type: d.leave_type || "", 
+        type: d.leave_type || "",
         remarks: d.remarks || ""
       }))
     };
@@ -344,14 +402,14 @@ exports.approveLeave = async (req, res) => {
       await t.rollback();
       return res.status(404).json({ message: "Application not found" });
     }
-    
+
     // Update Application Status
     await app.update({ status }, { transaction: t });
 
     // Update individual LeaveDetails with status and type
     for (const day of days) {
       await LeaveDetails.update(
-        { c_hr_app_status: 'Approved', leave_type: day.type }, 
+        { c_hr_app_status: 'Approved', leave_type: day.type },
         { where: { lno, frmdt: day.date }, transaction: t }
       );
     }
@@ -363,9 +421,9 @@ exports.approveLeave = async (req, res) => {
     }
 
     const newClsUtilised = Number(master.cls_utilised || 0) + Number(cl_sanction || 0);
-    const newClsBalance = Number(master.cls_balance || 0) - Number(cl_sanction || 0);
+    const newClsBalance = Number(master.cls_eligible || 0) - newClsUtilised;
     const newElsUtilised = Number(master.els_utilised || 0) + Number(el_sanction || 0);
-    const newElsBalance = Number(master.els_balance || 0) - Number(el_sanction || 0);
+    const newElsBalance = Number(master.els_eligible || 0) - newElsUtilised;
 
     await master.update({
       cls_utilised: newClsUtilised,
@@ -394,10 +452,10 @@ exports.rejectLeave = async (req, res) => {
       await t.rollback();
       return res.status(404).json({ message: "Application not found" });
     }
-    
+
     await app.update({ status, remarks: app_remarks }, { transaction: t });
     await LeaveDetails.update(
-      { c_hr_app_status: 'Rejected', c_hr_app_remarks: app_remarks }, 
+      { c_hr_app_status: 'Rejected', c_hr_app_remarks: app_remarks },
       { where: { lno }, transaction: t }
     );
 
@@ -414,15 +472,15 @@ exports.cancelApproval = async (req, res) => {
   const { lno } = req.body;
   const t = await LeaveApplication.sequelize.transaction();
   try {
-    const app = await LeaveApplication.findOne({ 
+    const app = await LeaveApplication.findOne({
       where: { lno },
       include: [{ model: LeaveDetails, as: 'leaveDetails' }],
-      transaction: t 
+      transaction: t
     });
 
     if (!app || app.status !== 'Approved') {
-       await t.rollback();
-       return res.status(400).json({ message: "Application not found or not in approved state" });
+      await t.rollback();
+      return res.status(400).json({ message: "Application not found or not in approved state" });
     }
 
     // Calculate how much to revert
@@ -430,23 +488,23 @@ exports.cancelApproval = async (req, res) => {
     let elToRevert = 0;
 
     for (const d of app.leaveDetails) {
-       const weight = (d.daydt === 'FULL DAY' ? 1 : 0.5);
-       if (d.leave_type === 'CL') {
-          clToRevert += weight;
-       } else if (d.leave_type === 'EL') {
-          elToRevert += weight;
-       }
+      const weight = (d.daydt === 'FULL DAY' ? 1 : 0.5);
+      if (d.leave_type === 'CL') {
+        clToRevert += weight;
+      } else if (d.leave_type === 'EL') {
+        elToRevert += weight;
+      }
     }
 
     // Revert balances in Master
     const master = await LeaveMaster.findOne({ where: { empid: app.empid }, transaction: t });
     if (master) {
-       await master.update({
-          cls_utilised: Number(master.cls_utilised || 0) - clToRevert,
-          cls_balance: Number(master.cls_balance || 0) + clToRevert,
-          els_utilised: Number(master.els_utilised || 0) - elToRevert,
-          els_balance: Number(master.els_balance || 0) + elToRevert
-       }, { transaction: t });
+      await master.update({
+        cls_utilised: Number(master.cls_utilised || 0) - clToRevert,
+        cls_balance: Number(master.cls_balance || 0) + clToRevert,
+        els_utilised: Number(master.els_utilised || 0) - elToRevert,
+        els_balance: Number(master.els_balance || 0) + elToRevert
+      }, { transaction: t });
     }
 
     // Set Application Status to Cancelled (2)
@@ -454,8 +512,8 @@ exports.cancelApproval = async (req, res) => {
 
     // Reset Details Status and type
     await LeaveDetails.update(
-       { c_hr_app_status: 'Pending', leave_type: null },
-       { where: { lno }, transaction: t }
+      { c_hr_app_status: 'Pending', leave_type: null },
+      { where: { lno }, transaction: t }
     );
 
     await t.commit();
@@ -471,31 +529,31 @@ exports.cancelPartialApproval = async (req, res) => {
   const { lno, dates = [], remarks = "" } = req.body; // dates is array of dates to cancel
   const t = await LeaveApplication.sequelize.transaction();
   try {
-    const app = await LeaveApplication.findOne({ 
+    const app = await LeaveApplication.findOne({
       where: { lno },
       include: [{ model: LeaveDetails, as: 'leaveDetails' }],
-      transaction: t 
+      transaction: t
     });
 
     if (!app) {
-       await t.rollback();
-       return res.status(404).json({ message: "Application not found" });
+      await t.rollback();
+      return res.status(404).json({ message: "Application not found" });
     }
 
     // Filter details to those selected for cancellation (using date strings for comparison)
     const detailsToCancel = app.leaveDetails.filter(d => {
-       if (!d.frmdt) return false;
-       const dStr = new Date(d.frmdt).toISOString().split('T')[0];
-       return dates.includes(dStr);
+      if (!d.frmdt) return false;
+      const dStr = new Date(d.frmdt).toISOString().split('T')[0];
+      return dates.includes(dStr);
     });
-    
+
     if (detailsToCancel.length === 0) {
-       await t.rollback();
-       return res.status(400).json({ 
-         message: "No matching dates found for cancellation",
-         receivedDates: dates,
-         availableDates: app.leaveDetails.map(d => d.frmdt ? new Date(d.frmdt).toISOString().split('T')[0] : null)
-       });
+      await t.rollback();
+      return res.status(400).json({
+        message: "No matching dates found for cancellation",
+        receivedDates: dates,
+        availableDates: app.leaveDetails.map(d => d.frmdt ? new Date(d.frmdt).toISOString().split('T')[0] : null)
+      });
     }
 
     // Calculate how much to revert
@@ -503,32 +561,32 @@ exports.cancelPartialApproval = async (req, res) => {
     let elToRevert = 0;
 
     for (const d of detailsToCancel) {
-       const weight = (d.daydt === 'FULL DAY' ? 1 : 0.5);
-       if (d.leave_type === 'CL') {
-          clToRevert += weight;
-       } else if (d.leave_type === 'EL') {
-          elToRevert += weight;
-       }
+      const weight = (d.daydt === 'FULL DAY' ? 1 : 0.5);
+      if (d.leave_type === 'CL') {
+        clToRevert += weight;
+      } else if (d.leave_type === 'EL') {
+        elToRevert += weight;
+      }
     }
 
     // Revert balances in Master
     const master = await LeaveMaster.findOne({ where: { empid: app.empid }, transaction: t });
     if (master) {
-       await master.update({
-          cls_utilised: Number(master.cls_utilised || 0) - clToRevert,
-          cls_balance: Number(master.cls_balance || 0) + clToRevert,
-          els_utilised: Number(master.els_utilised || 0) - elToRevert,
-          els_balance: Number(master.els_balance || 0) + elToRevert
-       }, { transaction: t });
+      await master.update({
+        cls_utilised: Number(master.cls_utilised || 0) - clToRevert,
+        cls_balance: Number(master.cls_balance || 0) + clToRevert,
+        els_utilised: Number(master.els_utilised || 0) - elToRevert,
+        els_balance: Number(master.els_balance || 0) + elToRevert
+      }, { transaction: t });
     }
 
     // Update individual Details back to pending (0)
     for (const d of detailsToCancel) {
-       await d.update({
-          c_hr_app_status: 'Pending',
-          leave_type: null,
-          c_hr_app_remarks: remarks
-       }, { transaction: t });
+      await d.update({
+        c_hr_app_status: 'Pending',
+        leave_type: null,
+        c_hr_app_remarks: remarks
+      }, { transaction: t });
     }
 
     // Set main application to Rejected/Cancelled (2) so it appears in the cancelled list
@@ -553,11 +611,11 @@ exports.reopenLeave = async (req, res) => {
 
     // Set status to 0 (Pending)
     await app.update({ status: 'Pending' });
-    
+
     // Also reset details status to 'Pending'
     await LeaveDetails.update(
-       { c_hr_app_status: 'Pending', leave_type: null },
-       { where: { lno } }
+      { c_hr_app_status: 'Pending', leave_type: null },
+      { where: { lno } }
     );
 
     res.json({ success: true, message: "Leave application reopened for approval" });
@@ -568,25 +626,37 @@ exports.reopenLeave = async (req, res) => {
 };
 
 exports.checkLeaveOverlap = async (req, res) => {
+  const { empid, fromDate, toDate } = { ...req.query, ...req.body };
   try {
-    const { empid, fromDate, toDate } = req.query;
     if (!empid || !fromDate || !toDate) return res.status(400).json({ message: "Missing params" });
 
-    const { Op } = require('sequelize');
     const overlap = await LeaveDetails.findOne({
       where: {
         empno: empid,
-        [Op.or]: [
-          { frmdt: { [Op.between]: [fromDate, toDate] } },
-          { todate: { [Op.between]: [fromDate, toDate] } },
-          { [Op.and]: [{ frmdt: { [Op.lte]: fromDate } }, { todate: { [Op.gte]: toDate } }] }
+        [Sequelize.Op.or]: [
+          {
+            frmdt: { [Sequelize.Op.lte]: new Date(toDate) },
+            todate: { [Sequelize.Op.gte]: new Date(fromDate) }
+          }
         ]
-      }
+      },
+      include: [{
+        model: LeaveApplication,
+        as: 'application',
+        where: { status: { [Sequelize.Op.in]: ["0", "1"] } }
+      }]
     });
-    res.json({ overlapping: !!overlap });
-  } catch (error) {
-    console.error("Error checking overlap:", error);
-    res.status(500).json({ message: "Internal error" });
+
+    if (overlap) {
+      return res.json({ 
+        overlap: true, 
+        overlapDate: new Date(overlap.frmdt).toLocaleDateString('en-GB').replace(/\//g, '-'),
+        lno: overlap.lno 
+      });
+    }
+    res.json({ overlap: false });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 

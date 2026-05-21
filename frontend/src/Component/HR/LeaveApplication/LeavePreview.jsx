@@ -3,6 +3,7 @@ import axios from "axios";
 import "./LeavePreview.css";
 import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
 import logo from "../../../assets/images/EQIC_Image.jpg"; // replace with your logo path
+import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
 
 const LeavePreview = ({ data, onClose }) => {
   const [leaveData, setLeaveData] = useState(null);
@@ -81,7 +82,7 @@ const LeavePreview = ({ data, onClose }) => {
       <div className="leave-print-container">
         {/* Standardized Header */}
         <div className="onduty-print-header">
-          <img src={logo} alt="Logo" className="onduty-logo" style={{ height: "40px" }} />
+          <img src={logo} alt="Logo" className="onduty-logo" style={{ height: "30px" }} />
           <div className="onduty-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
@@ -92,6 +93,7 @@ const LeavePreview = ({ data, onClose }) => {
 
         {/* Basic Info Table */}
         <table className="onduty-field-table" style={{ marginTop: "10px" }}>
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
               <td className="label">Leave app. No</td>
@@ -135,11 +137,12 @@ const LeavePreview = ({ data, onClose }) => {
         {/* Leaves Dates Table */}
         <div style={{ marginTop: "10px" }}>
           <table className="onduty-field-table">
+            <PreviewFieldTableColgroup />
             <tbody>
               <tr>
                 <td className="label" style={{ verticalAlign: 'top' }}>Leaves date(s)</td>
                 <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
-                <td>
+                <td colSpan={4}>
                   <table style={{ borderCollapse: "collapse", width: "300px", border: "1px solid #ccc" }}>
                     <thead>
                       <tr>
@@ -165,22 +168,23 @@ const LeavePreview = ({ data, onClose }) => {
         </div>
 
         {/* Purpose, Address, Phone */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: "5px" }}>
+        <table className="onduty-field-table" style={{ marginTop: "5px" }}>
+          <PreviewFieldTableColgroup />
           <tbody>
             <tr>
-              <td className="label" style={{ width: '80px', fontWeight: 'bold', verticalAlign: 'top', padding: '2px 6px' }}>Purpose</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '2px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', verticalAlign: 'top', padding: '2px 6px' }}>{purpose}</td>
+              <td className="label" style={{ verticalAlign: 'top' }}>Purpose</td>
+              <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top' }}>{purpose}</td>
             </tr>
             <tr>
-              <td className="label" style={{ width: '80px', fontWeight: 'bold', verticalAlign: 'top', padding: '2px 6px' }}>Address</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '2px 6px' }}>:</td>
-              <td style={{ wordBreak: 'break-word', verticalAlign: 'top', padding: '2px 6px' }}>{addressReason}</td>
+              <td className="label" style={{ verticalAlign: 'top' }}>Address</td>
+              <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top' }}>{addressReason}</td>
             </tr>
             <tr>
-              <td className="label" style={{ width: '80px', fontWeight: 'bold', verticalAlign: 'top', padding: '2px 6px' }}>Phone No</td>
-              <td className="colon" style={{ width: '10px', textAlign: 'center', verticalAlign: 'top', padding: '2px 6px' }}>:</td>
-              <td style={{ verticalAlign: 'top', padding: '2px 6px' }}>{phoneNo}</td>
+              <td className="label" style={{ verticalAlign: 'top' }}>Phone No</td>
+              <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
+              <td colSpan={4} className="value" style={{ verticalAlign: 'top' }}>{phoneNo}</td>
             </tr>
           </tbody>
         </table>
