@@ -74,8 +74,21 @@ const LeavePreview = ({ data, onClose }) => {
     absentDays = "",
     reportDate = "",
     leaves = [],
-    leavesApplied = ""
+    leavesApplied = "",
+    ldateRaw,
+    firstFromDate
   } = leaveData || {};
+
+  let submissionStatus = "";
+  if (ldateRaw && firstFromDate) {
+    const ldate = new Date(ldateRaw);
+    const fdate = new Date(firstFromDate);
+    if (ldate > fdate) {
+      submissionStatus = "BEFORE SUBMISSION";
+    } else {
+      submissionStatus = "AFTER SUBMISSION";
+    }
+  }
 
   return (
     <div className="leave-print-overlay">
@@ -86,9 +99,11 @@ const LeavePreview = ({ data, onClose }) => {
           <div className="onduty-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
-            <span className="onduty-slip-title">LEAVE APPLICATION SLIP</span>
+            <span className="onduty-slip-title">LEAVE APPLICATION</span>
           </div>
-          <div className="onduty-before-box">AFTER SUBMISSION</div>
+          {submissionStatus && (
+            <div className="onduty-before-box">{submissionStatus}</div>
+          )}
         </div>
 
         {/* Basic Info Table */}
@@ -125,7 +140,7 @@ const LeavePreview = ({ data, onClose }) => {
             <tr>
               <td className="label">Leaves Applied</td>
               <td className="colon">:</td>
-              <td className="value">{leavesApplied ? parseFloat(leavesApplied).toString() : ""} (days)</td>
+              <td className="value">{leavesApplied ? parseFloat(leavesApplied).toString() : ""}</td>
 
               <td className="label">Section</td>
               <td className="colon">:</td>
@@ -136,7 +151,7 @@ const LeavePreview = ({ data, onClose }) => {
 
         {/* Leaves Dates Table */}
         <div style={{ marginTop: "10px" }}>
-          <table className="onduty-field-table">
+          <table className="onduty-field-table onduty-movement-table">
             <PreviewFieldTableColgroup />
             <tbody>
               <tr>
@@ -156,7 +171,7 @@ const LeavePreview = ({ data, onClose }) => {
                         <tr key={index}>
                           <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveFrom}</td>
                           <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveTo}</td>
-                          <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveDay ? parseFloat(leave.leaveDay).toString() : ""}</td>
+                          <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveDay ? leave.leaveDay : ""}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -168,23 +183,23 @@ const LeavePreview = ({ data, onClose }) => {
         </div>
 
         {/* Purpose, Address, Phone */}
-        <table className="onduty-field-table" style={{ marginTop: "5px" }}>
+        <table className="onduty-field-table onduty-movement-table" style={{ marginTop: "5px" }}>
           <PreviewFieldTableColgroup />
           <tbody>
             <tr>
-              <td className="label" style={{ verticalAlign: 'top' }}>Purpose</td>
-              <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
-              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top' }}>{purpose}</td>
+              <td className="label">Leave Purpose</td>
+              <td className="colon">:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{purpose}</td>
             </tr>
             <tr>
-              <td className="label" style={{ verticalAlign: 'top' }}>Address</td>
-              <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
-              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top' }}>{addressReason}</td>
+              <td className="label">Address/Reason</td>
+              <td className="colon">:</td>
+              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{addressReason}</td>
             </tr>
             <tr>
-              <td className="label" style={{ verticalAlign: 'top' }}>Phone No</td>
-              <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
-              <td colSpan={4} className="value" style={{ verticalAlign: 'top' }}>{phoneNo}</td>
+              <td className="label">Phone No</td>
+              <td className="colon">:</td>
+              <td colSpan={4} className="value" style={{ verticalAlign: 'top', padding: '4px 6px' }}>{phoneNo}</td>
             </tr>
           </tbody>
         </table>
@@ -193,15 +208,15 @@ const LeavePreview = ({ data, onClose }) => {
           I agree that my increment may be postponed if not reporting back in time.
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "5px", fontSize: "12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "5px", fontSize: "12px", marginTop: "15px" }}>
           <span>Date: {leaveDateShort}</span>
           <span>Employee Signature</span>
         </div>
 
-        <hr style={{ margin: "10px 0" }} />
-
-        <div style={{ fontSize: '13px', fontWeight: '800', textAlign: 'center', background: "#eee", padding: "2px" }}>
-          For Office Use
+        <div style={{ display: 'flex', alignItems: 'center', textAlign: 'center', fontWeight: '800', fontSize: '13px', margin: '15px 0 10px 0' }}>
+          <div style={{ flex: 1, borderBottom: '1px solid #ccc' }}></div>
+          <span style={{ padding: '0 10px' }}>FOR OFFICE USE</span>
+          <div style={{ flex: 1, borderBottom: '1px solid #ccc' }}></div>
         </div>
 
         <div style={{ display: "flex", gap: "20px", marginTop: "10px" }}>
@@ -231,11 +246,10 @@ const LeavePreview = ({ data, onClose }) => {
               </tbody>
             </table>
 
-            <div style={{ fontWeight: 'bold', fontSize: '12px', marginTop: '10px', textAlign: "center" }}>LOP</div>
-            <table style={{ fontSize: '12px', borderCollapse: 'collapse', width: '260px' }}>
+            <table style={{ fontSize: '12px', borderCollapse: 'collapse', width: '260px', marginTop: '10px' }}>
               <thead>
                 <tr>
-                  <th></th>
+                  <th style={{ textAlign: 'left', fontWeight: 'bold' }}>LOP</th>
                   <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Prev</th>
                   <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Pres</th>
                   <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Total</th>
@@ -253,6 +267,12 @@ const LeavePreview = ({ data, onClose }) => {
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopEsi}</td>
                   <td style={{ border: '1px solid #ccc' }}></td>
                   <td style={{ border: '1px solid #ccc' }}></td>
+                </tr>
+                <tr>
+                  <td>Total</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersPrev}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersPres}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersTotal}</td>
                 </tr>
               </tbody>
             </table>
@@ -275,9 +295,9 @@ const LeavePreview = ({ data, onClose }) => {
             <table style={{ borderCollapse: 'collapse', fontSize: '11px', marginTop: '10px', width: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Company<br />Days</th>
-                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Employee<br />Present</th>
-                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Employee<br />Absent</th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Company<br />Working Days</th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Employee<br />Present Days</th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Employee<br />Absent Days</th>
                 </tr>
               </thead>
               <tbody>
@@ -288,37 +308,29 @@ const LeavePreview = ({ data, onClose }) => {
                 </tr>
               </tbody>
             </table>
-            <div style={{ fontSize: '9px', marginTop: '5px', color: '#666' }}>* Data up to one day before approval.</div>
+            <div style={{ fontSize: '9px', marginTop: '5px', color: '#666' }}>* Information upto one day before and attendance respective to HR approval</div>
           </div>
         </div>
 
-        <hr style={{ margin: "15px 0" }} />
+        {/* <hr style={{ margin: "15px 0" }} /> */}
 
         {/* Standardized Signatures */}
         <table className="onduty-signature-grid">
           <tbody>
             <tr>
-              <td>
+              <td style={{ width: '25%' }}>
                 <br /><br />
-                <strong>Recommended</strong><br />
-                Signature
+                <strong>Recommended By</strong>
               </td>
-              <td>
+              <td style={{ width: '25%' }}>
                 <br /><br />
-                <strong>Approved</strong><br />
-                Signature
+                <strong>Approved By</strong>
               </td>
-              <td>
+              <td style={{ width: '25%' }}>
                 <br /><br />
-                <strong>Authorized</strong><br />
-                Signature
+                <strong>GM</strong>
               </td>
-              <td>
-                <br /><br />
-                <strong>GM</strong><br />
-                Signature
-              </td>
-              <td>
+              <td style={{ width: '25%' }}>
                 <br /><br />
                 <strong>DIRECTOR</strong>
               </td>
