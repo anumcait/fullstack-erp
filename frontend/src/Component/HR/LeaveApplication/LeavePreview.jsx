@@ -101,7 +101,7 @@ const LeavePreview = ({ data, onClose }) => {
       <div className="leave-print-container">
         {/* Standardized Header */}
         <div className="leave-print-header">
-          <img src={logo} alt="Logo" className="leave-logo" style={{ height: "30px" }} />
+          <img src={logo} alt="Logo" className="leave-logo" style={{ height: "20px" }} />
           <div className="leave-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
@@ -204,14 +204,7 @@ const LeavePreview = ({ data, onClose }) => {
 
         {/* Purpose, Address, Phone */}
         <table className="leave-field-table leave-movement-table" style={{ marginTop: "5px" }}>
-          <colgroup>
-            <col className="preview-col-label" />
-            <col className="preview-col-colon" />
-            <col className="preview-col-value" />
-            <col className="preview-col-label" />
-            <col className="preview-col-colon" />
-            <col className="preview-col-value" />
-          </colgroup>
+
           <tbody>
             <tr>
               <td className="label">Leave Purpose</td>
@@ -232,7 +225,7 @@ const LeavePreview = ({ data, onClose }) => {
           </tbody>
         </table>
 
-        <div style={{ fontWeight: 'bold', fontSize: '9px', padding: '5px 5px 0' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '9px', padding: '2px 5px 0' }}>
           I agree that my increment may be postponed if not reporting back in time.
         </div>
 
@@ -247,7 +240,7 @@ const LeavePreview = ({ data, onClose }) => {
           <div style={{ flex: 1, borderBottom: '1px solid #ccc' }}></div>
         </div>
 
-        <div style={{ display: "flex", gap: "20px", marginTop: "10px" }}>
+        <div style={{ display: "flex", gap: "20px", marginTop: "5px" }}>
           <div>
             <table style={{ fontSize: '8px', borderCollapse: 'collapse', width: '260px' }}>
               <thead>
@@ -274,12 +267,12 @@ const LeavePreview = ({ data, onClose }) => {
               </tbody>
             </table>
 
-            <table style={{ fontSize: '12px', borderCollapse: 'collapse', width: '260px', marginTop: '10px' }}>
+            <table style={{ fontSize: '10px', borderCollapse: 'collapse', width: '260px', marginTop: '10px' }}>
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left', fontWeight: 'bold' }}>LOP</th>
-                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Prev</th>
-                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Pres</th>
+                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Previous</th>
+                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Present</th>
                   <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Total</th>
                 </tr>
               </thead>
@@ -320,7 +313,7 @@ const LeavePreview = ({ data, onClose }) => {
               </tbody>
             </table>
 
-            <table style={{ borderCollapse: 'collapse', fontSize: '11px', marginTop: '10px', width: '100%' }}>
+            <table style={{ borderCollapse: 'collapse', fontSize: '8px', marginTop: '10px', width: '100%' }}>
               <thead>
                 <tr>
                   <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Company<br />Working Days</th>
@@ -342,38 +335,43 @@ const LeavePreview = ({ data, onClose }) => {
 
         {/* <hr style={{ margin: "15px 0" }} /> */}
 
+        {/* Spacer to push footer to the bottom */}
+        <div style={{ minHeight: '25px' }}></div>
+
         {/* Standardized Signatures */}
-        <table className="leave-signature-grid">
-          <tbody>
-            <tr>
-              <td style={{ width: '25%' }}>
-                <br /><br />
-                <strong>Recommended By</strong>
-              </td>
-              <td style={{ width: '25%' }}>
-                <br /><br />
-                <strong>Approved By</strong>
-              </td>
-              <td style={{ width: '25%' }}>
-                <br /><br />
-                <strong>GM</strong>
-              </td>
-              <td style={{ width: '25%' }}>
-                <br /><br />
-                <strong>DIRECTOR</strong>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="leave-print-footer">
+          <table className="leave-signature-grid">
+            <tbody>
+              <tr>
+                <td style={{ width: '30%' }}>
+                  <br /><br />
+                  <strong>Recommended By</strong>
+                </td>
+                <td style={{ width: '25%' }}>
+                  <br /><br />
+                  <strong>Approved By</strong>
+                </td>
+                <td style={{ width: '25%' }}>
+                  <br /><br />
+                  <strong>GM</strong>
+                </td>
+                <td style={{ width: '25%' }}>
+                  <br /><br />
+                  <strong>DIRECTOR</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div style={{ fontSize: '10px', textAlign: 'right', marginTop: '10px' }} className="no-print">
-          Report Dated: {reportDate}
-        </div>
+          <div style={{ fontSize: '10px', textAlign: 'right', marginTop: '5px' }}>
+            Report Dated: {reportDate}
+          </div>
 
-        {/* Standardized Actions */}
-        <div className="leave-actions no-print">
-          <button onClick={() => window.print()}>Print</button>
-          <button onClick={onClose}>Close</button>
+          {/* Standardized Actions */}
+          <div className="leave-actions no-print">
+            <button onClick={() => window.print()}>Print</button>
+            <button onClick={onClose}>Close</button>
+          </div>
         </div>
       </div>
     </div>
