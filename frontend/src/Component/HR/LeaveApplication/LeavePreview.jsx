@@ -4,6 +4,13 @@ import "./LeavePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg"; // replace with your logo path
 
 
+// Format numeric value: show 0 for empty/null, clamp negatives to 0
+const fmtNum = (val) => {
+  const num = parseFloat(val);
+  if (isNaN(num) || num < 0) return "0";
+  return num.toString();
+};
+
 const LeavePreview = ({ data, onClose }) => {
   const [leaveData, setLeaveData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -254,15 +261,15 @@ const LeavePreview = ({ data, onClose }) => {
               <tbody>
                 <tr>
                   <td>CLs</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{clsEligible ? parseFloat(clsEligible).toString() : ""}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{clsUtilised ? parseFloat(clsUtilised).toString() : ""}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{clsBalance ? parseFloat(clsBalance).toString() : ""}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(clsEligible)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(clsUtilised)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(clsBalance)}</td>
                 </tr>
                 <tr>
                   <td>ELs</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{elsEligible ? parseFloat(elsEligible).toString() : ""}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{elsUtilised ? parseFloat(elsUtilised).toString() : ""}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{elsBalance ? parseFloat(elsBalance).toString() : ""}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(elsEligible)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(elsUtilised)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(elsBalance)}</td>
                 </tr>
               </tbody>
             </table>
@@ -279,21 +286,21 @@ const LeavePreview = ({ data, onClose }) => {
               <tbody>
                 <tr>
                   <td>Others</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersPrev}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersPres}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersTotal}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersPrev)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersPres)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersTotal)}</td>
                 </tr>
                 <tr>
                   <td>ESI</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopEsi}</td>
-                  <td style={{ border: '1px solid #ccc' }}></td>
-                  <td style={{ border: '1px solid #ccc' }}></td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopEsi)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(null)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(null)}</td>
                 </tr>
                 <tr>
                   <td>Total</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersPrev}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersPres}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{lopOthersTotal}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersPrev)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersPres)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersTotal)}</td>
                 </tr>
               </tbody>
             </table>
