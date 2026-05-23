@@ -81,7 +81,7 @@
   margin-top: 2px;
 }
 
-.leave-after-box {
+.leave-before-box {
   border: 1px solid #000;
   font-weight: bold;
   font-size: 11px;
@@ -325,8 +325,13 @@
     transform: rotate(90deg);
     transform-origin: top left;
     box-sizing: border-box;
-    font-size: 10px;
+    font-size: 10px !important;
     background: #fff;
-    padding: 2mm;
+    padding: 2px;
   }
+
+  .leave-print-container .leave-field-table col:nth-child(3) {
+    width: 100px;
+  }
+
 }
