@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./LeavePreview.css";
-import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
 import logo from "../../../assets/images/EQIC_Image.jpg"; // replace with your logo path
-import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
+
 
 const LeavePreview = ({ data, onClose }) => {
   const [leaveData, setLeaveData] = useState(null);
@@ -94,21 +93,28 @@ const LeavePreview = ({ data, onClose }) => {
     <div className="leave-print-overlay">
       <div className="leave-print-container">
         {/* Standardized Header */}
-        <div className="onduty-print-header">
-          <img src={logo} alt="Logo" className="onduty-logo" style={{ height: "30px" }} />
-          <div className="onduty-company-title">
+        <div className="leave-print-header">
+          <img src={logo} alt="Logo" className="leave-logo" style={{ height: "30px" }} />
+          <div className="leave-company-title">
             AUCTOR HOME APPLIANCES LLP
             <br />
-            <span className="onduty-slip-title">LEAVE APPLICATION</span>
+            <span className="leave-slip-title">LEAVE APPLICATION</span>
           </div>
           {submissionStatus && (
-            <div className="onduty-before-box">{submissionStatus}</div>
+            <div className="leave-before-box">{submissionStatus}</div>
           )}
         </div>
 
         {/* Basic Info Table */}
-        <table className="onduty-field-table" style={{ marginTop: "10px" }}>
-          <PreviewFieldTableColgroup />
+        <table className="leave-field-table" style={{ marginTop: "10px" }}>
+          <colgroup>
+            <col className="preview-col-label" />
+            <col className="preview-col-colon" />
+            <col className="preview-col-value" />
+            <col className="preview-col-label" />
+            <col className="preview-col-colon" />
+            <col className="preview-col-value" />
+          </colgroup>
           <tbody>
             <tr>
               <td className="label">Leave app. No</td>
@@ -151,8 +157,15 @@ const LeavePreview = ({ data, onClose }) => {
 
         {/* Leaves Dates Table */}
         <div style={{ marginTop: "10px" }}>
-          <table className="onduty-field-table onduty-movement-table">
-            <PreviewFieldTableColgroup />
+          <table className="leave-field-table leave-movement-table">
+            <colgroup>
+              <col className="preview-col-label" />
+              <col className="preview-col-colon" />
+              <col className="preview-col-value" />
+              <col className="preview-col-label" />
+              <col className="preview-col-colon" />
+              <col className="preview-col-value" />
+            </colgroup>
             <tbody>
               <tr>
                 <td className="label" style={{ verticalAlign: 'top' }}>Leaves date(s)</td>
@@ -183,14 +196,22 @@ const LeavePreview = ({ data, onClose }) => {
         </div>
 
         {/* Purpose, Address, Phone */}
-        <table className="onduty-field-table onduty-movement-table" style={{ marginTop: "5px" }}>
-          <PreviewFieldTableColgroup />
+        <table className="leave-field-table leave-movement-table" style={{ marginTop: "5px" }}>
+          <colgroup>
+            <col className="preview-col-label" />
+            <col className="preview-col-colon" />
+            <col className="preview-col-value" />
+            <col className="preview-col-label" />
+            <col className="preview-col-colon" />
+            <col className="preview-col-value" />
+          </colgroup>
           <tbody>
             <tr>
               <td className="label">Leave Purpose</td>
               <td className="colon">:</td>
-              <td colSpan={4} className="preview-field-data" style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{purpose}</td>
+              <td colSpan={4} className="preview-field-data" style={{ fontWeight: 600, wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{purpose}</td>
             </tr>
+
             <tr>
               <td className="label">Address/Reason</td>
               <td className="colon">:</td>
@@ -204,24 +225,24 @@ const LeavePreview = ({ data, onClose }) => {
           </tbody>
         </table>
 
-        <div style={{ fontWeight: 'bold', fontSize: '12px', padding: '10px 5px 0' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '9px', padding: '5px 5px 0' }}>
           I agree that my increment may be postponed if not reporting back in time.
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "5px", fontSize: "12px", marginTop: "15px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "0 5px", fontSize: "12px", marginTop: "15px" }}>
           <span>Date: {leaveDateShort}</span>
           <span>Employee Signature</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', textAlign: 'center', fontWeight: '800', fontSize: '13px', margin: '15px 0 10px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', textAlign: 'center', fontWeight: '800', fontSize: '13px', margin: '1px 0 10px 0' }}>
           <div style={{ flex: 1, borderBottom: '1px solid #ccc' }}></div>
-          <span style={{ padding: '0 10px' }}>FOR OFFICE USE</span>
+          <span style={{ padding: '0 2px' }}>FOR OFFICE USE</span>
           <div style={{ flex: 1, borderBottom: '1px solid #ccc' }}></div>
         </div>
 
         <div style={{ display: "flex", gap: "20px", marginTop: "10px" }}>
           <div>
-            <table style={{ fontSize: '12px', borderCollapse: 'collapse', width: '260px' }}>
+            <table style={{ fontSize: '8px', borderCollapse: 'collapse', width: '260px' }}>
               <thead>
                 <tr>
                   <th></th>
@@ -315,7 +336,7 @@ const LeavePreview = ({ data, onClose }) => {
         {/* <hr style={{ margin: "15px 0" }} /> */}
 
         {/* Standardized Signatures */}
-        <table className="onduty-signature-grid">
+        <table className="leave-signature-grid">
           <tbody>
             <tr>
               <td style={{ width: '25%' }}>
@@ -343,7 +364,7 @@ const LeavePreview = ({ data, onClose }) => {
         </div>
 
         {/* Standardized Actions */}
-        <div className="onduty-actions no-print">
+        <div className="leave-actions no-print">
           <button onClick={() => window.print()}>Print</button>
           <button onClick={onClose}>Close</button>
         </div>

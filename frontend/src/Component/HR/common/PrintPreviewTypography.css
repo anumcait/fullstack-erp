@@ -3,88 +3,6 @@
  * Sizes tuned for readable on-screen preview (compact but not tiny).
  */
 
-/* ─── Leave ─── */
-.leave-print-container {
-  font-size: 14px !important;
-}
-
-.leave-print-container .leave-company-title {
-  font-size: 16px !important;
-}
-
-.leave-print-container .leave-slip-title {
-  font-size: 14px !important;
-}
-
-.leave-print-container .leave-before-box {
-  font-size: 12px !important;
-}
-
-.leave-print-container .leave-field-table td,
-.leave-print-container .leave-field-table .label,
-.leave-print-container .leave-field-table .colon,
-.leave-print-container .leave-field-table td * {
-  font-size: 14px !important;
-}
-
-.leave-print-container .leave-field-table .value,
-.leave-print-container .leave-field-table .value * {
-  font-size: 13px !important;
-}
-
-.leave-print-container table:not(.leave-field-table):not(.leave-office-table):not(.leave-company-days-table):not(.leave-signature-grid) td,
-.leave-print-container table:not(.leave-field-table):not(.leave-office-table):not(.leave-company-days-table):not(.leave-signature-grid) th,
-.leave-print-container table:not(.leave-field-table):not(.leave-office-table):not(.leave-company-days-table):not(.leave-signature-grid) td *,
-.leave-print-container table:not(.leave-field-table):not(.leave-office-table):not(.leave-company-days-table):not(.leave-signature-grid) th * {
-  font-size: 13px !important;
-}
-
-.leave-print-container .label,
-.leave-print-container .colon {
-  font-size: 14px !important;
-}
-
-.leave-print-container .leave-office-table {
-  font-size: 11px !important;
-}
-
-.leave-print-container .leave-office-table th,
-.leave-print-container .leave-office-table td,
-.leave-print-container .leave-office-table th *,
-.leave-print-container .leave-office-table td * {
-  font-size: 11px !important;
-}
-
-.leave-print-container .leave-office-table th:not(:first-child),
-.leave-print-container .leave-office-table td:not(:first-child) {
-  font-size: 12px !important;
-}
-
-.leave-print-container .leave-company-days-table,
-.leave-print-container .leave-company-days-table th,
-.leave-print-container .leave-company-days-table td,
-.leave-print-container .leave-company-days-table th *,
-.leave-print-container .leave-company-days-table td * {
-  font-size: 12px !important;
-}
-
-.leave-print-container .leave-note,
-.leave-print-container .leave-date-sign,
-.leave-print-container .leave-date-sign *,
-.leave-print-container .leave-signatures-row,
-.leave-print-container .leave-signatures-row *,
-.leave-print-container .leave-report-date {
-  font-size: 11px !important;
-}
-
-.leave-print-container .leave-signature-grid,
-.leave-print-container .leave-signature-grid td {
-  font-size: 12px !important;
-}
-
-.leave-print-container .leave-signature-grid td * {
-  font-size: 13px !important;
-}
 
 /* ─── Advance ─── */
 .adv-print-container {
@@ -287,7 +205,7 @@
 }
 
 /* Highlight field data; same left edge as colon column */
-.leave-print-container .value,
+/* .leave-print-container .value,
 .adv-print-container .value,
 .esi-print-container .value,
 .onduty-print-container .value,
@@ -302,4 +220,4 @@
   padding-left: 4px !important;
   font-weight: 600 !important;
   color: #000 !important;
-}
+} */
