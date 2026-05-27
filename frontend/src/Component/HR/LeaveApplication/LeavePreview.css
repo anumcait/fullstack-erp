@@ -54,38 +54,67 @@
   text-align: left;
 }
 
-.leave-print-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #000;
-  padding-bottom: 10px;
+.leave-report-header-container {
   margin-bottom: 10px;
+  padding-bottom: 5px;
+  display: flex;
+  flex-direction: column;
 }
 
-.leave-logo {
-  height: 20px;
+.leave-report-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding-bottom: 2px;
 }
 
-.leave-company-title {
+.leave-logo-img-small {
+  height: 25px;
+  width: auto;
+  object-fit: contain;
+}
+
+.header-company-name-small {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: #000;
+  text-transform: uppercase;
+}
+
+.leave-report-header-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0px;
+}
+
+.header-spacer {
+  flex: 1;
+}
+
+.header-center-title {
+  flex: 2;
   text-align: center;
-  font-weight: bold;
-  font-size: 14px;
-  line-height: 1.2;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.leave-slip-title {
-  font-size: 12px;
-  /* text-decoration: underline; */
-  display: block;
-  margin-top: 2px;
+.header-right-status {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.leave-before-box {
-  border: 1px solid #000;
-  font-weight: bold;
+.header-status-box-small {
+  border: 1.5px solid #000;
+  padding: 2px 8px;
+  font-weight: 800;
   font-size: 11px;
-  padding: 2px 6px;
+  white-space: nowrap;
 }
 
 .leave-field-table {
@@ -104,12 +133,13 @@
 .leave-print-container table.leave-movement-table td.label {
   font-weight: normal !important;
   white-space: nowrap;
+  width: 50px;
   font-size: 12px !important;
 }
 
 .leave-print-container table.leave-field-table td.colon,
 .leave-print-container table.leave-movement-table td.colon {
-  font-size: 12px !important;
+  font-size: 13px !important;
 }
 
 .leave-print-container table.leave-field-table td.value,
@@ -117,7 +147,7 @@
   word-break: break-word;
   font-weight: 600 !important;
   white-space: normal;
-  font-size: 12px !important;
+  font-size: 13px !important;
 }
 
 /* ─── Fix colon alignment: apply same fixed column widths as leave ─── */
@@ -126,14 +156,26 @@
   width: 100% !important;
 }
 
-.leave-print-container .leave-field-table col.preview-col-label,
 .leave-print-container .leave-field-table td.label {
-  width: 100px;
+  width: auto;
+  /* Fallback */
+}
+
+/* Row labels in first half */
+.leave-print-container .leave-field-table col.preview-col-label:nth-child(1),
+.leave-print-container .leave-field-table tr td.label:nth-child(1) {
+  width: 130px;
+}
+
+/* Row labels in second half (e.g. Emp name) */
+.leave-print-container .leave-field-table col.preview-col-label:nth-child(4),
+.leave-print-container .leave-field-table tr td.label:nth-child(4) {
+  width: 75px;
 }
 
 .leave-print-container .leave-field-table col.preview-col-colon,
 .leave-print-container .leave-field-table td.colon {
-  width: 12px;
+  width: 10px;
 }
 
 /* Make the first value column narrower so second-half columns shift left */
@@ -141,11 +183,30 @@
   width: 90px;
 }
 
+.leave-dates-table tr {
+  height: 18px;
+}
+
+.leave-dates-table td {
+  height: 18px;
+  box-sizing: border-box;
+}
+
+.leave-dates-table th,
+.leave-dates-table td {
+  font-size: 12px !important;
+}
+
+.leave-dates-table td {
+  height: 20px;
+  box-sizing: border-box;
+}
+
 /* Movement tables (Leaves dates, Purpose/Address) use auto layout */
 
 
 .leave-note {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: bold;
   margin: 8px 0;
 }
@@ -153,7 +214,7 @@
 .leave-date-sign {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 11px;
   margin-bottom: 10px;
   margin-top: 6px;
 }
@@ -171,9 +232,14 @@
 
 .leave-position-table,
 .leave-company-table {
-  font-size: 9px;
+  font-size: 10px;
   border-collapse: collapse;
   width: 55%;
+}
+
+.office-section-flex {
+  display: flex;
+  gap: 20px;
 }
 
 .leave-position-table th,
@@ -193,7 +259,7 @@
 .leave-signatures-row {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 11px;
   margin: 15px 0 7px 0;
   font-weight: bold;
 }
@@ -203,7 +269,7 @@
   table-layout: fixed;
   margin: 0;
   border-collapse: collapse;
-  font-size: 12px !important;
+  font-size: 13px !important;
   text-align: center;
 }
 
@@ -213,14 +279,28 @@
   text-align: left;
   padding: 0;
   width: 25%;
-  font-size: 12px !important;
+  font-size: 13px !important;
+}
+
+.office-label {
+  font-size: 13px;
+  color: #000;
+}
+
+.office-colon {
+  font-size: 13px;
+}
+
+.office-value {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 
 
 .leave-report-date {
   text-align: right;
-  font-size: 10px;
+  font-size: 11px;
   margin-bottom: 10px;
   margin-top: 3px;
 }
@@ -250,12 +330,13 @@
   margin-top: 20px;
 }
 
-/* @media print {
-  @page { size: A4 portrait; margin: 0; }
-  body * { visibility: hidden; }
-  .leave-print-container, .leave-print-container * { visibility: visible; }
-  .leave-actions.no-print { display: none; }
-} */
+.leave-table-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
 /* Overlay: prevent all scrollbars and cover viewport */
 
 
@@ -308,7 +389,7 @@
 
   body * {
     visibility: hidden;
-    font-size: 9px !important;
+    font-size: 10px !important;
   }
 
   .leave-print-container,
@@ -325,16 +406,16 @@
     top: 0;
     left: 100%;
     /* Start from far right */
-    width: 70%;
+    width: 72%;
     height: 100%;
     transform: rotate(90deg);
     transform-origin: top left;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    font-size: 5px !important;
+    font-size: 10px !important;
     background: #fff;
-    padding: 0;
+    padding: 0 10px;
   }
 
   .leave-print-container .leave-field-table col:nth-child(3) {
@@ -345,7 +426,7 @@
   /* Make everything slightly smaller in print to fit 5 rows */
   .leave-print-container table td {
     padding: 1px 4px !important;
-    font-size: 8px !important;
+    font-size: 10px !important;
   }
 
   .leave-print-container table th {
@@ -353,46 +434,108 @@
   }
 
   .leave-print-container .leave-company-title {
-    font-size: 12px !important;
+    font-size: 13px !important;
   }
 
   .leave-print-container .leave-slip-title {
-    font-size: 10px !important;
+    font-size: 11px !important;
   }
 
   .leave-print-container .label,
   .leave-print-container .value {
-    font-size: 8px !important;
+    font-size: 10px !important;
   }
 
   .leave-signature-grid {
-    font-size: 9px !important;
+    font-size: 10px !important;
     margin: 0;
     padding: 0;
   }
 
-  .leave-print-header {
-    margin-bottom: 2px !important;
+  .leave-dates-table tr,
+  .leave-dates-table td {
+    height: 15px !important;
+  }
+
+  .leave-report-header-top {
     padding-bottom: 2px !important;
+  }
+
+  .leave-logo-img-small {
+    height: 20px !important;
+  }
+
+  .header-company-name-small {
+    font-size: 14px !important;
+  }
+
+  .header-center-title {
+    font-size: 11px !important;
+  }
+
+  .header-status-box-small {
+    font-size: 10px !important;
+    border-width: 1px !important;
+    padding: 1px 5px !important;
   }
 
   .leave-field-table {
     margin-bottom: 2px !important;
   }
 
-  .leave-print-container table.leave-field-table td.label,
-  .leave-print-container table.leave-movement-table td.label {
+  .leave-print-container table.leave-field-table td.label {
     font-weight: normal !important;
     white-space: nowrap;
-    font-size: 10px !important;
+    font-size: 11px !important;
   }
 
+  .leave-print-container .leave-field-table tr td.label:nth-child(1) {
+    width: 120px !important;
+  }
+
+  .leave-print-container .leave-field-table tr td.label:nth-child(4) {
+    width: 70px !important;
+  }
 
   .leave-print-container table.leave-field-table td.value,
   .leave-print-container table.leave-movement-table td.value {
     word-break: break-word;
     font-weight: 600 !important;
     white-space: normal;
-    font-size: 10px !important;
+    font-size: 11px !important;
+  }
+
+  .office-label {
+    font-size: 11px !important;
+    font-weight: normal !important;
+  }
+
+  .office-section-flex {
+    gap: 10px !important;
+  }
+
+  .office-section-flex>div:first-child {
+    flex-shrink: 0;
+  }
+
+  .attendance-summary-table {
+    font-size: 8px !important;
+  }
+
+  .attendance-summary-table th,
+  .attendance-summary-table td {
+    padding: 1px 2px !important;
+    font-size: 8px !important;
+    line-height: 1.1;
+  }
+
+  .office-colon {
+    font-size: 11px !important;
+  }
+
+  .office-value {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    border-bottom: 1.5px solid #000 !important;
   }
 }

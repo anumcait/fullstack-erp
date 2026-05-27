@@ -11,6 +11,25 @@ const fmtNum = (val) => {
   return num.toString();
 };
 
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yy = String(date.getFullYear()).slice(-2);
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  const strTime = String(hours).padStart(2, '0') + ':' + minutes + ' ' + ampm;
+
+  return `${dd}-${mm}-${yy} ${strTime}`;
+};
+
 const LeavePreview = ({ data, onClose }) => {
   const [leaveData, setLeaveData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +101,9 @@ const LeavePreview = ({ data, onClose }) => {
     leaves = [],
     leavesApplied = "",
     ldateRaw,
-    firstFromDate
+    firstFromDate,
+    beforeSubmission = 0,
+    afterSubmission = 0
   } = leaveData || {};
 
   let submissionStatus = "";
@@ -100,16 +121,22 @@ const LeavePreview = ({ data, onClose }) => {
     <div className="leave-print-overlay">
       <div className="leave-print-container">
         {/* Standardized Header */}
-        <div className="leave-print-header">
-          <img src={logo} alt="Logo" className="leave-logo" style={{ height: "20px" }} />
-          <div className="leave-company-title">
-            AUCTOR HOME APPLIANCES LLP
-            <br />
-            <span className="leave-slip-title">LEAVE APPLICATION</span>
+        <div className="leave-report-header-container">
+          <div className="leave-report-header-top">
+            <img src={logo} alt="Logo" className="leave-logo-img-small" />
+            <div className="header-company-name-small">AUCTOR HOME APPLIANCES LLP</div>
           </div>
-          {submissionStatus && (
-            <div className="leave-before-box">{submissionStatus}</div>
-          )}
+          <div className="leave-report-header-bottom">
+            <div className="header-spacer"></div>
+            <div className="header-center-title">LEAVE APPLICATION</div>
+            <div className="header-right-status">
+              {submissionStatus && (
+                <div className="header-status-box-small">
+                  {submissionStatus}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Basic Info Table */}
@@ -130,14 +157,14 @@ const LeavePreview = ({ data, onClose }) => {
 
               <td className="label">Date</td>
               <td className="colon">:</td>
-              <td className="value">{leaveDate}</td>
+              <td className="value" style={{ whiteSpace: 'nowrap' }}>{formatDateTime(ldateRaw || leaveDate)}</td>
             </tr>
             <tr>
-              <td className="label">Emp Id</td>
+              <td className="label">Emp No</td>
               <td className="colon">:</td>
               <td className="value">{empNo}</td>
 
-              <td className="label">Emp Name</td>
+              <td className="label">Emp name</td>
               <td className="colon">:</td>
               <td className="value">{empName}</td>
             </tr>
@@ -151,7 +178,7 @@ const LeavePreview = ({ data, onClose }) => {
               <td className="value">{department}</td>
             </tr>
             <tr>
-              <td className="label">Leaves Applied</td>
+              <td className="label">Leaves Applied day(s)</td>
               <td className="colon">:</td>
               <td className="value">{leavesApplied ? parseFloat(leavesApplied).toString() : ""}</td>
 
@@ -178,22 +205,38 @@ const LeavePreview = ({ data, onClose }) => {
                 <td className="label" style={{ verticalAlign: 'top' }}>Leaves date(s)</td>
                 <td className="colon" style={{ verticalAlign: 'top' }}>:</td>
                 <td colSpan={4}>
-                  <table style={{ borderCollapse: "collapse", width: "300px", border: "1px solid #ccc" }}>
+                  <table className="leave-dates-table" style={{ borderCollapse: "collapse", width: "240px" }}>
                     <thead>
                       <tr>
-                        <th style={{ border: "1px solid #ccc", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>From</th>
-                        <th style={{ border: "1px solid #ccc", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>To</th>
-                        <th style={{ border: "1px solid #ccc", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>Day</th>
+                        <th style={{ border: "1px solid #000", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>From</th>
+                        <th style={{ border: "1px solid #000", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>To</th>
+                        <th style={{ border: "1px solid #000", padding: "2px", fontSize: "12px", background: "#f5f5f5" }}>Day</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {leaves.map((leave, index) => (
-                        <tr key={index}>
-                          <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveFrom}</td>
-                          <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveTo}</td>
-                          <td style={{ border: "1px solid #ccc", textAlign: "center", padding: "2px", fontSize: "12px" }}>{leave.leaveDay ? leave.leaveDay : ""}</td>
-                        </tr>
-                      ))}
+                      {(() => {
+                        const displayLeaves = [...leaves];
+                        while (displayLeaves.length < 5) {
+                          displayLeaves.push({ leaveFrom: "", leaveTo: "", leaveDay: "" });
+                        }
+                        return displayLeaves.map((leave, index) => {
+                          const isEmpty = !leave.leaveFrom && !leave.leaveTo && !leave.leaveDay;
+
+                          return (
+                            <tr key={index} style={{ height: "18px" }}>
+                              <td style={{ border: isEmpty ? "none" : "1px solid #000", textAlign: "center", padding: "2px", fontSize: "12px" }}>
+                                {leave.leaveFrom || "\u00A0"}
+                              </td>
+                              <td style={{ border: isEmpty ? "none" : "1px solid #000", textAlign: "center", padding: "2px", fontSize: "12px" }}>
+                                {leave.leaveTo || "\u00A0"}
+                              </td>
+                              <td style={{ border: isEmpty ? "none" : "1px solid #000", textAlign: "center", padding: "2px", fontSize: "12px" }}>
+                                {leave.leaveDay || "\u00A0"}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </td>
@@ -204,10 +247,14 @@ const LeavePreview = ({ data, onClose }) => {
 
         {/* Purpose, Address, Phone */}
         <table className="leave-field-table leave-movement-table" style={{ marginTop: "5px" }}>
-
+          <colgroup>
+            <col className="preview-col-label" />
+            <col className="preview-col-colon" />
+            <col colSpan={4} />
+          </colgroup>
           <tbody>
             <tr>
-              <td className="label">Leave Purpose</td>
+              <td className="label">Purpose</td>
               <td className="colon">:</td>
               <td colSpan={4} className="preview-field-data" style={{ fontWeight: 600, wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'break-word', verticalAlign: 'top', padding: '4px 6px' }}>{purpose}</td>
             </tr>
@@ -225,41 +272,41 @@ const LeavePreview = ({ data, onClose }) => {
           </tbody>
         </table>
 
-        <div style={{ fontWeight: 'bold', fontSize: '9px', padding: '2px 5px 0' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '10px', padding: '2px 5px 0', marginTop: '10px' }}>
           I agree that my increment may be postponed if not reporting back in time.
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", padding: "0 5px", fontSize: "12px", marginTop: "15px" }}>
-          <span>Date: {leaveDateShort}</span>
-          <span>Employee Signature</span>
+          <span>Date : {leaveDateShort}</span>
+          <span style={{ fontWeight: 'bold' }}>Signature</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', textAlign: 'center', fontWeight: '800', fontSize: '13px', margin: '1px 0 10px 0' }}>
-          <div style={{ flex: 1, borderBottom: '1px solid #ccc' }}></div>
-          <span style={{ padding: '0 2px' }}>FOR OFFICE USE</span>
-          <div style={{ flex: 1, borderBottom: '1px solid #ccc' }}></div>
+        <div style={{ position: 'relative', textAlign: 'center', margin: '15px 0' }}>
+          <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, borderBottom: '1.5px solid #000', zIndex: 1 }}></div>
+          <span style={{ position: 'relative', background: '#fff', padding: '0 10px', fontWeight: '800', fontSize: '13px', zIndex: 2 }}>For Office Use</span>
         </div>
 
-        <div style={{ display: "flex", gap: "20px", marginTop: "5px" }}>
-          <div>
-            <table style={{ fontSize: '8px', borderCollapse: 'collapse', width: '260px' }}>
+        <div className="office-section-flex" style={{ display: "flex", gap: "20px", marginTop: "5px" }}>
+          <div style={{ width: '210px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '12px', marginBottom: '2px' }}>Leave Position</div>
+            <table style={{ fontSize: '11px', borderCollapse: 'collapse', width: '210px' }}>
               <thead>
                 <tr>
-                  <th></th>
-                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Eligible</th>
-                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Utilised</th>
-                  <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Balance</th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px' }}></th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Eligible</th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Utilised</th>
+                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Balance</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>CLs</td>
+                  <td style={{ border: '1px solid #ccc', padding: '2px', fontWeight: 'bold' }}>CLs</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(clsEligible)}</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(clsUtilised)}</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(clsBalance)}</td>
                 </tr>
                 <tr>
-                  <td>ELs</td>
+                  <td style={{ border: '1px solid #ccc', padding: '2px', fontWeight: 'bold' }}>ELs</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(elsEligible)}</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(elsUtilised)}</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(elsBalance)}</td>
@@ -267,10 +314,13 @@ const LeavePreview = ({ data, onClose }) => {
               </tbody>
             </table>
 
-            <table style={{ fontSize: '10px', borderCollapse: 'collapse', width: '260px', marginTop: '10px' }}>
+            <table style={{ fontSize: '11px', borderCollapse: 'collapse', width: '210px', marginTop: '0px' }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', fontWeight: 'bold' }}>LOP</th>
+                  <th colSpan="4" style={{ textAlign: 'center', fontWeight: 'bold', border: '1px solid #ccc', borderBottom: 'none' }}>LOP</th>
+                </tr>
+                <tr>
+                  <th style={{ border: '1px solid #ccc', width: '25%' }}></th>
                   <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Previous</th>
                   <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Present</th>
                   <th style={{ border: '1px solid #ccc', background: "#f9f9f9" }}>Total</th>
@@ -278,19 +328,19 @@ const LeavePreview = ({ data, onClose }) => {
               </thead>
               <tbody>
                 <tr>
-                  <td>Others</td>
+                  <td style={{ border: '1px solid #ccc', padding: '2px', fontWeight: 'bold' }}>Others</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersPrev)}</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersPres)}</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersTotal)}</td>
                 </tr>
                 <tr>
-                  <td>ESI</td>
+                  <td style={{ border: '1px solid #ccc', padding: '2px', fontWeight: 'bold' }}>ESI</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopEsi)}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(null)}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(null)}</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>0</td>
+                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>0</td>
                 </tr>
                 <tr>
-                  <td>Total</td>
+                  <td style={{ border: '1px solid #ccc', padding: '2px', fontWeight: 'bold' }}>Total</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersPrev)}</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersPres)}</td>
                   <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{fmtNum(lopOthersTotal)}</td>
@@ -300,36 +350,43 @@ const LeavePreview = ({ data, onClose }) => {
           </div>
 
           <div style={{ flex: 1 }}>
-            <table style={{ fontSize: '12px', width: '100%' }}>
+            <table style={{ fontSize: '13px', width: '100%', marginTop: '15px', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
-                  <td style={{ width: '140px' }}>Sanction day(s)</td><td>:</td>
-                  <td>{sanctionDays}</td>
+                  <td className="office-label" style={{ width: '115px', padding: '4px 0' }}>Sanction day(s)</td>
+                  <td className="office-colon" style={{ width: '10px' }}>:</td>
+                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0' }}>{sanctionDays}</td>
                 </tr>
+                <tr style={{ height: '4px' }}></tr>
                 <tr>
-                  <td>Reporting to duty on</td><td>:</td>
-                  <td>{reportingDutyOn}</td>
+                  <td className="office-label" style={{ width: '115px', padding: '4px 0' }}>Reporting to duty on</td>
+                  <td className="office-colon" style={{ width: '10px' }}>:</td>
+                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0' }}>{reportingDutyOn}</td>
                 </tr>
               </tbody>
             </table>
 
-            <table style={{ borderCollapse: 'collapse', fontSize: '8px', marginTop: '10px', width: '100%' }}>
+            <table className="attendance-summary-table" style={{ borderCollapse: 'collapse', fontSize: '9px', marginTop: '20px', width: 'auto' }}>
               <thead>
                 <tr>
-                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Company<br />Working Days</th>
-                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Employee<br />Present Days</th>
-                  <th style={{ border: '1px solid #ccc', padding: '2px', background: "#f9f9f9" }}>Employee<br />Absent Days</th>
+                  <th style={{ border: '1px solid #000', padding: '2px', background: "#f9f9f9" }}>Company<br />Working<br />Days</th>
+                  <th style={{ border: '1px solid #000', padding: '2px', background: "#f9f9f9" }}>Employee<br />Present<br />Days</th>
+                  <th style={{ border: '1px solid #000', padding: '2px', background: "#f9f9f9" }}>Employee<br />Absent<br />Days</th>
+                  <th style={{ border: '1px solid #000', padding: '2px', background: "#f9f9f9" }}>Before<br />Submission</th>
+                  <th style={{ border: '1px solid #000', padding: '2px', background: "#f9f9f9" }}>After<br />Submission</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{companyDays}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{presentDays}</td>
-                  <td style={{ border: '1px solid #ccc', textAlign: 'center' }}>{absentDays}</td>
+                  <td style={{ border: '1px solid #000', textAlign: 'center', padding: '2px' }}>{companyDays}</td>
+                  <td style={{ border: '1px solid #000', textAlign: 'center', padding: '2px' }}>{presentDays}</td>
+                  <td style={{ border: '1px solid #000', textAlign: 'center', padding: '2px' }}>{absentDays}</td>
+                  <td style={{ border: '1px solid #000', textAlign: 'center', padding: '4px' }}>{beforeSubmission ?? 0}</td>
+                  <td style={{ border: '1px solid #000', textAlign: 'center', padding: '4px' }}>{afterSubmission ?? 0}</td>
                 </tr>
               </tbody>
             </table>
-            <div style={{ fontSize: '9px', marginTop: '5px', color: '#666' }}>* Information upto one day before and attendance respective to HR approval</div>
+            <div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>* Information upto one day before and attendance respective to HR approval</div>
           </div>
         </div>
 
@@ -343,19 +400,19 @@ const LeavePreview = ({ data, onClose }) => {
           <table className="leave-signature-grid">
             <tbody>
               <tr>
-                <td style={{ width: '30%' }}>
+                <td style={{ width: '25%', textAlign: 'left' }}>
                   <br /><br />
-                  <strong>Recommended By</strong>
+                  <strong>Recomended By</strong>
                 </td>
-                <td style={{ width: '25%' }}>
+                <td style={{ width: '25%', textAlign: 'center' }}>
                   <br /><br />
                   <strong>Approved By</strong>
                 </td>
-                <td style={{ width: '25%' }}>
+                <td style={{ width: '25%', textAlign: 'center' }}>
                   <br /><br />
                   <strong>GM</strong>
                 </td>
-                <td style={{ width: '25%' }}>
+                <td style={{ width: '25%', textAlign: 'right' }}>
                   <br /><br />
                   <strong>DIRECTOR</strong>
                 </td>
@@ -363,8 +420,10 @@ const LeavePreview = ({ data, onClose }) => {
             </tbody>
           </table>
 
-          <div style={{ fontSize: '10px', textAlign: 'right', marginTop: '5px' }}>
-            Report Dated: {reportDate}
+          <div style={{ borderTop: '1.5px solid #000', marginTop: '15px', paddingTop: '3px' }}>
+            <div style={{ fontSize: '10px', textAlign: 'right' }}>
+              Report Dated : {reportDate}
+            </div>
           </div>
 
           {/* Standardized Actions */}
