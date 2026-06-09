@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const { 
-  EmployeeMaster, 
+const {
+  EmployeeMaster,
   EmpOfficial,
-  User, 
-  LeaveDetails, 
-  Holiday, 
-  Attendance, 
+  User,
+  LeaveDetails,
+  Holiday,
+  Attendance,
   LeaveApplication,
   LeavePosition,
   SalaryRegister,
@@ -102,10 +102,10 @@ router.post("/query", async (req, res) => {
     const isLoggedIn = !!sessionUser.empid;
 
     if (!isLoggedIn) {
-       return res.json({ 
-         result: "🔒 You need to be logged in to use the HR Assistant. Please log in and try again.",
-         options: [] 
-       });
+      return res.json({
+        result: "🔒 You need to be logged in to use the HR Assistant. Please log in and try again.",
+        options: []
+      });
     }
 
     if (!req.session.aiContext) {
@@ -116,7 +116,7 @@ router.post("/query", async (req, res) => {
     // --- CASE A: CONTINUING AN EXISTING WIZARD ---
     if (aiContext.mode === "applying_leave") {
       thoughtProcess.push(`Wizard Mode: applying_leave | Step: ${aiContext.step}`);
-      
+
       // --- RESET LOGIC ---
       const isResetIntent = query.toLowerCase().includes("apply") && query.toLowerCase().includes("leave");
       const isReportIntent = query.toLowerCase().includes("report");
@@ -149,7 +149,7 @@ router.post("/query", async (req, res) => {
       if (aiContext.step === 1) { // Waiting for Dates
         // If they just started or reset, don't show an error, just prompt
         if (query.toLowerCase().includes("apply") && query.toLowerCase().includes("leave")) {
-           return res.json({ result: "Which date(s) are you planning to take off? (e.g. '19th', '19 to 20')", options: [] });
+          return res.json({ result: "Which date(s) are you planning to take off? (e.g. '19th', '19 to 20')", options: [] });
         }
 
         const dateMatch = query.match(/\d+/g);
@@ -162,12 +162,12 @@ router.post("/query", async (req, res) => {
         try {
           const startDay = parseInt(dateMatch[0]);
           const endDay = dateMatch[1] ? parseInt(dateMatch[1]) : startDay;
-          
+
           // Use current month/year but set clear start/end of day
           const now = new Date();
           const fromDate = new Date(now.getFullYear(), now.getMonth(), startDay, 0, 0, 0);
           const toDate = new Date(now.getFullYear(), now.getMonth(), endDay, 23, 59, 59);
-          
+
           // Check for overlaps in existing applications (Pending=0 or Approved=1)
           const overlap = await LeaveDetails.findOne({
             where: {
@@ -213,25 +213,25 @@ router.post("/query", async (req, res) => {
         } catch (err) {
           result = "❌ Validation error: " + err.message;
         }
-      } 
+      }
       else if (aiContext.step === 2) { // Waiting for Day Type
         let type = query.toLowerCase().includes("half") ? "HALF DAY" : "FULL DAY";
         if (aiContext.data.rows.length > 0) {
           aiContext.data.rows[aiContext.data.rows.length - 1].type = type;
         }
-        
+
         aiContext.step = 3;
         result = "Would you like to **add another row** to this application (e.g. for different dates or a half-day)?";
         options = ["Add Another Row", "No, proceed to Reason"];
       }
       else if (aiContext.step === 3) { // Add another row?
         if (query.toLowerCase().includes("another") || query.toLowerCase().includes("add")) {
-           aiContext.step = 1;
-           result = "Sure! What are the **next date(s)**?";
+          aiContext.step = 1;
+          result = "Sure! What are the **next date(s)**?";
         } else {
-           aiContext.step = 4;
-           result = "Got it. What is the **Reason** for your leave?";
-           options = ["PERSONAL", "SICK", "EMERGENCY"];
+          aiContext.step = 4;
+          result = "Got it. What is the **Reason** for your leave?";
+          options = ["PERSONAL", "SICK", "EMERGENCY"];
         }
       }
       else if (aiContext.step === 4) { // Waiting for Reason
@@ -250,28 +250,28 @@ router.post("/query", async (req, res) => {
         try {
           aiContext.data.phone = query.toLowerCase() === 'skip' ? "" : query;
           aiContext.step = 7;
-          
+
           const sessionUser = req.session.user || {};
-          const emp = await EmployeeMaster.findOne({ 
+          const emp = await EmployeeMaster.findOne({
             where: { empid: sessionUser.empid },
             include: [{ model: EmpOfficial, as: 'official' }]
           });
-          
+
           let empName = emp?.ename || "Employee";
           let empId = sessionUser?.empid || "Unknown";
           let empDesig = emp?.official?.designation || "";
           let desigLine = empDesig ? `🏷️ Designation: ${empDesig}\n` : "";
-          
-          let rowSummary = aiContext.data.rows.map((r, i) => `   Row ${i+1}: ${r.dates} (${r.type})`).join("\n");
+
+          let rowSummary = aiContext.data.rows.map((r, i) => `   Row ${i + 1}: ${r.dates} (${r.type})`).join("\n");
 
           result = `Perfect. Here is your Multi-Row Leave Summary:\n\n` +
-                   `👤 Employee: ${empName} (${empId})\n` +
-                   desigLine +
-                   `📅 Dates:\n${rowSummary}\n` +
-                   `📝 Reason: ${aiContext.data.reason}\n` +
-                   `🏠 Address: ${aiContext.data.address || emp?.p_address || 'As per Master'}\n` +
-                   `📞 Phone: ${aiContext.data.phone || emp?.cadd_mobile || 'As per Master'}\n\n` +
-                   `Does this look correct?`;
+            `👤 Employee: ${empName} (${empId})\n` +
+            desigLine +
+            `📅 Dates:\n${rowSummary}\n` +
+            `📝 Reason: ${aiContext.data.reason}\n` +
+            `🏠 Address: ${aiContext.data.address || emp?.p_address || 'As per Master'}\n` +
+            `📞 Phone: ${aiContext.data.phone || emp?.cadd_mobile || 'As per Master'}\n\n` +
+            `Does this look correct?`;
           options = ["Yes", "Cancel"];
         } catch (sumErr) {
           result = "❌ Error preparing summary: " + sumErr.message;
@@ -282,10 +282,10 @@ router.post("/query", async (req, res) => {
         if (query.toLowerCase().includes("yes") || query.toLowerCase().includes("confirm")) {
           const t = await EmployeeMaster.sequelize.transaction();
           try {
-            const emp = await EmployeeMaster.findOne({ 
+            const emp = await EmployeeMaster.findOne({
               where: { empid: sessionUser.empid },
               include: [{ model: EmpOfficial, as: 'official' }],
-              transaction: t 
+              transaction: t
             });
             const maxLnoResult = await LeaveApplication.findOne({
               attributes: [[EmployeeMaster.sequelize.fn('COALESCE', EmployeeMaster.sequelize.fn('MAX', EmployeeMaster.sequelize.col('lno')), 0), 'maxLno']],
@@ -297,11 +297,11 @@ router.post("/query", async (req, res) => {
             // Create Application Header
             await LeaveApplication.create({
               lno: nextLno, ldate: new Date(), empid: emp.empid, ename: emp.ename,
-              designation: emp.official?.designation || "", 
+              designation: emp.official?.designation || "",
               department: emp.deptname || emp.dept || "",
-              pofl: aiContext.data.reason || "Personal", 
+              pofl: aiContext.data.reason || "Personal",
               address: aiContext.data.address || emp.p_address || "As per Master Records",
-              phno: aiContext.data.phone || emp.cadd_mobile || 0, 
+              phno: aiContext.data.phone || emp.cadd_mobile || 0,
               c_unit: emp.unit_id || "1",
               c_gempid: "AI_BOT", status: "0"
             }, { transaction: t });
@@ -316,7 +316,7 @@ router.post("/query", async (req, res) => {
                 fromDate = new Date(new Date().getFullYear(), new Date().getMonth(), startDay);
                 toDate = new Date(new Date().getFullYear(), new Date().getMonth(), endDay);
               }
-              
+
               let rowNod = row.type === "FULL DAY" ? (Math.ceil(Math.abs(toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1) : 0.5;
               totalNod += rowNod;
 
@@ -349,7 +349,7 @@ router.post("/query", async (req, res) => {
       return res.json({ result, options, navigate: navigatePath });
     } else if (aiContext.mode === "applying_onduty") {
       thoughtProcess.push(`Wizard Mode: applying_onduty | Step: ${aiContext.step}`);
-      
+
       if (aiContext.step === 1) { // Waiting for Date
         let selectedDate = new Date();
         const dateMatch = query.match(/\d+/g);
@@ -421,23 +421,23 @@ router.post("/query", async (req, res) => {
           }
           aiContext.data.no_of_hrs = diffHrs.toFixed(2);
 
-          const emp = await EmployeeMaster.findOne({ 
+          const emp = await EmployeeMaster.findOne({
             where: { empid: sessionUser.empid },
             include: [{ model: EmpOfficial, as: 'official' }]
           });
-          
+
           aiContext.data.ename = emp?.ename || "Employee";
           aiContext.data.unit = emp?.uname || "";
           aiContext.data.division = emp?.divname || "";
           aiContext.data.designation = emp?.official?.designation || "";
 
           result = `Here is your On Duty Application Summary:\n\n` +
-                   `👤 Employee: ${aiContext.data.ename} (${sessionUser.empid})\n` +
-                   `📅 Date: ${aiContext.data.act_date}\n` +
-                   `⏰ Shift: ${aiContext.data.shift}\n` +
-                   `🕒 Duration: ${aiContext.data.perm_ftime} to ${aiContext.data.perm_ttime} (${aiContext.data.no_of_hrs} Hours)\n` +
-                   `📝 Reason: ${aiContext.data.reason_perm}\n\n` +
-                   `Does this look correct?`;
+            `👤 Employee: ${aiContext.data.ename} (${sessionUser.empid})\n` +
+            `📅 Date: ${aiContext.data.act_date}\n` +
+            `⏰ Shift: ${aiContext.data.shift}\n` +
+            `🕒 Duration: ${aiContext.data.perm_ftime} to ${aiContext.data.perm_ttime} (${aiContext.data.no_of_hrs} Hours)\n` +
+            `📝 Reason: ${aiContext.data.reason_perm}\n\n` +
+            `Does this look correct?`;
           options = ["Yes", "Cancel"];
         } catch (sumErr) {
           result = "❌ Error preparing summary: " + sumErr.message;
@@ -566,23 +566,23 @@ router.post("/query", async (req, res) => {
         aiContext.data.estimated_amount = query.toLowerCase() === "skip" ? null : Number(query) || null;
         try {
           aiContext.step = 6;
-          const emp = await EmployeeMaster.findOne({ 
+          const emp = await EmployeeMaster.findOne({
             where: { empid: sessionUser.empid },
             include: [{ model: EmpOfficial, as: 'official' }]
           });
-          
+
           aiContext.data.ename = emp?.ename || "Employee";
           aiContext.data.unit = emp?.uname || "";
           aiContext.data.division = emp?.divname || "";
           aiContext.data.designation = emp?.official?.designation || "";
 
           result = `Here is your Tour Application Summary:\n\n` +
-                   `👤 Employee: ${aiContext.data.ename} (${sessionUser.empid})\n` +
-                   `📍 Destination: ${aiContext.data.destination}\n` +
-                   `📅 Duration: ${aiContext.data.tour_from_date} to ${aiContext.data.tour_to_date}\n` +
-                   `💼 Purpose: ${aiContext.data.purpose}\n` +
-                   `💰 Est. Amount: ₹${aiContext.data.estimated_amount || "N/A"}\n\n` +
-                   `Does this look correct?`;
+            `👤 Employee: ${aiContext.data.ename} (${sessionUser.empid})\n` +
+            `📍 Destination: ${aiContext.data.destination}\n` +
+            `📅 Duration: ${aiContext.data.tour_from_date} to ${aiContext.data.tour_to_date}\n` +
+            `💼 Purpose: ${aiContext.data.purpose}\n` +
+            `💰 Est. Amount: ₹${aiContext.data.estimated_amount || "N/A"}\n\n` +
+            `Does this look correct?`;
           options = ["Yes", "Cancel"];
         } catch (sumErr) {
           result = "❌ Error preparing summary: " + sumErr.message;
@@ -634,9 +634,18 @@ router.post("/query", async (req, res) => {
     const response = await manager.process("en", query);
     const intent = response.intent;
     const score = response.score;
+    console.log(`[NLP Debug] Query: "${query}" | Intent: ${intent} | Score: ${(score * 100).toFixed(2)}%`);
     thoughtProcess.push(`Intent: ${intent} (${(score * 100).toFixed(2)}%)`);
 
-    switch (intent) {
+    // --- NEW: SCORE THRESHOLD ---
+    let finalIntent = intent;
+    if (score < 0.85) { // Increased threshold to 85% to favor Python fallback
+      console.log(`[NLP Debug] Score below 85% -> Falling back to Python Agent`);
+      thoughtProcess.push("Confidence low -> Falling back to Python");
+      finalIntent = "None";
+    }
+
+    switch (finalIntent) {
       case "greeting.hello":
         result = "Hello! I am your HR Assistant. How can I help you today?";
         break;
@@ -672,7 +681,7 @@ router.post("/query", async (req, res) => {
         else if (lower.includes("shift")) navigatePath = "/shiftchange";
         else if (lower.includes("payroll")) navigatePath = "/payroll";
         else if (lower.includes("employee")) navigatePath = "/employees";
-        
+
         result = navigatePath ? `Sure! Taking you there now.` : "I'm not sure which module you mean.";
         break;
 
@@ -682,7 +691,7 @@ router.post("/query", async (req, res) => {
           where: { hdate: { [Op.gte]: todayStr } },
           order: [['hdate', 'ASC']]
         });
-        result = nextHoliday 
+        result = nextHoliday
           ? `The next holiday is "${nextHoliday.hdesc}" on ${nextHoliday.hdate}.`
           : "No upcoming holidays found.";
         break;
@@ -693,7 +702,7 @@ router.post("/query", async (req, res) => {
           where: { att_date: today, late_mins: { [Op.gt]: 0 } },
           include: [{ model: EmployeeMaster, as: 'employee', attributes: ['ename'] }]
         });
-        result = lateComers.length > 0 
+        result = lateComers.length > 0
           ? `Found ${lateComers.length} late comers: ` + lateComers.map(a => a.employee?.ename).join(", ")
           : "No late comers today!";
         break;
@@ -708,7 +717,30 @@ router.post("/query", async (req, res) => {
         break;
 
       default:
-        result = "I am your HR Assistant. How can I help you today?";
+        // --- NEW: FALLBACK TO PYTHON AGENT ---
+        try {
+          const axios = require('axios');
+          // Use host.docker.internal for Docker containers on Windows
+          const pythonUrl = process.env.PYTHON_AGENT_URL || 'http://agent_python:8001/process';
+
+          const response = await axios.post(pythonUrl, {
+            query: query,
+            user_context: {
+              empid: sessionUser.empid,
+              ename: sessionUser.ename
+            }
+          }, { timeout: 4000 });
+
+          if (response.data && response.data.result) {
+            result = response.data.result;
+            if (response.data.options) options = response.data.options;
+          } else {
+            result = "Python agent replied, but no result found.";
+          }
+        } catch (err) {
+          console.error("Python Agent Error:", err.message);
+          result = `⚠️ **Python Connection Error**: ${err.message}. \n\nCheck if your Python agent is running on port 8001.`;
+        }
         break;
     }
 

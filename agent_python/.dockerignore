@@ -1,0 +1,5 @@
+# Exclude these from agent_python build context
+vector_db/
+__pycache__/
+*.pyc
+.env

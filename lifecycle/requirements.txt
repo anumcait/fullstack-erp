@@ -1,0 +1,49 @@
+# LangChain core
+langchain
+
+# LangChain community loaders (VERY IMPORTANT)
+langchain-community
+
+langchain-text-splitters
+langchain-core
+langchain-huggingface
+
+# LangChain agent framework
+langchain-groq
+langgraph
+
+# MCP (Model Context Protocol)
+mcp
+langchain-mcp-adapters
+
+pinecone
+
+# PDF / document loading
+pypdf
+unstructured
+
+# Embeddings (HuggingFace)
+sentence-transformers
+transformers
+torch
+
+# Vector DB
+#qdrant-client
+
+# Env variables (optional but good practice)
+python-dotenv
+
+fastapi
+uvicorn
+openai
+
+# LangSmith (Observability & Tracing)
+langsmith
+
+# Streamlit (Chat UI)
+streamlit
+
+# Evaluation (tabular summary + RAGAS)
+pandas
+# ragas
+datasets

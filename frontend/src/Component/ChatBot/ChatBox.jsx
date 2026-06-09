@@ -7,8 +7,8 @@ const ChatBox = ({ onClose }) => {
   const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([
-    { 
-      from: "bot", 
+    {
+      from: "bot",
       text: "Hi! I am your HR Assistant. How can I help you today?",
       options: ["Apply for Leave", "On Duty Application", "Apply for Tour", "Check Attendance"]
     }
@@ -34,7 +34,7 @@ const ChatBox = ({ onClose }) => {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/gpt/query`, 
+        `${import.meta.env.VITE_API_URL}/api/gpt/query`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -44,7 +44,7 @@ const ChatBox = ({ onClose }) => {
 
       const data = await res.json();
       setMessages(prev => [...prev, { from: "bot", text: data.result, options: data.options || [], isError: data.isError }]);
-      
+
       // Handle Automated Navigation
       if (data.navigate) {
         navigate(data.navigate);
@@ -77,8 +77,8 @@ const ChatBox = ({ onClose }) => {
             {msg.from === "bot" && msg.options && msg.options.length > 0 && idx === messages.length - 1 && (
               <div className="options-container">
                 {msg.options.map((opt, oIdx) => (
-                  <button 
-                    key={oIdx} 
+                  <button
+                    key={oIdx}
                     className="option-btn"
                     onClick={() => handleOptionClick(opt)}
                   >

@@ -155,3 +155,56 @@ export const formatDateTimeAMPM = (dateInput) => {
   hours = hours % 12 || 12;
   return `${day}-${month}-${year} ${hours}:${mins} ${ampm}`;
 };
+
+export const formatReportDate = (dateInput) => {
+  if (!dateInput) return "";
+  let d;
+  try {
+    if (typeof dateInput === "string") {
+      if (dateInput.includes("T")) {
+        // Treat ISO strings as local time by replacing T with space and removing Z/offsets
+        const localString = dateInput.replace("T", " ").split(".")[0].replace("Z", "");
+        d = new Date(localString);
+      } else if (dateInput.includes("-")) {
+        const parts = dateInput.split('-');
+        if (parts.length === 3) {
+          let yyyy, mm, dd;
+          // Smart format detection
+          if (parts[0].length === 4) { // YYYY-MM-DD
+            [yyyy, mm, dd] = parts.map(Number);
+          } else if (parts[2].length === 4) { // DD-MM-YYYY
+            [dd, mm, yyyy] = parts.map(Number);
+          } else {
+            [yyyy, mm, dd] = parts.map(Number);
+            if (yyyy < 100) yyyy += 2000;
+          }
+          d = new Date(yyyy, mm - 1, dd);
+        } else {
+          d = new Date(dateInput);
+        }
+      } else {
+        d = new Date(dateInput);
+      }
+    } else {
+      d = new Date(dateInput);
+    }
+  } catch (e) {
+    return dateInput;
+  }
+  
+  if (!d || isNaN(d.getTime())) return dateInput;
+
+  // Format: May 25, 2026 14:23 PM
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = monthNames[d.getMonth()];
+  const day = d.getDate();
+  const year = d.getFullYear();
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  
+  return `${month} ${day}, ${year} ${hours}:${minutes} ${ampm}`;
+};

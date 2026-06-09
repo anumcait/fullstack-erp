@@ -14,13 +14,13 @@ echo "📊 Found $TABLE_COUNT tables in database."
 if [ "$TABLE_COUNT" -le "5" ]; then
   echo "🛠️ Database appears empty or minimal. Restoring from backup..."
 
-  if [ -f /pg_backup/hrdb.backup ]; then
+  if [ -f /pg_backup/hrdb_full.backup ]; then
     # Use --no-owner, --clean, and --if-exists to handle conflicts
     # Don't use set -e so partial restore still works
-    pg_restore --no-owner --clean --if-exists --verbose -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 || true
+    pg_restore --no-owner --clean --if-exists --verbose -U postgres -d hrdb /pg_backup/hrdb_full.backup 2>&1 || true
     echo "✅ Restore completed (some warnings may be normal)."
   else
-    echo "❌ Backup file not found at /pg_backup/hrdb.backup"
+    echo "❌ Backup file not found at /pg_backup/hrdb_full.backup"
   fi
 else
   echo "✅ Database already has $TABLE_COUNT tables. Skipping restore."

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./LeavePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg"; // replace with your logo path
+import { formatDateTimeAMPM, formatReportDate } from "../../../utils/dateUtils";
 
 
 // Format numeric value: show 0 for empty/null, clamp negatives to 0
@@ -119,16 +120,16 @@ const LeavePreview = ({ data, onClose }) => {
 
   return (
     <div className="leave-print-overlay">
-      <div className="leave-print-container">
+      <div className="leave-print-container" style={{ paddingBottom: '30px' }}>
         {/* Standardized Header */}
         <div className="leave-report-header-container">
-          <div className="leave-report-header-top">
-            <img src={logo} alt="Logo" className="leave-logo-img-small" />
-            <div className="header-company-name-small">AUCTOR HOME APPLIANCES LLP</div>
+          <div className="leave-report-header-top" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <img src={logo} alt="Logo" className="leave-logo-img-small" style={{ position: 'absolute', left: 0 }} />
+            <div className="header-company-name-small" style={{ textAlign: 'center' }}>AUCTOR HOME APPLIANCES LLP</div>
           </div>
           <div className="leave-report-header-bottom">
             <div className="header-spacer"></div>
-            <div className="header-center-title">LEAVE APPLICATION</div>
+            <div className="header-center-title" style={{ flex: '0 1 auto', margin: '0 auto' }}>LEAVE APPLICATION</div>
             <div className="header-right-status">
               {submissionStatus && (
                 <div className="header-status-box-small">
@@ -157,7 +158,7 @@ const LeavePreview = ({ data, onClose }) => {
 
               <td className="label">Date</td>
               <td className="colon">:</td>
-              <td className="value" style={{ whiteSpace: 'nowrap' }}>{formatDateTime(ldateRaw || leaveDate)}</td>
+              <td className="value" style={{ whiteSpace: 'nowrap' }}>{formatDateTimeAMPM(ldateRaw || leaveDate)}</td>
             </tr>
             <tr>
               <td className="label">Emp No</td>
@@ -353,20 +354,20 @@ const LeavePreview = ({ data, onClose }) => {
             <table style={{ fontSize: '13px', width: '100%', marginTop: '15px', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
-                  <td className="office-label" style={{ width: '115px', padding: '4px 0' }}>Sanction day(s)</td>
+                  <td className="office-label" style={{ width: '125px', padding: '4px 0', fontWeight: 'bold' }}>Sanction day(s)</td>
                   <td className="office-colon" style={{ width: '10px' }}>:</td>
-                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0' }}>{sanctionDays}</td>
+                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0', minWidth: '150px' }}>{sanctionDays}</td>
                 </tr>
-                <tr style={{ height: '4px' }}></tr>
+                <tr style={{ height: '6px' }}></tr>
                 <tr>
-                  <td className="office-label" style={{ width: '115px', padding: '4px 0' }}>Reporting to duty on</td>
+                  <td className="office-label" style={{ width: '125px', padding: '4px 0', fontWeight: 'bold' }}>Reporting to duty on</td>
                   <td className="office-colon" style={{ width: '10px' }}>:</td>
-                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0' }}>{reportingDutyOn}</td>
+                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0', minWidth: '150px' }}>{reportingDutyOn}</td>
                 </tr>
               </tbody>
             </table>
 
-            <table className="attendance-summary-table" style={{ borderCollapse: 'collapse', fontSize: '9px', marginTop: '20px', width: 'auto' }}>
+            <table className="attendance-summary-table" style={{ borderCollapse: 'collapse', fontSize: '9px', marginTop: '10px', width: 'auto' }}>
               <thead>
                 <tr>
                   <th style={{ border: '1px solid #000', padding: '2px', background: "#f9f9f9" }}>Company<br />Working<br />Days</th>
@@ -410,19 +411,19 @@ const LeavePreview = ({ data, onClose }) => {
                 </td>
                 <td style={{ width: '25%', textAlign: 'center' }}>
                   <br /><br />
-                  <strong>GM</strong>
+                  <strong>G M</strong>
                 </td>
                 <td style={{ width: '25%', textAlign: 'right' }}>
                   <br /><br />
-                  <strong>DIRECTOR</strong>
+                  <strong>Director</strong>
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <div style={{ borderTop: '1.5px solid #000', marginTop: '15px', paddingTop: '3px' }}>
-            <div style={{ fontSize: '10px', textAlign: 'right' }}>
-              Report Dated : {reportDate}
+          <div style={{ borderTop: '1.5px solid #000', marginTop: '10px', paddingTop: '3px' }}>
+            <div className="report-dated-text" style={{ fontSize: '10px', textAlign: 'right' }}>
+              Report Dated : {formatReportDate(reportDate)}
             </div>
           </div>
 

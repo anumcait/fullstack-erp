@@ -178,9 +178,10 @@
   width: 10px;
 }
 
-/* Make the first value column narrower so second-half columns shift left */
-.leave-print-container .leave-field-table col:nth-child(3) {
-  width: 90px;
+/* Value column in first half (e.g. for Designation/Emp No) */
+.leave-print-container .leave-field-table col:nth-child(3),
+.leave-print-container .leave-field-table tr td:nth-child(3) {
+  width: 180px;
 }
 
 .leave-dates-table tr {
@@ -406,7 +407,7 @@
     top: 0;
     left: 100%;
     /* Start from far right */
-    width: 72%;
+    width: 75%;
     height: 100%;
     transform: rotate(90deg);
     transform-origin: top left;
@@ -415,7 +416,9 @@
     flex-direction: column;
     font-size: 10px !important;
     background: #fff;
-    padding: 0 10px;
+    padding: 0 10px 40px 10px;
+    /* Added significant bottom padding */
+    overflow: visible !important;
   }
 
   .leave-print-container .leave-field-table col:nth-child(3) {
@@ -493,6 +496,10 @@
     width: 120px !important;
   }
 
+  .leave-print-container .leave-field-table tr td:nth-child(3) {
+    width: 180px !important;
+  }
+
   .leave-print-container .leave-field-table tr td.label:nth-child(4) {
     width: 70px !important;
   }
@@ -537,5 +544,18 @@
     font-size: 12px !important;
     font-weight: 600 !important;
     border-bottom: 1.5px solid #000 !important;
+  }
+
+  .leave-print-footer,
+  .leave-print-footer * {
+    visibility: visible !important;
+  }
+
+  .report-dated-text {
+    visibility: visible !important;
+    font-size: 10px !important;
+    margin-top: 5px !important;
+    color: #000 !important;
+    text-align: right !important;
   }
 }
