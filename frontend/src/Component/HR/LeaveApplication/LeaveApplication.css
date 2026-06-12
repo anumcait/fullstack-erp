@@ -31,7 +31,7 @@
 
 .leave-form-grid label {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: #222;
   margin-bottom: 4px;
@@ -42,7 +42,7 @@
 .leave-form-grid textarea {
   width: 100%;
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: 14px;
   border: 1px solid #ccc;
   border-radius: 4px;
   background: #fcfcfc;
@@ -225,7 +225,7 @@ textarea {
 .leave-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14px;
   margin-top: 10px;
   table-layout: fixed;
 }

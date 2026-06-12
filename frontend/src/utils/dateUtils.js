@@ -1,6 +1,6 @@
 export const formatDate = (date) => {
   if (!date || date === "--") return "-";
-  
+
   let d;
   try {
     if (typeof date === 'string' && date.includes('T')) {
@@ -29,9 +29,9 @@ export const formatDate = (date) => {
   } catch (e) {
     return date;
   }
-  
+
   if (!d || isNaN(d.getTime())) return date;
-  
+
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
@@ -39,14 +39,14 @@ export const formatDate = (date) => {
   const minutes = String(d.getMinutes()).padStart(2, '0');
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12 || 12;
-  
+
   return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
 };
 
 export const formatDateOnly = (date) => {
   if (!date || date === "--") return "-";
   let d;
-  
+
   try {
     if (typeof date === 'string') {
       if (date.includes('T')) {
@@ -77,26 +77,26 @@ export const formatDateOnly = (date) => {
   } catch (e) {
     return date;
   }
-  
+
   if (!d || isNaN(d.getTime())) return date;
-  
+
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
-  
+
   return `${day}-${month}-${year}`;
 };
 
 export const formatTimeOnly = (time) => {
   if (!time) return "-";
   if (typeof time === 'string' && time.length === 5) return time;
-  
+
   const d = new Date(time);
   if (isNaN(d.getTime())) return time;
-  
+
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
-  
+
   return `${hours}.${minutes}`;
 };
 
@@ -104,7 +104,7 @@ export const formatDateTimeDot = (date) => {
   if (!date) return "-";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "-";
-  
+
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
@@ -112,7 +112,7 @@ export const formatDateTimeDot = (date) => {
   const minutes = String(d.getMinutes()).padStart(2, '0');
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12 || 12;
-  
+
   return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
 };
 
@@ -165,20 +165,42 @@ export const formatReportDate = (dateInput) => {
         // Treat ISO strings as local time by replacing T with space and removing Z/offsets
         const localString = dateInput.replace("T", " ").split(".")[0].replace("Z", "");
         d = new Date(localString);
-      } else if (dateInput.includes("-")) {
-        const parts = dateInput.split('-');
-        if (parts.length === 3) {
+      } else if (dateInput.includes("-") || dateInput.includes("/")) {
+        const separator = dateInput.includes("-") ? "-" : "/";
+        const parts = dateInput.split(separator);
+        if (parts.length >= 3) {
           let yyyy, mm, dd;
-          // Smart format detection
+          // Extract just the date part if time is included
+          const dayPart = parts[2].split(' ')[0];
+
           if (parts[0].length === 4) { // YYYY-MM-DD
-            [yyyy, mm, dd] = parts.map(Number);
-          } else if (parts[2].length === 4) { // DD-MM-YYYY
-            [dd, mm, yyyy] = parts.map(Number);
+            yyyy = Number(parts[0]);
+            mm = Number(parts[1]);
+            dd = Number(dayPart);
+          } else if (dayPart.length === 4) { // DD-MM-YYYY
+            dd = Number(parts[0]);
+            mm = Number(parts[1]);
+            yyyy = Number(dayPart);
           } else {
-            [yyyy, mm, dd] = parts.map(Number);
+            yyyy = Number(parts[0]);
+            mm = Number(parts[1]);
+            dd = Number(dayPart);
             if (yyyy < 100) yyyy += 2000;
           }
-          d = new Date(yyyy, mm - 1, dd);
+
+          // Handle time if present
+          let hh = 0, min = 0;
+          const timePart = dateInput.split(' ')[1];
+          if (timePart) {
+            const timeParts = timePart.split(':');
+            hh = Number(timeParts[0]);
+            min = Number(timeParts[1]);
+            const ampmPart = dateInput.toUpperCase().includes("PM");
+            if (ampmPart && hh < 12) hh += 12;
+            if (dateInput.toUpperCase().includes("AM") && hh === 12) hh = 0;
+          }
+
+          d = new Date(yyyy, mm - 1, dd, hh, min);
         } else {
           d = new Date(dateInput);
         }
@@ -191,12 +213,12 @@ export const formatReportDate = (dateInput) => {
   } catch (e) {
     return dateInput;
   }
-  
+
   if (!d || isNaN(d.getTime())) return dateInput;
 
   // Format: May 25, 2026 14:23 PM
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const month = monthNames[d.getMonth()];
   const day = d.getDate();
   const year = d.getFullYear();
@@ -205,6 +227,6 @@ export const formatReportDate = (dateInput) => {
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12;
   hours = hours ? hours : 12; // the hour '0' should be '12'
-  
+
   return `${month} ${day}, ${year} ${hours}:${minutes} ${ampm}`;
 };

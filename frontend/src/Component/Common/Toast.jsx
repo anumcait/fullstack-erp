@@ -20,9 +20,9 @@ const toastStyles = {
   }
 };
 
-const Toast = ({ message, type }) => {
+const Toast = ({ message, type, duration = 15000 }) => {
   const style = toastStyles[type] || { background: '#333', icon: '🔔' };
-  
+
   return (
     <div style={{
       background: style.background,
@@ -39,10 +39,30 @@ const Toast = ({ message, type }) => {
       border: '1px solid rgba(255,255,255,0.1)',
       backdropFilter: 'blur(10px)',
       fontSize: '14px',
-      fontFamily: '"Inter", "Roboto", sans-serif'
+      fontFamily: '"Inter", "Roboto", sans-serif',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
       <span style={{ fontSize: '18px' }}>{style.icon}</span>
       <div style={{ flex: 1 }}>{message}</div>
+
+      {/* Progress Bar */}
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        height: '4px',
+        background: 'rgba(255, 255, 255, 0.4)',
+        width: '100%',
+        animation: `toast-progress ${duration}ms linear forwards`
+      }} />
+
+      <style>{`
+        @keyframes toast-progress {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
     </div>
   );
 };

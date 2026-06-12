@@ -386,7 +386,7 @@ const LeaveApplication = ({ onClose }) => {
 
   return (
     <Box>
-      <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
+      <div className="p-6 max-w-6xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Leave Application</Typography>
           <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>

@@ -129,7 +129,7 @@ const LeavePreview = ({ data, onClose }) => {
           </div>
           <div className="leave-report-header-bottom">
             <div className="header-spacer"></div>
-            <div className="header-center-title" style={{ flex: '0 1 auto', margin: '0 auto' }}>LEAVE APPLICATION</div>
+            <div className="header-center-title" style={{ flex: '0 1 auto', margin: '15px auto' }}>LEAVE APPLICATION</div>
             <div className="header-right-status">
               {submissionStatus && (
                 <div className="header-status-box-small">
@@ -279,11 +279,11 @@ const LeavePreview = ({ data, onClose }) => {
 
         <div style={{ display: "flex", justifyContent: "space-between", padding: "0 5px", fontSize: "12px", marginTop: "15px" }}>
           <span>Date : {leaveDateShort}</span>
-          <span style={{ fontWeight: 'bold' }}>Signature</span>
+          <span style={{ fontWeight: 'bold', marginRight: '50px' }}>Signature</span>
         </div>
 
-        <div style={{ position: 'relative', textAlign: 'center', margin: '15px 0' }}>
-          <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, borderBottom: '1.5px solid #000', zIndex: 1 }}></div>
+        <div style={{ position: 'relative', textAlign: 'center', margin: '0' }}>
+          <div style={{ position: 'absolute', top: '50%', left: 0, right: 50, borderBottom: '1.5px solid #000', zIndex: 1 }}></div>
           <span style={{ position: 'relative', background: '#fff', padding: '0 10px', fontWeight: '800', fontSize: '13px', zIndex: 2 }}>For Office Use</span>
         </div>
 
@@ -389,7 +389,7 @@ const LeavePreview = ({ data, onClose }) => {
                 </tr>
               </tbody>
             </table>
-            <div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>* Information upto one day before and attendance respective to HR approval</div>
+            <div style={{ fontSize: '8px', margin: '5px 5px', color: '#666' }}>* Information upto one day before and attendance respective to HR approval</div>
           </div>
         </div>
 
@@ -423,8 +423,8 @@ const LeavePreview = ({ data, onClose }) => {
             </tbody>
           </table>
 
-          <div style={{ borderTop: '1.5px solid #000', marginTop: '10px', paddingTop: '3px' }}>
-            <div className="report-dated-text" style={{ fontSize: '10px', textAlign: 'right' }}>
+          <div style={{ borderTop: '1.5px solid #000', marginTop: '5px', paddingTop: '2px', marginRight: '40px' }}>
+            <div className="report-dated-text" style={{ fontSize: '10px', textAlign: 'right', marginRight: '10px' }}>
               Report Dated : {formatReportDate(reportDate)}
             </div>
           </div>

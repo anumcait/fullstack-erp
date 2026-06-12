@@ -8,9 +8,9 @@ export const useToast = () => useContext(ToastContext);
 export const ToastProvider = ({ children }) => {
   const [toast, setToast] = useState({ message: '', type: '' });
 
-  const showToast = (message, type = 'info') => {
-    setToast({ message, type });
-    setTimeout(() => setToast({ message: '', type: '' }), 10000);
+  const showToast = (message, type = 'info', duration = 10000) => {
+    setToast({ message, type, duration });
+    setTimeout(() => setToast({ message: '', type: '' }), duration);
   };
 
   return (
@@ -30,7 +30,7 @@ export const ToastProvider = ({ children }) => {
               to { transform: translateX(0); opacity: 1; }
             }
           `}</style>
-          <Toast message={toast.message} type={toast.type} />
+          <Toast message={toast.message} type={toast.type} duration={toast.duration} />
         </div>
       )}
     </ToastContext.Provider>
