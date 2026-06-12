@@ -107,6 +107,7 @@
   flex: 1;
   display: flex;
   justify-content: flex-end;
+  padding: 0px 20px;
 }
 
 .header-status-box-small {
@@ -163,8 +164,11 @@
 
 /* Row labels in first half */
 .leave-print-container .leave-field-table col.preview-col-label:nth-child(1),
-.leave-print-container .leave-field-table tr td.label:nth-child(1) {
-  width: 130px;
+.leave-print-container .leave-field-table tr td.label:nth-child(1),
+.leave-print-container .leave-movement-table tr td.label:nth-child(1) {
+  width: 135px !important;
+  text-align: left !important;
+  padding-right: 0 !important;
 }
 
 /* Row labels in second half (e.g. Emp name) */
@@ -174,15 +178,12 @@
 }
 
 .leave-print-container .leave-field-table col.preview-col-colon,
-.leave-print-container .leave-field-table td.colon {
-  width: 10px;
+.leave-print-container .leave-field-table td.colon,
+.leave-print-container .leave-movement-table td.colon {
+  width: 15px !important;
+  text-align: center;
 }
 
-/* Value column in first half (e.g. for Designation/Emp No) */
-.leave-print-container .leave-field-table col:nth-child(3),
-.leave-print-container .leave-field-table tr td:nth-child(3) {
-  width: 180px;
-}
 
 .leave-dates-table tr {
   height: 18px;
@@ -261,7 +262,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  margin: 15px 0 7px 0;
+  margin: 5px 0 7px 0;
   font-weight: bold;
 }
 
@@ -449,11 +450,7 @@
     font-size: 10px !important;
   }
 
-  .leave-signature-grid {
-    font-size: 10px !important;
-    margin: 0;
-    padding: 0;
-  }
+
 
   .leave-dates-table tr,
   .leave-dates-table td {
@@ -496,9 +493,6 @@
     width: 120px !important;
   }
 
-  .leave-print-container .leave-field-table tr td:nth-child(3) {
-    width: 180px !important;
-  }
 
   .leave-print-container .leave-field-table tr td.label:nth-child(4) {
     width: 70px !important;

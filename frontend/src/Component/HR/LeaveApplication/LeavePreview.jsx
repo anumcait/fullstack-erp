@@ -192,7 +192,7 @@ const LeavePreview = ({ data, onClose }) => {
 
         {/* Leaves Dates Table */}
         <div style={{ marginTop: "10px" }}>
-          <table className="leave-field-table leave-movement-table">
+          <table className="leave-movement-table">
             <colgroup>
               <col className="preview-col-label" />
               <col className="preview-col-colon" />
@@ -354,15 +354,17 @@ const LeavePreview = ({ data, onClose }) => {
             <table style={{ fontSize: '13px', width: '100%', marginTop: '15px', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
-                  <td className="office-label" style={{ width: '125px', padding: '4px 0', fontWeight: 'bold' }}>Sanction day(s)</td>
-                  <td className="office-colon" style={{ width: '10px' }}>:</td>
-                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0', minWidth: '150px' }}>{sanctionDays}</td>
+                  <td className="office-label" style={{ width: '180px', padding: '4px 0', fontWeight: 'bold' }}>Sanction day(s)</td>
+                  <td className="office-colon" style={{ width: '20px' }}>:</td>
+                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0', width: '120px' }}>{sanctionDays}</td>
+                  <td></td>
                 </tr>
                 <tr style={{ height: '6px' }}></tr>
                 <tr>
-                  <td className="office-label" style={{ width: '125px', padding: '4px 0', fontWeight: 'bold' }}>Reporting to duty on</td>
-                  <td className="office-colon" style={{ width: '10px' }}>:</td>
-                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0', minWidth: '150px' }}>{reportingDutyOn}</td>
+                  <td className="office-label" style={{ width: '180px', padding: '4px 0', fontWeight: 'bold' }}>Reporting to duty on</td>
+                  <td className="office-colon" style={{ width: '20px' }}>:</td>
+                  <td className="office-value" style={{ borderBottom: '1.5px solid #000', padding: '4px 0', width: '120px' }}>{reportingDutyOn}</td>
+                  <td></td>
                 </tr>
               </tbody>
             </table>
@@ -394,7 +396,7 @@ const LeavePreview = ({ data, onClose }) => {
         {/* <hr style={{ margin: "15px 0" }} /> */}
 
         {/* Spacer to push footer to the bottom */}
-        <div style={{ minHeight: '25px' }}></div>
+        {/* <div style={{ minHeight: '25px' }}></div> */}
 
         {/* Standardized Signatures */}
         <div className="leave-print-footer">
