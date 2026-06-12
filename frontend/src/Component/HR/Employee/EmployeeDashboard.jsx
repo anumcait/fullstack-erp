@@ -36,7 +36,7 @@ const EmployeeDashboard = () => {
   return (
     <div className="employee-dashboard-container">
       <div className="employee-dashboard-header">
-        <h2 className="employee-dashboard-title">Employee Dashboard -New</h2>
+        <h2 className="employee-dashboard-title">Employee Dashboard</h2>
         <div className="employee-dropdown-wrapper" ref={dropdownRef}>
           <button className="employee-dropdown-toggle" onClick={() => setDropdownOpen(!dropdownOpen)}>
             ☰
