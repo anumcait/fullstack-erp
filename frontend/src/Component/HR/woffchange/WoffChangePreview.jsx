@@ -1,10 +1,12 @@
 import React from "react";
-import "./WoffChangePreview.css"; // Dedicated styling sheet
+import "./WoffChangePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate, formatDateOnly } from "../../../utils/dateUtils";
 import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
+import { useCompany } from "../../../context/CompanyContext";
 
 const WoffChangePreview = ({ data = {}, onClose }) => {
+  const { companyName } = useCompany();
   const {
     woff_id = "",
     woff_date = "",
@@ -43,7 +45,7 @@ const WoffChangePreview = ({ data = {}, onClose }) => {
         <div className="woff-print-header">
           <img src={logo} alt="Logo" className="woff-logo" />
           <div className="woff-company-title">
-            AUCTOR HOME APPLIANCES LLP
+            {companyName}
             <br />
             <span className="woff-slip-title">WEEKLY OFF CHANGE SLIP</span>
           </div>

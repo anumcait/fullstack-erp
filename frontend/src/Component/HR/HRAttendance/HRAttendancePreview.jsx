@@ -1,11 +1,13 @@
 import React from "react";
-import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
+import "../onduty/OnDutyPreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
 import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
 import PreviewFieldTableColgroup3 from "../common/PreviewFieldTableColgroup3";
+import { useCompany } from "../../../context/CompanyContext";
 
 const HRAttendancePreview = ({ data = {}, onClose }) => {
+  const { companyName } = useCompany();
   const {
     att_date = "",
     empid = "",
@@ -30,7 +32,7 @@ const HRAttendancePreview = ({ data = {}, onClose }) => {
         <div className="onduty-print-header">
           <img src={logo} alt="Logo" className="onduty-logo" />
           <div className="onduty-company-title">
-            AUCTOR HOME APPLIANCES LLP
+            {companyName}
             <br />
             <span className="onduty-slip-title">ATTENDANCE RECORD SLIP</span>
           </div>

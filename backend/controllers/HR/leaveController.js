@@ -87,7 +87,7 @@ exports.applyLeave = async (req, res) => {
         include: [{
           model: LeaveApplication,
           as: 'application',
-          where: { status: { [Sequelize.Op.in]: ["0", "1"] } }
+          where: { status: { [Sequelize.Op.in]: ["Pending", "Approved"] } }
         }],
         transaction: t
       });
@@ -107,6 +107,7 @@ exports.applyLeave = async (req, res) => {
     const nextLno = Number(maxLnoResult.maxLno) + 1;
     application.lno = nextLno;
 
+    application.status = "Pending";
     const newApp = await LeaveApplication.create(application, { transaction: t });
 
     const detailsWithLno = leaveDetails.map(d => ({ ...d, lno: nextLno }));
@@ -643,15 +644,15 @@ exports.checkLeaveOverlap = async (req, res) => {
       include: [{
         model: LeaveApplication,
         as: 'application',
-        where: { status: { [Sequelize.Op.in]: ["0", "1"] } }
+        where: { status: { [Sequelize.Op.in]: ["Pending", "Approved"] } }
       }]
     });
 
     if (overlap) {
-      return res.json({ 
-        overlap: true, 
+      return res.json({
+        overlap: true,
         overlapDate: new Date(overlap.frmdt).toLocaleDateString('en-GB').replace(/\//g, '-'),
-        lno: overlap.lno 
+        lno: overlap.lno
       });
     }
     res.json({ overlap: false });

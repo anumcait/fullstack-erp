@@ -1,10 +1,12 @@
 import React from "react";
-import "./ESILeavePreview.css"; // Dedicated styling sheet
+import "./ESILeavePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
 import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
+import { useCompany } from "../../../context/CompanyContext";
 
 const ESILeavePreview = ({ data = {}, onClose }) => {
+  const { companyName } = useCompany();
   const {
     esi_leave_id = "--",
     esi_leave_date = "--",
@@ -29,7 +31,7 @@ const ESILeavePreview = ({ data = {}, onClose }) => {
         <div className="esi-print-header">
           <img src={logo} alt="Logo" className="esi-logo" />
           <div className="esi-company-title">
-            AUCTOR HOME APPLIANCES LLP
+            {companyName}
             <br />
             <span className="esi-slip-title">ESI LEAVE REQUEST</span>
           </div>

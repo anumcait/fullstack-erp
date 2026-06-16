@@ -53,14 +53,14 @@ exports.saveOnDuty = async (req, res) => {
         const finalMonthStr = (latest.C_MONTH || "").trim().toUpperCase();
         const latestMonthNum = monthMap[finalMonthStr] || 0;
         const latestYearNum = Number(latest.C_YEAR);
-        
+
         // isClosed if selected year < latest year OR (same year and selected month <= latest month)
         const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
 
         if (isClosed) {
           await t.rollback();
-          return res.status(400).json({ 
-            message: `Cannot save On Duty. Payroll has already been processed up to ${finalMonthStr} ${latestYearNum}. Backdated entries are not allowed for closed months.` 
+          return res.status(400).json({
+            message: `Cannot save On Duty. Payroll has already been processed up to ${finalMonthStr} ${latestYearNum}. Backdated entries are not allowed for closed months.`
           });
         }
       }

@@ -9,6 +9,7 @@ import EmployeeReportForm from "./Component/HR/Employee/EmployeeMasterReport";
 import AddEmployeeForm from "./Component/HR/Employee/AddEmployee";
 import LeaveReport from "./Component/HR/LeaveApplication/LeaveReport";
 import { ToastProvider } from "./context/ToastContext";
+import { CompanyProvider } from "./context/CompanyContext";
 import { NavigationGuardProvider } from "./context/NavigationGuardContext";
 import MainLayout from "./Component/Layout/MainLayout";
 import OnDutyPreview from "./Component/HR/onduty/OnDutyPreview";
@@ -102,90 +103,92 @@ function App() {
     <ThemeProvider theme={theme}>
       <NavigationGuardProvider>
         <ToastProvider>
-        <div className="App">
-          <Router>
-            <Routes>
-              <Route path="/" element={<LoginForm />} />
-              <Route element={
-                <ProtectedRoute>
-                  <MainLayout />
-                </ProtectedRoute>
-              }>
-                <Route path="/dashboard" element={<DashBoard />} />
-                <Route path="/accounts" element={<AccountsDashboard />} />
+          <CompanyProvider>
+            <div className="App">
+              <Router>
+                <Routes>
+                  <Route path="/" element={<LoginForm />} />
+                  <Route element={
+                    <ProtectedRoute>
+                      <MainLayout />
+                    </ProtectedRoute>
+                  }>
+                    <Route path="/dashboard" element={<DashBoard />} />
+                    <Route path="/accounts" element={<AccountsDashboard />} />
 
-                {/* ERP & Operations Modules */}
-                <Route path="/purchase" element={<PurchaseDashboard />} />
-                <Route path="/stores" element={<StoresDashboard />} />
-                <Route path="/production" element={<ProductionDashboard />} />
-                <Route path="/planning" element={<PlanningDashboard />} />
-                <Route path="/engineering" element={<EngineeringDashboard />} />
-                <Route path="/quality" element={<QualityDashboard />} />
-                <Route path="/marketing" element={<MarketingDashboard />} />
-                <Route path="/subcontract" element={<SubcontractDashboard />} />
-                <Route path="/maintenance" element={<MaintenanceDashboard />} />
+                    {/* ERP & Operations Modules */}
+                    <Route path="/purchase" element={<PurchaseDashboard />} />
+                    <Route path="/stores" element={<StoresDashboard />} />
+                    <Route path="/production" element={<ProductionDashboard />} />
+                    <Route path="/planning" element={<PlanningDashboard />} />
+                    <Route path="/engineering" element={<EngineeringDashboard />} />
+                    <Route path="/quality" element={<QualityDashboard />} />
+                    <Route path="/marketing" element={<MarketingDashboard />} />
+                    <Route path="/subcontract" element={<SubcontractDashboard />} />
+                    <Route path="/maintenance" element={<MaintenanceDashboard />} />
 
-                {/* Departmental Reports */}
-                <Route path="/hr/reports" element={<Reports />} />
-                <Route path="/accounts/reports" element={<AccountsReports />} />
-                <Route path="/purchase/reports" element={<PurchaseReports />} />
-                <Route path="/stores/reports" element={<StoresReports />} />
-                <Route path="/production/reports" element={<ProductionReports />} />
-                <Route path="/planning/reports" element={<PlanningReports />} />
-                <Route path="/engineering/reports" element={<EngineeringReports />} />
-                <Route path="/quality/reports" element={<QualityReports />} />
-                <Route path="/marketing/reports" element={<MarketingReports />} />
-                <Route path="/subcontract/reports" element={<SubcontractReports />} />
-                <Route path="/maintenance/reports" element={<MaintenanceReports />} />
+                    {/* Departmental Reports */}
+                    <Route path="/hr/reports" element={<Reports />} />
+                    <Route path="/accounts/reports" element={<AccountsReports />} />
+                    <Route path="/purchase/reports" element={<PurchaseReports />} />
+                    <Route path="/stores/reports" element={<StoresReports />} />
+                    <Route path="/production/reports" element={<ProductionReports />} />
+                    <Route path="/planning/reports" element={<PlanningReports />} />
+                    <Route path="/engineering/reports" element={<EngineeringReports />} />
+                    <Route path="/quality/reports" element={<QualityReports />} />
+                    <Route path="/marketing/reports" element={<MarketingReports />} />
+                    <Route path="/subcontract/reports" element={<SubcontractReports />} />
+                    <Route path="/maintenance/reports" element={<MaintenanceReports />} />
 
-                {/* Departmental Settings */}
-                <Route path="/hr/settings" element={<Settings />} />
-                <Route path="/accounts/settings" element={<AccountsReports />} /> {/* Placeholder */}
-                <Route path="/purchase/settings" element={<PurchaseSettings />} />
-                <Route path="/stores/settings" element={<StoresSettings />} />
-                <Route path="/production/settings" element={<ProductionSettings />} />
-                <Route path="/planning/settings" element={<PlanningSettings />} />
-                <Route path="/engineering/settings" element={<EngineeringSettings />} />
-                <Route path="/quality/settings" element={<QualitySettings />} />
-                <Route path="/marketing/settings" element={<MarketingSettings />} />
-                <Route path="/subcontract/settings" element={<SubcontractSettings />} />
-                <Route path="/maintenance/settings" element={<MaintenanceSettings />} />
+                    {/* Departmental Settings */}
+                    <Route path="/hr/settings" element={<Settings />} />
+                    <Route path="/accounts/settings" element={<AccountsReports />} /> {/* Placeholder */}
+                    <Route path="/purchase/settings" element={<PurchaseSettings />} />
+                    <Route path="/stores/settings" element={<StoresSettings />} />
+                    <Route path="/production/settings" element={<ProductionSettings />} />
+                    <Route path="/planning/settings" element={<PlanningSettings />} />
+                    <Route path="/engineering/settings" element={<EngineeringSettings />} />
+                    <Route path="/quality/settings" element={<QualitySettings />} />
+                    <Route path="/marketing/settings" element={<MarketingSettings />} />
+                    <Route path="/subcontract/settings" element={<SubcontractSettings />} />
+                    <Route path="/maintenance/settings" element={<MaintenanceSettings />} />
 
-                <Route path="/photo" element={<PhotoUpload />} />
-                <Route path="/profile-requests" element={<ProfileRequestApproval />} />
-                <Route path="/employees" element={<EmployeeDashboard />} />
-                <Route path="/employee-report" element={<EmployeeDashboard />} />
-                <Route path="/add-employee" element={<AddEmployeeForm />} />
-                <Route path="/edit-employee/:empid" element={<AddEmployeeForm />} />
-                <Route path="/leave" element={<LeaveDashboard />} />
-                <Route path="/leaves-master" element={<LeaveMaster />} />
-                <Route path="/onduty" element={<OnDutyDashboard />} />
-                <Route path="/onduty-preview" element={<OnDutyPreview />} />
-                <Route path="/shiftchange" element={<ShiftChangeDashboard />} />
-                <Route path="/edit-item" element={<EditItem />} />
-                <Route path="/attendance-mod" element={<AttendanceModification />} />
-                <Route path="/hr-attendance" element={<HRAttendance />} />
-                <Route path="/change-password" element={<ChangePasswordForm />} />
-                <Route path="/tour" element={<TourDashboard />} />
-                <Route path="/woffchange" element={<WoffChangeDashboard />} />
-                <Route path="/advance" element={<AdvanceDashboard />} />
-                <Route path="/esileave" element={<ESILeaveDashboard />} />
-                <Route path="/payroll" element={<PayrollDashboard />} />
-                <Route path="/holidays" element={<HolidayMaster />} />
-                <Route path="/shift-master" element={<ShiftMaster />} />
-                <Route path="/shiftschedule" element={<ShiftSchedule />} />
-                <Route path="/muster-roll" element={<MusterRoll />} />
-                <Route path="/ot-approval" element={<OTApproval />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/leave-report" element={<LeaveReport />} />
-                <Route path="/useraccess" element={<UserAccess />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/profile" element={<ProfileUpdate />} />
-              </Route>
-            </Routes>
-          </Router>
-        </div>
-      </ToastProvider>
+                    <Route path="/photo" element={<PhotoUpload />} />
+                    <Route path="/profile-requests" element={<ProfileRequestApproval />} />
+                    <Route path="/employees" element={<EmployeeDashboard />} />
+                    <Route path="/employee-report" element={<EmployeeDashboard />} />
+                    <Route path="/add-employee" element={<AddEmployeeForm />} />
+                    <Route path="/edit-employee/:empid" element={<AddEmployeeForm />} />
+                    <Route path="/leave" element={<LeaveDashboard />} />
+                    <Route path="/leaves-master" element={<LeaveMaster />} />
+                    <Route path="/onduty" element={<OnDutyDashboard />} />
+                    <Route path="/onduty-preview" element={<OnDutyPreview />} />
+                    <Route path="/shiftchange" element={<ShiftChangeDashboard />} />
+                    <Route path="/edit-item" element={<EditItem />} />
+                    <Route path="/attendance-mod" element={<AttendanceModification />} />
+                    <Route path="/hr-attendance" element={<HRAttendance />} />
+                    <Route path="/change-password" element={<ChangePasswordForm />} />
+                    <Route path="/tour" element={<TourDashboard />} />
+                    <Route path="/woffchange" element={<WoffChangeDashboard />} />
+                    <Route path="/advance" element={<AdvanceDashboard />} />
+                    <Route path="/esileave" element={<ESILeaveDashboard />} />
+                    <Route path="/payroll" element={<PayrollDashboard />} />
+                    <Route path="/holidays" element={<HolidayMaster />} />
+                    <Route path="/shift-master" element={<ShiftMaster />} />
+                    <Route path="/shiftschedule" element={<ShiftSchedule />} />
+                    <Route path="/muster-roll" element={<MusterRoll />} />
+                    <Route path="/ot-approval" element={<OTApproval />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/leave-report" element={<LeaveReport />} />
+                    <Route path="/useraccess" element={<UserAccess />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/profile" element={<ProfileUpdate />} />
+                  </Route>
+                </Routes>
+              </Router>
+            </div>
+          </CompanyProvider>
+        </ToastProvider>
       </NavigationGuardProvider>
     </ThemeProvider>
   );

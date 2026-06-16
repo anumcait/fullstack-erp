@@ -11,9 +11,11 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { useCompany } from "../../../context/CompanyContext";
 
 const PayslipList = () => {
   const { showToast } = useToast();
+  const { companyName } = useCompany();
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [salaryData, setSalaryData] = useState([]);
@@ -107,7 +109,7 @@ const PayslipList = () => {
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2 }}>Payslip View / Create</Typography>
-      
+
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={2}>
           <FormControl fullWidth size="small">
@@ -130,8 +132,8 @@ const PayslipList = () => {
           </FormControl>
         </Grid>
         <Grid item xs={3}>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="primary"
             startIcon={<AddIcon />}
             onClick={() => setCreateDialogOpen(true)}
@@ -152,7 +154,7 @@ const PayslipList = () => {
       </Grid>
 
       {salaryData.length === 0 && (
-        <Alert severity="info">No payslip data found for {months[month-1].label} {year}. Click "Create Payslip" to generate.</Alert>
+        <Alert severity="info">No payslip data found for {months[month - 1].label} {year}. Click "Create Payslip" to generate.</Alert>
       )}
 
       {salaryData.length > 0 && (
@@ -189,9 +191,9 @@ const PayslipList = () => {
                   <TableCell>{formatCurrency(row.C_TOT_DED)}</TableCell>
                   <TableCell><strong>{formatCurrency(row.C_NET_AMT)}</strong></TableCell>
                   <TableCell>
-                    <Button 
-                      size="small" 
-                      variant="outlined" 
+                    <Button
+                      size="small"
+                      variant="outlined"
                       onClick={() => viewPayslip(row)}
                     >
                       View
@@ -215,9 +217,9 @@ const PayslipList = () => {
             <Grid item xs={6}>
               <FormControl fullWidth size="small">
                 <InputLabel>Employee</InputLabel>
-                <Select 
-                  value={selectedEmpId} 
-                  onChange={(e) => setSelectedEmpId(e.target.value)} 
+                <Select
+                  value={selectedEmpId}
+                  onChange={(e) => setSelectedEmpId(e.target.value)}
                   label="Employee"
                 >
                   {employees.map(emp => (
@@ -229,8 +231,8 @@ const PayslipList = () => {
               </FormControl>
             </Grid>
             <Grid item xs={6}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 onClick={createPayslip}
                 disabled={creating}
                 fullWidth
@@ -252,10 +254,10 @@ const PayslipList = () => {
           {selectedPayslip && (
             <div className="payslip-container" style={{ padding: '20px' }}>
               <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #333', paddingBottom: '10px' }}>
-                <h2 style={{ margin: 0 }}>AUCTOR HOME APPLIANCES LLP</h2>
-                <h4 style={{ margin: '5px 0' }}>PAYSLIP FOR {months[month-1].label.toUpperCase()} {year}</h4>
+                <h2 style={{ margin: 0 }}>{companyName}</h2>
+                <h4 style={{ margin: '5px 0' }}>PAYSLIP FOR {months[month - 1].label.toUpperCase()} {year}</h4>
               </div>
-              
+
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={4}><strong>Emp ID:</strong> {selectedPayslip.C_EMPID}</Grid>
                 <Grid item xs={4}><strong>Name:</strong> {selectedPayslip.C_ENAME}</Grid>

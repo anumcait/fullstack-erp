@@ -20,11 +20,11 @@ axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 const states = ['Uttar Pradesh', 'Maharashtra', 'Bihar', 'Other'];
 const maritalStatuses = ['Single', 'Married', 'Divorced', 'Widowed'];
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
-const empTypes = ['Permanent', 'Contract'];
+const empTypes = ['Permanent', 'Trainee', 'Probation'];
 
 const departments = ['HR', 'Engineering', 'Marketing', 'Sales', 'Finance'];
 const designations = ['Manager', 'Developer', 'Designer', 'Analyst', 'Tester'];
-const employmentTypes = ['Permanent', 'Contract', 'Intern'];
+const employmentTypes = ['Permanent', 'Trainee', 'Probation'];
 
 const tabLabels = [
   'Personal', 'Family', 'Qualification', 'Experience', 'Official', 'Salary',
@@ -132,7 +132,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
     try {
       const res = await axios.get(`/api/employees/${id}/full`);
       const data = res.data;
-      
+
       // Map Personal & Addresses
       setFormData({
         empid: data.empid,
@@ -479,50 +479,35 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
       // Include other details like familyDetails, qualDetails if needed here
     };
     console.log(payload);
-    
+
     const resetForm = () => {
       setFormData({
-        empid: '',
-        ename: '',
-        fname: '',
-        dob: '',
-        sex: '',
-        marital_status: '',
-        emptype: '',
-        divname: '', deptname: '', secname: '',
+        empid: '', ename: '', fname: '', dob: '', sex: '', marital_status: '',
+        emptype: '', divname: '', deptname: '', secname: '', uname: '',
         pob: '', bgroup: '', mother_tounge: '', idfm1: '', idfm2: '',
-        lang_known: ''
+        lang_known: '',
+        commAddress: { ...initAddress },
+        permAddress: { ...initAddress },
+        sameAsComm: false,
+        status: 'Active',
+        left_date: '',
+        left_reason: '',
       });
 
-      setCommAddress({
-        address: '',
-        city: '',
-        state: '',
-        zip: ''
-      });
-
-      setPermAddress({
-        address: '',
-        city: '',
-        state: '',
-        zip: ''
-      });
-
-      setSameAsComm(false);
-
-      setFamilyDetails([]); // Clear all family members grid
-      setQualDetails([]);   // Clear qualifications
-      setExpDetails([]);    // Clear experiences
-      setPromotionDetails([]);
-      setTrainingDetails([]);
-      setAwardDetails([]);
-      setDiscDetails([]);
-      setSalaryDetails([]);
-      setIncrementDetails([]);
-      setCanteenDetails([]);
-      setLICDetails([]);
-      setTransferDetails([]);
-      setOfficialDetails([]);
+      setFamilyDetails([{ ...initFamily }]);
+      setQualDetails([{ ...initQual }]);
+      setExpDetails([{ ...initExp }]);
+      setPromotionDetails([{ ...initPromo }]);
+      setTrainingDetails([{ ...initTraining }]);
+      setAwardDetails([{ ...initAward }]);
+      setDiscDetails([{ ...initDisc }]);
+      setSalaryDetails({ ...initSalary });
+      setIncrementDetails([{ ...initIncrement }]);
+      setCanteenDetails({ ...initCanteen });
+      setLICDetails([{ ...initLIC }]);
+      setTransferDetails([{ ...initTransfer }]);
+      setOfficialDetails({ ...initOfficial });
+      setPhotoPreview(null);
     };
 
     if (!validateForm()) return;
@@ -530,7 +515,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
     try {
       const url = isEdit ? `/api/employees/${formData.empid}` : `/api/employees/add-employee`;
       const method = isEdit ? 'PUT' : 'POST';
-      
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}${url}`, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
@@ -711,10 +696,11 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
                 >
                   <MenuItem value="Active">Active</MenuItem>
                   <MenuItem value="Left">Left</MenuItem>
-                  <MenuItem value="Inactive">Inactive</MenuItem>
+                  <MenuItem value="Resigned">Resigned</MenuItem>
+                  <MenuItem value="Terminated">Terminated</MenuItem>
                 </TextField>
               </Grid>
-              {formData.status === 'Left' && (
+              {['Left', 'Resigned', 'Terminated'].includes(formData.status) && (
                 <>
                   <Grid item xs={12} sm={6} md={3}>
                     <TextField label="Left Date" name="left_date" size="small" fullWidth type="date"
@@ -729,6 +715,38 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
                   </Grid>
                 </>
               )}
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary">
+              Department & Organisation
+            </Typography>
+            <Grid container spacing={2.5} sx={{ mb: 3 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField label="Division" name="divname" size="small" fullWidth
+                  value={formData.divname} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField label="Department" name="deptname" size="small" fullWidth
+                  value={formData.deptname} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField label="Section" name="secname" size="small" fullWidth
+                  value={formData.secname} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField label="Unit" name="uname" size="small" fullWidth
+                  value={formData.uname} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
             </Grid>
 
             <Divider sx={{ my: 3 }} />
@@ -794,9 +812,9 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
               </Box>
             )}
             {!isEdit && tabIndex === tabLabels.length - 1 && (
-               <Box mt={3} textAlign="right">
-                 <Button onClick={handleSubmit} variant="contained" color="primary">Save Employee</Button>
-               </Box>
+              <Box mt={3} textAlign="right">
+                <Button onClick={handleSubmit} variant="contained" color="primary">Save Employee</Button>
+              </Box>
             )}
           </Box>
         );
@@ -1466,30 +1484,30 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
 
   // -- UI Layout --
   return (
-    <Box sx={{ 
-      background: isModal ? 'transparent' : '#f4f7f9', 
+    <Box sx={{
+      background: isModal ? 'transparent' : '#f4f7f9',
       height: isModal ? '100%' : 'auto',
       minHeight: isModal ? 'auto' : '100vh',
       p: isModal ? 0 : 3,
       display: 'flex',
       flexDirection: 'column'
     }}>
-      <Box sx={{ 
-        maxWidth: 1250, 
+      <Box sx={{
+        maxWidth: 1250,
         width: '100%',
-        mx: 'auto', 
+        mx: 'auto',
         bgcolor: 'white',
-        borderRadius: isModal ? 0 : 2, 
+        borderRadius: isModal ? 0 : 2,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         flexGrow: 1,
         boxShadow: isModal ? 'none' : '0 8px 32px rgba(0,0,0,0.08)'
       }}>
-        
+
         {/* Sticky Header */}
-        <Box sx={{ 
-          p: 2.5, 
+        <Box sx={{
+          p: 2.5,
           borderBottom: '1px solid #edf2f7',
           display: 'flex',
           alignItems: 'center',
@@ -1531,14 +1549,14 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
               </Button>
             </label>
             {!isModal && (
-               <Button 
-                variant="contained" 
-                color="primary" 
+              <Button
+                variant="contained"
+                color="primary"
                 startIcon={<SaveIcon />}
                 onClick={handleSubmit}
-               >
-                 Save Record
-               </Button>
+              >
+                Save Record
+              </Button>
             )}
             {isModal && (
               <IconButton onClick={onModalClose} color="inherit" sx={{ ml: 1 }}>
@@ -1549,8 +1567,8 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         </Box>
 
         {/* Sticky Tabs */}
-        <Box sx={{ 
-          bgcolor: '#f8fafc', 
+        <Box sx={{
+          bgcolor: '#f8fafc',
           borderBottom: '1px solid #edf2f7',
           position: 'sticky',
           top: isModal ? 80 : 0, // adjust if header height differs
@@ -1576,17 +1594,17 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         </Box>
 
         {/* Form Content Area */}
-        <Box sx={{ 
-          p: 3, 
-          flexGrow: 1, 
-          overflowY: 'auto', 
+        <Box sx={{
+          p: 3,
+          flexGrow: 1,
+          overflowY: 'auto',
           bgcolor: 'white',
           '&::-webkit-scrollbar': { width: '8px' },
           '&::-webkit-scrollbar-thumb': { bgcolor: '#e2e8f0', borderRadius: '4px' }
         }}>
-           <form autoComplete="off">
+          <form autoComplete="off">
             {renderTabContent()}
-           </form>
+          </form>
         </Box>
       </Box>
     </Box>

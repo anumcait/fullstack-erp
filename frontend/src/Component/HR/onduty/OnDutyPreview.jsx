@@ -3,6 +3,7 @@ import "./OnDutyPreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
 import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
+import { useCompany } from "../../../context/CompanyContext";
 
 const formatMovDate = (dateStr) => {
   if (!dateStr) return "";
@@ -22,6 +23,7 @@ const formatTime = (timeStr) => {
 };
 
 const OnDutyPreview = ({ data = {}, onClose }) => {
+  const { companyName } = useCompany();
   const {
     movement_id = "",
     movement_date = "",
@@ -55,7 +57,7 @@ const OnDutyPreview = ({ data = {}, onClose }) => {
         <div className="onduty-print-header">
           <img src={logo} alt="Logo" className="onduty-logo" />
           <div className="onduty-company-title">
-            AUCTOR HOME APPLIANCES LLP
+            {companyName}
             <br />
             <span className="onduty-slip-title">ON DUTY PERMISSION SLIP</span>
           </div>

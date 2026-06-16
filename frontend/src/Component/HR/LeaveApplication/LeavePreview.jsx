@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./LeavePreview.css";
-import logo from "../../../assets/images/EQIC_Image.jpg"; // replace with your logo path
+import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDateTimeAMPM, formatReportDate } from "../../../utils/dateUtils";
-
+import { useCompany } from "../../../context/CompanyContext";
 
 // Format numeric value: show 0 for empty/null, clamp negatives to 0
 const fmtNum = (val) => {
@@ -32,6 +32,7 @@ const formatDateTime = (dateStr) => {
 };
 
 const LeavePreview = ({ data, onClose }) => {
+  const { companyName } = useCompany();
   const [leaveData, setLeaveData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -125,7 +126,7 @@ const LeavePreview = ({ data, onClose }) => {
         <div className="leave-report-header-container">
           <div className="leave-report-header-top" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <img src={logo} alt="Logo" className="leave-logo-img-small" style={{ position: 'absolute', left: 0 }} />
-            <div className="header-company-name-small" style={{ textAlign: 'center' }}>AUCTOR HOME APPLIANCES LLP</div>
+            <div className="header-company-name-small" style={{ textAlign: 'center' }}>{companyName}</div>
           </div>
           <div className="leave-report-header-bottom">
             <div className="header-spacer"></div>

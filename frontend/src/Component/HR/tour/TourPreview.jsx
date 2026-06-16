@@ -1,9 +1,11 @@
 import React from "react";
-import "../onduty/OnDutyPreview.css"; // Reuse standardized styling
+import "../onduty/OnDutyPreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
+import { useCompany } from "../../../context/CompanyContext";
 
 const TourPreview = ({ data = {}, onClose }) => {
+  const { companyName } = useCompany();
   const {
     tour_id = "",
     tour_date = "",
@@ -39,7 +41,7 @@ const TourPreview = ({ data = {}, onClose }) => {
         <div className="onduty-print-header">
           <img src={logo} alt="Logo" className="onduty-logo" />
           <div className="onduty-company-title">
-            AUCTOR HOME APPLIANCES LLP
+            {companyName}
             <br />
             <span className="onduty-slip-title">TOUR APPLICATION SLIP</span>
           </div>

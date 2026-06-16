@@ -3,15 +3,21 @@ import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import logo from "../../assets/images/EQIC_Image.jpg";
 import axios from 'axios';
 import './LoginForm.css'; // ✅ Import your custom CSS
+import { useCompany } from '../../context/CompanyContext';
 
 const LoginForm = () => {
-
+  const { companyName } = useCompany();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
+    setLoading(true);
+    setError('');
 
     try {
       const response = await axios.post(
@@ -21,26 +27,27 @@ const LoginForm = () => {
           password
         },
         {
-          withCredentials: true // ⬅️ VERY IMPORTANT for session to work
+          withCredentials: true
         }
       );
 
-      // Save session info to localStorage or state
       const { user } = response.data;
       localStorage.setItem('userName', user.username);
       localStorage.setItem('userRole', user.role);
       localStorage.setItem('empName', user.ename);
       localStorage.setItem('empId', user.empid);
       localStorage.setItem('userPermissions', JSON.stringify(user.permissions || []));
-      
-      // Also persist to sessionStorage for refresh resilience
+
       sessionStorage.setItem('userRole', user.role);
       sessionStorage.setItem('empName', user.ename);
       sessionStorage.setItem('userPermissions', JSON.stringify(user.permissions || []));
+
       window.location.href = '/dashboard';
     } catch (err) {
       console.error('Login error:', err.response?.data || err.message);
-      setError('Invalid username or password');
+      setError(err.response?.data?.message || 'Invalid username or password');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,15 +68,12 @@ const LoginForm = () => {
         <div className="flex flex-col justify-center px-8 py-10">
           <div className="flex items-center justify-center mb-6">
             <img src={logo} alt="Logo" className="w-10 h-10 mr-2 rounded-full" />
-            {/* <h2 className="text-xl font-semibold">EQIC ERP</h2> */}
           </div>
           <h3 className="text-3xl font-extrabold mb-6 text-gray-800 tracking-tight">
             <span className="text-2xl text-[#56c7be] drop-shadow-md">Welcome to EQIC<span className="text-2xl text-orange-500">ERP</span> Portal</span>
           </h3>
-          {/* <h3 className="text-2xl font-bold mb-4">Sign In</h3>
-          <h3 className="text-2xl font-bold mb-4">Sign In</h3> */}
 
-          <form>
+          <form onSubmit={handleLogin}>
             <label className="block mb-2 text-sm font-medium text-gray-700">
               User Name:
             </label>
@@ -78,6 +82,7 @@ const LoginForm = () => {
               placeholder="Enter username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              required
               className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
 
@@ -88,6 +93,7 @@ const LoginForm = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
               placeholder="Enter password"
               className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
@@ -104,17 +110,17 @@ const LoginForm = () => {
 
             {error && <p className="text-red-500 text-sm mb-4 text-center font-semibold">{error}</p>}
 
-            <button 
-              type="button" 
-              onClick={handleLogin}
-              className="login-btn w-full"
+            <button
+              type="submit"
+              disabled={loading}
+              className={`login-btn w-full ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              LOG IN
+              {loading ? 'LOGGING IN...' : 'LOG IN'}
             </button>
           </form>
 
           <p className="text-sm text-center mt-6">
-            2025 Auctor Home Appliances. All rights reserved.
+            {new Date().getFullYear()} {companyName || 'ABC Company Pvt. Ltd.'}. All rights reserved.
             <br />
             <span className="text-red-600 font-bold">Powered By: EQICERP</span>
           </p>

@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 const employeeController = require('../../controllers/HR/employeeController');
 const profileRequestController = require('../../controllers/HR/profileRequestController');
 
@@ -21,7 +23,7 @@ router.put('/profile-requests/:id/reject', profileRequestController.rejectReques
 router.post('/add-employee', employeeController.createEmployee);
 
 // Bulk update salaries from CSV
-router.post('/bulk-update-salaries', employeeController.bulkUpdateSalaries);
+router.post('/bulk-update-salaries', upload.single('file'), employeeController.bulkUpdateSalaries);
 
 // Get employee by ID
 router.get('/:empid', employeeController.getEmployeeById);

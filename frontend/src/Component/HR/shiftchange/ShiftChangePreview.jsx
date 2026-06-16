@@ -3,8 +3,10 @@ import "./ShiftChangePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDateTimeAMPM } from "../../../utils/dateUtils";
 import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
+import { useCompany } from "../../../context/CompanyContext";
 
 const ShiftChangePreview = ({ data = {}, onClose }) => {
+  const { companyName } = useCompany();
   const calculateDays = (from, to) => {
     if (!from || !to || from === "" || to === "") return "";
     const d1 = new Date(from);
@@ -58,7 +60,7 @@ const ShiftChangePreview = ({ data = {}, onClose }) => {
         <div className="schange-print-header">
           <img src={logo} alt="Logo" className="schange-logo" />
           <div className="schange-company-title">
-            AUCTOR HOME APPLIANCES LLP
+            {companyName}
             <br />
             <span className="schange-slip-title">SHIFT CHANGE SLIP</span>
           </div>

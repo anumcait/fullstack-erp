@@ -15,7 +15,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import SaveIcon from "@mui/icons-material/Save";
+import axios from "axios";
 import { useToast } from "../../context/ToastContext";
+import { useCompany } from "../../context/CompanyContext";
 
 const settingsSections = [
   { id: "company", title: "Company Settings", icon: "🏢", description: "Company name, address, logo, contact info" },
@@ -28,20 +30,36 @@ const settingsSections = [
 
 const Settings = () => {
   const { showToast } = useToast();
+  const { refreshCompanySettings } = useCompany();
   const [activeSection, setActiveSection] = useState("company");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState({});
 
   const [companySettings, setCompanySettings] = useState({
-    companyName: "AUCTOR ENGINEERING PVT LTD",
-    address: "IDA Jeedimetla, Hyderabad - 500055",
-    phone: "+91 40 27565789",
-    email: "info@auctor.co.in",
-    website: "www.auctor.co.in",
-    gstin: "36AABCA1234P1ZX",
-    pfNumber: "AP/TD/123456/789",
-    esiNumber: "12-34567-89"
+    company_name: "",
+    address: "",
+    phone: "",
+    email: "",
+    website: "",
+    gstin: "",
+    pf_number: "",
+    esi_number: ""
   });
+
+  React.useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/company`);
+      if (res.data) {
+        setCompanySettings(res.data);
+      }
+    } catch (e) {
+      console.error("Error fetching company settings", e);
+    }
+  };
 
   const [payrollSettings, setPayrollSettings] = useState({
     ptRate: 200,
@@ -96,8 +114,18 @@ const Settings = () => {
     notifyOnOt: true
   });
 
-  const handleSave = (section) => {
-    showToast(`${section} settings saved successfully`, "success");
+  const handleSave = async (section) => {
+    if (section === "company") {
+      try {
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/company`, companySettings);
+        refreshCompanySettings();
+        showToast("Company settings saved successfully", "success");
+      } catch (err) {
+        showToast("Error saving company settings", "error");
+      }
+    } else {
+      showToast(`${section} settings saved successfully`, "success");
+    }
     setDialogOpen(false);
   };
 
@@ -132,42 +160,42 @@ const Settings = () => {
 
   const renderSettingsForm = () => {
     const settings = getCurrentSettings();
-    
+
     switch (activeSection) {
       case "company":
         return (
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Company Name" value={companySettings.companyName}
-                onChange={(e) => setCompanySettings({...companySettings, companyName: e.target.value})} />
+              <TextField fullWidth label="Company Name" value={companySettings.company_name || ""}
+                onChange={(e) => setCompanySettings({ ...companySettings, company_name: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Phone" value={companySettings.phone}
-                onChange={(e) => setCompanySettings({...companySettings, phone: e.target.value})} />
+              <TextField fullWidth label="Phone" value={companySettings.phone || ""}
+                onChange={(e) => setCompanySettings({ ...companySettings, phone: e.target.value })} />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth label="Address" multiline rows={2} value={companySettings.address}
-                onChange={(e) => setCompanySettings({...companySettings, address: e.target.value})} />
+              <TextField fullWidth label="Address" multiline rows={2} value={companySettings.address || ""}
+                onChange={(e) => setCompanySettings({ ...companySettings, address: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Email" value={companySettings.email}
-                onChange={(e) => setCompanySettings({...companySettings, email: e.target.value})} />
+              <TextField fullWidth label="Email" value={companySettings.email || ""}
+                onChange={(e) => setCompanySettings({ ...companySettings, email: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Website" value={companySettings.website}
-                onChange={(e) => setCompanySettings({...companySettings, website: e.target.value})} />
+              <TextField fullWidth label="Website" value={companySettings.website || ""}
+                onChange={(e) => setCompanySettings({ ...companySettings, website: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="GSTIN" value={companySettings.gstin}
-                onChange={(e) => setCompanySettings({...companySettings, gstin: e.target.value})} />
+              <TextField fullWidth label="GSTIN" value={companySettings.gstin || ""}
+                onChange={(e) => setCompanySettings({ ...companySettings, gstin: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="PF Number" value={companySettings.pfNumber}
-                onChange={(e) => setCompanySettings({...companySettings, pfNumber: e.target.value})} />
+              <TextField fullWidth label="PF Number" value={companySettings.pf_number || ""}
+                onChange={(e) => setCompanySettings({ ...companySettings, pf_number: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="ESI Number" value={companySettings.esiNumber}
-                onChange={(e) => setCompanySettings({...companySettings, esiNumber: e.target.value})} />
+              <TextField fullWidth label="ESI Number" value={companySettings.esi_number || ""}
+                onChange={(e) => setCompanySettings({ ...companySettings, esi_number: e.target.value })} />
             </Grid>
           </Grid>
         );
@@ -177,39 +205,39 @@ const Settings = () => {
           <Grid container spacing={3}>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Professional Tax (₹)" value={payrollSettings.professionalTax}
-                onChange={(e) => setPayrollSettings({...payrollSettings, professionalTax: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, professionalTax: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="OT Rate Multiplier" value={payrollSettings.otRateMultiplier}
-                onChange={(e) => setPayrollSettings({...payrollSettings, otRateMultiplier: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, otRateMultiplier: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="HRA %" value={payrollSettings.hraPercentage}
-                onChange={(e) => setPayrollSettings({...payrollSettings, hraPercentage: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, hraPercentage: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Conveyance (₹)" value={payrollSettings.conveyanceAmount}
-                onChange={(e) => setPayrollSettings({...payrollSettings, conveyanceAmount: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, conveyanceAmount: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="PF Employee %" value={payrollSettings.pfEmployeeRate}
-                onChange={(e) => setPayrollSettings({...payrollSettings, pfEmployeeRate: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, pfEmployeeRate: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="ESI Employee %" value={payrollSettings.esiEmployeeRate}
-                onChange={(e) => setPayrollSettings({...payrollSettings, esiEmployeeRate: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, esiEmployeeRate: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Bonus Eligibility (days)" value={payrollSettings.bonusEligibilityDays}
-                onChange={(e) => setPayrollSettings({...payrollSettings, bonusEligibilityDays: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, bonusEligibilityDays: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Bonus Amount (₹)" value={payrollSettings.bonusAmount}
-                onChange={(e) => setPayrollSettings({...payrollSettings, bonusAmount: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, bonusAmount: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Late Deduction/Hour (₹)" value={payrollSettings.lateDeductionPerHour}
-                onChange={(e) => setPayrollSettings({...payrollSettings, lateDeductionPerHour: e.target.value})} />
+                onChange={(e) => setPayrollSettings({ ...payrollSettings, lateDeductionPerHour: e.target.value })} />
             </Grid>
           </Grid>
         );
@@ -219,29 +247,29 @@ const Settings = () => {
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <TextField fullWidth type="time" label="Default Shift Start" value={attendanceSettings.defaultShiftStart}
-                onChange={(e) => setAttendanceSettings({...attendanceSettings, defaultShiftStart: e.target.value})} />
+                onChange={(e) => setAttendanceSettings({ ...attendanceSettings, defaultShiftStart: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth type="time" label="Default Shift End" value={attendanceSettings.defaultShiftEnd}
-                onChange={(e) => setAttendanceSettings({...attendanceSettings, defaultShiftEnd: e.target.value})} />
+                onChange={(e) => setAttendanceSettings({ ...attendanceSettings, defaultShiftEnd: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Grace Period (minutes)" value={attendanceSettings.gracePeriod}
-                onChange={(e) => setAttendanceSettings({...attendanceSettings, gracePeriod: e.target.value})} />
+                onChange={(e) => setAttendanceSettings({ ...attendanceSettings, gracePeriod: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Max OT Hours/Day" value={attendanceSettings.maxOtHoursPerDay}
-                onChange={(e) => setAttendanceSettings({...attendanceSettings, maxOtHoursPerDay: e.target.value})} />
+                onChange={(e) => setAttendanceSettings({ ...attendanceSettings, maxOtHoursPerDay: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Working Days/Week" value={attendanceSettings.workingDaysPerWeek}
-                onChange={(e) => setAttendanceSettings({...attendanceSettings, workingDaysPerWeek: e.target.value})} />
+                onChange={(e) => setAttendanceSettings({ ...attendanceSettings, workingDaysPerWeek: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel>First Weekly Off</InputLabel>
                 <Select value={attendanceSettings.weeklyOff1} label="First Weekly Off"
-                  onChange={(e) => setAttendanceSettings({...attendanceSettings, weeklyOff1: e.target.value})}>
+                  onChange={(e) => setAttendanceSettings({ ...attendanceSettings, weeklyOff1: e.target.value })}>
                   <MenuItem value="Sunday">Sunday</MenuItem>
                   <MenuItem value="Monday">Monday</MenuItem>
                   <MenuItem value="Saturday">Saturday</MenuItem>
@@ -252,7 +280,7 @@ const Settings = () => {
               <FormControl fullWidth>
                 <InputLabel>Second Weekly Off</InputLabel>
                 <Select value={attendanceSettings.weeklyOff2} label="Second Weekly Off"
-                  onChange={(e) => setAttendanceSettings({...attendanceSettings, weeklyOff2: e.target.value})}>
+                  onChange={(e) => setAttendanceSettings({ ...attendanceSettings, weeklyOff2: e.target.value })}>
                   <MenuItem value="">None</MenuItem>
                   <MenuItem value="Sunday">Sunday</MenuItem>
                   <MenuItem value="Monday">Monday</MenuItem>
@@ -268,31 +296,31 @@ const Settings = () => {
           <Grid container spacing={3}>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="CL Per Year" value={leaveSettings.clPerYear}
-                onChange={(e) => setLeaveSettings({...leaveSettings, clPerYear: e.target.value})} />
+                onChange={(e) => setLeaveSettings({ ...leaveSettings, clPerYear: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="EL Per Year" value={leaveSettings.elPerYear}
-                onChange={(e) => setLeaveSettings({...leaveSettings, elPerYear: e.target.value})} />
+                onChange={(e) => setLeaveSettings({ ...leaveSettings, elPerYear: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="SL Per Year" value={leaveSettings.slPerYear}
-                onChange={(e) => setLeaveSettings({...leaveSettings, slPerYear: e.target.value})} />
+                onChange={(e) => setLeaveSettings({ ...leaveSettings, slPerYear: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="ML Per Year" value={leaveSettings.mlPerYear}
-                onChange={(e) => setLeaveSettings({...leaveSettings, mlPerYear: e.target.value})} />
+                onChange={(e) => setLeaveSettings({ ...leaveSettings, mlPerYear: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="EL Carry Forward Max" value={leaveSettings.elCarryForward}
-                onChange={(e) => setLeaveSettings({...leaveSettings, elCarryForward: e.target.value})} />
+                onChange={(e) => setLeaveSettings({ ...leaveSettings, elCarryForward: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField fullWidth type="number" label="Leave Encashment Days" value={leaveSettings.leaveEncashmentDays}
-                onChange={(e) => setLeaveSettings({...leaveSettings, leaveEncashmentDays: e.target.value})} />
+                onChange={(e) => setLeaveSettings({ ...leaveSettings, leaveEncashmentDays: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth type="number" label="Notice Period (Days)" value={leaveSettings.noticePeriodDays}
-                onChange={(e) => setLeaveSettings({...leaveSettings, noticePeriodDays: e.target.value})} />
+                onChange={(e) => setLeaveSettings({ ...leaveSettings, noticePeriodDays: e.target.value })} />
             </Grid>
           </Grid>
         );
@@ -302,27 +330,27 @@ const Settings = () => {
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <TextField fullWidth label="SMTP Host" value={emailSettings.smtpHost}
-                onChange={(e) => setEmailSettings({...emailSettings, smtpHost: e.target.value})} />
+                onChange={(e) => setEmailSettings({ ...emailSettings, smtpHost: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth type="number" label="SMTP Port" value={emailSettings.smtpPort}
-                onChange={(e) => setEmailSettings({...emailSettings, smtpPort: e.target.value})} />
+                onChange={(e) => setEmailSettings({ ...emailSettings, smtpPort: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth label="SMTP Username" value={emailSettings.smtpUser}
-                onChange={(e) => setEmailSettings({...emailSettings, smtpUser: e.target.value})} />
+                onChange={(e) => setEmailSettings({ ...emailSettings, smtpUser: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth type="password" label="SMTP Password" value={emailSettings.smtpPassword}
-                onChange={(e) => setEmailSettings({...emailSettings, smtpPassword: e.target.value})} />
+                onChange={(e) => setEmailSettings({ ...emailSettings, smtpPassword: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth label="From Email" value={emailSettings.fromEmail}
-                onChange={(e) => setEmailSettings({...emailSettings, fromEmail: e.target.value})} />
+                onChange={(e) => setEmailSettings({ ...emailSettings, fromEmail: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth label="From Name" value={emailSettings.fromName}
-                onChange={(e) => setEmailSettings({...emailSettings, fromName: e.target.value})} />
+                onChange={(e) => setEmailSettings({ ...emailSettings, fromName: e.target.value })} />
             </Grid>
             <Grid item xs={12}>
               <Divider sx={{ my: 2 }} />
@@ -331,19 +359,19 @@ const Settings = () => {
             <Grid item xs={12} md={4}>
               <FormControlLabel control={
                 <Switch checked={emailSettings.notifyOnLeave}
-                  onChange={(e) => setEmailSettings({...emailSettings, notifyOnLeave: e.target.checked})} />
+                  onChange={(e) => setEmailSettings({ ...emailSettings, notifyOnLeave: e.target.checked })} />
               } label="Notify on Leave Application" />
             </Grid>
             <Grid item xs={12} md={4}>
               <FormControlLabel control={
                 <Switch checked={emailSettings.notifyOnPayroll}
-                  onChange={(e) => setEmailSettings({...emailSettings, notifyOnPayroll: e.target.checked})} />
+                  onChange={(e) => setEmailSettings({ ...emailSettings, notifyOnPayroll: e.target.checked })} />
               } label="Notify on Payroll Processing" />
             </Grid>
             <Grid item xs={12} md={4}>
               <FormControlLabel control={
                 <Switch checked={emailSettings.notifyOnOt}
-                  onChange={(e) => setEmailSettings({...emailSettings, notifyOnOt: e.target.checked})} />
+                  onChange={(e) => setEmailSettings({ ...emailSettings, notifyOnOt: e.target.checked })} />
               } label="Notify on OT Approval" />
             </Grid>
           </Grid>

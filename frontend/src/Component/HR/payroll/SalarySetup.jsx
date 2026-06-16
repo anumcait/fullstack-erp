@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Box, Typography, TextField, Button, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Paper, IconButton, Dialog,
+  TableContainer, TableHead, TableRow, TableFooter, Paper, IconButton, Dialog,
   DialogTitle, DialogContent, DialogActions, Grid, FormControl, InputLabel, Select, MenuItem
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -10,6 +10,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
+import { useCompany } from "../../../context/CompanyContext";
 import { getErrorMessage } from "../../../utils/errorUtils";
 
 const SalarySetup = () => {
@@ -23,9 +24,12 @@ const SalarySetup = () => {
     tds_amount: '', lic_amount: '', pay_mode: 'Bank'
   });
 
+  const { companyName } = useCompany();
+
   useEffect(() => {
     fetchSalaryDetails();
   }, []);
+
 
   const refreshData = () => {
     fetchSalaryDetails();
@@ -79,29 +83,103 @@ const SalarySetup = () => {
     setSalaryForm({ ...salaryForm, [e.target.name]: e.target.value });
   };
 
+  const regularEmployees = employees.filter(emp => !emp.empid.toString().startsWith('9'));
+  const traineeEmployees = employees.filter(emp => emp.empid.toString().startsWith('9'));
+
+  const renderEmpRow = (emp, idx) => (
+    <TableRow key={emp.empid}>
+      <TableCell>{idx + 1}</TableCell>
+      <TableCell>{emp.empid}</TableCell>
+      <TableCell>{emp.ename}</TableCell>
+      <TableCell>{emp.deptname}</TableCell>
+      <TableCell>{emp.designation}</TableCell>
+      <TableCell>{emp.salary?.basic || '-'}</TableCell>
+      <TableCell>{emp.salary?.hra || '-'}</TableCell>
+      <TableCell>{emp.salary?.conveyance || '-'}</TableCell>
+      <TableCell>{emp.salary?.washing_allowance || '-'}</TableCell>
+      <TableCell>{(parseFloat(emp.salary?.basic) || 0) + (parseFloat(emp.salary?.hra) || 0) + (parseFloat(emp.salary?.conveyance) || 0) + (parseFloat(emp.salary?.washing_allowance) || 0)}</TableCell>
+      <TableCell>{emp.salary?.IS_pf === 'Y' ? 'Yes' : 'No'}</TableCell>
+      <TableCell>{emp.salary?.IS_esi === 'Y' ? 'Yes' : 'No'}</TableCell>
+      <TableCell>{emp.salary?.IS_ot === 'Y' ? 'Yes' : 'No'}</TableCell>
+      <TableCell>
+        <IconButton size="small" onClick={() => handleEdit(emp)}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  );
+
+  const renderTotalRow = (data, label) => {
+    const totalBasic = data.reduce((sum, emp) => sum + (parseFloat(emp.salary?.basic) || 0), 0);
+    const totalHra = data.reduce((sum, emp) => sum + (parseFloat(emp.salary?.hra) || 0), 0);
+    const totalConv = data.reduce((sum, emp) => sum + (parseFloat(emp.salary?.conveyance) || 0), 0);
+    const totalWA = data.reduce((sum, emp) => sum + (parseFloat(emp.salary?.washing_allowance) || 0), 0);
+    const totalGross = data.reduce((sum, emp) => {
+      const s = emp.salary || {};
+      return sum + (parseFloat(s.basic) || 0) + (parseFloat(s.hra) || 0) + (parseFloat(s.conveyance) || 0) + (parseFloat(s.washing_allowance) || 0);
+    }, 0);
+
+    return (
+      <TableRow sx={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>
+        <TableCell colSpan={5} align="right"><strong>{label} Totals:</strong></TableCell>
+        <TableCell><strong>{totalBasic.toFixed(0)}</strong></TableCell>
+        <TableCell><strong>{totalHra.toFixed(0)}</strong></TableCell>
+        <TableCell><strong>{totalConv.toFixed(0)}</strong></TableCell>
+        <TableCell><strong>{totalWA.toFixed(0)}</strong></TableCell>
+        <TableCell><strong>{totalGross.toFixed(0)}</strong></TableCell>
+        <TableCell colSpan={4}></TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <Box>
+      <Box sx={{ mb: 2, textAlign: 'center' }}>
+        <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+          {companyName}
+        </Typography>
+      </Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h6">Employee Salary Setup</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={refreshData}>
             Refresh
           </Button>
-          <Button variant="contained" size="small" onClick={async () => {
-            if (!window.confirm('Import salaries from CSV? This will update all employee salaries.')) return;
-            try {
-              await axios.post(`${import.meta.env.VITE_API_URL}/api/employees/bulk-update-salaries`);
-              showToast('Salaries imported successfully', 'success');
-              fetchSalaryDetails();
-            } catch (err) {
-              showToast(getErrorMessage(err, "Error importing salaries"), "error");
-            }
-          }}>
+          <input
+            type="file"
+            accept=".csv"
+            id="csv-upload"
+            style={{ display: 'none' }}
+            onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+
+              const formData = new FormData();
+              formData.append('file', file);
+
+              try {
+                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/employees/bulk-update-salaries`, formData, {
+                  headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                showToast(`Salaries updated: ${res.data.processed} rows processed`, 'success');
+                fetchSalaryDetails();
+              } catch (err) {
+                showToast(getErrorMessage(err, "Error importing salaries"), "error");
+              }
+              // Reset input
+              e.target.value = '';
+            }}
+          />
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => document.getElementById('csv-upload').click()}
+          >
             Import from CSV
           </Button>
         </Box>
       </Box>
-      
+
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
@@ -123,29 +201,42 @@ const SalarySetup = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {employees.map((emp, idx) => (
-              <TableRow key={emp.empid}>
-                <TableCell>{idx + 1}</TableCell>
-                <TableCell>{emp.empid}</TableCell>
-                <TableCell>{emp.ename}</TableCell>
-                <TableCell>{emp.deptname}</TableCell>
-                <TableCell>{emp.designation}</TableCell>
-                <TableCell>{emp.salary?.basic || '-'}</TableCell>
-                <TableCell>{emp.salary?.hra || '-'}</TableCell>
-                <TableCell>{emp.salary?.conveyance || '-'}</TableCell>
-                <TableCell>{emp.salary?.washing_allowance || '-'}</TableCell>
-                <TableCell>{(parseFloat(emp.salary?.basic) || 0) + (parseFloat(emp.salary?.hra) || 0) + (parseFloat(emp.salary?.conveyance) || 0) + (parseFloat(emp.salary?.washing_allowance) || 0)}</TableCell>
-                <TableCell>{emp.salary?.IS_pf === 'Y' ? 'Yes' : 'No'}</TableCell>
-                <TableCell>{emp.salary?.IS_esi === 'Y' ? 'Yes' : 'No'}</TableCell>
-                <TableCell>{emp.salary?.IS_ot === 'Y' ? 'Yes' : 'No'}</TableCell>
-                <TableCell>
-                  <IconButton size="small" onClick={() => handleEdit(emp)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+            {/* Regular Employees Section */}
+            {regularEmployees.length > 0 && (
+              <>
+                <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
+                  <TableCell colSpan={14}><strong>Regular Employees ({regularEmployees.length})</strong></TableCell>
+                </TableRow>
+                {regularEmployees.map((emp, idx) => renderEmpRow(emp, idx))}
+                {renderTotalRow(regularEmployees, 'Regular')}
+              </>
+            )}
+
+            {/* Trainee Employees (9-series) Section */}
+            {traineeEmployees.length > 0 && (
+              <>
+                <TableRow sx={{ backgroundColor: '#fff3e0', mt: 2 }}>
+                  <TableCell colSpan={14}><strong>Trainee Employees (9-Series) ({traineeEmployees.length})</strong></TableCell>
+                </TableRow>
+                {traineeEmployees.map((emp, idx) => renderEmpRow(emp, idx))}
+                {renderTotalRow(traineeEmployees, 'Trainee')}
+              </>
+            )}
           </TableBody>
+          <TableFooter>
+            <TableRow sx={{ backgroundColor: '#333', '& .MuiTableCell-root': { color: '#fff' } }}>
+              <TableCell colSpan={5} align="right"><strong>Grand Total ({employees.length}):</strong></TableCell>
+              <TableCell><strong>{employees.reduce((sum, emp) => sum + (parseFloat(emp.salary?.basic) || 0), 0).toFixed(0)}</strong></TableCell>
+              <TableCell><strong>{employees.reduce((sum, emp) => sum + (parseFloat(emp.salary?.hra) || 0), 0).toFixed(0)}</strong></TableCell>
+              <TableCell><strong>{employees.reduce((sum, emp) => sum + (parseFloat(emp.salary?.conveyance) || 0), 0).toFixed(0)}</strong></TableCell>
+              <TableCell><strong>{employees.reduce((sum, emp) => sum + (parseFloat(emp.salary?.washing_allowance) || 0), 0).toFixed(0)}</strong></TableCell>
+              <TableCell><strong>{employees.reduce((sum, emp) => {
+                const s = emp.salary || {};
+                return sum + (parseFloat(s.basic) || 0) + (parseFloat(s.hra) || 0) + (parseFloat(s.conveyance) || 0) + (parseFloat(s.washing_allowance) || 0);
+              }, 0).toFixed(0)}</strong></TableCell>
+              <TableCell colSpan={4}></TableCell>
+            </TableRow>
+          </TableFooter>
         </Table>
       </TableContainer>
 

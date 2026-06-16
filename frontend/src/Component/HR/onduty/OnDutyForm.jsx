@@ -262,7 +262,7 @@ const OnDutyForm = ({ onClose }) => {
   const resetForm = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/onduty/next-id`);
-      
+
       const loggedInEmpId = localStorage.getItem('empId') || "";
       const loggedInEmpName = localStorage.getItem('empName') || "";
       const loggedInDept = localStorage.getItem('deptname') || "";
@@ -448,8 +448,8 @@ const OnDutyForm = ({ onClose }) => {
             onKeyDown={(e) => handleKeyDown(e, 'empid', dateInputRef)}
             size="small"
             placeholder={isAdmin ? "Select Employee" : ""}
-            sx={{ 
-              ...requiredStyle, 
+            sx={{
+              ...requiredStyle,
               width: '180px',
               bgcolor: isAdmin ? '#fffde7' : '#f5f5f5',
               cursor: isAdmin ? 'pointer' : 'default'

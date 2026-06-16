@@ -23,6 +23,7 @@ const payrollRoutes = require('./routes/HR/payrollRoutes');
 const attendanceRoutes = require('./routes/HR/attendanceRoutes');
 const holidayRoutes = require('./routes/HR/holidayRoutes');
 const extOtRoutes = require('./routes/HR/extOtRoutes');
+const settingsRoutes = require('./routes/HR/settingsRoutes');
 
 
 const app = express();
@@ -99,6 +100,7 @@ app.use('/api/payroll', payrollRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/ext-ot', extOtRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/users', require('./routes/userRoutes'));
 
 // Accounts Module Routes
@@ -114,7 +116,7 @@ app.get('/', (req, res) => res.send('✅ App is running.'));
 
 app.get('/test-models', (req, res) => {
   const db = require('./models');
-  res.json({ 
+  res.json({
     loadedModels: Object.keys(db),
     tourModel: db.TourApplication ? '✅ TourApplication loaded' : '❌ TourApplication NOT found',
     woffModel: db.WoffApplication ? '✅ WoffApplication loaded' : '❌ WoffApplication NOT found'

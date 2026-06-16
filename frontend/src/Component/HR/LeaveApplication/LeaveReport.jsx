@@ -27,32 +27,31 @@ const LeaveReport = ({ onNewEntry }) => {
             formattedDate = `${d}-${m}-${y} ${hours}:${mins} ${ampm}`;
           }
 
-          const statusMap = { 0: "Pending", 1: "Approved", 2: "Rejected" };
           return {
             sno: index + 1,
             _expanded: false, // Hidden by default, click arrow to open
             ...row,
             ldate: formattedDate,
-            statusText: statusMap[row.status] || "Unknown",
-            from_date: row.leaveDetails?.length > 1 
-              ? <span 
-                  onClick={(e) => { e.stopPropagation(); handleExpand(row); }} 
-                  style={{ color: '#1976d2', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
-                >
-                  Multi-Row
-                </span> 
-              : (row.leaveDetails?.length === 1 
-                ? new Date(row.leaveDetails[0].frmdt).toLocaleDateString('en-GB').replace(/\//g, '-') 
+            statusText: row.status || "Pending",
+            from_date: row.leaveDetails?.length > 1
+              ? <span
+                onClick={(e) => { e.stopPropagation(); handleExpand(row); }}
+                style={{ color: '#1976d2', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
+              >
+                Multi-Row
+              </span>
+              : (row.leaveDetails?.length === 1
+                ? new Date(row.leaveDetails[0].frmdt).toLocaleDateString('en-GB').replace(/\//g, '-')
                 : '-'),
-            to_date: row.leaveDetails?.length > 1 
-              ? <span 
-                  onClick={(e) => { e.stopPropagation(); handleExpand(row); }} 
-                  style={{ color: '#1976d2', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
-                >
-                  See Grid ⬇️
-                </span> 
-              : (row.leaveDetails?.length === 1 
-                ? new Date(row.leaveDetails[0].todate).toLocaleDateString('en-GB').replace(/\//g, '-') 
+            to_date: row.leaveDetails?.length > 1
+              ? <span
+                onClick={(e) => { e.stopPropagation(); handleExpand(row); }}
+                style={{ color: '#1976d2', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
+              >
+                See Grid ⬇️
+              </span>
+              : (row.leaveDetails?.length === 1
+                ? new Date(row.leaveDetails[0].todate).toLocaleDateString('en-GB').replace(/\//g, '-')
                 : '-'),
             total_days: row.leaveDetails?.length > 0
               ? row.leaveDetails.reduce((sum, d) => sum + (parseFloat(d.nod) || 0), 0)

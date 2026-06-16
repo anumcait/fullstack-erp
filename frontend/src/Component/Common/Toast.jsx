@@ -20,7 +20,7 @@ const toastStyles = {
   }
 };
 
-const Toast = ({ message, type, duration = 15000 }) => {
+const Toast = ({ message, type, duration = 3000 }) => {
   const style = toastStyles[type] || { background: '#333', icon: '🔔' };
 
   return (

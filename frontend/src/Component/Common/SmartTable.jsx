@@ -8,8 +8,10 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
+import { useCompany } from "../../context/CompanyContext";
 
 const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, headerAction }) => {
+  const { companyName } = useCompany();
   const [visibleColumns, setVisibleColumns] = useState(columns.map(col => col.field));
   const [tempVisibleColumns, setTempVisibleColumns] = useState([...visibleColumns]);
 
@@ -110,7 +112,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, h
 
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, `${title || "SmartTable"}_${new Date().toISOString()}.xlsx`);
+    saveAs(blob, `${companyName}_${title || "Report"}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const exportToPDF = () => {
@@ -126,13 +128,21 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, h
     );
 
     autoTable(doc, {
+      head: [[{ content: companyName, colSpan: tableColumn.length, styles: { halign: 'center', fontSize: 14, fontStyle: 'bold' } }]],
+      body: [],
+      theme: 'plain',
+      margin: { top: 10 }
+    });
+
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       styles: { fontSize: 8 },
-      margin: { top: 20 }
+      margin: { top: 5 },
+      startY: 25 // Start after the company header
     });
 
-    doc.save(`${title || "SmartTable"}_${new Date().toISOString()}.pdf`);
+    doc.save(`${companyName}_${title || "Report"}_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
   return (
     <div className="smart-table-wrapper">
@@ -294,7 +304,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, h
                       className={`expand-wrapper ${row._expanded ? "is-expanded" : ""}`}
                       title={row._expanded ? "Collapse row" : "View all row content"}
                       onClick={(e) => { e.stopPropagation(); onToggleExpand && onToggleExpand(row); }}
-                      style={{ 
+                      style={{
                         background: row._expanded ? '#e3f2fd' : '#f5f5f5',
                         padding: '8px',
                         borderRadius: '50%',

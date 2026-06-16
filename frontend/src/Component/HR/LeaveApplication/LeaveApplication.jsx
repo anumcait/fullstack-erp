@@ -314,7 +314,8 @@ const LeaveApplication = ({ onClose }) => {
       address: formData.address,
       phno: formData.phone || null,
       c_unit: "UNIT1",
-      c_gempid: "admin",
+      c_gempid: localStorage.getItem('empId') || "admin",
+      status: "Pending"
     };
     const details = leaveDetails.map(item => ({
       daydt: item.dayType,
@@ -324,7 +325,7 @@ const LeaveApplication = ({ onClose }) => {
       remarks: item.remarks,
       empno: parseInt(formData.empId),
       c_unit: "UNIT1",
-      c_gempid: "admin",
+      c_gempid: localStorage.getItem('empId') || "admin",
     }));
 
     try {

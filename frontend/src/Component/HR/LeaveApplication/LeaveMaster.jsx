@@ -8,6 +8,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { formatDateOnly } from "../../../utils/dateUtils";
@@ -28,6 +29,7 @@ const LeaveMaster = () => {
     remarks: "",
     final_status: "0"
   });
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchEmployees();
@@ -121,55 +123,99 @@ const LeaveMaster = () => {
     <Card sx={{ m: 2 }}>
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
         <Typography variant="h6">Leave Master</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-          Add Leave Config
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            size="small"
+            placeholder="Search by ID or Name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ width: 300 }}
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} fontSize="small" />,
+            }}
+          />
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
+            Add Leave Config
+          </Button>
+        </Box>
       </Box>
 
       <CardContent>
         {loading && <LinearProgress sx={{ mb: 2 }} />}
 
-        <Table size="small" sx={{ border: '1px solid #ccc' }}>
+        <Table size="small" sx={{
+          tableLayout: 'fixed',
+          width: '100%',
+          border: '1px solid #ccc',
+          '& .MuiTableCell-root': {
+            px: 1,
+            py: 0.5,
+            fontSize: '12px',
+            fontWeight: 500
+          }
+        }}>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell><strong>S.No</strong></TableCell>
-              <TableCell><strong>Emp ID</strong></TableCell>
-              <TableCell><strong>Name</strong></TableCell>
-              <TableCell><strong>Department</strong></TableCell>
-              <TableCell><strong>CL Balance</strong></TableCell>
-              <TableCell><strong>CL Utilized</strong></TableCell>
-              <TableCell><strong>EL Balance</strong></TableCell>
-              <TableCell><strong>EL Utilized</strong></TableCell>
-              <TableCell><strong>Year</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
+            <TableRow sx={{ backgroundColor: '#f1f1f1' }}>
+              <TableCell sx={{ width: '50px', fontSize: '12px' }}><strong>S.No</strong></TableCell>
+              <TableCell sx={{ width: '90px', fontSize: '12px' }}><strong>Emp ID</strong></TableCell>
+              <TableCell sx={{ minWidth: '200px', width: '200px', fontSize: '12px' }}><strong>Name</strong></TableCell>
+              <TableCell sx={{ width: '130px', fontSize: '12px' }}><strong>Department</strong></TableCell>
+              <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>CL Bal</strong></TableCell>
+              <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>CL Util</strong></TableCell>
+              <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>EL Bal</strong></TableCell>
+              <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>EL Util</strong></TableCell>
+              <TableCell sx={{ width: '70px', fontSize: '12px' }} align="center"><strong>Year</strong></TableCell>
+              <TableCell sx={{ width: '70px', fontSize: '12px' }} align="center"><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {employees.length === 0 ? (
+            {employees
+              .filter(emp =>
+                emp.empid?.toString().includes(searchTerm) ||
+                emp.ename?.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} align="center" sx={{ py: 3, color: '#777' }}>
                   No employees found
                 </TableCell>
               </TableRow>
             ) : (
-              employees.map((emp) => (
-                <TableRow key={emp.empid}>
-                  <TableCell>{emp.sno}</TableCell>
-                  <TableCell>{emp.empid}</TableCell>
-                  <TableCell>{emp.ename}</TableCell>
-                  <TableCell>{emp.deptname}</TableCell>
-                  <TableCell>{emp.cls_balance}</TableCell>
-                  <TableCell>{emp.cls_utilised}</TableCell>
-                  <TableCell>{emp.els_balance}</TableCell>
-                  <TableCell>{emp.els_utilised}</TableCell>
-                  <TableCell>{emp.yr}</TableCell>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => handleOpenDialog(emp)}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
+              employees
+                .filter(emp =>
+                  emp.empid?.toString().includes(searchTerm) ||
+                  emp.ename?.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((emp) => (
+                  <TableRow key={emp.empid}>
+                    <TableCell>{emp.sno}</TableCell>
+                    <TableCell>{emp.empid}</TableCell>
+                    <TableCell sx={{
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {emp.ename}
+                    </TableCell>
+                    <TableCell sx={{
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {emp.deptname}
+                    </TableCell>
+                    <TableCell align="right">{emp.cls_balance}</TableCell>
+                    <TableCell align="right">{emp.cls_utilised}</TableCell>
+                    <TableCell align="right">{emp.els_balance}</TableCell>
+                    <TableCell align="right">{emp.els_utilised}</TableCell>
+                    <TableCell align="center">{emp.yr}</TableCell>
+                    <TableCell align="center">
+                      <IconButton size="small" onClick={() => handleOpenDialog(emp)}>
+                        <EditIcon fontSize="small" color="primary" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>
@@ -178,40 +224,47 @@ const LeaveMaster = () => {
       <Dialog open={dialog} onClose={() => setDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editMode ? 'Edit Leave Configuration' : 'Add Leave Configuration'}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid container spacing={3} sx={{ mt: 1, px: 1 }}>
+            {/* Row 1: Employee Select & Year */}
             <Grid item xs={12}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Employee</InputLabel>
-                <Select
-                  name="empid"
-                  value={formData.empid}
-                  onChange={handleChange}
-                  label="Employee"
-                  disabled={editMode}
-                >
-                  <MenuItem value=""><em>Select Employee</em></MenuItem>
-                  {employees.map(emp => (
-                    <MenuItem key={emp.empid} value={emp.empid}>
-                      {emp.empid} - {emp.ename}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <FormControl size="small" sx={{ minWidth: 350 }}>
+                  <InputLabel>Employee</InputLabel>
+                  <Select
+                    name="empid"
+                    value={formData.empid}
+                    onChange={handleChange}
+                    label="Employee"
+                    disabled={editMode}
+                  >
+                    <MenuItem value=""><em>Select Employee</em></MenuItem>
+                    {employees.map(emp => (
+                      <MenuItem key={emp.empid} value={emp.empid}>
+                        {emp.empid} - {emp.ename}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField sx={{ width: 120 }} size="small" label="Year" type="number" name="yr" value={formData.yr} onChange={handleChange} />
+              </Box>
             </Grid>
-            <Grid item xs={6}>
-              <TextField fullWidth size="small" label="CL Balance" type="number" name="cls_balance" value={formData.cls_balance} onChange={handleChange} />
+
+            {/* Row 2: Casual Leaves */}
+            <Grid item xs={12}>
+              <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold' }}>Casual Leave (CL)</Typography>
+              <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                <TextField sx={{ width: 160 }} size="small" label="Balance" type="number" name="cls_balance" value={formData.cls_balance} onChange={handleChange} />
+                <TextField sx={{ width: 160 }} size="small" label="Utilized" type="number" name="cls_utilised" value={formData.cls_utilised} onChange={handleChange} />
+              </Box>
             </Grid>
-            <Grid item xs={6}>
-              <TextField fullWidth size="small" label="CL Utilized" type="number" name="cls_utilised" value={formData.cls_utilised} onChange={handleChange} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField fullWidth size="small" label="EL Balance" type="number" name="els_balance" value={formData.els_balance} onChange={handleChange} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField fullWidth size="small" label="EL Utilized" type="number" name="els_utilised" value={formData.els_utilised} onChange={handleChange} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField fullWidth size="small" label="Year" type="number" name="yr" value={formData.yr} onChange={handleChange} />
+
+            {/* Row 3: Earned Leaves */}
+            <Grid item xs={12}>
+              <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold' }}>Earned Leave (EL)</Typography>
+              <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                <TextField sx={{ width: 160 }} size="small" label="Balance" type="number" name="els_balance" value={formData.els_balance} onChange={handleChange} />
+                <TextField sx={{ width: 160 }} size="small" label="Utilized" type="number" name="els_utilised" value={formData.els_utilised} onChange={handleChange} />
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>

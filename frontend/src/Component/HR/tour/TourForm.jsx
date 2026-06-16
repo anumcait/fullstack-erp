@@ -77,15 +77,15 @@ const TourForm = ({ onClose }) => {
   const [showEmpPopup, setShowEmpPopup] = useState(false);
   const [employeeList, setEmployeeList] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setIsDirty(true);
     setFieldErrors(prev => ({ ...prev, [name]: null }));
-    
+
     setFormData(prev => {
       const newData = { ...prev, [name]: value };
-      
+
       // Validate date range if both are present
       if ((name === 'tour_from_date' || name === 'tour_to_date') && newData.tour_from_date && newData.tour_to_date) {
         if (new Date(newData.tour_to_date) < new Date(newData.tour_from_date)) {
@@ -165,7 +165,7 @@ const TourForm = ({ onClose }) => {
       const dObj = new Date(dateOnly);
       const y = dObj.getFullYear();
       const m = dObj.getMonth() + 1;
-      
+
       if (isNaN(y) || y < 1900) {
         const errorMsg = y < 1900 ? "Invalid Year (must be after 1900)" : "Invalid Date";
         setFieldErrors(prev => ({ ...prev, tour_from_date: errorMsg }));
@@ -210,7 +210,7 @@ const TourForm = ({ onClose }) => {
   const resetForm = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tour/next-id`);
-      
+
       const loggedInEmpId = localStorage.getItem('empId') || "";
       const loggedInEmpName = localStorage.getItem('empName') || "";
       const loggedInDept = localStorage.getItem('deptname') || "";
@@ -382,8 +382,8 @@ const TourForm = ({ onClose }) => {
             onKeyDown={(e) => handleKeyDown(e, 'empid', destinationRef)}
             size="small"
             placeholder={isAdmin ? "Select Employee" : ""}
-            sx={{ 
-              ...requiredStyle, 
+            sx={{
+              ...requiredStyle,
               width: '180px',
               bgcolor: isAdmin ? '#fffde7' : '#f5f5f5',
               cursor: isAdmin ? 'pointer' : 'default'

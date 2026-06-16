@@ -59,7 +59,7 @@ const EmployeeMasterReport = ({ initialFilterType = "active", title = "Employee 
         _expanded: false,
         ...row,
         dob: formatDate(row.dob),
-        status: row.is_active ? "Active" : "Left",
+        status: row.is_active ? (row.status === "Active" ? "Active" : row.status) : (row.status || "Left"),
         salary: row.total || 0,
         permanent_address: [
           row.padd_sa,
@@ -149,7 +149,7 @@ const EmployeeMasterReport = ({ initialFilterType = "active", title = "Employee 
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select onChange={(e) => setDivisionFilter(e.target.value)}>
+        <select value={divisionFilter} onChange={(e) => setDivisionFilter(e.target.value)}>
           <option value="">All Divisions</option>
           {[...new Set(data.map((d) => d.divname))].filter(Boolean).map((div) => (
             <option key={div} value={div}>
@@ -157,7 +157,7 @@ const EmployeeMasterReport = ({ initialFilterType = "active", title = "Employee 
             </option>
           ))}
         </select>
-        <select onChange={(e) => setDepartmentFilter(e.target.value)}>
+        <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
           <option value="">All Departments</option>
           {[...new Set(data.map((d) => d.deptname))].filter(Boolean).map((dept) => (
             <option key={dept} value={dept}>
@@ -165,7 +165,12 @@ const EmployeeMasterReport = ({ initialFilterType = "active", title = "Employee 
             </option>
           ))}
         </select>
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+        <select value={filterType} onChange={(e) => {
+          setFilterType(e.target.value);
+          setDivisionFilter("");
+          setDepartmentFilter("");
+          setSearch("");
+        }}>
           <option value="active">Active Employees</option>
           <option value="left">Left Employees</option>
         </select>

@@ -1,10 +1,12 @@
 import React from "react";
-import "./AdvancePreview.css"; // Dedicated styling sheet
+import "./AdvancePreview.css";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import { formatDate } from "../../../utils/dateUtils";
 import PreviewFieldTableColgroup from "../common/PreviewFieldTableColgroup";
+import { useCompany } from "../../../context/CompanyContext";
 
 const AdvancePreview = ({ data = {}, onClose }) => {
+  const { companyName } = useCompany();
   const {
     advance_id = "--",
     advance_date = "--",
@@ -39,7 +41,7 @@ const AdvancePreview = ({ data = {}, onClose }) => {
         <div className="adv-print-header">
           <img src={logo} alt="Logo" className="adv-logo" />
           <div className="adv-company-title">
-            AUCTOR HOME APPLIANCES LLP
+            {companyName}
             <br />
             <span className="adv-slip-title">SALARY ADVANCE REQUEST</span>
           </div>
