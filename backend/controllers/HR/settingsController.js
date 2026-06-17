@@ -4,9 +4,14 @@ exports.getCompanySettings = async (req, res) => {
     try {
         let settings = await CompanySettings.findOne();
         if (!settings) {
-            // Create empty default if not exists
+            // Create default if not exists
             settings = await CompanySettings.create({
-                company_name: ''
+                company_name: 'AUCTOR HOME APPLIANCES LLP'
+            });
+        } else if (!settings.company_name) {
+            // Update if exists but empty
+            await settings.update({
+                company_name: 'AUCTOR HOME APPLIANCES LLP'
             });
         }
         res.json(settings);
