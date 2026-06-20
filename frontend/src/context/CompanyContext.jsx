@@ -31,7 +31,7 @@ export const CompanyProvider = ({ children }) => {
 
     return (
         <CompanyContext.Provider value={{
-            companyName: companySettings.company_name || 'AUCTOR HOME APPLIANCES LLP',
+            companyName: companySettings.company_name || 'ABC Company Pvt. Ltd.',
             companySettings,
             refreshCompanySettings: fetchSettings
         }}>

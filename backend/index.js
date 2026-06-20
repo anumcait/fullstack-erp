@@ -1,8 +1,6 @@
 const path = require('path');
 const dotenv = require('dotenv');
 const { Client } = require('pg');
-const app = require('./app');
-const db = require('./models'); // import models + sequelize instance
 
 const ENV = process.env.NODE_ENV || 'development';
 dotenv.config({
@@ -44,6 +42,10 @@ async function waitForDB() {
 async function startServer(retries = MAX_RETRIES) {
   await waitForDB();
 
+  // Load app and models ONLY after DB is ready
+  const app = require('./app');
+  const db = require('./models');
+
   while (retries > 0) {
     try {
       await db.sequelize.authenticate();
@@ -51,7 +53,7 @@ async function startServer(retries = MAX_RETRIES) {
 
       const FORCE_SYNC = process.env.DB_SYNC_FORCE === 'true';
       const syncOptions = FORCE_SYNC ? { force: true } : (ENV === 'production' ? { force: false } : { alter: true });
-      
+
       if (FORCE_SYNC) {
         console.warn('⚠️ WARNING: DB_SYNC_FORCE is enabled. All tables will be dropped and recreated!');
       }
