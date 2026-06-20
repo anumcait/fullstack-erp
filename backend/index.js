@@ -13,16 +13,16 @@ const RETRY_DELAY = 3000; // in ms
 
 // Wait for DB to be ready
 async function waitForDB() {
-  const client = new Client({
-    host: process.env.DB_HOST || 'db',
-    port: process.env.DB_PORT || 5432,
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'hrdb'
-  });
-
   let retries = 40;
   while (retries > 0) {
+    const client = new Client({
+      host: process.env.DB_HOST || 'db',
+      port: process.env.DB_PORT || 5432,
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'hrdb'
+    });
+
     try {
       await client.connect();
       await client.query('SELECT 1');
@@ -30,8 +30,10 @@ async function waitForDB() {
       console.log('✅ Database is ready for queries');
       return;
     } catch (err) {
-      console.log(`⏳ Waiting for database to be ready... (${retries} retries left)`);
+      console.log(`⏳ Waiting for database (${client.options.host}/${client.options.database}) to be ready... (${retries} retries left): ${err.message}`);
       retries--;
+      // Ensure the client is closed if it partially connected
+      try { await client.end(); } catch (e) { }
       await new Promise(res => setTimeout(res, 3000));
     }
   }
