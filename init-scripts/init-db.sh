@@ -6,22 +6,20 @@ until pg_isready -U postgres; do
   sleep 2
 done
 
-# Count number of tables in 'public' schema
-TABLE_COUNT=$(psql -U postgres -d hrdb -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';")
+# Count number of rows in 'Users' table to see if data exists
+USER_COUNT=$(psql -U postgres -d hrdb -tAc "SELECT COUNT(*) FROM \"Users\";" 2>/dev/null || echo "0")
 
-echo "📊 Found $TABLE_COUNT tables in database."
+echo "📊 Found $USER_COUNT users in database."
 
-if [ "$TABLE_COUNT" -le "5" ]; then
-  echo "🛠️ Database appears empty or minimal. Restoring from backup..."
-
+if [ "$USER_COUNT" -eq "0" ]; then
+  echo "🛠️ Database has no users. Restoring from backup..."
+  
   if [ -f /pg_backup/hrdb_full.backup ]; then
-    # Use --no-owner, --clean, and --if-exists to handle conflicts
-    # Don't use set -e so partial restore still works
     pg_restore --no-owner --clean --if-exists --verbose -U postgres -d hrdb /pg_backup/hrdb_full.backup 2>&1 || true
-    echo "✅ Restore completed (some warnings may be normal)."
+    echo "✅ Restore completed."
   else
     echo "❌ Backup file not found at /pg_backup/hrdb_full.backup"
   fi
 else
-  echo "✅ Database already has $TABLE_COUNT tables. Skipping restore."
+  echo "✅ Database already has data. Skipping restore."
 fi
