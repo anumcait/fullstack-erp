@@ -1,1 +1,6 @@
-*.backup binary
+# Force LF line endings for shell scripts to prevent "file not found" errors in Docker/Linux
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Standard handling for everything else
+* text=auto
