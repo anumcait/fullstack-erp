@@ -11,46 +11,23 @@ const PORT = process.env.PORT || 5000;
 const MAX_RETRIES = 20;   // for Sequelize connection
 const RETRY_DELAY = 3000; // in ms
 
-// Wait for DB to be ready
-async function waitForDB() {
-  let retries = 40;
-  while (retries > 0) {
-    const dbConfig = {
-      host: process.env.DB_HOST || 'db',
-      port: process.env.DB_PORT || 5432,
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_NAME || 'hrdb'
-    };
-    const client = new Client(dbConfig);
-
-    try {
-      await client.connect();
-      await client.query('SELECT 1');
-      await client.end();
-      console.log('✅ Database is ready for queries');
-      return;
-    } catch (err) {
-      console.log(`⏳ Waiting for database (${dbConfig.host}/${dbConfig.database}) to be ready... (${retries} retries left): ${err.message}`);
-      retries--;
-      // Ensure the client is closed if it partially connected
-      try { await client.end(); } catch (e) { }
-      await new Promise(res => setTimeout(res, 3000));
-    }
-  }
-  console.error('❌ Database not ready after waiting');
-  process.exit(1);
-}
+const waitForDB = require("./db/wait-for-db");
 
 async function startServer(retries = MAX_RETRIES) {
+  // 1. Wait for DB hardware/network to be ready
   await waitForDB();
 
-  // Load app and models ONLY after DB is ready
+  // 2. Give DB a few seconds to settle before heavy migrations
+  console.log("⏳ DB ready, waiting 5s for stabilization...");
+  await new Promise(resolve => setTimeout(resolve, 5000));
+
+  // 3. Load app and models ONLY after DB is ready
   const app = require('./app');
   const db = require('./models');
 
   while (retries > 0) {
     try {
+      // 3. Authenticate Sequelize connection
       await db.sequelize.authenticate();
       console.log(`✅ Connected to ${ENV} database`);
 
@@ -61,9 +38,11 @@ async function startServer(retries = MAX_RETRIES) {
         console.warn('⚠️ WARNING: DB_SYNC_FORCE is enabled. All tables will be dropped and recreated!');
       }
 
+      // 4. Sync models
       await db.sequelize.sync(syncOptions);
       console.log('✅ Database synced (tables created/updated).');
 
+      // 5. Start listening
       app.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ Server running at http://localhost:${PORT}`);
       });
