@@ -3,7 +3,7 @@ import {
   Box, Card, CardContent, Typography, Grid, TextField, Button,
   FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel,
   Divider, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
-  List, ListItem, ListItemText, ListItemSecondaryAction, Chip
+  List, ListItem, ListItemText, ListItemSecondaryAction, Chip, Tabs, Tab
 } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import SecurityIcon from "@mui/icons-material/Security";
@@ -43,7 +43,8 @@ const Settings = () => {
     website: "",
     gstin: "",
     pf_number: "",
-    esi_number: ""
+    esi_number: "",
+    logo_url: ""
   });
 
   React.useEffect(() => {
@@ -164,40 +165,156 @@ const Settings = () => {
     switch (activeSection) {
       case "company":
         return (
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Company Name" value={companySettings.company_name || ""}
-                onChange={(e) => setCompanySettings({ ...companySettings, company_name: e.target.value })} />
+
+          <Box sx={{ width: '100%' }}>
+            {/* Row 1: 3 Columns Stretched */}
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                mb: 3,
+                flexDirection: { xs: "column", md: "row" }, // 👈 key change
+              }}
+            >
+
+              {/* LEFT: Company + Address */}
+              <Box
+                sx={{
+                  flex: 1,
+                  display: "flex",
+                  gap: 2,
+                  flexDirection: { xs: "column", md: "row" }, // 👈 stack on mobile
+                }}
+              >
+
+                {/* Company Name */}
+                <TextField
+                  fullWidth
+                  label="Company Name"
+                  value={companySettings.company_name || ""}
+                  onChange={(e) =>
+                    setCompanySettings({
+                      ...companySettings,
+                      company_name: e.target.value,
+                    })
+                  }
+                  inputProps={{ style: { fontWeight: "bold" } }}
+                />
+
+                {/* Address */}
+                <TextField
+                  fullWidth
+                  label="Registered Address"
+                  multiline
+                  rows={1}
+                  value={companySettings.address || ""}
+                  onChange={(e) =>
+                    setCompanySettings({
+                      ...companySettings,
+                      address: e.target.value,
+                    })
+                  }
+                />
+              </Box>
+
+              {/* Logo */}
+              <Box
+                sx={{
+                  width: { xs: "100%", md: 140 },
+                  height: 56,
+                  border: "1px dashed #bbb",
+                  borderRadius: 1,
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 1,
+                  bgcolor: "#fafafa",
+                  px: 1,
+                  flexShrink: 0,
+                }}
+              >
+                {companySettings.logo_url ? (
+                  <img
+                    src={companySettings.logo_url}
+                    alt="Logo"
+                    style={{ maxHeight: 36, maxWidth: 60, objectFit: "contain" }}
+                  />
+                ) : (
+                  <Box sx={{ fontSize: "1.2rem", lineHeight: 1 }}>🖼️</Box>
+                )}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  component="label"
+                  sx={{ fontSize: "0.65rem", py: 0.3, px: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                >
+                  Upload
+                  <input type="file" hidden accept="image/*" />
+                </Button>
+              </Box>
+
+            </Box>
+
+            {/* Row 2: 6 Columns — responsive */}
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={4} md={2}>
+                <TextField
+                  fullWidth
+                  label="Phone"
+                  size="small"
+                  value={companySettings.phone || ""}
+                  onChange={(e) => setCompanySettings({ ...companySettings, phone: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  size="small"
+                  value={companySettings.email || ""}
+                  onChange={(e) => setCompanySettings({ ...companySettings, email: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <TextField
+                  fullWidth
+                  label="Website"
+                  size="small"
+                  value={companySettings.website || ""}
+                  onChange={(e) => setCompanySettings({ ...companySettings, website: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <TextField
+                  fullWidth
+                  label="GSTIN"
+                  size="small"
+                  value={companySettings.gstin || ""}
+                  onChange={(e) => setCompanySettings({ ...companySettings, gstin: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <TextField
+                  fullWidth
+                  label="PF Number"
+                  size="small"
+                  value={companySettings.pf_number || ""}
+                  onChange={(e) => setCompanySettings({ ...companySettings, pf_number: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <TextField
+                  fullWidth
+                  label="ESI Number"
+                  size="small"
+                  value={companySettings.esi_number || ""}
+                  onChange={(e) => setCompanySettings({ ...companySettings, esi_number: e.target.value })}
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Phone" value={companySettings.phone || ""}
-                onChange={(e) => setCompanySettings({ ...companySettings, phone: e.target.value })} />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField fullWidth label="Address" multiline rows={2} value={companySettings.address || ""}
-                onChange={(e) => setCompanySettings({ ...companySettings, address: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Email" value={companySettings.email || ""}
-                onChange={(e) => setCompanySettings({ ...companySettings, email: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Website" value={companySettings.website || ""}
-                onChange={(e) => setCompanySettings({ ...companySettings, website: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField fullWidth label="GSTIN" value={companySettings.gstin || ""}
-                onChange={(e) => setCompanySettings({ ...companySettings, gstin: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField fullWidth label="PF Number" value={companySettings.pf_number || ""}
-                onChange={(e) => setCompanySettings({ ...companySettings, pf_number: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField fullWidth label="ESI Number" value={companySettings.esi_number || ""}
-                onChange={(e) => setCompanySettings({ ...companySettings, esi_number: e.target.value })} />
-            </Grid>
-          </Grid>
+
+          </Box>
         );
 
       case "payroll":
@@ -430,61 +547,48 @@ const Settings = () => {
           <Typography variant="h6">Settings</Typography>
         </Box>
         <CardContent>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={3}>
-              <Card sx={{ bgcolor: "#f8f9fa" }}>
-                <List>
-                  {settingsSections.map((section) => (
-                    <ListItem
-                      key={section.id}
-                      button
-                      selected={activeSection === section.id}
-                      onClick={() => setActiveSection(section.id)}
-                      sx={{
-                        cursor: "pointer",
-                        "&.Mui-selected": { bgcolor: "#e3f2fd" },
-                        "&:hover": { bgcolor: "#e3f2fd" }
-                      }}
-                    >
-                      <Box sx={{ mr: 2, fontSize: "1.5rem" }}>{section.icon}</Box>
-                      <ListItemText
-                        primary={section.title}
-                        secondary={section.description}
-                        primaryTypographyProps={{ variant: "body2", fontWeight: "bold" }}
-                        secondaryTypographyProps={{ variant: "caption" }}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </Card>
-            </Grid>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2, bgcolor: '#f8f9fa' }}>
+            <Tabs
+              value={activeSection}
+              onChange={(e, val) => setActiveSection(val)}
+              variant="scrollable"
+              scrollButtons="auto"
+              textColor="primary"
+              indicatorColor="primary"
+            >
+              {settingsSections.map((section) => (
+                <Tab
+                  key={section.id}
+                  value={section.id}
+                  label={section.title}
+                  icon={<span>{section.icon}</span>}
+                  iconPosition="start"
+                  sx={{ minHeight: 64, fontWeight: 'bold' }}
+                />
+              ))}
+            </Tabs>
+          </Box>
 
-            <Grid item xs={12} md={9}>
-              <Card>
-                <Box sx={{ p: 2, bgcolor: "#f5f5f5", borderBottom: "1px solid #ddd" }}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    {settingsSections.find(s => s.id === activeSection)?.title}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    {settingsSections.find(s => s.id === activeSection)?.description}
-                  </Typography>
-                </Box>
-                <CardContent>
-                  {renderSettingsForm()}
-                </CardContent>
-                {activeSection !== "backup" && (
-                  <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                    <Button variant="outlined" onClick={() => setActiveSection(activeSection)}>
-                      Reset
-                    </Button>
-                    <Button variant="contained" startIcon={<SaveIcon />} onClick={() => handleSave(activeSection)}>
-                      Save Settings
-                    </Button>
-                  </Box>
-                )}
-              </Card>
-            </Grid>
-          </Grid>
+          <Card variant="outlined">
+            <Box sx={{ p: 2, bgcolor: "#fbfbfb", borderBottom: "1px solid #eee" }}>
+              <Typography variant="subtitle2" fontWeight="bold" color="primary">
+                {settingsSections.find(s => s.id === activeSection)?.title}
+              </Typography>
+            </Box>
+            <CardContent sx={{ p: 3 }}>
+              {renderSettingsForm()}
+            </CardContent>
+            {activeSection !== "backup" && (
+              <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                <Button variant="outlined" onClick={() => setActiveSection(activeSection)}>
+                  Reset
+                </Button>
+                <Button variant="contained" startIcon={<SaveIcon />} onClick={() => handleSave(activeSection)}>
+                  Save Settings
+                </Button>
+              </Box>
+            )}
+          </Card>
         </CardContent>
       </Card>
     </Box>

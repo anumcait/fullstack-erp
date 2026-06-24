@@ -132,17 +132,27 @@ const ShiftMaster = () => {
       <CardContent>
         {loading && <LinearProgress sx={{ mb: 2 }} />}
 
-        <Table size="small" sx={{ border: '1px solid #ccc' }}>
+        <Table size="small" sx={{
+          tableLayout: 'fixed',
+          width: '100%',
+          border: '1px solid #ccc',
+          '& .MuiTableCell-root': {
+            px: 1,
+            py: 0.5,
+            fontSize: '12px',
+            fontWeight: 500
+          }
+        }}>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell><strong>ID</strong></TableCell>
-              <TableCell><strong>Code</strong></TableCell>
-              <TableCell><strong>Start</strong></TableCell>
-              <TableCell><strong>End</strong></TableCell>
-              <TableCell><strong>Lunch Start</strong></TableCell>
-              <TableCell><strong>Lunch End</strong></TableCell>
-              <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
+            <TableRow sx={{ backgroundColor: '#f1f1f1' }}>
+              <TableCell sx={{ width: '60px' }}><strong>ID</strong></TableCell>
+              <TableCell sx={{ width: '80px' }}><strong>Code</strong></TableCell>
+              <TableCell sx={{ width: '100px' }}><strong>Start</strong></TableCell>
+              <TableCell sx={{ width: '100px' }}><strong>End</strong></TableCell>
+              <TableCell sx={{ width: '110px' }}><strong>Lunch Start</strong></TableCell>
+              <TableCell sx={{ width: '110px' }}><strong>Lunch End</strong></TableCell>
+              <TableCell sx={{ width: '90px' }}><strong>Status</strong></TableCell>
+              <TableCell sx={{ width: '90px' }} align="center"><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

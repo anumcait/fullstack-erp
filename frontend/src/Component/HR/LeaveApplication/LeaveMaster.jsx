@@ -158,7 +158,7 @@ const LeaveMaster = () => {
             <TableRow sx={{ backgroundColor: '#f1f1f1' }}>
               <TableCell sx={{ width: '50px', fontSize: '12px' }}><strong>S.No</strong></TableCell>
               <TableCell sx={{ width: '90px', fontSize: '12px' }}><strong>Emp ID</strong></TableCell>
-              <TableCell sx={{ minWidth: '200px', width: '200px', fontSize: '12px' }}><strong>Name</strong></TableCell>
+              <TableCell sx={{ minWidth: '350px', width: '350px', fontSize: '12px' }}><strong>Name</strong></TableCell>
               <TableCell sx={{ width: '130px', fontSize: '12px' }}><strong>Department</strong></TableCell>
               <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>CL Bal</strong></TableCell>
               <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>CL Util</strong></TableCell>
