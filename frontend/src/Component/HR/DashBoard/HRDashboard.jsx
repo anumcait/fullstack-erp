@@ -77,6 +77,7 @@ const HRDashboard = () => {
     avgLeaveDuration: 0,
     attritionRate: 0,
     lateComingCount: 0,
+    pendingProfileRequests: 0,
   });
   const [attendanceTrend, setAttendanceTrend] = useState([]);
   const [leaveByType, setLeaveByType] = useState([]);
@@ -88,6 +89,7 @@ const HRDashboard = () => {
     upcomingBirthdays: [],
     recentHires: [],
     topAbsentees: [],
+    recentProfileApprovals: [],
   });
   const [loading, setLoading] = useState(true);
     const [alerts, setAlerts] = useState([]);
@@ -112,6 +114,7 @@ const HRDashboard = () => {
         avgLeaveDuration: leave.avgLeaveDuration || 0,
         attritionRate: attrition.attritionRate || 0,
         lateComingCount: att.lateComingCount || 0,
+        pendingProfileRequests: res.data.pendingProfileRequests || 0,
       });
 
       setAttendanceTrend(res.data.attendanceTrend || []);
@@ -234,6 +237,13 @@ const HRDashboard = () => {
           subtitle="Last 30 days"
         />
         <KpiCard
+          title="Profile Requests"
+          icon={<FaClipboardList className="text-purple-500 text-2xl" />}
+          value={summary.pendingProfileRequests}
+          color="text-purple-600"
+          subtitle="Pending approvals"
+        />
+        <KpiCard
           title="Avg Leave / Attrition"
           icon={<FaUserClock className="text-indigo-500 text-2xl" />}
           value={`${summary.avgLeaveDuration}d / ${summary.attritionRate}%`}
@@ -354,6 +364,11 @@ const HRDashboard = () => {
             value: `${a.absentCount} days`,
           }))}
           icon={<FaPlaneDeparture className="text-orange-500" />}
+        />
+        <InfoList
+          title="Recent Profile Updates"
+          data={insights.recentProfileApprovals || []}
+          icon={<FaUserCheck className="text-purple-500" />}
         />
       </div>
      

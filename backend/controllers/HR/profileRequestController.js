@@ -18,6 +18,7 @@ exports.submitRequest = async (req, res) => {
     const requestData = {
       empid: empId,
       request_type: request_type || 'both',
+      status: 'Pending',
     };
 
     if (commAddress) {
@@ -49,11 +50,26 @@ exports.submitRequest = async (req, res) => {
 
 exports.getPendingRequests = async (req, res) => {
   try {
-    const requests = await ProfileUpdateRequest.findAll({
-      where: { status: 'Pending' },
+    // Repair existing requests with NULL status
+    await ProfileUpdateRequest.update(
+      { status: 'Pending' },
+      { where: { status: { [Op.is]: null } } }
+    );
+
+    const totalCount = await ProfileUpdateRequest.count();
+    const pendingCount = await ProfileUpdateRequest.count({ where: { status: 'Pending' } });
+    const nullStatusCount = await ProfileUpdateRequest.count({ where: { status: null } });
+
+    console.log(`[ProfileRequestDebug] Total: ${totalCount}, Pending: ${pendingCount}, Null: ${nullStatusCount}`);
+
+    const allRequests = await ProfileUpdateRequest.findAll({
       order: [['created', 'DESC']],
-      raw: false,
+      raw: true,
     });
+
+    console.log(`[ProfileRequestDebug] Found ${allRequests.length} total requests in DB`);
+
+    const requests = allRequests.filter(r => r.status === 'Pending' || r.status === null);
 
     const empIds = [...new Set(requests.map(r => r.empid))];
     const employees = await EmployeeMaster.findAll({
@@ -66,7 +82,7 @@ exports.getPendingRequests = async (req, res) => {
     employees.forEach(e => { empMap[e.empid] = e; });
 
     const enrichedRequests = requests.map(r => ({
-      ...r.toJSON(),
+      ...r,
       employeeName: empMap[r.empid]?.ename || 'Unknown',
       department: empMap[r.empid]?.deptname || 'N/A',
     }));

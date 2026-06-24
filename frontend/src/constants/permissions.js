@@ -5,6 +5,7 @@ export const PERMISSIONS = {
     { id: 'HR_EMP_MASTER', label: 'Employee Master' },
     { id: 'HR_ADD_EMP', label: 'Add New Employee' },
     { id: 'HR_PHOTO', label: 'Photo Upload' },
+    { id: 'HR_PROFILE_APPROVE', label: 'Profile Update Requests' },
     { id: 'HR_SHIFT_MASTER', label: 'Shift Master' },
     { id: 'HR_HOLIDAY_MASTER', label: 'Holiday Master' },
     { id: 'HR_LEAVE_MASTER', label: 'Leaves Master' },

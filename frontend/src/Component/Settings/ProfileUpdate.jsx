@@ -40,7 +40,7 @@ export default function ProfileUpdate() {
           empId ? axios.get(`${API}/api/employees/${empId}/photo`, { withCredentials: true }).catch(() => ({ data: {} })) : Promise.resolve({ data: {} }),
           axios.get(`${API}/api/employees/my-profile-requests`, { withCredentials: true }).catch(() => ({ data: [] }))
         ]);
-        
+
         const data = profileRes.data;
         setProfile(data);
 
@@ -178,9 +178,24 @@ export default function ProfileUpdate() {
 
           {pendingRequest && (
             <Paper sx={{ p: 2, mb: 2, bgcolor: '#fff3e0', border: '1px solid #ff9800' }}>
-              <Typography color="error" fontWeight="bold">
-                You have a pending request awaiting HR approval. You cannot submit a new request until it's processed.
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="warning.main" fontWeight="bold">
+                    PENDING REQUEST: {pendingRequest.status}
+                  </Typography>
+                  <Typography variant="body2">
+                    You have a pending request awaiting HR approval. You cannot submit a new request until it's processed.
+                  </Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  size="small"
+                  onClick={() => window.location.href = '/dashboard'}
+                >
+                  View History
+                </Button>
+              </Box>
             </Paper>
           )}
 

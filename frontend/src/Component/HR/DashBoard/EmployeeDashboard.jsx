@@ -9,7 +9,10 @@ import {
   FaUserClock,
   FaClipboardList,
   FaCheckCircle,
+  FaEye,
 } from "react-icons/fa";
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider } from "@mui/material";
+import { MdClose } from "react-icons/md";
 const API = import.meta.env.VITE_API_URL || "";
 
 const formatDate = (dateStr) => {
@@ -31,12 +34,16 @@ const EmployeeDashboard = () => {
     lastLogin: "",
     latestPayslip: "",
     notifications: 0,
+    pendingProfileRequests: 0,
+    recentProfileRequests: [],
   });
 
   const empName = localStorage.getItem("empName") || "Employee";
   const empId = localStorage.getItem("empId") || "";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -179,15 +186,143 @@ const EmployeeDashboard = () => {
 
         {/* Last Login */}
         <SummaryCard
-          title="Last Login"
-          icon={<FaUserClock className="text-indigo-500 text-2xl" />}
-          value={summary.lastLogin || "Today"}
-          color="text-indigo-600"
-          subtitle="Last login record"
+          title="Profile Request"
+          icon={<FaClipboardList className={`text-2xl ${summary.pendingProfileRequests > 0 ? 'text-red-500' : 'text-gray-400'}`} />}
+          value={summary.pendingProfileRequests > 0 ? "Pending" : "None"}
+          color={summary.pendingProfileRequests > 0 ? "text-red-600" : "text-gray-500"}
+          subtitle={summary.pendingProfileRequests > 0 ? "Awaiting HR check" : "No pending changes"}
         />
       </div>
 
+      <RequestDetailsDialog
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        request={selectedRequest}
+      />
+
+      {/* Recent Profile Requests Table */}
+      <div className="mt-12 bg-white rounded-2xl shadow-lg p-6 border border-gray-100 animate-fadeIn">
+        <div className="flex items-center gap-2 mb-6">
+          <FaClipboardList className="text-blue-600 text-xl" />
+          <h2 className="text-xl font-bold text-gray-800">My Recent Profile Requests</h2>
+        </div>
+
+        {summary.recentProfileRequests && summary.recentProfileRequests.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-gray-400 text-sm border-b border-gray-50">
+                  <th className="pb-3 font-medium">Request Date</th>
+                  <th className="pb-3 font-medium">Request Type</th>
+                  <th className="pb-3 font-medium">Status</th>
+                  <th className="pb-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600 text-sm">
+                {summary.recentProfileRequests.map((req, idx) => (
+                  <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                    <td className="py-4 font-medium">{formatDate(req.created)}</td>
+                    <td className="py-4 capitalize">{req.request_type || 'Update'}</td>
+                    <td className="py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${req.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                        req.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-orange-100 text-orange-700'
+                        }`}>
+                        {req.status}
+                      </span>
+                    </td>
+                    <td className="py-4">
+                      <button
+                        onClick={() => { setSelectedRequest(req); setDetailsOpen(true); }}
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        <FaEye /> Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-gray-400 italic text-center py-4">No recent profile update requests found.</p>
+        )}
+      </div>
     </div>
+  );
+};
+
+const RequestDetailsDialog = ({ open, onClose, request }) => {
+  if (!request) return null;
+
+  const compareFields = [
+    { label: 'Comm. Address', old: request.old_comm_address, new: request.new_comm_address },
+    { label: 'Comm. Phone', old: request.old_comm_phone, new: request.new_comm_phone },
+    { label: 'Comm. Mobile', old: request.old_comm_mobile, new: request.new_comm_mobile },
+    { label: 'Perm. Address', old: request.old_perm_address, new: request.new_perm_address },
+    { label: 'Perm. Phone', old: request.old_perm_phone, new: request.new_perm_phone },
+    { label: 'Perm. Mobile', old: request.old_perm_mobile, new: request.new_perm_mobile },
+  ].filter(f => f.old !== f.new);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        Profile Request Details
+        <IconButton onClick={onClose} size="small"><MdClose /></IconButton>
+      </DialogTitle>
+      <DialogContent>
+        <div className="space-y-6 py-4">
+          <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
+            <div>
+              <p className="text-gray-500">Status</p>
+              <p className={`font-bold ${request.status === 'Approved' ? 'text-green-600' : request.status === 'Rejected' ? 'text-red-600' : 'text-orange-600'}`}>
+                {request.status}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Submitted On</p>
+              <p className="font-bold">{new Date(request.created).toLocaleString()}</p>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-gray-800 mb-3">Field Changes</h4>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="p-3 text-left">Field</th>
+                    <th className="p-3 text-left">Old Value</th>
+                    <th className="p-3 text-left">New Value</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {compareFields.map((field, i) => (
+                    <tr key={i}>
+                      <td className="p-3 font-medium text-gray-700">{field.label}</td>
+                      <td className="p-3 text-red-600 italic line-through decoration-red-300">{field.old || '(Empty)'}</td>
+                      <td className="p-3 text-green-600 font-medium">{field.new || '(Empty)'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {request.hr_remarks && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <h4 className="font-bold text-blue-800 text-sm mb-1">HR Remarks</h4>
+              <p className="text-blue-900 text-sm">{request.hr_remarks}</p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm font-medium transition">
+          Close
+        </button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

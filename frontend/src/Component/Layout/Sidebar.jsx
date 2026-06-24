@@ -173,7 +173,7 @@ const Sidebar = () => {
             {(hasPermission('ACC_INV_SALES') || hasPermission('ACC_INV_PURCH') || hasPermission('ACC_INV_DEBIT') || hasPermission('ACC_INV_CREDIT')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "accInv" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("accInv")}>
-                  <FiShoppingCart /> 
+                  <FiShoppingCart />
                   {!collapsed && (
                     <>
                       <span>Invoicing</span>
@@ -195,7 +195,7 @@ const Sidebar = () => {
             {(hasPermission('ACC_VOUCH_PAY') || hasPermission('ACC_VOUCH_REC') || hasPermission('ACC_VOUCH_JOUR') || hasPermission('ACC_VOUCH_CONTRA')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "accVouch" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("accVouch")}>
-                  <FiGrid /> 
+                  <FiGrid />
                   {!collapsed && (
                     <>
                       <span>Vouchers</span>
@@ -230,7 +230,7 @@ const Sidebar = () => {
             {(hasPermission('HR_EMP_MASTER') || hasPermission('HR_SHIFT_MASTER') || hasPermission('HR_HOLIDAY_MASTER') || hasPermission('HR_LEAVE_MASTER')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "hrMaster" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrMaster")}>
-                  <FiUsers /> 
+                  <FiUsers />
                   {!collapsed && (
                     <>
                       <span>Master Data</span>
@@ -244,6 +244,7 @@ const Sidebar = () => {
                     {hasPermission('HR_SHIFT_MASTER') && <SubItem to="/shift-master" label="Shift Master" icon={FiClock} />}
                     {hasPermission('HR_HOLIDAY_MASTER') && <SubItem to="/holidays" label="Holiday Master" icon={FiCalendar} />}
                     {hasPermission('HR_LEAVE_MASTER') && <SubItem to="/leaves-master" label="Leaves Master" icon={FiCheckSquare} />}
+                    {hasPermission('HR_PROFILE_APPROVE') && <SubItem to="/profile-requests" label="Profile Requests" icon={FiRefreshCw} />}
                   </ul>
                 )}
               </li>
@@ -252,7 +253,7 @@ const Sidebar = () => {
             {(hasPermission('HR_ATT_ENTRY') || hasPermission('HR_ATT_MOD') || hasPermission('HR_SHIFT_SCHED') || hasPermission('HR_MUSTER') || hasPermission('HR_OT_APP')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "hrAtt" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrAtt")}>
-                  <FiClock /> 
+                  <FiClock />
                   {!collapsed && (
                     <>
                       <span>Attendance</span>
@@ -275,7 +276,7 @@ const Sidebar = () => {
             {(hasPermission('HR_ADVANCE') || hasPermission('HR_PAYROLL_PROC') || hasPermission('HR_ESI_LEAVE')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "hrPayroll" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrPayroll")}>
-                  <FiDollarSign /> 
+                  <FiDollarSign />
                   {!collapsed && (
                     <>
                       <span>Payroll</span>
@@ -296,7 +297,7 @@ const Sidebar = () => {
             {(hasPermission('HR_LEAVE_APP') || hasPermission('HR_ONDUTY') || hasPermission('HR_TOUR') || hasPermission('HR_SHIFT_CHG') || hasPermission('HR_WOFF_CHG')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "hrTrans" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrTrans")}>
-                  <FiRefreshCw /> 
+                  <FiRefreshCw />
                   {!collapsed && (
                     <>
                       <span>Transactions</span>
@@ -331,7 +332,7 @@ const Sidebar = () => {
             {(hasPermission('STORES_ITEM_MASTER') || hasPermission('STORES_STOCK_LEDGER') || hasPermission('STORES_PHYSICAL')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "storeInv" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeInv")}>
-                  <FiBox /> 
+                  <FiBox />
                   {!collapsed && (
                     <>
                       <span>Inventory Control</span>
@@ -351,7 +352,7 @@ const Sidebar = () => {
             {(hasPermission('STORES_GATE') || hasPermission('STORES_GRN') || hasPermission('STORES_ISSUE') || hasPermission('STORES_RETURN')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "storeTrans" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeTrans")}>
-                  <FiRefreshCw /> 
+                  <FiRefreshCw />
                   {!collapsed && (
                     <>
                       <span>Transactions</span>
@@ -385,7 +386,7 @@ const Sidebar = () => {
             {(hasPermission('PUR_REQ') || hasPermission('PUR_RFQ') || hasPermission('PUR_ORDERS')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "purProc" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("purProc")}>
-                  <FiShoppingCart /> 
+                  <FiShoppingCart />
                   {!collapsed && (
                     <>
                       <span>Procurement</span>
@@ -405,7 +406,7 @@ const Sidebar = () => {
             {(hasPermission('PUR_VENDORS') || hasPermission('PUR_PRICES') || hasPermission('PUR_RATING')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "purVend" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("purVend")}>
-                  <FiUsers /> 
+                  <FiUsers />
                   {!collapsed && (
                     <>
                       <span>Vendor Mgmt</span>
@@ -438,7 +439,7 @@ const Sidebar = () => {
             {(hasPermission('PROD_DAILY') || hasPermission('PROD_MACHINES') || hasPermission('PROD_DOWNTIME')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "prodFloor" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("prodFloor")}>
-                  <FiTool /> 
+                  <FiTool />
                   {!collapsed && (
                     <>
                       <span>Shop Floor</span>
@@ -471,7 +472,7 @@ const Sidebar = () => {
             {(hasPermission('PLAN_SCHEDULE') || hasPermission('PLAN_MRP') || hasPermission('PLAN_CAPACITY')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "planProd" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("planProd")}>
-                  <FiCalendar /> 
+                  <FiCalendar />
                   {!collapsed && (
                     <>
                       <span>Prod Planning</span>
@@ -504,7 +505,7 @@ const Sidebar = () => {
             {(hasPermission('ENG_ITEMS') || hasPermission('ENG_BOM') || hasPermission('ENG_BOM_DIFF')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "engData" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("engData")}>
-                  <FiLayout /> 
+                  <FiLayout />
                   {!collapsed && (
                     <>
                       <span>Design Data</span>
@@ -524,7 +525,7 @@ const Sidebar = () => {
             {(hasPermission('ENG_ROUTING') || hasPermission('ENG_WORK_CENTERS')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "engProc" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("engProc")}>
-                  <FiCpu /> 
+                  <FiCpu />
                   {!collapsed && (
                     <>
                       <span>Process Planning</span>
@@ -556,7 +557,7 @@ const Sidebar = () => {
             {(hasPermission('MARK_LEADS') || hasPermission('MARK_QUOTES') || hasPermission('MARK_ORDERS') || hasPermission('MARK_CUSTOMERS')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "markSales" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("markSales")}>
-                  <FiTrendingUp /> 
+                  <FiTrendingUp />
                   {!collapsed && (
                     <>
                       <span>Sales & CRM</span>
@@ -590,7 +591,7 @@ const Sidebar = () => {
             {(hasPermission('QUAL_INCOMING') || hasPermission('QUAL_PROCESS') || hasPermission('QUAL_FINAL')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "qualInsp" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("qualInsp")}>
-                  <FiShield /> 
+                  <FiShield />
                   {!collapsed && (
                     <>
                       <span>Inspection</span>
@@ -623,7 +624,7 @@ const Sidebar = () => {
             {(hasPermission('MAINT_MACHINES') || hasPermission('MAINT_ASSETS') || hasPermission('MAINT_SCHEDULE')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "maintAssets" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("maintAssets")}>
-                  <FiTool /> 
+                  <FiTool />
                   {!collapsed && (
                     <>
                       <span>Assets</span>
@@ -656,7 +657,7 @@ const Sidebar = () => {
             {(hasPermission('SUB_ORDERS') || hasPermission('SUB_ISSUE') || hasPermission('SUB_RECEIPT')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "subOps" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("subOps")}>
-                  <FiTruck /> 
+                  <FiTruck />
                   {!collapsed && (
                     <>
                       <span>Jobwork Ops</span>

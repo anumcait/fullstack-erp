@@ -93,7 +93,7 @@ const Header = () => {
             { label: 'Employee Master', path: '/employees' },
             { label: 'Add New Employee', path: '/add-employee' },
             { label: 'Photo Upload', path: '/photo' },
-            { label: 'Profile Requests', path: '/profile-requests' },
+            { label: 'Profile Requests', path: '/profile-requests', permission: 'HR_PROFILE_APPROVE' },
             { label: 'Shift Master', path: '/shift-master' },
             { label: 'Holiday Master', path: '/holidays' },
             { label: 'Leaves Master', path: '/leaves-master' }
@@ -416,10 +416,10 @@ const Header = () => {
         <div className="user-section">
           <div className="user-meta desktop-only" style={{ flexDirection: 'row', alignItems: 'center' }}>
             {userPhoto ? (
-              <Avatar 
-                src={userPhoto} 
-                alt={userName} 
-                sx={{ width: 32, height: 32 }} 
+              <Avatar
+                src={userPhoto}
+                alt={userName}
+                sx={{ width: 32, height: 32 }}
               />
             ) : (
               <Avatar sx={{ width: 32, height: 32, bgcolor: '#1976d2' }}>
@@ -434,14 +434,14 @@ const Header = () => {
 
           <div className="action-icons">
             <div className="settings-wrapper" style={{ position: 'relative' }} ref={settingsRef}>
-              <button 
-                className={`icon-btn ${isSettingsOpen ? 'active' : ''}`} 
+              <button
+                className={`icon-btn ${isSettingsOpen ? 'active' : ''}`}
                 onClick={toggleSettings}
                 title="User Access & Settings"
               >
                 <SecurityIcon />
               </button>
-              
+
               {isSettingsOpen && (
                 <div className="settings-dropdown">
                   <div className="dropdown-header">Quick Settings</div>
@@ -460,7 +460,7 @@ const Header = () => {
                 </div>
               )}
             </div>
-            
+
             <button onClick={handleLogout} title="Logout" className="icon-btn logout-btn desktop-only">
               <LogoutIcon />
             </button>
@@ -490,9 +490,11 @@ const Header = () => {
                     {item.columns.map((col, colIdx) => (
                       <div key={colIdx} className="mega-column">
                         <h4 className="mega-title">{col.title}</h4>
-                        {col.items.map((mItem, mIdx) => (
-                          <Link key={mIdx} to={mItem.path} className="mega-item">{mItem.label}</Link>
-                        ))}
+                        {col.items
+                          .filter(mItem => !mItem.permission || hasPermission(mItem.permission))
+                          .map((mItem, mIdx) => (
+                            <Link key={mIdx} to={mItem.path} className="mega-item">{mItem.label}</Link>
+                          ))}
                       </div>
                     ))}
                   </div>
@@ -512,7 +514,7 @@ const Header = () => {
               <img src={logo} alt="Logo" style={{ height: '30px' }} />
               <FaTimes onClick={() => setIsMobileMenuOpen(false)} style={{ cursor: 'pointer' }} />
             </div>
-            
+
             <div className="drawer-content">
               {filteredNavItems.map((item, idx) => (
                 <div key={idx} className="drawer-group">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Button, Chip, TextField, Dialog, DialogTitle,
-  DialogContent, DialogActions, IconButton
+  DialogContent, DialogActions, IconButton, Divider
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -61,8 +61,8 @@ export default function ProfileRequestApproval() {
     }
     setProcessing(true);
     try {
-      await axios.put(`${API}/api/employees/profile-requests/${selectedRequest?.id}/reject`, 
-        { hr_remarks: rejectRemarks }, 
+      await axios.put(`${API}/api/employees/profile-requests/${selectedRequest?.id}/reject`,
+        { hr_remarks: rejectRemarks },
         { withCredentials: true }
       );
       showToast('Request rejected', 'success');
@@ -132,10 +132,10 @@ export default function ProfileRequestApproval() {
                       </TableCell>
                       <TableCell>{req.department}</TableCell>
                       <TableCell>
-                        <Chip 
-                          label={req.request_type === 'both' ? 'Address & Phone' : req.request_type === 'address' ? 'Address' : 'Phone'} 
-                          size="small" 
-                          color="primary" 
+                        <Chip
+                          label={req.request_type === 'both' ? 'Address & Phone' : req.request_type === 'address' ? 'Address' : 'Phone'}
+                          size="small"
+                          color="primary"
                           variant="outlined"
                         />
                       </TableCell>
@@ -176,20 +176,37 @@ export default function ProfileRequestApproval() {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Department: {selectedRequest.department}
               </Typography>
-              
+
               <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>Address Changes</Typography>
-              
-              {renderDiff(selectedRequest.old_comm_address, selectedRequest.new_comm_address, 'Communication Address')}
-              {renderDiff(selectedRequest.old_perm_address, selectedRequest.new_perm_address, 'Permanent Address')}
-              
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>Phone Changes</Typography>
-              
-              {renderDiff(selectedRequest.old_comm_phone, selectedRequest.new_comm_phone, 'Comm. Phone')}
-              {renderDiff(selectedRequest.old_comm_mobile, selectedRequest.new_comm_mobile, 'Comm. Mobile')}
-              {renderDiff(selectedRequest.old_perm_phone, selectedRequest.new_perm_phone, 'Perm. Phone')}
-              {renderDiff(selectedRequest.old_perm_mobile, selectedRequest.new_perm_mobile, 'Perm. Mobile')}
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>Field Changes</Typography>
+
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead sx={{ bgcolor: '#f8f9fa' }}>
+                    <TableRow>
+                      <TableCell><strong>Field</strong></TableCell>
+                      <TableCell><strong>Old Value</strong></TableCell>
+                      <TableCell><strong>New Value</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {[
+                      { label: 'Comm. Address', old: selectedRequest.old_comm_address, new: selectedRequest.new_comm_address },
+                      { label: 'Comm. Phone', old: selectedRequest.old_comm_phone, new: selectedRequest.new_comm_phone },
+                      { label: 'Comm. Mobile', old: selectedRequest.old_comm_mobile, new: selectedRequest.new_comm_mobile },
+                      { label: 'Perm. Address', old: selectedRequest.old_perm_address, new: selectedRequest.new_perm_address },
+                      { label: 'Perm. Phone', old: selectedRequest.old_perm_phone, new: selectedRequest.new_perm_phone },
+                      { label: 'Perm. Mobile', old: selectedRequest.old_perm_mobile, new: selectedRequest.new_perm_mobile },
+                    ].filter(f => f.old !== f.new).map((field, i) => (
+                      <TableRow key={i}>
+                        <TableCell sx={{ fontWeight: 'medium' }}>{field.label}</TableCell>
+                        <TableCell sx={{ color: '#d32f2f', fontStyle: 'italic', textDecoration: 'line-through' }}>{field.old || '(Empty)'}</TableCell>
+                        <TableCell sx={{ color: '#3182ce', fontWeight: 'bold' }}>{field.new || '(Empty)'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Box>
           )}
         </DialogContent>

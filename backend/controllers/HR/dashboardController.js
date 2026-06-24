@@ -1,5 +1,5 @@
 // controllers/dashboardController.js
-const { EmployeeMaster, Attendance, LeaveDetails, Holiday, Payslip, User, LeaveMaster } = require('../../models');
+const { EmployeeMaster, Attendance, LeaveDetails, Holiday, Payslip, User, LeaveMaster, ProfileUpdateRequest } = require('../../models');
 const { Op, fn, col, literal } = require('sequelize');
 
 const formatDateDB = (dateStr) => {
@@ -48,7 +48,9 @@ exports.hrSummary = async (req, res) => {
       topAbsentees,
       attendanceTrendRaw,
       leaveByTypeRaw,
-      deptStats
+      deptStats,
+      pendingProfileRequests,
+      recentProfileApprovals
     ] = await Promise.all([
       EmployeeMaster.count(),
       EmployeeMaster.count({ where: { status: 'Active' } }),
@@ -127,11 +129,23 @@ exports.hrSummary = async (req, res) => {
         attributes: [['deptname', 'type'], [fn('COUNT', col('empid')), 'count']],
         group: ['deptname'],
         raw: true,
+      }),
+      ProfileUpdateRequest.count({ where: { status: 'Pending' } }),
+      ProfileUpdateRequest.findAll({
+        where: { status: 'Approved' },
+        order: [['reviewed_at', 'DESC']],
+        limit: 5,
+        include: [{ model: EmployeeMaster, attributes: ['ename'] }],
+        raw: false,
       })
     ]);
 
     const inactiveEmployees = totalEmployees - activeEmployees;
     const absentToday = activeEmployees - presentToday;
+
+    console.log(`[DashboardDebug] Recent Approvals Count: ${recentProfileApprovals.length}`);
+    const approvalLabels = recentProfileApprovals.map(r => r.EmployeeMaster?.ename || `Emp ${r.empid}`);
+    console.log(`[DashboardDebug] Top Labels: ${approvalLabels.join(', ')}`);
 
     let totalLeaveDaysHR = 0;
     recentApprovedLeavesHR.forEach((l) => {
@@ -168,7 +182,12 @@ exports.hrSummary = async (req, res) => {
         recentHires,
         topAbsentees,
         deptStats,
+        recentProfileApprovals: recentProfileApprovals.map(r => ({
+          label: r.EmployeeMaster?.ename || `Emp ${r.empid}`,
+          value: r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString() : 'Approved',
+        })),
       },
+      pendingProfileRequests,
     });
   } catch (err) {
     console.error('Error fetching HR summary:', err);
@@ -326,6 +345,9 @@ exports.managerSummary = async (req, res) => {
 exports.employeeSummary = async (req, res) => {
   try {
     let empId = req.session?.user?.empid || req.query.empid;
+    console.log(`[DashboardAuthDebug] Session User:`, JSON.stringify(req.session?.user));
+    console.log(`[DashboardAuthDebug] Query EmpId: ${req.query.empid}`);
+
     if (!empId) return res.status(400).json({ message: 'Employee ID required' });
 
     empId = parseInt(empId, 10);
@@ -335,19 +357,7 @@ exports.employeeSummary = async (req, res) => {
     const last15Days = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-    const [
-      attendanceToday,
-      pendingLeaves,
-      approvedLeaves,
-      leaveMasterData,
-      recentLeavesRaw,
-      latestPayslip,
-      empData,
-      upcomingHolidays,
-      attendanceTrend,
-      lateComingCount,
-      user
-    ] = await Promise.all([
+    const results = await Promise.all([
       Attendance.findOne({ where: { empid: empId, att_date: today }, raw: true }).catch(() => null),
       LeaveDetails.count({ where: { empno: empId, c_hr_app_status: 'Pending' } }).catch(() => 0),
       LeaveDetails.count({ where: { empno: empId, c_hr_app_status: 'Approved' } }).catch(() => 0),
@@ -407,8 +417,34 @@ exports.employeeSummary = async (req, res) => {
           late_exempt: false,
         },
       }).catch(() => 0),
-      User.findOne({ where: { empid: empId }, attributes: ['last_login', 'previous_login'], raw: true }).catch(() => null)
+      User.findOne({ where: { empid: empId }, attributes: ['last_login', 'previous_login'], raw: true }).catch(() => null),
+      ProfileUpdateRequest.count({ where: { empid: empId, status: 'Pending' } }).catch(() => 0),
+      ProfileUpdateRequest.findAll({
+        where: { empid: empId },
+        limit: 5,
+        order: [['created', 'DESC']],
+        raw: true
+      }).catch(() => [])
     ]);
+
+    const [
+      attendanceToday,
+      pendingLeaves,
+      approvedLeaves,
+      leaveMasterData,
+      recentLeavesRaw,
+      latestPayslip,
+      empData,
+      upcomingHolidays,
+      attendanceTrend,
+      lateComingCount,
+      user,
+      pendingProfileRequests,
+      recentProfileRequests
+    ] = results;
+
+    console.log(`[EmployeeDashboardDebug] Fetching for empId: ${empId}`);
+    console.log(`[EmployeeDashboardDebug] Found requests: ${recentProfileRequests?.length || 0}`);
 
     let leaveBalance = 0;
     if (leaveMasterData) {
@@ -456,8 +492,10 @@ exports.employeeSummary = async (req, res) => {
         upcomingHolidays.length > 0
           ? `${upcomingHolidays[0].hdesc} (${formatDateDB(upcomingHolidays[0].hdate)})`
           : 'None',
-      notifications: pendingLeaves,
+      notifications: pendingLeaves + pendingProfileRequests,
       lastLogin: user?.previous_login ? formatDateTimeDB(user.previous_login) : 'First Login',
+      pendingProfileRequests,
+      recentProfileRequests,
     });
   } catch (err) {
     console.error('Error fetching employee summary:', err);

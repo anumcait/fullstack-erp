@@ -7,6 +7,7 @@ exports.login = async (req, res) => {
   try {
     const { Op } = require('sequelize');
 
+    console.log(`[LoginDebug] Attempt for: ${username}`);
     const user = await User.findOne({
       where: {
         [Op.or]: [
@@ -23,10 +24,12 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
+      console.log(`[LoginDebug] User not found or inactive: ${username}`);
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
     const match = await bcrypt.compare(password, user.password_hash);
+    console.log(`[LoginDebug] Password match: ${match}`);
     if (!match) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
