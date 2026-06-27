@@ -10,9 +10,11 @@ import {
   FaClipboardList,
   FaCheckCircle,
   FaEye,
+  FaBell,
 } from "react-icons/fa";
 import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider } from "@mui/material";
 import { MdClose } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
 const API = import.meta.env.VITE_API_URL || "";
 
 const formatDate = (dateStr) => {
@@ -37,6 +39,8 @@ const EmployeeDashboard = () => {
     pendingProfileRequests: 0,
     recentProfileRequests: [],
   });
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
+  const navigate = useNavigate();
 
   const empName = localStorage.getItem("empName") || "Employee";
   const empId = localStorage.getItem("empId") || "";
@@ -89,29 +93,29 @@ const EmployeeDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8 transition-all duration-300">
+    <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300">
       {/* Header */}
-      <div className="bg-white shadow-lg rounded-2xl p-6 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-gray-100">
+      <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">
+          <h1 className="text-xl font-black text-slate-800 tracking-tight">
             Welcome, <span className="text-blue-600">{empName}</span>
           </h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            Here’s your personalized HR summary for today
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">
+            Daily Workforce Overview
           </p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition">
+        <div className="flex gap-2">
+          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
             <FaPlaneDeparture /> Apply Leave
           </button>
-          <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg shadow-md transition">
-            <FaDownload /> Download Payslip
+          <button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+            <FaDownload /> Payslip
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fadeIn">
+      {/* Summary Cards - High Density */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 animate-fadeIn">
         {/* Attendance Today */}
         <SummaryCard
           title="Attendance Today"
@@ -175,14 +179,84 @@ const EmployeeDashboard = () => {
           subtitle="Last 30 days"
         />
 
-        {/* Notifications */}
-        <SummaryCard
-          title="Unread Notifications"
-          icon={<FaClipboardList className="text-red-500 text-2xl" />}
-          value={summary.notifications || 0}
-          color="text-red-600"
-          subtitle="HR & Payroll updates"
-        />
+        {/* Notifications - Clickable with breakdown */}
+        <div
+          onClick={() => setNotifPanelOpen(true)}
+          className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 border-2 border-red-200 transition-all group cursor-pointer relative"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-black text-[10px] font-black uppercase tracking-widest">Unread Notifications</h3>
+            <FaBell className={`text-2xl ${summary.notifications > 0 ? 'text-red-500 animate-bounce' : 'text-gray-400'}`} />
+          </div>
+          <p className={`text-xl font-black tracking-tight ${summary.notifications > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+            {summary.notifications || 0}
+          </p>
+          <p className="text-[10px] text-black font-bold mt-0.5">
+            {summary.pendingLeaves > 0 && `${summary.pendingLeaves} leave(s) pending`}
+            {summary.pendingLeaves > 0 && summary.pendingProfileRequests > 0 && ' · '}
+            {summary.pendingProfileRequests > 0 && `${summary.pendingProfileRequests} profile update(s)`}
+            {summary.notifications === 0 && 'All clear!'}
+          </p>
+          {summary.notifications > 0 && (
+            <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
+              {summary.notifications}
+            </span>
+          )}
+        </div>
+
+        {/* Notification Panel Modal */}
+        <Dialog open={notifPanelOpen} onClose={() => setNotifPanelOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+            <span className="font-black text-sm">🔔 Your Notifications</span>
+            <IconButton onClick={() => setNotifPanelOpen(false)} size="small"><MdClose /></IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ p: 0 }}>
+            {summary.notifications === 0 ? (
+              <div className="py-10 text-center text-gray-400">
+                <FaBell size={36} className="mx-auto mb-3 opacity-40" />
+                <p className="font-bold">No pending notifications</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {summary.pendingLeaves > 0 && (
+                  <div
+                    className="flex items-start gap-3 p-4 hover:bg-blue-50 cursor-pointer transition"
+                    onClick={() => { setNotifPanelOpen(false); navigate('/leave'); }}
+                  >
+                    <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <FaClipboardList className="text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm text-slate-800">Pending Leave Request</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{summary.pendingLeaves} application(s) awaiting HR approval.</p>
+                      <p className="text-[10px] text-blue-500 font-bold mt-1">Click to view → Leave Applications</p>
+                    </div>
+                  </div>
+                )}
+                {summary.pendingProfileRequests > 0 && (
+                  <div
+                    className="flex items-start gap-3 p-4 hover:bg-blue-50 cursor-pointer transition"
+                    onClick={() => { setNotifPanelOpen(false); navigate('/profile'); }}
+                  >
+                    <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <FaCheckCircle className="text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm text-slate-800">Profile Update Pending</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{summary.pendingProfileRequests} request(s) pending HR review.</p>
+                      <p className="text-[10px] text-blue-500 font-bold mt-1">Click to view → Profile Settings</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <button onClick={() => setNotifPanelOpen(false)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition">
+              Close
+            </button>
+          </DialogActions>
+        </Dialog>
 
         {/* Last Login */}
         <SummaryCard
@@ -200,11 +274,11 @@ const EmployeeDashboard = () => {
         request={selectedRequest}
       />
 
-      {/* Recent Profile Requests Table */}
-      <div className="mt-12 bg-white rounded-2xl shadow-lg p-6 border border-gray-100 animate-fadeIn">
-        <div className="flex items-center gap-2 mb-6">
-          <FaClipboardList className="text-blue-600 text-xl" />
-          <h2 className="text-xl font-bold text-gray-800">My Recent Profile Requests</h2>
+      {/* Recent Profile Requests Table - Compacted */}
+      <div className="mt-6 bg-white rounded-xl shadow-sm p-4 border border-slate-200 animate-fadeIn">
+        <div className="flex items-center gap-2 mb-4">
+          <FaClipboardList className="text-blue-600 text-lg" />
+          <h2 className="text-lg font-black text-slate-800">My Recent Profile Requests</h2>
         </div>
 
         {summary.recentProfileRequests && summary.recentProfileRequests.length > 0 ? (
@@ -218,25 +292,25 @@ const EmployeeDashboard = () => {
                   <th className="pb-3 font-medium">Actions</th>
                 </tr>
               </thead>
-              <tbody className="text-gray-600 text-sm">
+              <tbody className="text-slate-600 text-xs">
                 {summary.recentProfileRequests.map((req, idx) => (
-                  <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50 transition">
-                    <td className="py-4 font-medium">{formatDate(req.created)}</td>
-                    <td className="py-4 capitalize">{req.request_type || 'Update'}</td>
-                    <td className="py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${req.status === 'Approved' ? 'bg-green-100 text-green-700' :
-                        req.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-orange-100 text-orange-700'
+                  <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50 transition">
+                    <td className="py-2.5 font-bold text-slate-700">{formatDate(req.created)}</td>
+                    <td className="py-2.5 capitalize">{req.request_type || 'Update'}</td>
+                    <td className="py-2.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${req.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
+                        req.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
+                          'bg-amber-100 text-amber-700'
                         }`}>
                         {req.status}
                       </span>
                     </td>
-                    <td className="py-4">
+                    <td className="py-2.5 text-right">
                       <button
                         onClick={() => { setSelectedRequest(req); setDetailsOpen(true); }}
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                        className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 font-bold"
                       >
-                        <FaEye /> Details
+                        <FaEye /> DETAILS
                       </button>
                     </td>
                   </tr>
@@ -327,13 +401,13 @@ const RequestDetailsDialog = ({ open, onClose, request }) => {
 };
 
 const SummaryCard = ({ title, icon, value, color, subtitle }) => (
-  <div className="bg-white rounded-2xl shadow-md hover:shadow-lg p-6 border border-gray-100 transition-transform transform hover:-translate-y-1 hover:scale-[1.02]">
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="text-gray-600 text-sm font-medium">{title}</h3>
-      {icon}
+  <div className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 border border-slate-200 transition-all group">
+    <div className="flex items-center justify-between mb-2">
+      <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{title}</h3>
+      <span className="opacity-70 group-hover:scale-110 transition-transform">{icon}</span>
     </div>
-    <p className={`text-3xl font-semibold ${color}`}>{value}</p>
-    <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+    <p className={`text-xl font-black tracking-tight ${color}`}>{value}</p>
+    <p className="text-[10px] text-slate-400 font-bold mt-0.5">{subtitle}</p>
   </div>
 );
 

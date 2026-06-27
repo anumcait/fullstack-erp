@@ -35,13 +35,13 @@ const COLORS = ["#3B82F6", "#F97316", "#10B981", "#F43F5E", "#8B5CF6"];
 
 // KPI Card component
 const KpiCard = ({ title, icon, value, color, subtitle }) => (
-  <div className="bg-white rounded-2xl shadow-md hover:shadow-lg border border-gray-100 p-6 transition-transform transform hover:-translate-y-1 hover:scale-[1.02] animate-fadeIn">
+  <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-6 flex flex-col group animate-fadeIn transition-all hover:shadow-lg">
     <div className="flex items-center justify-between mb-3">
-      <h3 className="text-gray-600 text-sm font-medium">{title}</h3>
-      {icon}
+      <h3 className="text-black text-base font-black uppercase tracking-widest">{title}</h3>
+      <span className="scale-125 opacity-100 group-hover:scale-150 transition-transform">{icon}</span>
     </div>
-    <p className={`text-3xl font-semibold ${color}`}>{value}</p>
-    <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+    <p className={`text-5xl font-black tracking-tighter ${color}`}>{value}</p>
+    <p className="text-sm text-black font-black mt-1.5">{subtitle}</p>
   </div>
 );
 
@@ -168,37 +168,37 @@ const HRDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8 transition-all duration-300 animate-fadeIn">
+    <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300 animate-fadeIn">
       {/* Header */}
-      <div className="bg-white shadow-lg rounded-2xl p-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-gray-100 animate-fadeIn">
+      <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-slate-200">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            HR Dashboard
+          <h1 className="text-5xl font-black text-black tracking-tighter">
+            HR Dashboard Summary
           </h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            Overview of workforce, attendance, and HR metrics
+          <p className="text-black text-base font-black uppercase tracking-widest mt-2 bg-blue-50/50 inline-block px-3 py-1 rounded">
+            Strategic Workforce Management Hub
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={fetchAll}
-            className="px-4 py-2 bg-white rounded-xl shadow hover:shadow-md flex items-center gap-2 text-slate-700 hover:text-blue-600 transition"
+            className="px-3 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-blue-600 transition"
           >
             <FaChartLine /> Refresh
           </button>
           <button
             onClick={exportCSV}
-            className="px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 flex items-center gap-2"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 flex items-center gap-2 text-xs font-bold"
           >
             <FaFileExport /> Export
           </button>
           <div className="relative">
-            <button className="px-3 py-2 bg-white rounded-xl shadow flex items-center gap-2">
+            <button className="px-2 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600">
               <FaBell />
-              <span className="text-sm text-slate-600">Alerts</span>
+              <span>Alerts</span>
             </button>
             {alerts?.length > 0 && (
-              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-2">
+              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full px-1.5">
                 {alerts.length}
               </div>
             )}
@@ -206,49 +206,49 @@ const HRDashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 animate-fadeIn">
+      {/* KPI Cards - Balanced Density */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8 animate-fadeIn">
         <KpiCard
-          title="Total Employees"
-          icon={<FaUsers className="text-blue-500 text-2xl" />}
+          title="Headcount"
+          icon={<FaUsers size={24} className="text-blue-500" />}
           value={summary.totalEmployees}
           color="text-blue-600"
-          subtitle="All active employees"
+          subtitle="All Active Employees"
         />
         <KpiCard
-          title="Active Today"
-          icon={<FaUserCheck className="text-green-500 text-2xl" />}
+          title="Present Today"
+          icon={<FaUserCheck size={24} className="text-emerald-500" />}
           value={summary.activeToday}
           color="text-green-600"
-          subtitle="Checked-in today"
+          subtitle="Current Attendance"
         />
         <KpiCard
-          title="Pending Leaves"
-          icon={<FaClipboardList className="text-orange-500 text-2xl" />}
+          title="Leaves"
+          icon={<FaClipboardList size={24} className="text-amber-500" />}
           value={summary.pendingLeaves}
           color="text-orange-600"
-          subtitle="Awaiting approval"
+          subtitle="Pending Approvals"
         />
         <KpiCard
-          title="Late Coming"
-          icon={<FaUserClock className="text-red-500 text-2xl" />}
+          title="Late"
+          icon={<FaUserClock size={24} className="text-rose-500" />}
           value={summary.lateComingCount}
           color="text-red-600"
-          subtitle="Last 30 days"
+          subtitle="Last 30 Days"
         />
         <KpiCard
-          title="Profile Requests"
-          icon={<FaClipboardList className="text-purple-500 text-2xl" />}
+          title="Requests"
+          icon={<FaClipboardList size={24} className="text-purple-500" />}
           value={summary.pendingProfileRequests}
           color="text-purple-600"
-          subtitle="Pending approvals"
+          subtitle="Profile Approvals"
         />
         <KpiCard
-          title="Avg Leave / Attrition"
-          icon={<FaUserClock className="text-indigo-500 text-2xl" />}
-          value={`${summary.avgLeaveDuration}d / ${summary.attritionRate}%`}
+          title="Attrition"
+          icon={<FaChartLine size={24} className="text-slate-500" />}
+          value={`${summary.attritionRate}%`}
           color="text-indigo-600"
-          subtitle="Last 30 days"
+          subtitle="Monthly Turnover"
         />
       </div>
 

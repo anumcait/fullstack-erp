@@ -31,7 +31,7 @@ const LeaveDashboard = () => {
   }, [location.state?.reset]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-transparent">
       <ModuleTabBar
         title="Leave Management"
         tabs={TABS}

@@ -102,6 +102,7 @@ app.use('/api/holidays', holidayRoutes);
 app.use('/api/ext-ot', extOtRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/notifications', require('./routes/HR/notificationRoutes'));
 
 // Accounts Module Routes
 app.use('/api/accounts/invoices', require('./routes/Accounts/invoiceRoutes'));

@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import {
-  FaHome, FaChevronDown, FaBars, FaTimes, FaShieldAlt
+  FaHome, FaChevronDown, FaBars, FaTimes, FaShieldAlt, FaBell
 } from 'react-icons/fa';
-import { FiSettings, FiUser, FiShield } from 'react-icons/fi';
+import { FiSettings, FiUser, FiShield, FiBell, FiCheckCircle, FiInbox } from 'react-icons/fi';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SecurityIcon from '@mui/icons-material/Security';
 import PersonIcon from '@mui/icons-material/Person';
@@ -21,7 +21,10 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userPhoto, setUserPhoto] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const settingsRef = useRef(null);
+  const notifRef = useRef(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,6 +33,9 @@ const Header = () => {
     const handleClickOutside = (event) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {
         setIsSettingsOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setIsNotifOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -60,18 +66,66 @@ const Header = () => {
         console.error('Error fetching user photo:', err);
       }
     };
+    const fetchNotifications = async () => {
+      const empId = localStorage.getItem('empId');
+      if (!empId) return;
+      try {
+        const res = await axios.get(`${API}/api/notifications`, {
+          params: { empid: empId },
+          withCredentials: true
+        });
+        setNotifications(res.data || []);
+      } catch (err) {
+        console.error('Error fetching notifications:', err);
+      }
+    };
+
     fetchUserPhoto();
+    fetchNotifications();
+
+    // Refresh notifications every 2 minutes
+    const interval = setInterval(fetchNotifications, 120000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('empName');
-    localStorage.removeItem('userPermissions');
+    localStorage.clear();
     navigate('/');
   };
 
-  const toggleSettings = () => setIsSettingsOpen(!isSettingsOpen);
+  const toggleSettings = () => {
+    setIsSettingsOpen(!isSettingsOpen);
+    setIsNotifOpen(false);
+  };
+
+  const toggleNotif = () => {
+    setIsNotifOpen(!isNotifOpen);
+    setIsSettingsOpen(false);
+  };
+
+  const markAsRead = async (id) => {
+    // Always update UI immediately
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    // For virtual notifications, no API call needed
+    if (String(id).startsWith('virt-')) return;
+    try {
+      await axios.put(`${API}/api/notifications/${id}/read`, {}, { withCredentials: true });
+    } catch (err) {
+      console.error('Error marking as read:', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const empId = localStorage.getItem('empId');
+    try {
+      await axios.post(`${API}/api/notifications/read-all`, { empid: empId }, { withCredentials: true });
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
 
@@ -433,6 +487,92 @@ const Header = () => {
           </div>
 
           <div className="action-icons">
+            {/* Notification Bell */}
+            <div className="notif-wrapper" style={{ position: 'relative' }} ref={notifRef}>
+              <button
+                onClick={toggleNotif}
+                title="Notifications"
+                style={{
+                  position: 'relative',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.15)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: '8px',
+                  color: unreadCount > 0 ? '#fbbf24' : '#ffffff',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <FaBell style={{ animation: unreadCount > 0 ? 'bellRing 1s ease infinite' : 'none' }} />
+                {unreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    background: '#ef4444',
+                    color: 'white',
+                    fontSize: '9px',
+                    fontWeight: '800',
+                    height: '16px',
+                    minWidth: '16px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid #0b3c91',
+                    padding: '0 3px',
+                  }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {isNotifOpen && (
+                <div className="notif-dropdown">
+                  <div className="dropdown-header">
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <button onClick={markAllAsRead} className="mark-all-btn">Mark all as read</button>
+                    )}
+                  </div>
+                  <div className="notif-list">
+                    {notifications.length > 0 ? (
+                      notifications.map(n => (
+                        <div
+                          key={n.id}
+                          className={`notif-item ${!n.isRead ? 'unread' : ''}`}
+                          onClick={() => {
+                            if (!n.isRead) markAsRead(n.id);
+                            if (n.link) navigate(n.link);
+                            setIsNotifOpen(false);
+                          }}
+                        >
+                          <div className="notif-icon-circle">
+                            <FiBell />
+                          </div>
+                          <div className="notif-content">
+                            <p className="notif-title">{n.title}</p>
+                            <p className="notif-msg">{n.message}</p>
+                            <span className="notif-time">{new Date(n.createdAt).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="notif-empty">
+                        <FiInbox size={32} />
+                        <p>No new notifications</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="settings-wrapper" style={{ position: 'relative' }} ref={settingsRef}>
               <button
                 className={`icon-btn ${isSettingsOpen ? 'active' : ''}`}
