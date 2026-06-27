@@ -21,7 +21,7 @@
   position: relative;
   justify-content: center;
   align-items: center;
-  
+
 }
 
 .tab-header {
@@ -42,7 +42,7 @@
 }
 
 .logo {
-  margin-top:32px;
+  margin-top: 32px;
   width: 160px;
   margin-bottom: 5px;
 }
@@ -111,11 +111,36 @@
   padding: 15px 0;
   background-color: #fff;
   font-size: 15px;
-  margin-top: auto; /* <-- this is critical */
+  margin-top: auto;
+  /* <-- this is critical */
   width: 100%;
 }
 
 .footer .powered {
   color: red;
   font-weight: bold;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-8px);
+  }
+
+  50% {
+    transform: translateX(8px);
+  }
+
+  75% {
+    transform: translateX(-8px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
 }

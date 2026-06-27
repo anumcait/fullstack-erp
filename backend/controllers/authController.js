@@ -29,13 +29,23 @@ exports.login = async (req, res) => {
     }
 
     const match = await bcrypt.compare(password, user.password_hash);
-    console.log(`[LoginDebug] Password match: ${match}`);
     if (!match) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      const newAttempts = (user.failed_attempts || 0) + 1;
+      await user.update({
+        failed_attempts: newAttempts,
+        // Optional: you could add a 'locked_until' column here for strict time-based blocking
+      });
+
+      console.log(`[LoginDebug] Password mismatch for: ${username}. Attempts: ${newAttempts}`);
+
+      if (newAttempts >= 5) {
+        return res.status(401).json({ message: 'Account locked due to too many failed attempts. Please contact HR or use Forgot Password.' });
+      }
+      return res.status(401).json({ message: 'The password you entered is incorrect.' });
     }
 
-    // Save session info
-    req.session.user = {
+    // Success - Regenerate session to prevent session fixation
+    const userData = {
       id: user.id,
       username: user.username,
       empid: user.empid,
@@ -44,16 +54,26 @@ exports.login = async (req, res) => {
       ename: user.employee?.ename || 'Guest'
     };
 
-    // Update login metadata - save local time instead of UTC
-    const now = new Date();
-    const localTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
-    await user.update({
-      previous_login: user.last_login,
-      last_login: localTime,
-      login_count: user.login_count + 1
-    });
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({ message: 'Internal server error during login' });
+      }
 
-    res.json({ message: 'Login successful', user: req.session.user });
+      req.session.user = userData;
+
+      // Update login metadata
+      const now = new Date();
+      const localTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+      user.update({
+        previous_login: user.last_login,
+        last_login: localTime,
+        login_count: user.login_count + 1,
+        failed_attempts: 0 // Reset on successful login
+      });
+
+      res.json({ message: 'Login successful', user: userData });
+    });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ message: 'Internal server error' });
@@ -69,5 +89,93 @@ exports.logout = (req, res) => {
     res.clearCookie('connect.sid');
     res.json({ message: 'Logged out successfully' });
   });
+};
+
+exports.forgotPassword = async (req, res) => {
+  const { identifier } = req.body;
+  console.log(`[AUTH] Forgot Password request received for identifier: "${identifier}"`);
+
+  try {
+    const { Op } = require('sequelize');
+
+    // Find user by username, empid, or linked employee emails
+    const user = await User.findOne({
+      include: [{
+        model: EmployeeMaster,
+        as: 'employee',
+        required: false
+      }],
+      where: {
+        [Op.or]: [
+          { username: { [Op.iLike]: identifier } },
+          { empid: isNaN(identifier) ? -1 : parseInt(identifier) },
+          { '$employee.cadd_email$': { [Op.iLike]: identifier } },
+          { '$employee.padd_email$': { [Op.iLike]: identifier } }
+        ],
+        is_active: true
+      }
+    });
+
+    if (!user) {
+      console.log(`[AUTH] Recovery failed: No active account found for identifier "${identifier}"`);
+      return res.status(404).json({ message: 'No registered account found with that ID or Email.' });
+    }
+
+    // In a real app, generate OTP and send via Email/SMS
+    const dummyOtp = "1234";
+    console.log(`\n**************************************************`);
+    console.log(`[PASSWORD RECOVERY SYSTEM]`);
+    console.log(`User found: ${user.username} (Emp ID: ${user.empid})`);
+    console.log(`Associated Email: ${user.employee?.cadd_email || 'N/A'}`);
+    console.log(`Recovery Code: ${dummyOtp}`);
+    console.log(`**************************************************\n`);
+
+    res.json({
+      message: `A recovery code has been sent to ${user.employee?.cadd_email || user.username || 'your registered contact'}.`
+    });
+  } catch (err) {
+    console.error('[AUTH] Forgot password error:', err);
+    res.status(500).json({ message: 'Failed to process request due to a server error.' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { identifier, newPassword } = req.body;
+  try {
+    const { Op } = require('sequelize');
+    const user = await User.findOne({
+      include: [{
+        model: EmployeeMaster,
+        as: 'employee',
+        required: false
+      }],
+      where: {
+        [Op.or]: [
+          { username: { [Op.iLike]: identifier } },
+          { empid: isNaN(identifier) ? -1 : parseInt(identifier) },
+          { '$employee.cadd_email$': { [Op.iLike]: identifier } },
+          { '$employee.padd_email$': { [Op.iLike]: identifier } }
+        ]
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await user.update({
+      password_hash: hashedPassword,
+      password_changed_at: new Date(),
+      failed_attempts: 0
+    });
+
+    res.json({ message: 'Password reset successfully.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Failed to reset password.' });
+  }
 };
 
