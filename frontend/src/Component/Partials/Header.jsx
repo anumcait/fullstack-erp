@@ -6,6 +6,7 @@ import { FiSettings, FiUser, FiShield, FiBell, FiCheckCircle, FiInbox } from 're
 import LogoutIcon from '@mui/icons-material/Logout';
 import SecurityIcon from '@mui/icons-material/Security';
 import PersonIcon from '@mui/icons-material/Person';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import { Avatar } from '@mui/material';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -508,7 +509,8 @@ const Header = () => {
                   transition: 'all 0.2s',
                 }}
               >
-                <FaBell style={{ animation: unreadCount > 0 ? 'bellRing 1s ease infinite' : 'none' }} />
+
+                <NotificationsIcon style={{ animation: unreadCount > 0 ? 'bellRing 1s ease infinite' : 'none' }} />
                 {unreadCount > 0 && (
                   <span style={{
                     position: 'absolute',
@@ -540,6 +542,7 @@ const Header = () => {
                       <button onClick={markAllAsRead} className="mark-all-btn">Mark all as read</button>
                     )}
                   </div>
+
                   <div className="notif-list">
                     {notifications.length > 0 ? (
                       notifications.map(n => (
