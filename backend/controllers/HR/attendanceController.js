@@ -1,4 +1,4 @@
-const { Attendance, EmployeeMaster, LeaveApplication, WoffApplication, OnDutyApplication, ShiftSchedule, Holiday, LeaveMaster, EmpSalary } = require('../../models');
+const { Attendance, EmployeeMaster, LeaveApplication, LeaveDetails, WoffApplication, OnDutyApplication, ShiftSchedule, Holiday, LeaveMaster, EmpSalary, ExtOt } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
 
 const formatDateForQuery = (dateStr) => {
@@ -11,7 +11,7 @@ exports.saveAttendance = async (req, res) => {
   try {
     let attendanceData = req.body;
     const attDate = formatDateForQuery(attendanceData.att_date);
-    
+
     // Safety Check: Verify employee is active
     if (attendanceData.empid) {
       const emp = await EmployeeMaster.findByPk(attendanceData.empid);
@@ -170,15 +170,31 @@ exports.saveBulkAttendance = async (req, res) => {
     const attendanceList = req.body;
     const empLateCount = {};
 
+    // Optimize database requests: Fetch all relevant shift schedules in a single query
+    const empIds = [...new Set(attendanceList.map(a => a.empid).filter(Boolean))];
+    const dates = [...new Set(attendanceList.map(a => formatDateForQuery(a.att_date)).filter(Boolean))];
+
+    let shiftSchedules = [];
+    if (empIds.length > 0 && dates.length > 0) {
+      shiftSchedules = await ShiftSchedule.findAll({
+        where: {
+          empid: empIds,
+          shift_date: dates
+        }
+      });
+    }
+
+    const scheduleMap = {};
+    shiftSchedules.forEach(s => {
+      const formattedDate = formatDateForQuery(s.shift_date);
+      scheduleMap[`${s.empid}_${formattedDate}`] = s;
+    });
+
     for (const att of attendanceList) {
       const attDateFormatted = formatDateForQuery(att.att_date);
+      const shiftSchedule = scheduleMap[`${att.empid}_${attDateFormatted}`];
+
       if (att.in_time && att.empid && attDateFormatted) {
-        const shiftSchedule = await ShiftSchedule.findOne({
-          where: {
-            empid: att.empid,
-            shift_date: attDateFormatted
-          }
-        });
         const shiftStart = shiftSchedule?.shift_start_time || '09:00:00';
         const graceMins = 0;
         const calculatedLate = calculateLateHrs(att.in_time, shiftStart, graceMins);
@@ -216,12 +232,6 @@ exports.saveBulkAttendance = async (req, res) => {
           att.ot_hrs = calculateOTHrs(att.out_time, shiftSchedule.shift_end_time, shiftStart, att.in_time);
         }
       } else if (att.out_time && att.empid && attDateFormatted) {
-        const shiftSchedule = await ShiftSchedule.findOne({
-          where: {
-            empid: att.empid,
-            shift_date: attDateFormatted
-          }
-        });
         let shiftEndTime = shiftSchedule?.shift_end_time || '17:30';
         if (getTimeMins(shiftEndTime) === 1080) shiftEndTime = '17:30';
 
@@ -268,9 +278,10 @@ exports.getAttendance = async (req, res) => {
       include: [{
         model: EmployeeMaster,
         as: 'employee',
+        attributes: ['empid', 'ename', 'deptname'],
         required: false
       }],
-      order: [['att_date', 'ASC']]
+      order: [['att_date', 'ASC'], ['empid', 'ASC']]
     });
 
     res.json(data);
@@ -468,9 +479,12 @@ exports.getMusterRoll = async (req, res) => {
     const startDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
     const endDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
 
-    const whereEmployees = {};
+    const whereEmployees = { is_active: true };
     if (empid && empid !== '') whereEmployees.empid = parseInt(empid);
-    const employees = await EmployeeMaster.findAll({ where: whereEmployees });
+    const employees = await EmployeeMaster.findAll({
+      where: whereEmployees,
+      order: [['empid', 'ASC']]
+    });
 
     const holidays = await Holiday.findAll({
       where: { yr: String(yearNum) }
@@ -488,24 +502,25 @@ exports.getMusterRoll = async (req, res) => {
       woffDatesByEmp[w.empid].push(w.woff_date);
     });
 
-    const leaveApps = await LeaveApplication.findAll({
+    const leaveDetailsList = await LeaveDetails.findAll({
       where: {
         [Sequelize.Op.or]: [
-          { from_date: { [Sequelize.Op.between]: [startDate, endDate] } },
-          { to_date: { [Sequelize.Op.between]: [startDate, endDate] } }
+          { frmdt: { [Sequelize.Op.between]: [startDate, endDate] } },
+          { todate: { [Sequelize.Op.between]: [startDate, endDate] } }
         ],
-        status: { [Sequelize.Op.in]: [1, 2] }
+        c_hr_app_status: 'Approved'
       }
     });
     const leaveDatesByEmp = {};
-    leaveApps.forEach(l => {
-      if (!leaveDatesByEmp[l.empid]) leaveDatesByEmp[l.empid] = {};
+    leaveDetailsList.forEach(l => {
+      const empId = l.empno;
+      if (!leaveDatesByEmp[empId]) leaveDatesByEmp[empId] = {};
       const ltype = l.leave_type || 'EL';
-      if (!leaveDatesByEmp[l.empid][ltype]) leaveDatesByEmp[l.empid][ltype] = [];
-      let curr = new Date(l.from_date);
-      const end = new Date(l.to_date);
+      if (!leaveDatesByEmp[empId][ltype]) leaveDatesByEmp[empId][ltype] = [];
+      let curr = new Date(l.frmdt);
+      const end = new Date(l.todate);
       while (curr <= end) {
-        leaveDatesByEmp[l.empid][ltype].push(curr.toISOString().split('T')[0]);
+        leaveDatesByEmp[empId][ltype].push(curr.toISOString().split('T')[0]);
         curr.setDate(curr.getDate() + 1);
       }
     });
@@ -522,6 +537,7 @@ exports.getMusterRoll = async (req, res) => {
       scheduleMap[s.empid][dateKey] = s;
     });
 
+    const silenceCheck = async () => { };
     const attendanceData = await Attendance.findAll({
       where: {
         att_date: { [Sequelize.Op.between]: [startDate, endDate] }
@@ -533,6 +549,17 @@ exports.getMusterRoll = async (req, res) => {
       attendanceMap[a.empid][a.att_date] = a;
     });
 
+    const extOtDataList = await ExtOt.findAll({
+      where: {
+        ot_date: { [Sequelize.Op.between]: [startDate, endDate] }
+      }
+    });
+    const extOtMap = {};
+    extOtDataList.forEach(e => {
+      if (!extOtMap[e.empid]) extOtMap[e.empid] = {};
+      extOtMap[e.empid][e.ot_date] = e;
+    });
+
     const musterData = [];
 
     for (const emp of employees) {
@@ -541,11 +568,12 @@ exports.getMusterRoll = async (req, res) => {
       const empAttendance = attendanceMap[empId] || {};
       const empWoffs = woffDatesByEmp[empId] || [];
       const empLeaves = leaveDatesByEmp[empId] || {};
+      const empExtOt = extOtMap[empId] || {};
 
       const monthlyData = {
         empid: empId,
         ename: emp.ename,
-        department: emp.department,
+        department: emp.deptname || emp.department || '-',
         days: []
       };
 
@@ -558,7 +586,7 @@ exports.getMusterRoll = async (req, res) => {
         const schedule = empSchedule[currentDate];
         const attendance = empAttendance[currentDate];
         const isHoliday = holidayDates.includes(currentDate);
-        const isWoff = empWoffs.includes(currentDate);
+        const isWoff = empWoffs.includes(currentDate) || dayOfWeek === 0;
 
         let leaveType = null;
         for (const [ltype, dates] of Object.entries(empLeaves)) {
@@ -573,14 +601,24 @@ exports.getMusterRoll = async (req, res) => {
         let otHrs = 0;
         let lopDays = 0;
 
+        const extOt = empExtOt[currentDate];
+        if (extOt) {
+          if (!inTime && extOt.in_time) inTime = extOt.in_time;
+          if (!outTime && extOt.out_time) outTime = extOt.out_time;
+        }
+
         if (isHoliday) {
           if (inTime || outTime) {
-            dayStatus = 'Holiday+OT';
+            dayStatus = 'Holiday'; // Show as Holiday
             totalHoliday++;
-            const shiftStart = schedule?.shift_start_time || '09:00';
-            const shiftEnd = schedule?.shift_end_time || '17:30';
-            if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
-            else if (inTime) otHrs = 8;
+            if (extOt && Number(extOt.app_status) >= 1) {
+              otHrs = parseFloat(extOt.ot_hrs || 0);
+            } else {
+              const shiftStart = schedule?.shift_start_time || '09:00';
+              const shiftEnd = schedule?.shift_end_time || '17:30';
+              if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+              else if (inTime) otHrs = 8;
+            }
             totalOTHrs += otHrs;
           } else {
             dayStatus = 'Holiday';
@@ -588,12 +626,16 @@ exports.getMusterRoll = async (req, res) => {
           }
         } else if (isWoff) {
           if (inTime || outTime) {
-            dayStatus = 'W-Off+OT';
+            dayStatus = 'W-Off'; // Show as W-Off (Weekly Off)
             totalWoff++;
-            const shiftStart = schedule?.shift_start_time || '09:00';
-            const shiftEnd = schedule?.shift_end_time || '17:30';
-            if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
-            else if (inTime) otHrs = 8;
+            if (extOt && Number(extOt.app_status) >= 1) {
+              otHrs = parseFloat(extOt.ot_hrs || 0);
+            } else {
+              const shiftStart = schedule?.shift_start_time || '09:00';
+              const shiftEnd = schedule?.shift_end_time || '17:30';
+              if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+              else if (inTime) otHrs = 8;
+            }
             totalOTHrs += otHrs;
           } else {
             dayStatus = 'W-Off';
@@ -608,14 +650,31 @@ exports.getMusterRoll = async (req, res) => {
           // Auto-fix legacy 18:00 records
           if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30';
 
-          if (inTime || outTime) {
-            dayStatus = 'Present';
-            totalPresent++;
-
+          if (inTime || outTime || attendance?.status === 'P' || attendance?.status === 'Present') {
             if (inTime) lateHrs = calculateLateHrs(inTime, shiftStart);
             if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
 
-            if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+            // Half-day detection: compare actual working hours vs shift duration
+            if (inTime && outTime) {
+              const workedMins = getTimeMins(outTime) - getTimeMins(inTime);
+              const shiftMins = getTimeMins(shiftEnd) - getTimeMins(shiftStart);
+              const halfShiftMins = shiftMins / 2;
+
+              if (workedMins > 0 && workedMins <= halfShiftMins) {
+                dayStatus = 'Half Day';
+                totalPresent += 0.5;
+                lopDays = 0.5;
+              } else {
+                dayStatus = 'Present';
+                totalPresent++;
+                if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+              }
+            } else {
+              dayStatus = 'Present';
+              totalPresent++;
+              if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+            }
+
             totalLateHrs += lateHrs;
             totalOTHrs += otHrs;
           } else {
@@ -912,24 +971,24 @@ exports.bulkApproveOT = async (req, res) => {
 exports.getLateReport = async (req, res) => {
   try {
     const { month, year, lateOnly } = req.query;
-    
+
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
-    
+
     const where = {
       att_date: { [Op.between]: [startDate, endDate] }
     };
-    
+
     if (lateOnly) {
       where.late_hrs = { [Op.gt]: 0 };
     }
-    
+
     const attendanceData = await Attendance.findAll({
       where,
       include: [{ model: EmployeeMaster, as: 'employee', attributes: ['ename', 'deptname'] }],
       order: [['att_date', 'ASC'], ['empid', 'ASC']]
     });
-    
+
     const result = attendanceData.map(r => ({
       att_date: r.att_date,
       empid: r.empid,
@@ -942,7 +1001,7 @@ exports.getLateReport = async (req, res) => {
       late_hrs: r.late_hrs,
       late_ded: r.late_ded || 0
     }));
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error fetching late report:', error);

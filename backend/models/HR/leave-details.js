@@ -1,6 +1,11 @@
 // models/leave-details.js
 module.exports = (sequelize, DataTypes) => {
   const LeaveDetails = sequelize.define('LeaveDetails', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     lno: DataTypes.BIGINT,
     empno: DataTypes.BIGINT,
     frmdt: DataTypes.DATE,

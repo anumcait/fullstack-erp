@@ -64,7 +64,8 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'emp_attendance',
     timestamps: false,
     indexes: [
-      { unique: true, fields: ['empid', 'att_date'] }
+      { unique: true, fields: ['empid', 'att_date'] },
+      { fields: ['att_date'] }
     ]
   });
 

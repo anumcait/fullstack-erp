@@ -180,6 +180,24 @@ const OTApproval = () => {
     }
   };
 
+  const handleInPlaceEdit = (rowId, field, val) => {
+    setData(prev => prev.map(row => {
+      if (row.id === rowId) {
+        return { ...row, [field]: val };
+      }
+      return row;
+    }));
+  };
+
+  const handleExtInPlaceEdit = (rowId, val) => {
+    setExtOtData(prev => prev.map(row => {
+      if (row.id === rowId) {
+        return { ...row, ot_hrs: val };
+      }
+      return row;
+    }));
+  };
+
   const getStatusChip = (appStatus, hrStatus) => {
     if (Number(hrStatus) === 1) return <Chip size="small" label="HR Approved" color="success" />;
     if (Number(appStatus) === 1) return <Chip size="small" label="Manager Approved" color="primary" />;
@@ -333,67 +351,264 @@ const OTApproval = () => {
         )}
 
         {viewMode === "attendance" ? (
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "#1976d2", color: "white" }}>
-                <TableCell sx={{ color: "white" }}><Checkbox size="small" sx={{ color: "white" }} /></TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Dept</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actual OT</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Manager OT</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>HR OT</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Status</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={9} align="center">Loading...</TableCell></TableRow>
-              ) : data.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center">No records found</TableCell></TableRow>
-              ) : (
-                data.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell><Checkbox size="small" /></TableCell>
-                    <TableCell>{row.date}</TableCell>
-                    <TableCell>{row.empid}</TableCell>
-                    <TableCell>{row.empName}</TableCell>
-                    <TableCell>{row.department}</TableCell>
-                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold" }}>{Number(row.ot_hrs || 0).toFixed(2)}</TableCell>
-                    <TableCell>{row.app_ot || "-"}</TableCell>
-                    <TableCell>{row.hr_app_ot || "-"}</TableCell>
-                    <TableCell>{getStatusChip(row.app_status, row.hr_app_status)}</TableCell>
-                    <TableCell>
-                      <IconButton size="small" color="primary" onClick={() => openEditDialog(row)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-            {data.length > 0 && !loading && (
-              <TableFooter>
-                <TableRow sx={{ bgcolor: "#f5f5f5" }}>
-                  <TableCell colSpan={5} sx={{ fontWeight: "bold", textAlign: "right" }}>Total (All):<br />Total (Approved):</TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold" }}>
-                    {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.ot_hrs), 0))}
+          <>
+            <Box sx={{ mb: 2, p: 1.5, bgcolor: "#f8f9fa", borderRadius: 1, border: "1px solid #e0e0e0", display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#333' }}>Quick Actions:</Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                color="primary"
+                onClick={() => {
+                  setData(prev => prev.map(row => {
+                    if (Number(row.app_status || 0) === 0) {
+                      return { ...row, app_ot: Number(row.ot_hrs || 0).toFixed(2) };
+                    }
+                    return row;
+                  }));
+                  showToast("Copied calculated OT to Manager OT for all pending rows", "info");
+                }}
+              >
+                Copy Actual → Manager OT
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                color="success"
+                onClick={() => {
+                  setData(prev => prev.map(row => {
+                    if (Number(row.hr_app_status || 0) === 0) {
+                      return { ...row, hr_app_ot: row.app_ot || Number(row.ot_hrs || 0).toFixed(2) };
+                    }
+                    return row;
+                  }));
+                  showToast("Copied Manager/Actual OT to HR OT for all pending rows", "info");
+                }}
+              >
+                Copy → HR OT
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                color="primary"
+                onClick={async () => {
+                  const pendingRows = data.filter(row => Number(row.app_status || 0) === 0);
+                  if (pendingRows.length === 0) {
+                    showToast("No pending records to approve", "warning");
+                    return;
+                  }
+                  const records = pendingRows.map(row => ({
+                    id: row.id,
+                    app_status: 1,
+                    app_ot: row.app_ot || formatHoursToOT(row.ot_hrs),
+                    app_remarks: row.app_remarks || "Bulk Manager Approved"
+                  }));
+                  try {
+                    await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/ot-approval/bulk`, { records });
+                    showToast(`Manager approved all ${records.length} records`, "success");
+                    setSelectedRows([]);
+                    fetchData();
+                  } catch (err) {
+                    showToast(getErrorMessage(err, "Bulk Manager approval failed"), "error");
+                  }
+                }}
+              >
+                Manager Approve All
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                color="success"
+                onClick={async () => {
+                  const managerApproved = data.filter(row => Number(row.app_status || 0) === 1 && Number(row.hr_app_status || 0) === 0);
+                  if (managerApproved.length === 0) {
+                    showToast("No manager-approved records pending HR approval", "warning");
+                    return;
+                  }
+                  const records = managerApproved.map(row => ({
+                    id: row.id,
+                    app_status: row.app_status,
+                    app_ot: row.app_ot,
+                    hr_app_status: 1,
+                    hr_app_ot: row.hr_app_ot || row.app_ot || formatHoursToOT(row.ot_hrs),
+                    hr_remarks: row.hr_remarks || "Bulk HR Approved"
+                  }));
+                  try {
+                    await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/ot-approval/bulk`, { records });
+                    showToast(`HR approved all ${records.length} records`, "success");
+                    setSelectedRows([]);
+                    fetchData();
+                  } catch (err) {
+                    showToast(getErrorMessage(err, "Bulk HR approval failed"), "error");
+                  }
+                }}
+              >
+                HR Approve All
+              </Button>
+            </Box>
+
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#1976d2", color: "white" }}>
+                  <TableCell sx={{ color: "white" }}>
+                    <Checkbox
+                      size="small"
+                      sx={{ color: "white" }}
+                      checked={data.length > 0 && selectedRows.length === data.length}
+                      indeterminate={selectedRows.length > 0 && selectedRows.length < data.length}
+                      onChange={handleSelectAll}
+                    />
                   </TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "#1976d2" }}>
-                    {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.app_ot), 0))}<br />
-                    <span style={{ color: "green" }}>{formatHoursToOT(data.reduce((sum, r) => sum + (r.app_status === 1 || r.hr_app_status === 1 ? parseOTToHours(r.app_ot || r.ot_hrs) : 0), 0))}</span>
-                  </TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "#1976d2" }}>
-                    {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.hr_app_ot), 0))}<br />
-                    <span style={{ color: "green" }}>{formatHoursToOT(data.reduce((sum, r) => sum + (r.hr_app_status === 1 ? parseOTToHours(r.hr_app_ot || r.app_ot || r.ot_hrs) : 0), 0))}</span>
-                  </TableCell>
-                  <TableCell colSpan={2}></TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Dept</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actual OT</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Manager OT</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>HR OT</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Status</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
                 </TableRow>
-              </TableFooter>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={10} align="center">Loading...</TableCell></TableRow>
+                ) : data.length === 0 ? (
+                  <TableRow><TableCell colSpan={10} align="center">No records found</TableCell></TableRow>
+                ) : (
+                  data.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <Checkbox
+                          size="small"
+                          checked={selectedRows.includes(row.id)}
+                          onChange={() => handleSelectRow(row.id)}
+                        />
+                      </TableCell>
+                      <TableCell>{row.date}</TableCell>
+                      <TableCell>{row.empid}</TableCell>
+                      <TableCell>{row.empName}</TableCell>
+                      <TableCell>{row.department}</TableCell>
+                      <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold" }}>{Number(row.ot_hrs || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        {Number(row.app_status || 0) === 1 ? (
+                          row.app_ot || "-"
+                        ) : (
+                          <TextField
+                            size="small"
+                            variant="standard"
+                            value={row.app_ot !== undefined && row.app_ot !== null ? row.app_ot : ""}
+                            placeholder={Number(row.ot_hrs || 0).toFixed(2)}
+                            onChange={(e) => handleInPlaceEdit(row.id, "app_ot", e.target.value)}
+                            sx={{ width: 80, '& input': { textAlign: 'center', fontFamily: 'monospace' } }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {Number(row.hr_app_status || 0) === 1 ? (
+                          row.hr_app_ot || "-"
+                        ) : (
+                          <TextField
+                            size="small"
+                            variant="standard"
+                            value={row.hr_app_ot !== undefined && row.hr_app_ot !== null ? row.hr_app_ot : ""}
+                            placeholder={row.app_ot || Number(row.ot_hrs || 0).toFixed(2)}
+                            onChange={(e) => handleInPlaceEdit(row.id, "hr_app_ot", e.target.value)}
+                            sx={{ width: 80, '& input': { textAlign: 'center', fontFamily: 'monospace' } }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>{getStatusChip(row.app_status, row.hr_app_status)}</TableCell>
+                      <TableCell>
+                        <IconButton size="small" color="primary" onClick={() => openEditDialog(row)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+              {data.length > 0 && !loading && (
+                <TableFooter>
+                  <TableRow sx={{ bgcolor: "#f5f5f5" }}>
+                    <TableCell colSpan={5} sx={{ fontWeight: "bold", textAlign: "right" }}>Total (All):<br />Total (Approved):</TableCell>
+                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold" }}>
+                      {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.ot_hrs), 0))}
+                    </TableCell>
+                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "#1976d2" }}>
+                      {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.app_ot), 0))}<br />
+                      <span style={{ color: "green" }}>{formatHoursToOT(data.reduce((sum, r) => sum + (Number(r.app_status) === 1 || Number(r.hr_app_status) === 1 ? parseOTToHours(r.app_ot || r.ot_hrs) : 0), 0))}</span>
+                    </TableCell>
+                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "#1976d2" }}>
+                      {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.hr_app_ot), 0))}<br />
+                      <span style={{ color: "green" }}>{formatHoursToOT(data.reduce((sum, r) => sum + (Number(r.hr_app_status) === 1 ? parseOTToHours(r.hr_app_ot || r.app_ot || r.ot_hrs) : 0), 0))}</span>
+                    </TableCell>
+                    <TableCell colSpan={2}></TableCell>
+                  </TableRow>
+                </TableFooter>
+              )}
+            </Table>
+
+            {selectedRows.length > 0 && (
+              <Box sx={{ p: 2, display: "flex", gap: 2, alignItems: "center", bgcolor: "#e3f2fd", borderTop: "2px solid #1976d2", mt: 2, mb: 1, borderRadius: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: "bold" }}>{selectedRows.length} selected</Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={async () => {
+                    const pendingRows = selectedRows.map(id => data.find(r => r.id === id)).filter(Boolean);
+                    const records = pendingRows.map(row => ({
+                      id: row.id,
+                      app_status: 1,
+                      app_ot: row.app_ot || formatHoursToOT(row.ot_hrs),
+                      app_remarks: row.app_remarks || "Bulk Manager Approved"
+                    }));
+                    try {
+                      await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/ot-approval/bulk`, { records });
+                      showToast(`Manager approved ${records.length} records`, "success");
+                      setSelectedRows([]);
+                      fetchData();
+                    } catch (err) {
+                      showToast(getErrorMessage(err, "Bulk Manager approval failed"), "error");
+                    }
+                  }}
+                >
+                  Manager Approve Selected
+                </Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  onClick={async () => {
+                    const pendingRows = selectedRows.map(id => data.find(r => r.id === id)).filter(Boolean);
+                    const managerApproved = pendingRows.filter(row => Number(row.app_status || 0) === 1);
+                    if (managerApproved.length === 0) {
+                      showToast("Select rows that are approved by Manager first", "warning");
+                      return;
+                    }
+                    const records = managerApproved.map(row => ({
+                      id: row.id,
+                      app_status: row.app_status,
+                      app_ot: row.app_ot,
+                      hr_app_status: 1,
+                      hr_app_ot: row.hr_app_ot || row.app_ot || formatHoursToOT(row.ot_hrs),
+                      hr_remarks: row.hr_remarks || "Bulk HR Approved"
+                    }));
+                    try {
+                      await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/ot-approval/bulk`, { records });
+                      showToast(`HR approved ${records.length} records`, "success");
+                      setSelectedRows([]);
+                      fetchData();
+                    } catch (err) {
+                      showToast(getErrorMessage(err, "Bulk HR approval failed"), "error");
+                    }
+                  }}
+                >
+                  HR Approve Selected
+                </Button>
+              </Box>
             )}
-          </Table>
+          </>
         ) : (
           <Table size="small">
             <TableHead>
@@ -424,8 +639,19 @@ const OTApproval = () => {
                     <TableCell>{row.ename}</TableCell>
                     <TableCell>{row.in_time || "-"}</TableCell>
                     <TableCell>{row.out_time || "-"}</TableCell>
-                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold" }}>
-                      {Number(row.ot_hrs || 0).toFixed(2)}
+                    <TableCell>
+                      {Number(row.app_status || 0) === 0 ? (
+                        <TextField
+                          size="small"
+                          variant="standard"
+                          value={row.ot_hrs !== undefined && row.ot_hrs !== null ? row.ot_hrs : ""}
+                          placeholder="0.00"
+                          onChange={(e) => handleExtInPlaceEdit(row.id, e.target.value)}
+                          sx={{ width: 80, '& input': { textAlign: 'center', fontFamily: 'monospace', fontWeight: 'bold' } }}
+                        />
+                      ) : (
+                        <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{Number(row.ot_hrs || 0).toFixed(2)}</span>
+                      )}
                     </TableCell>
                     <TableCell>{row.ot_type}</TableCell>
                     <TableCell>{getExtStatusChip(row.app_status)}</TableCell>
@@ -444,7 +670,7 @@ const OTApproval = () => {
                   <TableCell colSpan={6} sx={{ fontWeight: "bold", textAlign: "right" }}>Total (All):<br />Total (HR Approved):</TableCell>
                   <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "#1976d2" }}>
                     {formatHoursToOT(extOtData.reduce((sum, r) => sum + parseOTToHours(r.ot_hrs), 0))}<br />
-                    <span style={{ color: "green" }}>{formatHoursToOT(extOtData.reduce((sum, r) => sum + (r.app_status === 2 ? parseOTToHours(r.ot_hrs) : 0), 0))}</span>
+                    <span style={{ color: "green" }}>{formatHoursToOT(extOtData.reduce((sum, r) => sum + (Number(r.app_status) === 2 ? parseOTToHours(r.ot_hrs) : 0), 0))}</span>
                   </TableCell>
                   <TableCell colSpan={3}></TableCell>
                 </TableRow>

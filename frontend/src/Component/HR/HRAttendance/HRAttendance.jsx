@@ -3,7 +3,7 @@ import {
   Box, Card, CardContent, Typography, Grid, TextField, Select, MenuItem,
   Button, Table, TableHead, TableBody, TableRow, TableCell,
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip,
-  FormControl, InputLabel
+  FormControl, InputLabel, CircularProgress, TablePagination
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -13,6 +13,8 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { getErrorMessage } from "../../../utils/errorUtils";
@@ -40,9 +42,14 @@ const HRAttendance = () => {
   const [bulkToDate, setBulkToDate] = useState("");
   const [bulkMonth, setBulkMonth] = useState(new Date().getMonth() + 1);
   const [bulkYear, setBulkYear] = useState(new Date().getFullYear());
-  const [bulkEmployeeFilter, setBulkEmployeeFilter] = useState("");
+  // bulkEmployeeFilter removed — filtering is done via bulkEmployeeId and bulkDepartmentFilter
   const [bulkDepartmentFilter, setBulkDepartmentFilter] = useState("");
   const [bulkEmployeeId, setBulkEmployeeId] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [saving, setSaving] = useState(false);
+  const [quickInTime, setQuickInTime] = useState("");
+  const [quickOutTime, setQuickOutTime] = useState("");
 
   useEffect(() => {
     fetchEmployees();
@@ -51,6 +58,8 @@ const HRAttendance = () => {
   const filteredAttendanceData = attendanceData.filter(row => row.status !== 'W' && row.status !== 'H');
 
   useEffect(() => {
+    // Guard: don't fetch range filter if dates are incomplete
+    if (filterType === "range" && (!fromDate || !toDate)) return;
     fetchData();
   }, [filterType, selectedEmployee, dataDate, fromDate, toDate, month, year]);
 
@@ -84,15 +93,17 @@ const HRAttendance = () => {
 
   const fetchEmployees = async () => {
     try {
+      // Fetch only active employees (default filterType in backend)
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
       setEmployeeList(res.data);
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Error fetching employees:", err);
     }
   };
 
   const openBulkEntry = async () => {
     setLoading(true);
+    setPage(0);
     try {
       let dates = [];
       if (bulkFilterType === "date") {
@@ -130,14 +141,8 @@ const HRAttendance = () => {
       });
 
       let filteredEmployees = employeeList;
-      if (bulkEmployeeFilter) {
-        filteredEmployees = filteredEmployees.filter(e => 
-          String(e.empid).includes(bulkEmployeeFilter) || 
-          e.ename.toLowerCase().includes(bulkEmployeeFilter.toLowerCase())
-        );
-      }
       if (bulkDepartmentFilter) {
-        filteredEmployees = filteredEmployees.filter(e => e.department === bulkDepartmentFilter);
+        filteredEmployees = filteredEmployees.filter(e => (e.deptname || e.department) === bulkDepartmentFilter);
       }
       if (bulkEmployeeId) {
         filteredEmployees = filteredEmployees.filter(e => e.empid == bulkEmployeeId);
@@ -150,7 +155,7 @@ const HRAttendance = () => {
           rows.push({
             empid: emp.empid,
             ename: emp.ename,
-            department: emp.department,
+            department: emp.deptname || emp.department,
             att_date: date,
             shift: existing?.shift || "G",
             status: existing?.status || "P",
@@ -204,25 +209,54 @@ const HRAttendance = () => {
     setBulkRows(rows);
   };
 
+  // Quick-action helpers for faster bulk entry
+  const setAllStatus = (status) => {
+    setBulkRows(prev => prev.map(r => ({ ...r, status })));
+    showToast(`All rows set to ${status}`, "info");
+  };
+
+  const applyQuickInTime = () => {
+    if (!quickInTime) { showToast("Enter In Time first", "warning"); return; }
+    setBulkRows(prev => prev.map(r => (r.status === "P" || r.status === "Present") ? { ...r, in_time: quickInTime } : r));
+    showToast(`In Time ${quickInTime} applied to all Present rows`, "info");
+  };
+
+  const applyQuickOutTime = () => {
+    if (!quickOutTime) { showToast("Enter Out Time first", "warning"); return; }
+    setBulkRows(prev => prev.map(r => (r.status === "P" || r.status === "Present") ? { ...r, out_time: quickOutTime } : r));
+    showToast(`Out Time ${quickOutTime} applied to all Present rows`, "info");
+  };
+
   const saveBulk = async () => {
+    setSaving(true);
     try {
-      const list = bulkRows.map(r => ({
-        empid: r.empid,
-        att_date: r.att_date,
-        shift: r.shift,
-        status: r.status,
-        in_time: r.in_time || null,
-        out_time: r.out_time || null,
-        late_hrs: r.late_hrs || 0,
-        ot_hrs: r.ot_hrs || 0
-      }));
+      const list = bulkRows
+        .filter(r => r.hasExisting || r.in_time || r.out_time || (r.status !== 'P' && r.status !== 'Present'))
+        .map(r => ({
+          empid: r.empid,
+          att_date: r.att_date,
+          shift: r.shift,
+          status: r.status,
+          in_time: r.in_time || null,
+          out_time: r.out_time || null,
+          late_hrs: r.late_hrs || 0,
+          ot_hrs: r.ot_hrs || 0
+        }));
+
+      if (list.length === 0) {
+        showToast("No new or modified attendance records to save", "info");
+        setBulkDialog(false);
+        return;
+      }
 
       await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/save-bulk`, list);
-      showToast("Attendance saved successfully", "success");
+      showToast(`${list.length} records saved successfully`, "success");
       setBulkDialog(false);
       fetchData();
     } catch (err) {
       showToast(getErrorMessage(err, "Error saving attendance"), "error");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -284,8 +318,8 @@ const HRAttendance = () => {
       <Box sx={{ bgcolor: "#1976d2", color: "white", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="h6">HR Attendance</Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button 
-            variant={filterType === "date" ? "contained" : "outlined"} 
+          <Button
+            variant={filterType === "date" ? "contained" : "outlined"}
             color={filterType === "date" ? "secondary" : "inherit"}
             size="small"
             onClick={() => setFilterType("date")}
@@ -293,7 +327,7 @@ const HRAttendance = () => {
           >
             Date
           </Button>
-          <Button 
+          <Button
             variant={filterType === "range" ? "contained" : "outlined"}
             color={filterType === "range" ? "secondary" : "inherit"}
             size="small"
@@ -302,7 +336,7 @@ const HRAttendance = () => {
           >
             Range
           </Button>
-          <Button 
+          <Button
             variant={filterType === "month" ? "contained" : "outlined"}
             color={filterType === "month" ? "secondary" : "inherit"}
             size="small"
@@ -489,20 +523,20 @@ const HRAttendance = () => {
                     <Chip size="small" label={row.shift} variant="outlined" />
                   </TableCell>
                   <TableCell>
-                    <Chip 
-                      size="small" 
-                      label={row.status} 
-                      color={getStatusColor(row.status)} 
+                    <Chip
+                      size="small"
+                      label={row.status}
+                      color={getStatusColor(row.status)}
                     />
                   </TableCell>
                   <TableCell sx={{ fontFamily: "monospace" }}>{row.in_time || "-"}</TableCell>
                   <TableCell sx={{ fontFamily: "monospace" }}>{row.out_time || "-"}</TableCell>
                   <TableCell>
                     {row.late_hrs > 0 ? (
-                      <Chip 
-                        size="small" 
-                        label={row.late_hrs < 1 
-                          ? `${Math.round(row.late_hrs * 100)} mins` 
+                      <Chip
+                        size="small"
+                        label={row.late_hrs < 1
+                          ? `${Math.round(row.late_hrs * 100)} mins`
                           : parseFloat(row.late_hrs).toFixed(2)
                         }
                         color={row.late_exempt ? "success" : "warning"}
@@ -529,8 +563,11 @@ const HRAttendance = () => {
       </CardContent>
 
       <Dialog open={bulkDialog} onClose={() => setBulkDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: "#1976d2", color: "white" }}>
-          Bulk Attendance Entry - {dataDate}
+        <DialogTitle sx={{ bgcolor: "#1976d2", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>Bulk Attendance Entry</span>
+          {bulkRows.length > 0 && (
+            <Chip label={`${bulkRows.length} rows`} size="small" sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "white", fontWeight: "bold" }} />
+          )}
         </DialogTitle>
         <DialogContent sx={{ p: 2 }}>
           <Box sx={{ mb: 2, p: 2, bgcolor: "#f8f9fa", borderRadius: 1, display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
@@ -540,6 +577,7 @@ const HRAttendance = () => {
                 value={bulkFilterType}
                 label="Filter Type"
                 onChange={(e) => setBulkFilterType(e.target.value)}
+                disabled={loading}
               >
                 <MenuItem value="date">Single Date</MenuItem>
                 <MenuItem value="range">Date Range</MenuItem>
@@ -555,6 +593,7 @@ const HRAttendance = () => {
                 InputLabelProps={{ shrink: true }}
                 value={bulkDataDate}
                 onChange={(e) => setBulkDataDate(e.target.value)}
+                disabled={loading}
               />
             )}
 
@@ -567,6 +606,7 @@ const HRAttendance = () => {
                   InputLabelProps={{ shrink: true }}
                   value={bulkFromDate}
                   onChange={(e) => setBulkFromDate(e.target.value)}
+                  disabled={loading}
                 />
                 <TextField
                   size="small"
@@ -575,6 +615,7 @@ const HRAttendance = () => {
                   InputLabelProps={{ shrink: true }}
                   value={bulkToDate}
                   onChange={(e) => setBulkToDate(e.target.value)}
+                  disabled={loading}
                 />
               </>
             )}
@@ -587,6 +628,7 @@ const HRAttendance = () => {
                     value={bulkMonth}
                     label="Month"
                     onChange={(e) => setBulkMonth(e.target.value)}
+                    disabled={loading}
                   >
                     {months.map((m) => (
                       <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
@@ -599,6 +641,7 @@ const HRAttendance = () => {
                     value={bulkYear}
                     label="Year"
                     onChange={(e) => setBulkYear(e.target.value)}
+                    disabled={loading}
                   >
                     {years.map((y) => (
                       <MenuItem key={y} value={y}>{y}</MenuItem>
@@ -614,6 +657,7 @@ const HRAttendance = () => {
                 value={bulkEmployeeId}
                 label="Employee"
                 onChange={(e) => setBulkEmployeeId(e.target.value)}
+                disabled={loading}
               >
                 <MenuItem value="">All Employees</MenuItem>
                 {employeeList.map((emp) => (
@@ -630,18 +674,52 @@ const HRAttendance = () => {
                 value={bulkDepartmentFilter}
                 label="Department"
                 onChange={(e) => setBulkDepartmentFilter(e.target.value)}
+                disabled={loading}
               >
                 <MenuItem value="">All Departments</MenuItem>
-                {[...new Set(employeeList.map(e => e.department).filter(Boolean))].map(dept => (
+                {[...new Set(employeeList.map(e => e.deptname || e.department).filter(Boolean))].map(dept => (
                   <MenuItem key={dept} value={dept}>{dept}</MenuItem>
                 ))}
               </Select>
             </FormControl>
 
-            <Button variant="contained" size="small" startIcon={<FilterListIcon />} onClick={openBulkEntry}>
-              Apply Filter
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<FilterListIcon />}
+              onClick={openBulkEntry}
+              disabled={loading}
+            >
+              {loading ? "Applying..." : "Apply Filter"}
             </Button>
           </Box>
+
+          {/* Quick Actions Toolbar */}
+          {!loading && bulkRows.length > 0 && (
+            <Box sx={{ mb: 2, p: 1.5, bgcolor: "#e3f2fd", borderRadius: 1, display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
+              <Typography variant="caption" sx={{ fontWeight: "bold", color: "#1565c0", mr: 1 }}>⚡ Quick Actions:</Typography>
+              <Button size="small" variant="outlined" color="success" startIcon={<CheckCircleIcon />} onClick={() => setAllStatus("P")}>
+                All Present
+              </Button>
+              <Button size="small" variant="outlined" color="error" onClick={() => setAllStatus("A")}>
+                All Absent
+              </Button>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, ml: 1, borderLeft: "1px solid #90caf9", pl: 1.5 }}>
+                <AccessTimeIcon fontSize="small" color="primary" />
+                <TextField size="small" type="time" label="In Time" InputLabelProps={{ shrink: true }} value={quickInTime} onChange={(e) => setQuickInTime(e.target.value)} sx={{ width: 130 }} />
+                <Button size="small" variant="contained" color="primary" onClick={applyQuickInTime} disabled={!quickInTime}>
+                  Apply
+                </Button>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, borderLeft: "1px solid #90caf9", pl: 1.5 }}>
+                <AccessTimeIcon fontSize="small" color="primary" />
+                <TextField size="small" type="time" label="Out Time" InputLabelProps={{ shrink: true }} value={quickOutTime} onChange={(e) => setQuickOutTime(e.target.value)} sx={{ width: 130 }} />
+                <Button size="small" variant="contained" color="primary" onClick={applyQuickOutTime} disabled={!quickOutTime}>
+                  Apply
+                </Button>
+              </Box>
+            </Box>
+          )}
 
           <Box sx={{ maxHeight: "60vh", overflow: "auto" }}>
             <Table size="small" stickyHeader>
@@ -657,46 +735,86 @@ const HRAttendance = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {bulkRows.map((row, idx) => (
-                  <TableRow key={idx} sx={{ bgcolor: row.hasExisting ? "#e8f5e9" : "#fff" }}>
-                    <TableCell>{row.att_date}</TableCell>
-                    <TableCell>{row.empid}</TableCell>
-                    <TableCell>{row.ename}</TableCell>
-                    <TableCell>
-                      <Select size="small" value={row.shift} onChange={(e) => updateRow(idx, "shift", e.target.value)}>
-                        <MenuItem value="G">G (General)</MenuItem>
-                        <MenuItem value="A">A (Morning)</MenuItem>
-                        <MenuItem value="B">B (Afternoon)</MenuItem>
-                        <MenuItem value="W">W (Weekly Off)</MenuItem>
-                        <MenuItem value="H">H (Holiday)</MenuItem>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Select size="small" value={row.status} onChange={(e) => updateRow(idx, "status", e.target.value)}>
-                        <MenuItem value="P">Present</MenuItem>
-                        <MenuItem value="A">Absent</MenuItem>
-                        <MenuItem value="W">Weekly Off</MenuItem>
-                        <MenuItem value="H">Holiday</MenuItem>
-                        <MenuItem value="L">Leave</MenuItem>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <TextField size="small" type="time" value={row.in_time} onChange={(e) => updateRow(idx, "in_time", e.target.value)} />
-                    </TableCell>
-                    <TableCell>
-                      <TextField size="small" type="time" value={row.out_time} onChange={(e) => updateRow(idx, "out_time", e.target.value)} />
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                      <CircularProgress size={40} sx={{ mb: 2 }} />
+                      <Typography variant="body1" color="text.secondary">
+                        Loading bulk data, please wait...
+                      </Typography>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : bulkRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3, color: "#777" }}>
+                      No matching records found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  bulkRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, localIdx) => {
+                    const globalIdx = page * rowsPerPage + localIdx;
+                    return (
+                      <TableRow key={globalIdx} sx={{ bgcolor: row.hasExisting ? "#e8f5e9" : "#fff" }}>
+                        <TableCell>{row.att_date}</TableCell>
+                        <TableCell>{row.empid}</TableCell>
+                        <TableCell>{row.ename}</TableCell>
+                        <TableCell>
+                          <Select size="small" value={row.shift} onChange={(e) => updateRow(globalIdx, "shift", e.target.value)}>
+                            <MenuItem value="G">G (General)</MenuItem>
+                            <MenuItem value="A">A (Morning)</MenuItem>
+                            <MenuItem value="B">B (Afternoon)</MenuItem>
+                            <MenuItem value="W">W (Weekly Off)</MenuItem>
+                            <MenuItem value="H">H (Holiday)</MenuItem>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select size="small" value={row.status} onChange={(e) => updateRow(globalIdx, "status", e.target.value)}>
+                            <MenuItem value="P">Present</MenuItem>
+                            <MenuItem value="A">Absent</MenuItem>
+                            <MenuItem value="W">Weekly Off</MenuItem>
+                            <MenuItem value="H">Holiday</MenuItem>
+                            <MenuItem value="L">Leave</MenuItem>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <TextField size="small" type="time" value={row.in_time} onChange={(e) => updateRow(globalIdx, "in_time", e.target.value)} />
+                        </TableCell>
+                        <TableCell>
+                          <TextField size="small" type="time" value={row.out_time} onChange={(e) => updateRow(globalIdx, "out_time", e.target.value)} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </Box>
+
+          {!loading && bulkRows.length > 0 && (
+            <TablePagination
+              component="div"
+              count={bulkRows.length}
+              page={page}
+              onPageChange={(e, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[25, 50, 100, 200]}
+            />
+          )}
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setBulkDialog(false)}>Cancel</Button>
-          <Button variant="contained" startIcon={<SaveIcon />} onClick={saveBulk}>
-            Save All
-          </Button>
+        <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
+          <Typography variant="body2" color="text.secondary">
+            {bulkRows.length > 0 ? `${bulkRows.filter(r => r.status === "P").length} Present, ${bulkRows.filter(r => r.status === "A").length} Absent, ${bulkRows.filter(r => ["W", "H", "L"].includes(r.status)).length} Other` : ""}
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button onClick={() => setBulkDialog(false)} disabled={loading || saving}>Cancel</Button>
+            <Button variant="contained" startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />} onClick={saveBulk} disabled={loading || saving}>
+              {saving ? `Saving ${bulkRows.length} records...` : "Save All"}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
 

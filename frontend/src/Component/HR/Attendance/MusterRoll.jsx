@@ -27,6 +27,43 @@ const MusterRoll = () => {
   const [weekOffset, setWeekOffset] = useState(0);
   const [viewMode, setViewMode] = useState(0);
 
+  const topScrollRef = React.useRef(null);
+  const tableContainerRef = React.useRef(null);
+  const [contentWidth, setContentWidth] = useState(0);
+
+  // Sync scroll width dynamically
+  useEffect(() => {
+    if (tableContainerRef.current) {
+      // Small timeout to guarantee DOM is updated before measurement
+      setTimeout(() => {
+        if (tableContainerRef.current) {
+          setContentWidth(tableContainerRef.current.scrollWidth);
+        }
+      }, 100);
+    }
+  }, [musterData, loading]);
+
+  const isScrollingRef = React.useRef(false);
+
+  const handleScroll = (source, target) => {
+    if (isScrollingRef.current) {
+      isScrollingRef.current = false;
+      return;
+    }
+    if (source.current && target.current) {
+      isScrollingRef.current = true;
+      target.current.scrollLeft = source.current.scrollLeft;
+    }
+  };
+
+  const handleTopScroll = () => {
+    handleScroll(topScrollRef, tableContainerRef);
+  };
+
+  const handleTableScroll = () => {
+    handleScroll(tableContainerRef, topScrollRef);
+  };
+
   useEffect(() => {
     fetchMusterData();
   }, [filters.month, filters.year, filters.empid]);
@@ -71,37 +108,44 @@ const MusterRoll = () => {
 
   const daysInMonth = new Date(filters.year, filters.month, 0).getDate();
 
+  const getShortStatus = (status) => {
+    if (!status) return "";
+    if (status === 'Present') return "P";
+    if (status === 'Half Day') return "F";
+    if (status === 'Absent') return "A";
+    if (status.startsWith('W-Off')) return "W";
+    if (status.startsWith('Holiday')) return "H";
+    return status; // CL, EL, SL, ML, Leave etc.
+  };
+
   const getStatusColor = (status) => {
     const colors = {
-      'Present': { bg: '#c8e6c9', text: '#2e7d32' },
-      'Absent': { bg: '#ffcdd2', text: '#c62828' },
-      'Holiday': { bg: '#bbdefb', text: '#1565c0' },
-      'W-Off': { bg: '#e1bee7', text: '#7b1fa2' },
-      'EL': { bg: '#fff9c4', text: '#f57f17' },
-      'SL': { bg: '#ffccbc', text: '#e64a19' },
-      'CL': { bg: '#b2dfdb', text: '#00695c' },
-      'ML': { bg: '#f8bbd0', text: '#c2185b' }
+      'P': { bg: '#e8f5e9', text: '#2e7d32' },
+      'F': { bg: '#fff3e0', text: '#e65100' },
+      'A': { bg: '#ffebee', text: '#c62828' },
+      'H': { bg: '#e3f2fd', text: '#1565c0' },
+      'W': { bg: '#f3e5f5', text: '#7b1fa2' },
+      'CL': { bg: '#fff8e1', text: '#f57f17' },
+      'EL': { bg: '#e0f2f1', text: '#00695c' },
+      'SL': { bg: '#fbe9e7', text: '#d84315' },
+      'Leave': { bg: '#fffde7', text: '#f57f17' },
+      'L': { bg: '#fffde7', text: '#f57f17' }
     };
-    return colors[status] || { bg: '#f5f5f5', text: '#666' };
+    const short = getShortStatus(status);
+    return colors[short] || { bg: '#ffffff', text: '#333' };
   };
 
-  const getDaysForWeek = () => {
-    const startDay = weekOffset * 7 + 1;
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const dayNum = startDay + i;
-      if (dayNum <= daysInMonth) days.push(dayNum);
-    }
-    return days;
-  };
-
-  const weekDays = getDaysForWeek();
   const filteredData = musterData;
 
   return (
-    <Card sx={{ m: 2 }}>
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
-        <Typography variant="h6">Muster Roll</Typography>
+    <Card sx={{ m: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0', bgcolor: '#f8f9fa' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2' }}>Muster Roll</Typography>
+          {filteredData.length > 0 && (
+            <Chip label={`${filteredData.length} Employees`} size="small" color="primary" sx={{ fontWeight: 'bold' }} />
+          )}
+        </Box>
         <Box>
           <Button variant="outlined" startIcon={<DownloadIcon />} size="small" sx={{ mr: 1 }}>
             Export
@@ -112,9 +156,9 @@ const MusterRoll = () => {
         </Box>
       </Box>
 
-      <CardContent>
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={2}>
+      <CardContent sx={{ p: 2 }}>
+        <Grid container spacing={2} sx={{ mb: 3, alignItems: 'center' }}>
+          <Grid item xs={12} sm={3} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Month</InputLabel>
               <Select name="month" value={filters.month} onChange={handleFilterChange} label="Month">
@@ -122,10 +166,10 @@ const MusterRoll = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={2}>
+          <Grid item xs={12} sm={2} md={1.5}>
             <TextField fullWidth size="small" label="Year" name="year" type="number" value={filters.year} onChange={handleFilterChange} />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm={4} md={3}>
             <FormControl fullWidth size="small">
               <InputLabel>Employee</InputLabel>
               <Select name="empid" value={filters.empid} onChange={handleFilterChange} label="Employee" displayEmpty>
@@ -136,122 +180,234 @@ const MusterRoll = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={5} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+          <Grid item xs={12} sm={3} md={5.5} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
             <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={fetchMusterData}>
               Refresh
             </Button>
             <Button variant="outlined" size="small" startIcon={<ClearIcon />} onClick={clearFilters}>
               Clear
             </Button>
-            <IconButton onClick={() => setWeekOffset(weekOffset - 1)} disabled={weekOffset <= -5}>
-              <NavigateBeforeIcon />
-            </IconButton>
-            <Typography variant="body2">
-              Week {Math.abs(weekOffset) + 1}
-            </Typography>
-            <IconButton onClick={() => setWeekOffset(weekOffset + 1)} disabled={weekOffset >= Math.ceil(daysInMonth / 7) - 1}>
-              <NavigateNextIcon />
-            </IconButton>
           </Grid>
         </Grid>
 
         {loading && <LinearProgress sx={{ mb: 2 }} />}
 
         {filteredData.length === 0 ? (
-          <Typography align="center" color="textSecondary" sx={{ py: 4 }}>
-            No muster data found
+          <Typography align="center" color="textSecondary" sx={{ py: 6, border: '1px dashed #ccc', borderRadius: 1 }}>
+            No muster data found. Try selecting June (Jun) to view bulk entries.
           </Typography>
         ) : (
-          <Table size="small" sx={{ border: '1px solid #ccc' }}>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-                <TableCell sx={{ width: 120 }}><strong>Emp ID</strong></TableCell>
-                <TableCell sx={{ width: 150 }}><strong>Name</strong></TableCell>
-                <TableCell sx={{ width: 80 }}><strong>Dept</strong></TableCell>
-                {weekDays.map(d => (
-                  <TableCell key={d} align="center" sx={{ minWidth: 50 }}>
-                    <strong>{d}</strong>
-                  </TableCell>
-                ))}
-                <TableCell align="center" sx={{ minWidth: 60 }}><strong>P</strong></TableCell>
-                <TableCell align="center" sx={{ minWidth: 60 }}><strong>A</strong></TableCell>
-                <TableCell align="center" sx={{ minWidth: 60 }}><strong>L</strong></TableCell>
-                <TableCell align="center" sx={{ minWidth: 60 }}><strong>W</strong></TableCell>
-                <TableCell align="center" sx={{ minWidth: 60 }}><strong>H</strong></TableCell>
-                <TableCell align="center" sx={{ minWidth: 60 }}><strong>LOP</strong></TableCell>
-                <TableCell align="center" sx={{ minWidth: 60 }}><strong>Late</strong></TableCell>
-                <TableCell align="center" sx={{ minWidth: 60 }}><strong>OT</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredData.map((emp) => {
-                const summary = emp.summary || {};
-                return (
-                  <TableRow key={emp.empid} hover>
-                    <TableCell>{emp.empid}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="500">{emp.ename}</Typography>
-                    </TableCell>
-                    <TableCell>{emp.department || '-'}</TableCell>
-                    {weekDays.map(d => {
-                      const dayData = (emp.days || [])[d - 1];
-                      const color = dayData ? getStatusColor(dayData.status) : { bg: '#f5f5f5', text: '#999' };
+          <>
+            {/* Top scrollbar synchronization helper */}
+            <Box
+              ref={topScrollRef}
+              onScroll={handleTopScroll}
+              sx={{
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                width: '100%',
+                height: '14px',
+                mb: 1,
+                bgcolor: '#f5f5f5',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                '&::-webkit-scrollbar': {
+                  height: '8px'
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#ccc',
+                  borderRadius: '4px'
+                }
+              }}
+            >
+              <Box sx={{ width: `${contentWidth}px`, height: '1px' }} />
+            </Box>
+
+            <Box
+              ref={tableContainerRef}
+              onScroll={handleTableScroll}
+              sx={{ overflowX: 'auto', width: '100%', border: '1px solid #ccc', borderRadius: '4px' }}
+            >
+              <Table size="small" sx={{
+                minWidth: 1200,
+                borderCollapse: 'collapse',
+                '& th, & td': {
+                  border: '1px solid #ccc',
+                  padding: '4px 6px',
+                  fontSize: '11px'
+                }
+              }}>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#eeeeee' }}>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', width: 40 }}>S.No</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', width: 60 }}>ID No</TableCell>
+                    <TableCell rowSpan={2} sx={{ fontWeight: 'bold', minWidth: 160 }}>Name</TableCell>
+                    <TableCell rowSpan={2} sx={{ fontWeight: 'bold', minWidth: 120 }}>Dept</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', width: 45 }}></TableCell>
+                    {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => (
+                      <TableCell key={d} align="center" sx={{ fontWeight: 'bold', minWidth: 40, bgcolor: '#f5f5f5' }}>
+                        {String(d).padStart(2, '0')}-{months.find(m => m.value === filters.month)?.label.substring(0, 3)}
+                      </TableCell>
+                    ))}
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#e8f5e9', minWidth: 50 }}>PRESENT</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#e3f2fd', minWidth: 40 }}>H/W</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#fff8e1', minWidth: 40 }}>CL</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#e0f2f1', minWidth: 40 }}>EL</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#ffcdd2', minWidth: 45 }}>LOP</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#eceff1', minWidth: 50 }}>TOTAL</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#fff9c4', minWidth: 45 }}>OT</TableCell>
+                    <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', minWidth: 50 }}>Bonus</TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: '#eeeeee' }}>
+                    {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+                      const dayOfWeek = new Date(filters.year, filters.month - 1, d).getDay();
+                      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayOfWeek];
+                      const isSunday = dayOfWeek === 0;
                       return (
-                        <TableCell
-                          key={d}
-                          sx={{ bgcolor: color.bg, textAlign: 'center', cursor: 'pointer' }}
-                          onClick={() => dayData && console.log('Day details:', dayData)}
-                        >
-                          <Tooltip title={dayData ? `${dayData.status} | In: ${dayData.in_time || '-'} | Out: ${dayData.out_time || '-'}` : ''}>
-                            <Typography variant="body2" sx={{ color: color.text, fontSize: 10, fontWeight: 'bold' }}>
-                              {dayData ? dayData.status.substring(0, 2) : '-'}
-                            </Typography>
-                          </Tooltip>
-                          {dayData?.shift && dayData.shift !== '-' && (
-                            <Typography variant="caption" sx={{ color: color.text, display: 'block', fontSize: 8 }}>
-                              {dayData.shift}
-                            </Typography>
-                          )}
+                        <TableCell key={d} align="center" sx={{
+                          color: isSunday ? '#d32f2f' : 'inherit',
+                          fontWeight: 'bold',
+                          fontSize: '9px',
+                          bgcolor: isSunday ? '#ffebee' : '#f5f5f5'
+                        }}>
+                          {dayName}
                         </TableCell>
                       );
                     })}
-                    <TableCell align="center" sx={{ bgcolor: '#e8f5e9' }}>
-                      <Typography variant="body2" fontWeight="bold" color="success.main">{summary.present || 0}</Typography>
-                    </TableCell>
-                    <TableCell align="center" sx={{ bgcolor: '#ffebee' }}>
-                      <Typography variant="body2" fontWeight="bold" color="error.main">{summary.absent || 0}</Typography>
-                    </TableCell>
-                    <TableCell align="center" sx={{ bgcolor: '#fff8e1' }}>
-                      <Typography variant="body2" fontWeight="bold" color="warning.main">{summary.leave || 0}</Typography>
-                    </TableCell>
-                    <TableCell align="center" sx={{ bgcolor: '#f3e5f5' }}>
-                      <Typography variant="body2" fontWeight="bold" color="secondary.main">{summary.woff || 0}</Typography>
-                    </TableCell>
-                    <TableCell align="center" sx={{ bgcolor: '#e3f2fd' }}>
-                      <Typography variant="body2" fontWeight="bold" color="info.main">{summary.holiday || 0}</Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2">{summary.lop || 0}</Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2">{summary.late_hrs || 0}</Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2">{summary.ot_hrs || 0}</Typography>
-                    </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                </TableHead>
+                <TableBody>
+                  {filteredData.map((emp, idx) => {
+                    const days = emp.days || [];
+                    let presentDays = 0;
+                    let holidays = 0;
+                    let cl = 0;
+                    let el = 0;
+                    let leave = 0;
+                    let woffCount = 0;
+                    let totalOT = 0;
+
+                    days.forEach(day => {
+                      const status = day.status;
+                      const short = getShortStatus(status);
+
+                      if (short === 'P') presentDays++;
+                      else if (short === 'F') presentDays += 0.5;
+                      else if (status === 'Holiday+OT' || status === 'W-Off+OT') presentDays++;
+
+                      if (short === 'H') holidays++;
+                      else if (status === 'Holiday+OT') holidays++;
+
+                      if (short === 'CL') cl++;
+                      else if (short === 'EL') el++;
+                      else if (['SL', 'ML', 'Leave', 'L'].includes(short)) leave++;
+
+                      if (short === 'W') woffCount++;
+                      else if (status === 'W-Off+OT') woffCount++;
+
+                      if (day.ot_hrs) totalOT += Number(day.ot_hrs);
+                    });
+
+                    // Pay Days = Present + Holiday + Weekly Off + Paid Leaves
+                    const totalPaidDays = presentDays + holidays + woffCount + cl + el + leave;
+
+                    return (
+                      <React.Fragment key={emp.empid}>
+                        {/* Row 1: Attendance status */}
+                        <TableRow hover>
+                          <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#fafafa' }}>{idx + 1}</TableCell>
+                          <TableCell rowSpan={2} align="center" sx={{ fontWeight: 'bold', bgcolor: '#fafafa' }}>{emp.empid}</TableCell>
+                          <TableCell rowSpan={2} sx={{ fontWeight: '500', color: '#333', bgcolor: '#fafafa' }}>{emp.ename}</TableCell>
+                          <TableCell rowSpan={2} sx={{ color: 'text.secondary', bgcolor: '#fafafa' }}>{emp.department || '-'}</TableCell>
+                          <TableCell align="center" sx={{
+                            fontWeight: 'bold',
+                            color: '#1565c0',
+                            bgcolor: '#e3f2fd',
+                            verticalAlign: 'middle'
+                          }}>Attn</TableCell>
+
+                          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+                            const dayData = days[d - 1];
+                            const status = dayData ? dayData.status : '';
+                            const short = getShortStatus(status);
+                            const color = getStatusColor(status);
+                            const dayOfWeek = new Date(filters.year, filters.month - 1, d).getDay();
+                            const isSunday = dayOfWeek === 0;
+
+                            return (
+                              <TableCell
+                                key={d}
+                                align="center"
+                                sx={{
+                                  bgcolor: color.bg || (isSunday ? '#fff8e1' : '#ffffff'),
+                                  color: color.text,
+                                  fontWeight: short ? 'bold' : 'normal',
+                                  cursor: 'default'
+                                }}
+                              >
+                                <Tooltip title={dayData && status ? `${status} | In: ${dayData.in_time || '-'} | Out: ${dayData.out_time || '-'}` : ''} arrow>
+                                  <span>{short || '-'}</span>
+                                </Tooltip>
+                              </TableCell>
+                            );
+                          })}
+
+                          <TableCell rowSpan={2} align="center" sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 'bold', fontSize: '12px' }}>{presentDays}</TableCell>
+                          <TableCell rowSpan={2} align="center" sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 'bold', fontSize: '12px' }}>{holidays + woffCount}</TableCell>
+                          <TableCell rowSpan={2} align="center" sx={{ bgcolor: '#fff8e1', color: '#f57f17', fontWeight: 'bold', fontSize: '12px' }}>{cl}</TableCell>
+                          <TableCell rowSpan={2} align="center" sx={{ bgcolor: '#e0f2f1', color: '#00695c', fontWeight: 'bold', fontSize: '12px' }}>{el}</TableCell>
+                          <TableCell rowSpan={2} align="center" sx={{ bgcolor: '#ffcdd2', color: '#c62828', fontWeight: 'bold', fontSize: '12px' }}>{Math.max(0, daysInMonth - (presentDays + holidays + woffCount + cl + el + leave))}</TableCell>
+                          <TableCell rowSpan={2} align="center" sx={{ bgcolor: '#eceff1', color: '#37474f', fontWeight: 'bold', fontSize: '12px' }}>{totalPaidDays}</TableCell>
+                          <TableCell rowSpan={2} align="center" sx={{ bgcolor: '#fff9c4', color: '#f57f17', fontWeight: 'bold', fontSize: '12px' }}>{totalOT > 0 ? totalOT.toFixed(1) : '0.0'}</TableCell>
+                          <TableCell rowSpan={2} align="center" sx={{ fontWeight: '500' }}>-</TableCell>
+                        </TableRow>
+
+                        {/* Row 2: OT hours */}
+                        <TableRow hover>
+                          <TableCell align="center" sx={{
+                            fontWeight: 'bold',
+                            color: '#e65100',
+                            bgcolor: '#fff3e0'
+                          }}>OT</TableCell>
+                          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+                            const dayData = days[d - 1];
+                            const ot = dayData && dayData.ot_hrs ? Number(dayData.ot_hrs) : 0;
+                            const dayOfWeek = new Date(filters.year, filters.month - 1, d).getDay();
+                            const isSunday = dayOfWeek === 0;
+                            return (
+                              <TableCell
+                                key={d}
+                                align="center"
+                                sx={{
+                                  color: '#e65100',
+                                  bgcolor: ot > 0 ? '#ffe0b2' : (isSunday ? '#fffde7' : 'inherit'),
+                                  fontSize: '10px'
+                                }}
+                              >
+                                {ot > 0 ? ot.toFixed(1) : ''}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Box>
+          </>
         )}
 
-        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip label="Present" size="small" sx={{ bgcolor: '#c8e6c9', color: '#2e7d32' }} />
-          <Chip label="Absent" size="small" sx={{ bgcolor: '#ffcdd2', color: '#c62828' }} />
-          <Chip label="Holiday" size="small" sx={{ bgcolor: '#bbdefb', color: '#1565c0' }} />
-          <Chip label="W-Off" size="small" sx={{ bgcolor: '#e1bee7', color: '#7b1fa2' }} />
-          <Chip label="Leave" size="small" sx={{ bgcolor: '#fff9c4', color: '#f57f17' }} />
+        <Box sx={{ mt: 3, display: 'flex', gap: 1, flexWrap: 'wrap', p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0' }}>
+          <Typography variant="body2" sx={{ mr: 1, fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>Legend:</Typography>
+          <Chip label="P: Present" size="small" sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: '500' }} />
+          <Chip label="F: Half Day" size="small" sx={{ bgcolor: '#fff3e0', color: '#e65100', fontWeight: '500' }} />
+          <Chip label="A: Absent" size="small" sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: '500' }} />
+          <Chip label="H: Holiday" size="small" sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: '500' }} />
+          <Chip label="W: Weekly Off" size="small" sx={{ bgcolor: '#f3e5f5', color: '#7b1fa2', fontWeight: '500' }} />
+          <Chip label="CL: Casual Leave" size="small" sx={{ bgcolor: '#fff8e1', color: '#f57f17', fontWeight: '500' }} />
+          <Chip label="EL: Earned Leave" size="small" sx={{ bgcolor: '#e0f2f1', color: '#00695c', fontWeight: '500' }} />
+          <Chip label="SL/ML: Medical/Special Leave" size="small" sx={{ bgcolor: '#fbe9e7', color: '#d84315', fontWeight: '500' }} />
         </Box>
       </CardContent>
     </Card>

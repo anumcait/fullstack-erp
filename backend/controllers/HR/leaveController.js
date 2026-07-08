@@ -346,13 +346,26 @@ const formatLeaveApp = (app) => {
       status: statusStr,
       remarks: app.remarks || "",
       entry: app.ldate,
-      nod: details.length,
-      days: details.map(d => ({
-        date: d.frmdt,
-        dayType: d.daydt || "FULL DAY",
-        type: d.leave_type || "",
-        remarks: d.remarks || ""
-      }))
+      nod: details.reduce((sum, d) => sum + Number(d.nod || 0), 0),
+      days: details.flatMap(d => {
+        const start = new Date(d.frmdt);
+        const end = new Date(d.todate || d.frmdt);
+        const dayType = d.daydt || "FULL DAY";
+        const type = d.leave_type || "";
+        const remarks = d.remarks || "";
+        const result = [];
+        const cur = new Date(start);
+        while (cur <= end) {
+          result.push({
+            date: cur.toISOString().split('T')[0],
+            dayType,
+            type,
+            remarks
+          });
+          cur.setDate(cur.getDate() + 1);
+        }
+        return result.length > 0 ? result : [{ date: d.frmdt, dayType, type, remarks }];
+      })
     };
   } catch (err) {
     console.error("Error formatting leave app:", app.lno, err);
@@ -365,7 +378,7 @@ exports.getPendingLeaveApplications = async (req, res) => {
     const apps = await LeaveApplication.findAll({
       where: { status: 'Pending' },
       include: [
-        { model: LeaveDetails, as: 'leaveDetails', attributes: ['frmdt', 'todate', 'daydt', 'remarks', 'leave_type'] },
+        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'leave_type'] },
         { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance'] }
       ],
       order: [['lno', 'DESC']]
@@ -381,7 +394,7 @@ exports.getAllLeaveApplications = async (req, res) => {
   try {
     const apps = await LeaveApplication.findAll({
       include: [
-        { model: LeaveDetails, as: 'leaveDetails', attributes: ['frmdt', 'todate', 'daydt', 'remarks', 'leave_type'] },
+        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'leave_type'] },
         { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance'] }
       ],
       order: [['lno', 'DESC']]
