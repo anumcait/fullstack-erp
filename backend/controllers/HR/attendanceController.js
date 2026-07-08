@@ -516,11 +516,12 @@ exports.getMusterRoll = async (req, res) => {
       const empId = l.empno;
       if (!leaveDatesByEmp[empId]) leaveDatesByEmp[empId] = {};
       const ltype = l.leave_type || 'EL';
-      if (!leaveDatesByEmp[empId][ltype]) leaveDatesByEmp[empId][ltype] = [];
+      const daydt = l.daydt || 'FULL DAY';
       let curr = new Date(l.frmdt);
       const end = new Date(l.todate);
       while (curr <= end) {
-        leaveDatesByEmp[empId][ltype].push(curr.toISOString().split('T')[0]);
+        const dateKey = curr.toISOString().split('T')[0];
+        leaveDatesByEmp[empId][dateKey] = { type: ltype, daydt: daydt };
         curr.setDate(curr.getDate() + 1);
       }
     });
@@ -588,10 +589,7 @@ exports.getMusterRoll = async (req, res) => {
         const isHoliday = holidayDates.includes(currentDate);
         const isWoff = empWoffs.includes(currentDate) || dayOfWeek === 0;
 
-        let leaveType = null;
-        for (const [ltype, dates] of Object.entries(empLeaves)) {
-          if (dates.includes(currentDate)) leaveType = ltype;
-        }
+        const leaveInfo = empLeaves[currentDate];
 
         let dayStatus = 'Absent';
         let shiftCd = schedule?.shift_cd || '-';
@@ -641,46 +639,67 @@ exports.getMusterRoll = async (req, res) => {
             dayStatus = 'W-Off';
             totalWoff++;
           }
-        } else if (leaveType) {
-          dayStatus = leaveType;
-          totalLeave++;
-        } else if (schedule || attendance) {
+        } else if (leaveInfo || schedule || attendance) {
           const shiftStart = schedule?.shift_start_time || '09:00';
           let shiftEnd = schedule?.shift_end_time || '17:30';
-          // Auto-fix legacy 18:00 records
           if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30';
 
-          if (inTime || outTime || attendance?.status === 'P' || attendance?.status === 'Present') {
+          const hasSwipes = !!(inTime || outTime || attendance?.status === 'P' || attendance?.status === 'Present');
+          if (hasSwipes) {
             if (inTime) lateHrs = calculateLateHrs(inTime, shiftStart);
             if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+            totalLateHrs += lateHrs;
+            totalOTHrs += otHrs;
+          }
 
-            // Half-day detection: compare actual working hours vs shift duration
-            if (inTime && outTime) {
-              const workedMins = getTimeMins(outTime) - getTimeMins(inTime);
-              const shiftMins = getTimeMins(shiftEnd) - getTimeMins(shiftStart);
-              const halfShiftMins = shiftMins / 2;
-
-              if (workedMins > 0 && workedMins <= halfShiftMins) {
-                dayStatus = 'Half Day';
+          if (leaveInfo) {
+            const isHalfDayLeave = leaveInfo.daydt === 'HALF DAY' || leaveInfo.daydt === 'FIRST HALF' || leaveInfo.daydt === 'SECOND HALF';
+            if (isHalfDayLeave) {
+              if (hasSwipes) {
+                // Half-day present + Half-day leave
+                const suffix = leaveInfo.type === 'CL' ? 'C' : leaveInfo.type === 'EL' ? 'E' : 'L';
+                dayStatus = 'F' + suffix; // e.g. FC, FE, FL
                 totalPresent += 0.5;
+                totalLeave += 0.5;
+              } else {
+                // Half-day leave but no swipes (Absent / LOP for the other half)
+                dayStatus = leaveInfo.type;
+                totalLeave += 0.5;
+                totalAbsent += 0.5;
                 lopDays = 0.5;
+              }
+            } else {
+              // Full-day leave
+              dayStatus = leaveInfo.type;
+              totalLeave += 1;
+            }
+          } else {
+            // No leave info
+            if (hasSwipes) {
+              if (inTime && outTime) {
+                const workedMins = getTimeMins(outTime) - getTimeMins(inTime);
+                const shiftMins = getTimeMins(shiftEnd) - getTimeMins(shiftStart);
+                const halfShiftMins = shiftMins / 2;
+
+                if (workedMins > 0 && workedMins <= halfShiftMins) {
+                  dayStatus = 'Half Day';
+                  totalPresent += 0.5;
+                  lopDays = 0.5;
+                } else {
+                  dayStatus = 'Present';
+                  totalPresent++;
+                  if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+                }
               } else {
                 dayStatus = 'Present';
                 totalPresent++;
                 if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
               }
             } else {
-              dayStatus = 'Present';
-              totalPresent++;
-              if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+              dayStatus = 'Absent';
+              totalAbsent++;
+              lopDays = 1;
             }
-
-            totalLateHrs += lateHrs;
-            totalOTHrs += otHrs;
-          } else {
-            dayStatus = 'Absent';
-            totalAbsent++;
-            lopDays = 1;
           }
           totalLop += lopDays;
         }
@@ -699,12 +718,83 @@ exports.getMusterRoll = async (req, res) => {
         });
       }
 
+      // Post-process the Weekly Off (W-Off) sandwich rule
+      for (let i = 0; i < monthlyData.days.length; i++) {
+        if (monthlyData.days[i].status === 'W-Off') {
+          // Find contiguous sequence of W-Offs starting at i
+          let j = i;
+          while (j + 1 < monthlyData.days.length && monthlyData.days[j + 1].status === 'W-Off') {
+            j++;
+          }
+          // Check day before the start
+          const beforeDay = (i > 0) ? monthlyData.days[i - 1] : null;
+          const beforeStatus = beforeDay ? beforeDay.status : 'Present';
+
+          // Check day after the end
+          const afterDay = (j < monthlyData.days.length - 1) ? monthlyData.days[j + 1] : null;
+          const afterStatus = afterDay ? afterDay.status : 'Present';
+
+          // If both sides are 'Absent', all weekly offs in sequence become 'Absent' and LOP
+          if (beforeStatus === 'Absent' && afterStatus === 'Absent') {
+            for (let k = i; k <= j; k++) {
+              monthlyData.days[k].status = 'Absent';
+              monthlyData.days[k].lop = 1;
+            }
+          }
+          // Advance outer loop index past sequence
+          i = j;
+        }
+      }
+
+      // Re-sum the summary totals from post-processed daily status values
+      totalPresent = 0;
+      totalAbsent = 0;
+      totalLeave = 0;
+      totalWoff = 0;
+      totalHoliday = 0;
+      totalLop = 0;
+      totalLateHrs = 0;
+      totalOTHrs = 0;
+
+      monthlyData.days.forEach(d => {
+        const status = d.status;
+        const lop = d.lop || 0;
+
+        if (status === 'Present') {
+          totalPresent++;
+        } else if (status === 'Half Day') {
+          totalPresent += 0.5;
+        } else if (status === 'Absent') {
+          totalAbsent++;
+        } else if (status === 'W-Off') {
+          totalWoff++;
+        } else if (status === 'Holiday') {
+          totalHoliday++;
+        } else if (status === 'FC') {
+          totalPresent += 0.5;
+          totalLeave += 0.5;
+        } else if (status === 'FE') {
+          totalPresent += 0.5;
+          totalLeave += 0.5;
+        } else if (status === 'FL') {
+          totalPresent += 0.5;
+          totalLeave += 0.5;
+        } else {
+          // CL, EL, LOP, SL, etc.
+          totalLeave += 1;
+        }
+
+        totalLop += lop;
+        totalLateHrs += d.late_hrs || 0;
+        totalOTHrs += d.ot_hrs || 0;
+      });
+
       monthlyData.summary = {
-        present: totalPresent,
-        absent: totalAbsent,
-        leave: totalLeave,
-        woff: totalWoff,
-        holiday: totalHoliday,
+        present: Math.round(totalPresent * 100) / 100,
+        absent: Math.round(totalAbsent * 100) / 100,
+        leave: Math.round(totalLeave * 100) / 100,
+        woff: Math.round(totalWoff * 100) / 100,
+        holiday: Math.round(totalHoliday * 100) / 100,
         lop: Math.round(totalLop * 100) / 100,
         late_hrs: Math.round(totalLateHrs * 100) / 100,
         ot_hrs: Math.round(totalOTHrs * 100) / 100

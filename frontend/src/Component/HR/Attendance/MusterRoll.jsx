@@ -115,13 +115,16 @@ const MusterRoll = () => {
     if (status === 'Absent') return "A";
     if (status.startsWith('W-Off')) return "W";
     if (status.startsWith('Holiday')) return "H";
-    return status; // CL, EL, SL, ML, Leave etc.
+    return status; // CL, EL, SL, ML, Leave, FC, FE, FL etc.
   };
 
   const getStatusColor = (status) => {
     const colors = {
       'P': { bg: '#e8f5e9', text: '#2e7d32' },
       'F': { bg: '#fff3e0', text: '#e65100' },
+      'FC': { bg: '#e8f5e9', text: '#e65100' },
+      'FE': { bg: '#e0f2f1', text: '#e65100' },
+      'FL': { bg: '#ffebee', text: '#e65100' },
       'A': { bg: '#ffebee', text: '#c62828' },
       'H': { bg: '#e3f2fd', text: '#1565c0' },
       'W': { bg: '#f3e5f5', text: '#7b1fa2' },
@@ -293,14 +296,18 @@ const MusterRoll = () => {
 
                       if (short === 'P') presentDays++;
                       else if (short === 'F') presentDays += 0.5;
+                      else if (short === 'FC' || short === 'FE' || short === 'FL') presentDays += 0.5;
                       else if (status === 'Holiday+OT' || status === 'W-Off+OT') presentDays++;
 
                       if (short === 'H') holidays++;
                       else if (status === 'Holiday+OT') holidays++;
 
                       if (short === 'CL') cl++;
+                      else if (short === 'FC') cl += 0.5;
                       else if (short === 'EL') el++;
+                      else if (short === 'FE') el += 0.5;
                       else if (['SL', 'ML', 'Leave', 'L'].includes(short)) leave++;
+                      else if (short === 'FL') leave += 0.5;
 
                       if (short === 'W') woffCount++;
                       else if (status === 'W-Off+OT') woffCount++;
