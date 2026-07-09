@@ -8,9 +8,10 @@ import { formatDate } from "../../../utils/dateUtils";
 import { getErrorMessage } from "../../../utils/errorUtils";
 import {
   TextField, Typography, Button, Grid, Box, Paper,
-  Stack, IconButton, Divider, InputAdornment, FormControl, InputLabel, Select, MenuItem
+  Stack, IconButton, Divider, InputAdornment, FormControl, InputLabel, Select, MenuItem, Tooltip
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import EmployeeSelectDialog from "../Employee/EmployeeSelectDialog";
 
@@ -390,7 +391,12 @@ const LeaveApplication = ({ onClose }) => {
       <div className="p-6 max-w-6xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={700}>Leave Application</Typography>
-          <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
+          <Box>
+            <Tooltip title="Refresh">
+              <IconButton onClick={resetForm}><RefreshIcon /></IconButton>
+            </Tooltip>
+            <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
+          </Box>
         </Stack>
 
         {/* Standardized Header: Left aligned ID and Date with Time */}

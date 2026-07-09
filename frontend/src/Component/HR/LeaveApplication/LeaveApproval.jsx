@@ -356,15 +356,6 @@ function sortDays(days) {
       showToast(getErrorMessage(err, "Rejection failed"), "error");
     }
   };
-  const [leaveType, setLeaveType] = useState('');
-
-  // Handle the change event when selecting CL or EL
-  const handleLeaveTypeChange = (e) => {
-    const selectedLeaveType = e.target.value;
-    setLeaveType(selectedLeaveType);
-    console.log('Selected Leave Type:', selectedLeaveType); // Log the selection
-  };
-
   const [cancelDialog, setCancelDialog] = useState({ open: false, row: null, selectedDates: [], remarks: "" });
 
   const handleCancelApproval = (row) => {
@@ -679,14 +670,13 @@ const generateDays = (from, to, daytype) => {
             select
             label="Day Type"
             value={day.dayType || ""}
-            onChange={(e) => {
+onChange={(e) => {
               const newDayType = e.target.value;
-   
-            setSanction((s) => {
-              const updated = [...(s.days || selected.days || generateDays(selected.from, selected.to))];
-              updated[index] = { ...updated[index], type: leaveType };
-              return { ...s, days: sortDays(updated) };
-            });
+              setSanction((s) => {
+                const updated = [...(s.days || selected.days || generateDays(selected.from, selected.to))];
+                updated[index] = { ...updated[index], dayType: newDayType, type: updated[index].type || day.type };
+                return { ...s, days: sortDays(updated) };
+              });
             }}
             size="small"
             sx={{ flex: 1 }}

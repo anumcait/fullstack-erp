@@ -110,8 +110,9 @@ exports.applyLeave = async (req, res) => {
     application.status = "Pending";
     const newApp = await LeaveApplication.create(application, { transaction: t });
 
-    const detailsWithLno = leaveDetails.map(d => ({ ...d, lno: nextLno }));
-    await LeaveDetails.bulkCreate(detailsWithLno, { transaction: t });
+    // Save leave details as-is (range: from-to in one row, not expanded per day)
+    const detailsToCreate = leaveDetails.map(d => ({ ...d, lno: nextLno }));
+    await LeaveDetails.bulkCreate(detailsToCreate, { transaction: t });
 
     const leaveMaster = await LeaveMaster.findOne({
       where: { empid: application.empid },
@@ -351,7 +352,6 @@ const formatLeaveApp = (app) => {
         const start = new Date(d.frmdt);
         const end = new Date(d.todate || d.frmdt);
         const dayType = d.daydt || "FULL DAY";
-        const type = d.leave_type || "";
         const remarks = d.remarks || "";
         const result = [];
         const cur = new Date(start);
@@ -359,12 +359,12 @@ const formatLeaveApp = (app) => {
           result.push({
             date: cur.toISOString().split('T')[0],
             dayType,
-            type,
+            type: "",
             remarks
           });
           cur.setDate(cur.getDate() + 1);
         }
-        return result.length > 0 ? result : [{ date: d.frmdt, dayType, type, remarks }];
+        return result.length > 0 ? result : [{ date: d.frmdt, dayType, type: "", remarks }];
       })
     };
   } catch (err) {
@@ -378,7 +378,7 @@ exports.getPendingLeaveApplications = async (req, res) => {
     const apps = await LeaveApplication.findAll({
       where: { status: 'Pending' },
       include: [
-        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'leave_type'] },
+        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks'] },
         { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance'] }
       ],
       order: [['lno', 'DESC']]
@@ -394,7 +394,7 @@ exports.getAllLeaveApplications = async (req, res) => {
   try {
     const apps = await LeaveApplication.findAll({
       include: [
-        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'leave_type'] },
+        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks'] },
         { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance'] }
       ],
       order: [['lno', 'DESC']]
@@ -423,9 +423,33 @@ exports.approveLeave = async (req, res) => {
     // Update individual LeaveDetails with status and type
     for (const day of days) {
       await LeaveDetails.update(
-        { c_hr_app_status: 'Approved', leave_type: day.type },
-        { where: { lno, frmdt: day.date }, transaction: t }
+        { c_hr_app_status: 'Approved' },
+        { where: { lno, frmdt: { [Sequelize.Op.lte]: day.date }, todate: { [Sequelize.Op.gte]: day.date } }, transaction: t }
       );
+      // Write to leave_approval table (authoritative source for approved leaves)
+      const attDate = day.date;
+      await LeaveApproval.upsert({
+        lno,
+        empid: app.empid,
+        frmdt: attDate,
+        todate: attDate,
+        nod: 1,
+        daydt: day.dayType || 'FULL DAY',
+        leave_type: day.type,
+        cl_sanction: day.type === 'CL' ? 1 : 0,
+        el_sanction: day.type === 'EL' ? 1 : 0,
+        app_status: 'Approved',
+        unit: req.body.unit || app.unit || null
+      }, { transaction: t });
+      // Upsert into emp_attendance for the attendance table
+      await Attendance.upsert({
+        empid: app.empid,
+        att_date: attDate,
+        status: day.type,
+        leave_type: day.type,
+        app_status: '1',
+        unit: req.body.unit || app.unit || null
+      }, { transaction: t });
     }
 
     const master = await LeaveMaster.findOne({ where: { empid: app.empid }, transaction: t });
@@ -435,9 +459,9 @@ exports.approveLeave = async (req, res) => {
     }
 
     const newClsUtilised = Number(master.cls_utilised || 0) + Number(cl_sanction || 0);
-    const newClsBalance = Number(master.cls_eligible || 0) - newClsUtilised;
+    const newClsBalance = Number(master.cls_balance || 0) - Number(cl_sanction || 0);
     const newElsUtilised = Number(master.els_utilised || 0) + Number(el_sanction || 0);
-    const newElsBalance = Number(master.els_eligible || 0) - newElsUtilised;
+    const newElsBalance = Number(master.els_balance || 0) - Number(el_sanction || 0);
 
     await master.update({
       cls_utilised: newClsUtilised,
@@ -497,15 +521,16 @@ exports.cancelApproval = async (req, res) => {
       return res.status(400).json({ message: "Application not found or not in approved state" });
     }
 
-    // Calculate how much to revert
+    // Calculate how much to revert from leave_approval records
     let clToRevert = 0;
     let elToRevert = 0;
 
-    for (const d of app.leaveDetails) {
-      const weight = (d.daydt === 'FULL DAY' ? 1 : 0.5);
-      if (d.leave_type === 'CL') {
+    const approvals = await LeaveApproval.findAll({ where: { lno }, transaction: t });
+    for (const a of approvals) {
+      const weight = (a.daydt === 'FULL DAY' ? 1 : 0.5);
+      if (a.leave_type === 'CL') {
         clToRevert += weight;
-      } else if (d.leave_type === 'EL') {
+      } else if (a.leave_type === 'EL') {
         elToRevert += weight;
       }
     }
@@ -529,6 +554,20 @@ exports.cancelApproval = async (req, res) => {
       { c_hr_app_status: 'Pending', leave_type: null },
       { where: { lno }, transaction: t }
     );
+
+    // Remove from leave_approval and emp_attendance
+    await LeaveApproval.destroy({ where: { lno }, transaction: t });
+    const dates = app.leaveDetails.flatMap(d => {
+      const dates = [];
+      let curr = new Date(d.frmdt);
+      const end = new Date(d.todate || d.frmdt);
+      while (curr <= end) {
+        dates.push(curr.toISOString().split('T')[0]);
+        curr.setDate(curr.getDate() + 1);
+      }
+      return dates;
+    });
+    await Attendance.destroy({ where: { empid: app.empid, att_date: dates }, transaction: t });
 
     await t.commit();
     res.json({ success: true, message: "Approval cancelled and balances reverted" });
@@ -570,15 +609,19 @@ exports.cancelPartialApproval = async (req, res) => {
       });
     }
 
-    // Calculate how much to revert
+    // Calculate how much to revert from leave_approval records
     let clToRevert = 0;
     let elToRevert = 0;
 
-    for (const d of detailsToCancel) {
-      const weight = (d.daydt === 'FULL DAY' ? 1 : 0.5);
-      if (d.leave_type === 'CL') {
+    const approvalsToCancel = await LeaveApproval.findAll({
+      where: { lno, frmdt: dates },
+      transaction: t
+    });
+    for (const a of approvalsToCancel) {
+      const weight = (a.daydt === 'FULL DAY' ? 1 : 0.5);
+      if (a.leave_type === 'CL') {
         clToRevert += weight;
-      } else if (d.leave_type === 'EL') {
+      } else if (a.leave_type === 'EL') {
         elToRevert += weight;
       }
     }
@@ -607,6 +650,10 @@ exports.cancelPartialApproval = async (req, res) => {
     console.log(`Updating LApp #${lno} status to 'Cancelled'`);
     await app.update({ status: 'Cancelled', remarks: remarks }, { transaction: t });
 
+    // Delete from leave_approval and emp_attendance for cancelled dates
+    await LeaveApproval.destroy({ where: { lno, frmdt: dates }, transaction: t });
+    await Attendance.destroy({ where: { empid: app.empid, att_date: dates }, transaction: t });
+
     await t.commit();
     console.log(`LApp #${lno} cancellation committed.`);
     res.json({ success: true, message: `Successfully cancelled ${detailsToCancel.length} days and reverted balances.` });
@@ -619,21 +666,43 @@ exports.cancelPartialApproval = async (req, res) => {
 
 exports.reopenLeave = async (req, res) => {
   const { lno } = req.body;
+  const t = await LeaveApplication.sequelize.transaction();
   try {
-    const app = await LeaveApplication.findOne({ where: { lno } });
-    if (!app) return res.status(404).json({ message: "Application not found" });
+    const app = await LeaveApplication.findOne({ where: { lno }, transaction: t });
+    if (!app) {
+      await t.rollback();
+      return res.status(404).json({ message: "Application not found" });
+    }
 
-    // Set status to 0 (Pending)
-    await app.update({ status: 'Pending' });
+    await app.update({ status: 'Pending' }, { transaction: t });
 
-    // Also reset details status to 'Pending'
     await LeaveDetails.update(
       { c_hr_app_status: 'Pending', leave_type: null },
-      { where: { lno } }
+      { where: { lno }, transaction: t }
     );
 
+    // Clean up leave_approval and emp_attendance records from previous approval
+    await LeaveApproval.destroy({ where: { lno }, transaction: t });
+
+    const leaveDetails = await LeaveDetails.findAll({ where: { lno }, transaction: t });
+    const dates = leaveDetails.flatMap(d => {
+      const dates = [];
+      let curr = new Date(d.frmdt);
+      const end = new Date(d.todate || d.frmdt);
+      while (curr <= end) {
+        dates.push(curr.toISOString().split('T')[0]);
+        curr.setDate(curr.getDate() + 1);
+      }
+      return dates;
+    });
+    if (dates.length > 0) {
+      await Attendance.destroy({ where: { empid: app.empid, att_date: dates }, transaction: t });
+    }
+
+    await t.commit();
     res.json({ success: true, message: "Leave application reopened for approval" });
   } catch (error) {
+    await t.rollback();
     console.error(error);
     res.status(500).json({ message: "Error reopening leave" });
   }

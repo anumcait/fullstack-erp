@@ -1,4 +1,4 @@
-const { Attendance, EmployeeMaster, LeaveApplication, LeaveDetails, WoffApplication, OnDutyApplication, ShiftSchedule, Holiday, LeaveMaster, EmpSalary, ExtOt } = require('../../models');
+const { Attendance, EmployeeMaster, LeaveApplication, LeaveDetails, LeaveApproval, WoffApplication, OnDutyApplication, ShiftSchedule, Holiday, LeaveMaster, EmpSalary, ExtOt } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
 
 const formatDateForQuery = (dateStr) => {
@@ -313,7 +313,7 @@ exports.getEmployeeAttendanceSummary = async (req, res) => {
       holiday: attendanceData.filter(a => a.holiday).length,
       lop: attendanceData.reduce((sum, a) => sum + (parseFloat(a.lop_days) || 0), 0),
       lateHrs: attendanceData.reduce((sum, a) => sum + (parseFloat(a.late_hrs) || 0), 0),
-      otHrs: attendanceData.reduce((sum, a) => sum + (parseFloat(a.ot_hrs) || 0), 0)
+      otHrs: attendanceData.reduce((sum, a) => sum + otHrsToDecimal(a.ot_hrs, a.in_time, a.out_time), 0)
     };
 
     res.json(summary);
@@ -459,15 +459,74 @@ const calculateOTHrs = (outTime, shiftEnd, shiftStart, inTime) => {
     }
 
     if (extraMins > 0) {
-      const h = Math.floor(extraMins / 60);
-      const m = extraMins % 60;
-      return h + m / 100; // HH.MM format
+      return extraMins / 60; // decimal hours for correct summing
     }
     return 0;
   } catch (e) {
     console.error('Error in calculateOTHrs:', e);
     return 0;
   }
+};
+
+/**
+ * Convert HH.MM format (e.g. 1.15 = 1h15m) to decimal hours (1.25)
+ */
+const hhmmToDecimal = (val) => {
+  if (!val || isNaN(val)) return 0;
+  const n = Number(val);
+  const h = Math.floor(n);
+  const m = Math.round((n - h) * 100);
+  return h + m / 60;
+};
+
+const decimalToHHMM = (decimalHours) => {
+  if (!decimalHours && decimalHours !== 0) return '';
+  const h = Math.floor(decimalHours);
+  const m = Math.round((decimalHours - h) * 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+/**
+ * Parse stored ot_hrs to decimal hours, disambiguating HH.MM (4.30 = 4h30m)
+ * vs decimal format (4.50 = 4.5h = 4h30m) by comparing with OT recalculated
+ * from in_time/out_time.
+ */
+const otHrsToDecimal = (ot_hrs, inTime, outTime) => {
+  if (!ot_hrs) return 0;
+  const asDecimal = Number(ot_hrs);
+  const asHHMM = hhmmToDecimal(ot_hrs);
+  if (Math.abs(asDecimal - asHHMM) < 0.001) return asDecimal;
+
+  // Recalculate OT from in/out times to find which interpretation matches
+  if (inTime && outTime) {
+    const shiftEnd = '17:30';
+    const shiftStart = '09:00:00';
+    const expectedOt = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+    if (expectedOt > 0) {
+      const diffDecimal = Math.abs(asDecimal - expectedOt);
+      const diffHHMM = Math.abs(asHHMM - expectedOt);
+      return diffDecimal <= diffHHMM ? asDecimal : asHHMM;
+    }
+  }
+  // Fallback: HH.MM was the original system convention
+  return asHHMM;
+};
+
+const parseOtValueToHHMM = (val, referenceOt) => {
+  if (val === undefined || val === null || val === '') return null;
+  const otStr = val.toString();
+  if (otStr.includes(':')) return otStr.slice(0, 5);
+  // Input is ambiguous: could be HH.MM (4.30 = 4h30m) or decimal (4.50 = 4.5h = 4h30m)
+  // Use reference ot_hrs to pick the interpretation closest to it
+  const refDecimal = referenceOt ? hhmmToDecimal(referenceOt) : null;
+  const asDecimal = parseFloat(otStr);
+  const asHHMM = hhmmToDecimal(otStr);
+  if (refDecimal !== null) {
+    const chosen = Math.abs(asDecimal - refDecimal) <= Math.abs(asHHMM - refDecimal) ? asDecimal : asHHMM;
+    return decimalToHHMM(chosen);
+  }
+  // Without reference, HH.MM is the convention used in this system
+  return decimalToHHMM(asHHMM);
 };
 
 exports.getMusterRoll = async (req, res) => {
@@ -502,28 +561,33 @@ exports.getMusterRoll = async (req, res) => {
       woffDatesByEmp[w.empid].push(w.woff_date);
     });
 
-    const leaveDetailsList = await LeaveDetails.findAll({
+    const silenceCheck = async () => { };
+    const attendanceData = await Attendance.findAll({
       where: {
-        [Sequelize.Op.or]: [
-          { frmdt: { [Sequelize.Op.between]: [startDate, endDate] } },
-          { todate: { [Sequelize.Op.between]: [startDate, endDate] } }
-        ],
-        c_hr_app_status: 'Approved'
+        att_date: { [Sequelize.Op.between]: [startDate, endDate] }
+      }
+    });
+    const attendanceMap = {};
+    attendanceData.forEach(a => {
+      if (!attendanceMap[a.empid]) attendanceMap[a.empid] = {};
+      attendanceMap[a.empid][a.att_date] = a;
+    });
+
+    // Read approved leaves from leave_approval (primary source)
+    const leaveApprovalList = await LeaveApproval.findAll({
+      where: {
+        frmdt: { [Sequelize.Op.between]: [startDate, endDate] },
+        app_status: 'Approved'
       }
     });
     const leaveDatesByEmp = {};
-    leaveDetailsList.forEach(l => {
-      const empId = l.empno;
+    leaveApprovalList.forEach(l => {
+      const empId = l.empid;
       if (!leaveDatesByEmp[empId]) leaveDatesByEmp[empId] = {};
       const ltype = l.leave_type || 'EL';
       const daydt = l.daydt || 'FULL DAY';
-      let curr = new Date(l.frmdt);
-      const end = new Date(l.todate);
-      while (curr <= end) {
-        const dateKey = curr.toISOString().split('T')[0];
-        leaveDatesByEmp[empId][dateKey] = { type: ltype, daydt: daydt };
-        curr.setDate(curr.getDate() + 1);
-      }
+      const dateKey = new Date(l.frmdt).toISOString().split('T')[0];
+      leaveDatesByEmp[empId][dateKey] = { type: ltype, daydt: daydt };
     });
 
     const shiftSchedules = await ShiftSchedule.findAll({
@@ -536,18 +600,6 @@ exports.getMusterRoll = async (req, res) => {
       const dateKey = s.shift_date.toString().split('T')[0];
       if (!scheduleMap[s.empid]) scheduleMap[s.empid] = {};
       scheduleMap[s.empid][dateKey] = s;
-    });
-
-    const silenceCheck = async () => { };
-    const attendanceData = await Attendance.findAll({
-      where: {
-        att_date: { [Sequelize.Op.between]: [startDate, endDate] }
-      }
-    });
-    const attendanceMap = {};
-    attendanceData.forEach(a => {
-      if (!attendanceMap[a.empid]) attendanceMap[a.empid] = {};
-      attendanceMap[a.empid][a.att_date] = a;
     });
 
     const extOtDataList = await ExtOt.findAll({
@@ -607,32 +659,26 @@ exports.getMusterRoll = async (req, res) => {
 
         if (isHoliday) {
           if (inTime || outTime) {
-            dayStatus = 'Holiday'; // Show as Holiday
+            dayStatus = 'Holiday';
             totalHoliday++;
             if (extOt && Number(extOt.app_status) >= 1) {
-              otHrs = parseFloat(extOt.ot_hrs || 0);
-            } else {
-              const shiftStart = schedule?.shift_start_time || '09:00';
-              const shiftEnd = schedule?.shift_end_time || '17:30';
-              if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
-              else if (inTime) otHrs = 8;
+              otHrs = hhmmToDecimal(extOt.ot_hrs);
+            } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+              otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
             }
             totalOTHrs += otHrs;
           } else {
             dayStatus = 'Holiday';
             totalHoliday++;
           }
-        } else if (isWoff) {
+        } else if (isWoff && !leaveInfo) {
           if (inTime || outTime) {
-            dayStatus = 'W-Off'; // Show as W-Off (Weekly Off)
+            dayStatus = 'W-Off';
             totalWoff++;
             if (extOt && Number(extOt.app_status) >= 1) {
-              otHrs = parseFloat(extOt.ot_hrs || 0);
-            } else {
-              const shiftStart = schedule?.shift_start_time || '09:00';
-              const shiftEnd = schedule?.shift_end_time || '17:30';
-              if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
-              else if (inTime) otHrs = 8;
+              otHrs = hhmmToDecimal(extOt.ot_hrs);
+            } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+              otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
             }
             totalOTHrs += otHrs;
           } else {
@@ -647,30 +693,36 @@ exports.getMusterRoll = async (req, res) => {
           const hasSwipes = !!(inTime || outTime || attendance?.status === 'P' || attendance?.status === 'Present');
           if (hasSwipes) {
             if (inTime) lateHrs = calculateLateHrs(inTime, shiftStart);
-            if (outTime) otHrs = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+            if (extOt && Number(extOt.app_status) >= 1) {
+              otHrs = hhmmToDecimal(extOt.ot_hrs);
+            } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+              otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+            }
             totalLateHrs += lateHrs;
             totalOTHrs += otHrs;
           }
 
           if (leaveInfo) {
+            // Prefer leave_type from emp_attendance when available (more authoritative)
+            const effectiveLeaveType = (attendance?.leave_type) || leaveInfo.type;
             const isHalfDayLeave = leaveInfo.daydt === 'HALF DAY' || leaveInfo.daydt === 'FIRST HALF' || leaveInfo.daydt === 'SECOND HALF';
             if (isHalfDayLeave) {
               if (hasSwipes) {
                 // Half-day present + Half-day leave
-                const suffix = leaveInfo.type === 'CL' ? 'C' : leaveInfo.type === 'EL' ? 'E' : 'L';
-                dayStatus = 'F' + suffix; // e.g. FC, FE, FL
+                const suffix = effectiveLeaveType === 'CL' ? 'C' : effectiveLeaveType === 'EL' ? 'E' : 'L';
+                dayStatus = 'F' + suffix; // e.g. FC, FE, FL based on actual leave_type
                 totalPresent += 0.5;
                 totalLeave += 0.5;
               } else {
                 // Half-day leave but no swipes (Absent / LOP for the other half)
-                dayStatus = leaveInfo.type;
+                dayStatus = effectiveLeaveType;
                 totalLeave += 0.5;
                 totalAbsent += 0.5;
                 lopDays = 0.5;
               }
             } else {
               // Full-day leave
-              dayStatus = leaveInfo.type;
+              dayStatus = effectiveLeaveType;
               totalLeave += 1;
             }
           } else {
@@ -797,13 +849,39 @@ exports.getMusterRoll = async (req, res) => {
         holiday: Math.round(totalHoliday * 100) / 100,
         lop: Math.round(totalLop * 100) / 100,
         late_hrs: Math.round(totalLateHrs * 100) / 100,
-        ot_hrs: Math.round(totalOTHrs * 100) / 100
+        ot_hrs: Math.round(totalOTHrs * 100) / 100,
+        att_bonus: (totalLop === 0 && totalAbsent === 0) ? 'Yes' : 'No'
       };
 
       musterData.push(monthlyData);
     }
 
-    res.json(musterData);
+    // Build category summary (Staff: 1-series empid, Trainee: 9-series empid)
+    const categorySummary = [];
+    const categories = [
+      { label: 'Staff', prefix: '1' },
+      { label: 'Trainee', prefix: '9' }
+    ];
+    for (const cat of categories) {
+      const catEmployees = musterData.filter(e => String(e.empid).startsWith(cat.prefix));
+      if (catEmployees.length === 0) continue;
+      let totalDays = 0, totalOT = 0, bonusCount = 0;
+      for (const emp of catEmployees) {
+        const s = emp.summary || {};
+        totalDays += (s.present || 0) + (s.absent || 0) + (s.leave || 0) + (s.woff || 0) + (s.holiday || 0);
+        totalOT += s.ot_hrs || 0;
+        if (s.att_bonus === 'Yes') bonusCount++;
+      }
+      categorySummary.push({
+        category: cat.label,
+        employeeCount: catEmployees.length,
+        totalDays: Math.round(totalDays * 100) / 100,
+        totalOT: Math.round(totalOT * 100) / 100,
+        attendanceBonusCount: bonusCount
+      });
+    }
+
+    res.json({ employees: musterData, categorySummary });
   } catch (error) {
     console.error('Error fetching muster roll:', error);
     res.status(500).json({ message: 'Error fetching muster roll', error: error.message });
@@ -872,24 +950,28 @@ exports.getOTForApproval = async (req, res) => {
 
     const filteredData = otData.filter(a => otEligibleEmpIds.has(a.empid));
 
-    const groupedData = filteredData.map(a => ({
-      id: a.id,
-      empid: a.empid,
-      empName: a.employee?.ename || '',
-      department: a.employee?.deptname || '',
-      designation: a.employee?.secname || '',
-      unit: a.employee?.unit_id || '',
-      date: a.att_date,
-      ot_hrs: parseFloat(a.ot_hrs) || 0,
-      app_ot: a.app_ot ? a.app_ot.toString().slice(0, 5) : '',
-      app_status: a.app_status,
-      app_remarks: a.app_remarks || '',
-      hr_app_ot: a.hr_app_ot ? a.hr_app_ot.toString().slice(0, 5) : '',
-      hr_app_status: a.hr_app_status,
-      hr_remarks: a.hr_remarks || '',
-      final_status: a.final_status,
-      status: a.status
-    }));
+    const groupedData = filteredData.map(a => {
+      const otDecimal = otHrsToDecimal(a.ot_hrs, a.in_time, a.out_time);
+      const computedAppOt = decimalToHHMM(otDecimal);
+      return {
+        id: a.id,
+        empid: a.empid,
+        empName: a.employee?.ename || '',
+        department: a.employee?.deptname || '',
+        designation: a.employee?.secname || '',
+        unit: a.employee?.unit_id || '',
+        date: a.att_date,
+        ot_hrs: otDecimal,
+        app_ot: computedAppOt,
+        app_status: a.app_status,
+        app_remarks: a.app_remarks || '',
+        hr_app_ot: computedAppOt,
+        hr_app_status: a.hr_app_status,
+        hr_remarks: a.hr_remarks || '',
+        final_status: a.final_status,
+        status: a.status
+      };
+    });
 
     res.json(groupedData);
   } catch (error) {
@@ -925,39 +1007,22 @@ exports.approveOT = async (req, res) => {
 
     // Set Manager OT - convert hours to time format
     if (app_ot !== undefined && app_ot !== null && app_ot !== '') {
-      const otStr = app_ot.toString();
-      if (!otStr.includes(':')) {
-        const hours = Math.floor(parseFloat(otStr));
-        const mins = Math.round((parseFloat(otStr) - hours) * 60);
-        updateData.app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-      } else {
-        updateData.app_ot = otStr.slice(0, 5);
-      }
+      updateData.app_ot = parseOtValueToHHMM(app_ot, existing.ot_hrs);
     } else if (app_status === 1 && existing.ot_hrs) {
-      // Auto-fill calculated OT when approving
-      updateData.app_ot = existing.ot_hrs.toString();
+      updateData.app_ot = decimalToHHMM(otHrsToDecimal(existing.ot_hrs, existing.in_time, existing.out_time));
     }
 
     // Set HR OT
     if (hr_app_ot !== undefined && hr_app_ot !== null && hr_app_ot !== '') {
-      const otStr = hr_app_ot.toString();
-      if (!otStr.includes(':')) {
-        const hours = Math.floor(parseFloat(otStr));
-        const mins = Math.round((parseFloat(otStr) - hours) * 60);
-        updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-      } else {
-        updateData.hr_app_ot = otStr.slice(0, 5);
-      }
+      updateData.hr_app_ot = parseOtValueToHHMM(hr_app_ot, existing.ot_hrs);
     }
 
     // Auto-approve HR when manager approves Holiday/W-off OT
     if (auto_approve_hr && app_status === 1 && isHolidayOt) {
       updateData.hr_app_status = 1;
-      const otVal = existing.app_ot || existing.ot_hrs;
+      const otVal = updateData.app_ot || existing.app_ot || existing.ot_hrs;
       if (otVal) {
-        const hours = Math.floor(parseFloat(otVal));
-        const mins = Math.round((parseFloat(otVal) - hours) * 60);
-        updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`;
+        updateData.hr_app_ot = parseOtValueToHHMM(otVal, existing.ot_hrs);
       }
     }
 
@@ -997,40 +1062,20 @@ exports.bulkApproveOT = async (req, res) => {
           if (recHrRemarks !== undefined) updateData.hr_remarks = recHrRemarks;
 
           if (recAppOt !== undefined && recAppOt !== null && recAppOt !== "") {
-            const otStr = recAppOt.toString();
-            if (otStr.includes(':')) {
-              updateData.app_ot = otStr.slice(0, 5);
-            } else {
-              const hours = Math.floor(parseFloat(otStr));
-              const mins = Math.round((parseFloat(otStr) - hours) * 60);
-              updateData.app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-            }
+            updateData.app_ot = parseOtValueToHHMM(recAppOt, existing.ot_hrs);
           } else if (recAppStatus === 1 && existing.ot_hrs) {
-            updateData.app_ot = existing.ot_hrs.toString();
+            updateData.app_ot = decimalToHHMM(otHrsToDecimal(existing.ot_hrs, existing.in_time, existing.out_time));
           }
 
           if (recHrOt !== undefined && recHrOt !== null && recHrOt !== "") {
-            const otStr = recHrOt.toString();
-            if (otStr.includes(':')) {
-              updateData.hr_app_ot = otStr.slice(0, 5);
-            } else {
-              const hours = Math.floor(parseFloat(otStr));
-              const mins = Math.round((parseFloat(otStr) - hours) * 60);
-              updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-            }
+            updateData.hr_app_ot = parseOtValueToHHMM(recHrOt, existing.ot_hrs);
           }
 
           if (recAutoApprove && updateData.app_status === 1 && isHolidayOt) {
             updateData.hr_app_status = 1;
             const otVal = updateData.app_ot || existing.app_ot || existing.ot_hrs;
             if (otVal) {
-              const v = otVal.toString();
-              if (v.includes(':')) updateData.hr_app_ot = v;
-              else {
-                const hours = Math.floor(parseFloat(v));
-                const mins = Math.round((parseFloat(v) - hours) * 60);
-                updateData.hr_app_ot = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-              }
+              updateData.hr_app_ot = parseOtValueToHHMM(otVal, existing.ot_hrs);
             }
           }
 

@@ -31,6 +31,9 @@ module.exports = (sequelize, DataTypes) => {
      // field: 'C_DAYDT',
       type: DataTypes.STRING(10)
     },
+    leave_type: {
+      type: DataTypes.STRING(10)
+    },
     remarks: {
      // field: 'C_REMARKS',
       type: DataTypes.STRING(150)

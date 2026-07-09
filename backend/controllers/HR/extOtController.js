@@ -11,9 +11,7 @@ function calculateOtHrs(inTime, outTime) {
   if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
 
   const totalMins = Math.floor(diffMs / 60000);
-  const h = Math.floor(totalMins / 60);
-  const m = totalMins % 60;
-  return h + m / 100; // HH.MM format
+  return totalMins / 60; // decimal hours for correct summing
 }
 
 exports.create = async (req, res) => {
