@@ -25,6 +25,9 @@ router.post('/add-employee', employeeController.createEmployee);
 // Bulk update salaries from CSV
 router.post('/bulk-update-salaries', upload.single('file'), employeeController.bulkUpdateSalaries);
 
+// Bulk photos (must be before /:empid to avoid route conflict)
+router.get('/photos', employeeController.getPhotos);
+
 // Get employee by ID
 router.get('/:empid', employeeController.getEmployeeById);
 router.get('/:empid/full', employeeController.getEmployeeFullDetails);
@@ -36,6 +39,7 @@ router.put('/:empid', employeeController.updateEmployee);
 router.delete('/:empid', employeeController.deleteEmployee);
 
 // Photo management
+router.get('/photos', employeeController.getPhotos);
 router.get('/:empid/photo', employeeController.getPhoto);
 router.put('/:empid/photo', employeeController.uploadPhoto);
 router.delete('/:empid/photo', employeeController.deletePhoto);

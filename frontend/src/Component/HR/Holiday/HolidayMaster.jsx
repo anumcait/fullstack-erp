@@ -8,6 +8,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { getErrorMessage } from "../../../utils/errorUtils";
@@ -107,6 +108,12 @@ const HolidayMaster = () => {
     return days[d.getDay()];
   };
 
+  const isPastHoliday = (d) => {
+    const now = new Date(); now.setHours(0,0,0,0);
+    const dt = new Date(d); dt.setHours(0,0,0,0);
+    return dt < now;
+  };
+
   return (
     <Card sx={{ m: 2 }}>
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
@@ -120,6 +127,9 @@ const HolidayMaster = () => {
             sx={{ width: 100, mr: 1 }}
             label="Year"
           />
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchHolidays} sx={{ mr: 1 }}>
+            Refresh
+          </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
             Add Holiday
           </Button>
@@ -160,13 +170,13 @@ const HolidayMaster = () => {
               </TableRow>
             ) : (
               holidays.map((h, idx) => (
-                <TableRow key={h.hno}>
-                  <TableCell>{idx + 1}</TableCell>
-                  <TableCell>{formatDateOnly(h.hdate)}</TableCell>
-                  <TableCell>{h.hday || getDayName(h.hdate)}</TableCell>
-                  <TableCell>{h.hdesc}</TableCell>
-                  <TableCell>{h.yr}</TableCell>
-                  <TableCell>{h.hremarks || '-'}</TableCell>
+                <TableRow key={h.hno} sx={{ bgcolor: isPastHoliday(h.hdate) ? '#f0f0f0' : '#e8f5e9' }}>
+                  <TableCell sx={{ color: isPastHoliday(h.hdate) ? '#999' : '#2e7d32' }}>{idx + 1}</TableCell>
+                  <TableCell sx={{ color: isPastHoliday(h.hdate) ? '#999' : '#2e7d32' }}>{formatDateOnly(h.hdate)}</TableCell>
+                  <TableCell sx={{ color: isPastHoliday(h.hdate) ? '#999' : '#2e7d32' }}>{h.hday || getDayName(h.hdate)}</TableCell>
+                  <TableCell sx={{ color: isPastHoliday(h.hdate) ? '#999' : '#2e7d32' }}>{h.hdesc}</TableCell>
+                  <TableCell sx={{ color: isPastHoliday(h.hdate) ? '#999' : '#2e7d32' }}>{h.yr}</TableCell>
+                  <TableCell sx={{ color: isPastHoliday(h.hdate) ? '#999' : '#2e7d32' }}>{h.hremarks || '-'}</TableCell>
                   <TableCell>
                     <IconButton size="small" onClick={() => handleOpenDialog(h)}>
                       <EditIcon fontSize="small" />
@@ -176,8 +186,8 @@ const HolidayMaster = () => {
                     </IconButton>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
+              )))
+            }
           </TableBody>
         </Table>
       </CardContent>

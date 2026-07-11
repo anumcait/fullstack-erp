@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import {
   Box, Typography, TextField, Button, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TableFooter, Paper, IconButton, Dialog,
-  DialogTitle, DialogContent, DialogActions, Grid, FormControl, InputLabel, Select, MenuItem
+  DialogTitle, DialogContent, DialogActions, Grid, FormControl, InputLabel, Select, MenuItem,
+  Checkbox, FormControlLabel
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
@@ -20,15 +21,35 @@ const SalarySetup = () => {
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [salaryForm, setSalaryForm] = useState({
     basic: '', hra: '', conveyance: '', washing_allowance: '',
-    IS_esi: 'N', IS_pf: 'N', IS_lic: 'N', IS_ot: 'N',
+    IS_esi: false, IS_pf: false, IS_lic: false, IS_ot: false,
+    enable_tds: false, enable_lic: false,
     tds_amount: '', lic_amount: '', pay_mode: 'Bank'
   });
 
   const { companyName } = useCompany();
 
+  const defaultColSettings = {
+    fixedBasic: true, fixedHra: true, fixedCa: true, fixedWa: true, fixedGross: true,
+    earnedDays: true, earnedBasic: true, earnedHra: true, earnedOthers: true, earnedWa: true,
+    earnedAb: true, earnedOtHrs: true, earnedOtAmt: true, earnedTotal: true,
+    esi: true, pf: true, pt: true, tds: true, lic: true, otherDed: true, salAdv: true,
+    totalDed: true, netAmount: true,
+  };
+  const [columnSettings, setColumnSettings] = useState(() => {
+    try { return { ...defaultColSettings, ...JSON.parse(localStorage.getItem('payrollVisibleCols')) }; } catch { return defaultColSettings; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('payrollVisibleCols', JSON.stringify(columnSettings));
+  }, [columnSettings]);
+
   useEffect(() => {
     fetchSalaryDetails();
   }, []);
+
+  const handleColumnToggle = (key) => {
+    setColumnSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
 
   const refreshData = () => {
@@ -46,10 +67,14 @@ const SalarySetup = () => {
 
   const handleEdit = (emp) => {
     setSelectedEmp(emp);
-    setSalaryForm(emp.salary || {
-      basic: '', hra: '', conveyance: '', washing_allowance: '',
-      IS_esi: 'N', IS_pf: 'N', IS_lic: 'N', IS_ot: 'N',
-      tds_amount: '', lic_amount: '', pay_mode: 'Bank'
+    const s = emp.salary || {};
+    setSalaryForm({
+      basic: s.basic || '', hra: s.hra || '', conveyance: s.conveyance || '', washing_allowance: s.washing_allowance || '',
+      IS_pf: s.IS_pf === 'Y', IS_esi: s.IS_esi === 'Y', IS_ot: s.IS_ot === 'Y',
+      IS_lic: s.IS_lic === 'Y',
+      enable_tds: parseFloat(s.tds_amount) > 0,
+      enable_lic: parseFloat(s.lic_amount) > 0,
+      tds_amount: s.tds_amount || '', lic_amount: s.lic_amount || '', pay_mode: s.pay_mode || 'Bank'
     });
     setEditDialog(true);
   };
@@ -62,12 +87,12 @@ const SalarySetup = () => {
         hra: parseFloat(salaryForm.hra) || 0,
         conveyance: parseFloat(salaryForm.conveyance) || 0,
         washing_allowance: parseFloat(salaryForm.washing_allowance) || 0,
-        tds_amount: parseFloat(salaryForm.tds_amount) || 0,
-        lic_amount: parseFloat(salaryForm.lic_amount) || 0,
-        IS_esi: salaryForm.IS_esi,
-        IS_pf: salaryForm.IS_pf,
-        IS_lic: salaryForm.IS_lic,
-        IS_ot: salaryForm.IS_ot,
+        tds_amount: salaryForm.enable_tds ? (parseFloat(salaryForm.tds_amount) || 0) : 0,
+        lic_amount: salaryForm.enable_lic ? (parseFloat(salaryForm.lic_amount) || 0) : 0,
+        IS_esi: salaryForm.IS_esi ? 'Y' : 'N',
+        IS_pf: salaryForm.IS_pf ? 'Y' : 'N',
+        IS_lic: salaryForm.IS_lic ? 'Y' : 'N',
+        IS_ot: salaryForm.IS_ot ? 'Y' : 'N',
         pay_mode: salaryForm.pay_mode
       };
       await axios.post(`${import.meta.env.VITE_API_URL}/api/payroll/salary-details`, data);
@@ -101,6 +126,8 @@ const SalarySetup = () => {
       <TableCell>{emp.salary?.IS_pf === 'Y' ? 'Yes' : 'No'}</TableCell>
       <TableCell>{emp.salary?.IS_esi === 'Y' ? 'Yes' : 'No'}</TableCell>
       <TableCell>{emp.salary?.IS_ot === 'Y' ? 'Yes' : 'No'}</TableCell>
+      <TableCell>{emp.salary?.tds_amount || '0'}</TableCell>
+      <TableCell>{emp.salary?.lic_amount || '0'}</TableCell>
       <TableCell>
         <IconButton size="small" onClick={() => handleEdit(emp)}>
           <EditIcon fontSize="small" />
@@ -127,7 +154,7 @@ const SalarySetup = () => {
         <TableCell><strong>{totalConv.toFixed(0)}</strong></TableCell>
         <TableCell><strong>{totalWA.toFixed(0)}</strong></TableCell>
         <TableCell><strong>{totalGross.toFixed(0)}</strong></TableCell>
-        <TableCell colSpan={4}></TableCell>
+        <TableCell colSpan={6}></TableCell>
       </TableRow>
     );
   };
@@ -180,6 +207,55 @@ const SalarySetup = () => {
         </Box>
       </Box>
 
+      <Box sx={{ mb: 2, p: 1.5, bgcolor: '#f5f5ff', borderRadius: 1, border: '1px solid #d0d0ff' }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Payroll View Columns (Processed Salary Table)</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0' }}>Fixed Salary</Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.fixedBasic !== false} onChange={() => handleColumnToggle('fixedBasic')} />} label={<Typography variant="caption">Basic</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.fixedHra !== false} onChange={() => handleColumnToggle('fixedHra')} />} label={<Typography variant="caption">HRA</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.fixedCa !== false} onChange={() => handleColumnToggle('fixedCa')} />} label={<Typography variant="caption">CA/Others</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.fixedWa !== false} onChange={() => handleColumnToggle('fixedWa')} />} label={<Typography variant="caption">W.A</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.fixedGross !== false} onChange={() => handleColumnToggle('fixedGross')} />} label={<Typography variant="caption">Gross Salary</Typography>} />
+            </Box>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0' }}>Earned Salary</Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedDays !== false} onChange={() => handleColumnToggle('earnedDays')} />} label={<Typography variant="caption">No. Days</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedBasic !== false} onChange={() => handleColumnToggle('earnedBasic')} />} label={<Typography variant="caption">Basic</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedHra !== false} onChange={() => handleColumnToggle('earnedHra')} />} label={<Typography variant="caption">HRA</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedOthers !== false} onChange={() => handleColumnToggle('earnedOthers')} />} label={<Typography variant="caption">Others</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedWa !== false} onChange={() => handleColumnToggle('earnedWa')} />} label={<Typography variant="caption">W.A</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedAb !== false} onChange={() => handleColumnToggle('earnedAb')} />} label={<Typography variant="caption">A.B</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedOtHrs !== false} onChange={() => handleColumnToggle('earnedOtHrs')} />} label={<Typography variant="caption">OT Hrs</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedOtAmt !== false} onChange={() => handleColumnToggle('earnedOtAmt')} />} label={<Typography variant="caption">OT Amt</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedTotal !== false} onChange={() => handleColumnToggle('earnedTotal')} />} label={<Typography variant="caption">Total</Typography>} />
+            </Box>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0' }}>Deduction</Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.esi !== false} onChange={() => handleColumnToggle('esi')} />} label={<Typography variant="caption">ESI</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.pf !== false} onChange={() => handleColumnToggle('pf')} />} label={<Typography variant="caption">PF</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.pt !== false} onChange={() => handleColumnToggle('pt')} />} label={<Typography variant="caption">PT</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.tds !== false} onChange={() => handleColumnToggle('tds')} />} label={<Typography variant="caption">TDS</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.lic !== false} onChange={() => handleColumnToggle('lic')} />} label={<Typography variant="caption">LIC</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.otherDed !== false} onChange={() => handleColumnToggle('otherDed')} />} label={<Typography variant="caption">Other Ded</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.salAdv !== false} onChange={() => handleColumnToggle('salAdv')} />} label={<Typography variant="caption">Sal. Adv</Typography>} />
+            </Box>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0' }}>Summary</Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.totalDed !== false} onChange={() => handleColumnToggle('totalDed')} />} label={<Typography variant="caption">Total Ded</Typography>} />
+              <FormControlLabel control={<Checkbox size="small" checked={columnSettings.netAmount !== false} onChange={() => handleColumnToggle('netAmount')} />} label={<Typography variant="caption">Net Amount</Typography>} />
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
@@ -197,6 +273,8 @@ const SalarySetup = () => {
               <TableCell><strong>PF</strong></TableCell>
               <TableCell><strong>ESI</strong></TableCell>
               <TableCell><strong>OT</strong></TableCell>
+              <TableCell><strong>TDS</strong></TableCell>
+              <TableCell><strong>LIC</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -205,7 +283,7 @@ const SalarySetup = () => {
             {regularEmployees.length > 0 && (
               <>
                 <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-                  <TableCell colSpan={14}><strong>Regular Employees ({regularEmployees.length})</strong></TableCell>
+                  <TableCell colSpan={16}><strong>Regular Employees ({regularEmployees.length})</strong></TableCell>
                 </TableRow>
                 {regularEmployees.map((emp, idx) => renderEmpRow(emp, idx))}
                 {renderTotalRow(regularEmployees, 'Regular')}
@@ -216,7 +294,7 @@ const SalarySetup = () => {
             {traineeEmployees.length > 0 && (
               <>
                 <TableRow sx={{ backgroundColor: '#fff3e0', mt: 2 }}>
-                  <TableCell colSpan={14}><strong>Trainee Employees (9-Series) ({traineeEmployees.length})</strong></TableCell>
+                  <TableCell colSpan={16}><strong>Trainee Employees (9-Series) ({traineeEmployees.length})</strong></TableCell>
                 </TableRow>
                 {traineeEmployees.map((emp, idx) => renderEmpRow(emp, idx))}
                 {renderTotalRow(traineeEmployees, 'Trainee')}
@@ -234,7 +312,7 @@ const SalarySetup = () => {
                 const s = emp.salary || {};
                 return sum + (parseFloat(s.basic) || 0) + (parseFloat(s.hra) || 0) + (parseFloat(s.conveyance) || 0) + (parseFloat(s.washing_allowance) || 0);
               }, 0).toFixed(0)}</strong></TableCell>
-              <TableCell colSpan={4}></TableCell>
+              <TableCell colSpan={6}></TableCell>
             </TableRow>
           </TableFooter>
         </Table>
@@ -259,38 +337,35 @@ const SalarySetup = () => {
             <Grid item xs={3}>
               <TextField label="Gross" value={(parseFloat(salaryForm.basic) || 0) + (parseFloat(salaryForm.hra) || 0) + (parseFloat(salaryForm.conveyance) || 0) + (parseFloat(salaryForm.washing_allowance) || 0)} fullWidth size="small" InputProps={{ readOnly: true }} />
             </Grid>
-            <Grid item xs={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>PF</InputLabel>
-                <Select name="IS_pf" value={salaryForm.IS_pf} onChange={handleChange} label="PF">
-                  <MenuItem value="Y">Yes</MenuItem>
-                  <MenuItem value="N">No</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5, color: '#1565c0', fontWeight: 'bold' }}>Deductions</Typography>
             </Grid>
-            <Grid item xs={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>ESI</InputLabel>
-                <Select name="IS_esi" value={salaryForm.IS_esi} onChange={handleChange} label="ESI">
-                  <MenuItem value="Y">Yes</MenuItem>
-                  <MenuItem value="N">No</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={2}>
+              <FormControlLabel
+                control={<Checkbox checked={salaryForm.IS_pf} onChange={(e) => setSalaryForm({ ...salaryForm, IS_pf: e.target.checked })} />}
+                label="PF"
+              />
             </Grid>
-            <Grid item xs={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>OT</InputLabel>
-                <Select name="IS_ot" value={salaryForm.IS_ot} onChange={handleChange} label="OT">
-                  <MenuItem value="Y">Yes</MenuItem>
-                  <MenuItem value="N">No</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={2}>
+              <FormControlLabel
+                control={<Checkbox checked={salaryForm.IS_esi} onChange={(e) => setSalaryForm({ ...salaryForm, IS_esi: e.target.checked })} />}
+                label="ESI"
+              />
             </Grid>
-            <Grid item xs={3}>
-              <TextField label="TDS" name="tds_amount" value={salaryForm.tds_amount} onChange={handleChange} fullWidth size="small" />
+            <Grid item xs={2}>
+              <FormControlLabel
+                control={<Checkbox checked={salaryForm.IS_ot} onChange={(e) => setSalaryForm({ ...salaryForm, IS_ot: e.target.checked })} />}
+                label="OT"
+              />
             </Grid>
-            <Grid item xs={3}>
-              <TextField label="LIC" name="lic_amount" value={salaryForm.lic_amount} onChange={handleChange} fullWidth size="small" />
+            <Grid item xs={6} />
+            <Grid item xs={3} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Checkbox checked={salaryForm.enable_tds} onChange={(e) => setSalaryForm({ ...salaryForm, enable_tds: e.target.checked })} />
+              <TextField label="TDS Amount" name="tds_amount" value={salaryForm.tds_amount} onChange={handleChange} fullWidth size="small" disabled={!salaryForm.enable_tds} />
+            </Grid>
+            <Grid item xs={3} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Checkbox checked={salaryForm.enable_lic} onChange={(e) => setSalaryForm({ ...salaryForm, enable_lic: e.target.checked })} />
+              <TextField label="LIC Amount" name="lic_amount" value={salaryForm.lic_amount} onChange={handleChange} fullWidth size="small" disabled={!salaryForm.enable_lic} />
             </Grid>
             <Grid item xs={3}>
               <FormControl fullWidth size="small">

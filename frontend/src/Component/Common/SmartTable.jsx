@@ -277,7 +277,9 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, h
                 <tr className={row._expanded ? "row-expanded" : ""}>
                   {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
                     <td key={colIdx} style={{ textAlign: col.align || 'left', ...(col.expandable && row._expanded ? { whiteSpace: 'normal', wordBreak: 'break-word' } : {}) }}>
-                      {col.expandable ? (
+                      {col.render ? (
+                        col.render(row)
+                      ) : col.expandable ? (
                         <div
                           className={`reason-container ${row._expanded ? "expanded" : ""}`}
                           title={!row._expanded ? row[col.field] : ""}

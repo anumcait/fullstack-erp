@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import SmartTable from "../../Common/SmartTable";
+import EmployeePhoto from "./EmployeePhoto";
 import EmployeePreview from "./EmployeePreview";
 import {
   Dialog,
@@ -16,6 +17,7 @@ const EmployeeMasterReport = ({ initialFilterType = "active", onNewEntry }) => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [photosMap, setPhotosMap] = useState({});
 
   // Preview modal
   const [showPreview, setShowPreview] = useState(false);
@@ -34,6 +36,23 @@ const EmployeeMasterReport = ({ initialFilterType = "active", onNewEntry }) => {
   useEffect(() => {
     fetchEmployees();
   }, [filterType]);
+
+  useEffect(() => {
+    fetchPhotos();
+  }, []);
+
+  const fetchPhotos = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees/photos`, { withCredentials: true });
+      const map = {};
+      (res.data || []).forEach((p) => {
+        if (p.empid) map[p.empid] = p;
+      });
+      setPhotosMap(map);
+    } catch (err) {
+      console.error("Failed to fetch employee photos:", err);
+    }
+  };
 
   const formatDate = (date) => {
     if (!date) return "";
@@ -89,10 +108,19 @@ const EmployeeMasterReport = ({ initialFilterType = "active", onNewEntry }) => {
     setShowEditModal(false);
     setEditEmpId(null);
     fetchEmployees();
+    fetchPhotos();
   };
 
   const columns = [
     { header: "S.No.", field: "sno" },
+    {
+      header: "Photo",
+      field: "photo",
+      align: "center",
+      render: (row) => (
+        <EmployeePhoto empid={row.empid} ename={row.ename} photosMap={photosMap} />
+      ),
+    },
     { header: "Emp ID", field: "empid" },
     { header: "Name", field: "ename" },
     { header: "Gender", field: "gender" },

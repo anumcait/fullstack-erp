@@ -3,7 +3,7 @@ import {
   Box, Card, CardContent, Typography, Grid, TextField, Select, MenuItem,
   Button, Table, TableHead, TableBody, TableRow, TableCell,
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip,
-  FormControl, InputLabel, CircularProgress, TablePagination
+  FormControl, InputLabel, CircularProgress, TablePagination, Alert
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -36,6 +36,7 @@ const HRAttendance = () => {
   const [editRow, setEditRow] = useState(null);
   const [bulkRows, setBulkRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [payrollFinalized, setPayrollFinalized] = useState(false);
   const [bulkFilterType, setBulkFilterType] = useState("date");
   const [bulkDataDate, setBulkDataDate] = useState(new Date().toISOString().split("T")[0]);
   const [bulkFromDate, setBulkFromDate] = useState("");
@@ -83,7 +84,9 @@ const HRAttendance = () => {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/attendance`, {
         params
       });
-      setAttendanceData(res.data);
+      const body = res.data;
+      setAttendanceData(body.records || body);
+      setPayrollFinalized(body._payrollFinalized || false);
     } catch (err) {
       console.error("Error:", err);
     } finally {
@@ -134,7 +137,8 @@ const HRAttendance = () => {
       if (bulkEmployeeId) params.empid = bulkEmployeeId;
 
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/attendance`, { params });
-      const existingData = res.data;
+      const existingData = res.data.records || res.data;
+      setPayrollFinalized(res.data._payrollFinalized || false);
       const existingMap = {};
       existingData.forEach(a => {
         existingMap[`${a.empid}_${a.att_date}`] = a;
@@ -185,6 +189,10 @@ const HRAttendance = () => {
 
   const saveEdit = async () => {
     try {
+      if ((editRow.status === "P" || editRow.status === "Present") && (!editRow.in_time || !editRow.out_time)) {
+        showToast("Present (P) requires both In Time and Out Time.", "error");
+        return;
+      }
       await axios.put(`${import.meta.env.VITE_API_URL}/api/attendance/${editRow.id}`, {
         empid: editRow.empid,
         att_date: editRow.att_date,
@@ -249,6 +257,13 @@ const HRAttendance = () => {
         return;
       }
 
+      const invalid = list.filter(r => (r.status === "P" || r.status === "Present") && (!r.in_time || !r.out_time));
+      if (invalid.length > 0) {
+        showToast("Present (P) requires both In Time and Out Time. Enter punches for all Present rows.", "error");
+        setSaving(false);
+        return;
+      }
+
       await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/save-bulk`, list);
       showToast(`${list.length} records saved successfully`, "success");
       setBulkDialog(false);
@@ -278,6 +293,12 @@ const HRAttendance = () => {
     setToDate("");
     setMonth(new Date().getMonth() + 1);
     setYear(new Date().getFullYear());
+  };
+
+  const getEffectiveStatus = (row) => {
+    const s = row.status || '';
+    if ((s === 'P' || s === 'Present') && (!row.in_time || !row.out_time)) return 'A';
+    return s;
   };
 
   const getStatusColor = (status) => {
@@ -474,6 +495,12 @@ const HRAttendance = () => {
           </Grid>
         </Box>
 
+        {payrollFinalized && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Salary for this month is already finalized. Attendance records are locked and cannot be edited or deleted.
+          </Alert>
+        )}
+
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
           <Typography variant="subtitle1" fontWeight="bold">
             Records: {filteredAttendanceData.length}
@@ -525,8 +552,13 @@ const HRAttendance = () => {
                   <TableCell>
                     <Chip
                       size="small"
-                      label={row.status}
-                      color={getStatusColor(row.status)}
+                      label={getEffectiveStatus(row)}
+                      color={getStatusColor(getEffectiveStatus(row))}
+                      title={
+                        (row.status === 'P' || row.status === 'Present') && (!row.in_time || !row.out_time)
+                          ? "Stored as P but missing proper in/out times — displayed as Absent"
+                          : undefined
+                      }
                     />
                   </TableCell>
                   <TableCell sx={{ fontFamily: "monospace" }}>{row.in_time || "-"}</TableCell>
@@ -548,10 +580,10 @@ const HRAttendance = () => {
                     {row.ot_hrs > 0 ? parseFloat(row.ot_hrs).toFixed(2) : '-'}
                   </TableCell>
                   <TableCell>
-                    <IconButton size="small" color="primary" onClick={() => openEditDialog(row)}>
+                    <IconButton size="small" color="primary" onClick={() => openEditDialog(row)} disabled={payrollFinalized}>
                       <EditIcon fontSize="small" />
                     </IconButton>
-                    <IconButton size="small" color="error" onClick={() => deleteRecord(row.id)}>
+                    <IconButton size="small" color="error" onClick={() => deleteRecord(row.id)} disabled={payrollFinalized}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </TableCell>
@@ -807,7 +839,7 @@ const HRAttendance = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
           <Typography variant="body2" color="text.secondary">
-            {bulkRows.length > 0 ? `${bulkRows.filter(r => r.status === "P").length} Present, ${bulkRows.filter(r => r.status === "A").length} Absent, ${bulkRows.filter(r => ["W", "H", "L"].includes(r.status)).length} Other` : ""}
+            {bulkRows.length > 0 ? `${bulkRows.filter(r => (r.status === "P" || r.status === "Present") && r.in_time && r.out_time).length} Present, ${bulkRows.filter(r => r.status === "A" || ((r.status === "P" || r.status === "Present") && (!r.in_time || !r.out_time))).length} Absent, ${bulkRows.filter(r => ["W", "H", "L"].includes(r.status)).length} Other` : ""}
           </Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button onClick={() => setBulkDialog(false)} disabled={loading || saving}>Cancel</Button>

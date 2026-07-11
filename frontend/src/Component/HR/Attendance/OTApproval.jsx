@@ -762,6 +762,7 @@ const OTApproval = () => {
                 <Select value={selectedExtOt?.ot_type || ""} label="OT Type" onChange={(e) => setSelectedExtOt({ ...selectedExtOt, ot_type: e.target.value })}>
                   <MenuItem value="WeeklyOff">Weekly Off</MenuItem>
                   <MenuItem value="Holiday">Holiday</MenuItem>
+                  <MenuItem value="HalfDay">Half Day</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

@@ -5,7 +5,7 @@ import React from "react";
  * Optimized for maximum vertical data visibility.
  */
 const ModuleTabBar = ({ title, tabs, active, onChange }) => (
-    <div className="bg-white/70 backdrop-blur-md border-b border-gray-200/50 px-4 pt-2 pb-0 shadow-sm sticky top-0 z-20">
+    <div className="bg-white border-b border-gray-200/50 px-4 pt-2 pb-0 shadow-sm">
         <div className="flex items-center justify-between mb-1">
             <h1 className="text-sm font-black text-black uppercase tracking-wider">{title}</h1>
             {/* Optional: Add a small status or breadcrumb here */}

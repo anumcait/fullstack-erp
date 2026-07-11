@@ -17,7 +17,16 @@ import { getErrorMessage } from "../../../utils/errorUtils";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
-const states = ['Uttar Pradesh', 'Maharashtra', 'Bihar', 'Other'];
+const states = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+  'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman & Nicobar', 'Chandigarh', 'Dadra & Nagar Haveli & Daman & Diu',
+  'Delhi', 'Jammu & Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
 const maritalStatuses = ['Single', 'Married', 'Divorced', 'Widowed'];
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const empTypes = ['Permanent', 'Trainee', 'Probation'];
@@ -234,6 +243,9 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         });
       }
 
+      // Load existing photo
+      fetchPhoto(id);
+
       // Map Arrays
       if (data.family && data.family.length > 0) {
         setFamilyDetails(data.family.map(f => ({
@@ -385,11 +397,58 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
   //Photo
 
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [currentPhoto, setCurrentPhoto] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
+
+  const fetchPhoto = async (id) => {
+    try {
+      const res = await axios.get(`/api/employees/${id}/photo`);
+      if (res.data && res.data.photo) {
+        setCurrentPhoto(`data:${res.data.mimeType || 'image/jpeg'};base64,${res.data.photo}`);
+      } else {
+        setCurrentPhoto(null);
+      }
+    } catch {
+      setCurrentPhoto(null);
+    }
+  };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setPhotoFile(file);
       setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handlePhotoUpload = async () => {
+    const targetId = resolvedEmpId || formData.empid;
+    if (!photoFile) {
+      showToast('Please select a photo first', 'error');
+      return;
+    }
+    if (!targetId) {
+      showToast('Save the employee record before uploading a photo', 'error');
+      return;
+    }
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result.split(',')[1];
+        await axios.put(`/api/employees/${targetId}/photo`, {
+          photo: base64,
+          fileName: photoFile.name,
+          mimeType: photoFile.type,
+        });
+        showToast('Photo updated successfully!', 'success');
+        setCurrentPhoto(`data:${photoFile.type};base64,${base64}`);
+        setPhotoPreview(null);
+        setPhotoFile(null);
+      };
+      reader.readAsDataURL(photoFile);
+    } catch (err) {
+      console.error('Photo upload failed:', err);
+      showToast(getErrorMessage(err, 'Failed to update photo'), 'error');
     }
   };
 
@@ -508,6 +567,8 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
       setTransferDetails([{ ...initTransfer }]);
       setOfficialDetails({ ...initOfficial });
       setPhotoPreview(null);
+      setCurrentPhoto(null);
+      setPhotoFile(null);
     };
 
     if (!validateForm()) return;
@@ -525,6 +586,24 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
       const data = await res.json();
 
       if (res.ok) {
+        const savedId = formData.empid || (data && data.empid) || (data && data.emp && data.emp.empid);
+        if (photoFile && savedId) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async () => {
+              const base64 = reader.result.split(',')[1];
+              await axios.put(`/api/employees/${savedId}/photo`, {
+                photo: base64,
+                fileName: photoFile.name,
+                mimeType: photoFile.type,
+              });
+            };
+            reader.readAsDataURL(photoFile);
+          } catch (photoErr) {
+            console.error('Photo upload failed:', photoErr);
+          }
+        }
+
         showToast(isEdit ? 'Employee updated successfully!' : 'Employee saved successfully!', 'success');
         if (isModal && onModalClose) {
           onModalClose(); // close modal and refresh list
@@ -1519,11 +1598,11 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar
-              src={photoPreview}
+              src={photoPreview || currentPhoto}
               sx={{ width: 56, height: 56, boxShadow: 1 }}
               variant="rounded"
             >
-              {!photoPreview && <PersonIcon />}
+              {!photoPreview && !currentPhoto && <PersonIcon />}
             </Avatar>
             <Box>
               <Typography variant="h6" fontWeight="bold" color="text.primary">
@@ -1548,6 +1627,14 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
                 Photo
               </Button>
             </label>
+            <Button
+              size="small"
+              variant="contained"
+              color="secondary"
+              onClick={handlePhotoUpload}
+            >
+              Update Photo
+            </Button>
             {!isModal && (
               <Button
                 variant="contained"

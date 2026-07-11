@@ -23,6 +23,18 @@ module.exports = (sequelize, DataTypes) => {
     reason: DataTypes.TEXT,
     no_of_installments: DataTypes.INTEGER,
     monthly_installment: DataTypes.DECIMAL(10, 2),
+    deduct_from_month: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    deduct_from_year: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    deduction_schedule: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     created_by: DataTypes.STRING(50),
     created_at: {
       type: DataTypes.DATE,

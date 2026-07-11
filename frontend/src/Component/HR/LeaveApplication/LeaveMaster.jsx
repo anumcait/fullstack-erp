@@ -8,6 +8,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
@@ -30,6 +31,17 @@ const LeaveMaster = () => {
     final_status: "0"
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const nowYear = new Date().getFullYear();
+  const filtered = employees.filter(emp =>
+    emp.empid?.toString().includes(searchTerm) ||
+    emp.ename?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const tot = {
+    clb: filtered.reduce((s, e) => s + Number(e.cls_balance || 0), 0),
+    clu: filtered.reduce((s, e) => s + Number(e.cls_utilised || 0), 0),
+    elb: filtered.reduce((s, e) => s + Number(e.els_balance || 0), 0),
+    elu: filtered.reduce((s, e) => s + Number(e.els_utilised || 0), 0),
+  };
 
   useEffect(() => {
     fetchEmployees();
@@ -134,6 +146,9 @@ const LeaveMaster = () => {
               startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} fontSize="small" />,
             }}
           />
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchEmployees} sx={{ mr: 1 }}>
+            Refresh
+          </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
             Add Leave Config
           </Button>
@@ -164,58 +179,63 @@ const LeaveMaster = () => {
               <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>CL Util</strong></TableCell>
               <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>EL Bal</strong></TableCell>
               <TableCell sx={{ width: '90px', fontSize: '12px' }} align="right"><strong>EL Util</strong></TableCell>
+              <TableCell sx={{ width: '80px', fontSize: '12px' }} align="right"><strong>Total</strong></TableCell>
               <TableCell sx={{ width: '70px', fontSize: '12px' }} align="center"><strong>Year</strong></TableCell>
               <TableCell sx={{ width: '70px', fontSize: '12px' }} align="center"><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {employees
-              .filter(emp =>
-                emp.empid?.toString().includes(searchTerm) ||
-                emp.ename?.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-              .length === 0 ? (
+            {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} align="center" sx={{ py: 3, color: '#777' }}>
+                <TableCell colSpan={12} align="center" sx={{ py: 3, color: '#777' }}>
                   No employees found
                 </TableCell>
               </TableRow>
             ) : (
-              employees
-                .filter(emp =>
-                  emp.empid?.toString().includes(searchTerm) ||
-                  emp.ename?.toLowerCase().includes(searchTerm.toLowerCase())
-                )
-                .map((emp) => (
-                  <TableRow key={emp.empid}>
-                    <TableCell>{emp.sno}</TableCell>
-                    <TableCell>{emp.empid}</TableCell>
-                    <TableCell sx={{
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
+              filtered.map((emp) => {
+                const past = Number(emp.yr) < nowYear;
+                const noBal = Number(emp.cls_balance || 0) === 0 && Number(emp.els_balance || 0) === 0;
+                const empTotal = (Number(emp.cls_balance || 0) + Number(emp.els_balance || 0));
+                let sc, bg;
+                if (past) { sc = '#999'; bg = '#f0f0f0'; }
+                else if (noBal) { sc = '#c62828'; bg = '#ffebee'; }
+                else { sc = '#2e7d32'; bg = '#e8f5e9'; }
+                return (
+                  <TableRow key={emp.empid} sx={{ bgcolor: bg }}>
+                    <TableCell sx={{ color: sc }}>{emp.sno}</TableCell>
+                    <TableCell sx={{ color: sc }}>{emp.empid}</TableCell>
+                    <TableCell sx={{ color: sc, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {emp.ename}
                     </TableCell>
-                    <TableCell sx={{
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
+                    <TableCell sx={{ color: sc, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {emp.deptname}
                     </TableCell>
-                    <TableCell align="right">{emp.cls_balance}</TableCell>
-                    <TableCell align="right">{emp.cls_utilised}</TableCell>
-                    <TableCell align="right">{emp.els_balance}</TableCell>
-                    <TableCell align="right">{emp.els_utilised}</TableCell>
-                    <TableCell align="center">{emp.yr}</TableCell>
+                    <TableCell sx={{ color: sc }} align="right">{emp.cls_balance}</TableCell>
+                    <TableCell sx={{ color: sc }} align="right">{emp.cls_utilised}</TableCell>
+                    <TableCell sx={{ color: sc }} align="right">{emp.els_balance}</TableCell>
+                    <TableCell sx={{ color: sc }} align="right">{emp.els_utilised}</TableCell>
+                    <TableCell sx={{ color: sc, fontWeight: 600 }} align="right">{empTotal}</TableCell>
+                    <TableCell sx={{ color: sc }} align="center">{emp.yr}</TableCell>
                     <TableCell align="center">
                       <IconButton size="small" onClick={() => handleOpenDialog(emp)}>
                         <EditIcon fontSize="small" color="primary" />
                       </IconButton>
                     </TableCell>
                   </TableRow>
-                ))
+                );
+              })
+            )}
+            {filtered.length > 0 && (
+              <TableRow sx={{ bgcolor: '#e3f2fd', fontWeight: 'bold' }}>
+                <TableCell sx={{ fontWeight: 700 }} colSpan={4}>Grand Total</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.clb}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.clu}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.elb}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.elu}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.clb + tot.elb}</TableCell>
+                <TableCell />
+                <TableCell />
+              </TableRow>
             )}
           </TableBody>
         </Table>

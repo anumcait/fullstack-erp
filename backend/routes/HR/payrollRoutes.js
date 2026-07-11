@@ -12,5 +12,7 @@ router.get('/salary-details', payrollController.getSalaryDetails);
 router.post('/salary-details', payrollController.saveSalaryDetails);
 router.get('/check-status', payrollController.checkPayslipStatus);
 router.get('/latest-processed', payrollController.getLatestProcessedDate);
+router.post('/finalize', payrollController.finalizeSalary);
+router.get('/finalize-status', payrollController.getFinalizeStatus);
 
 module.exports = router;

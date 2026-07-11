@@ -15,6 +15,7 @@ exports.saveAdvance = async (req, res) => {
 
     const nextAdvanceId = Number(maxIdResult.maxId) + 1;
     application.advance_id = nextAdvanceId;
+    application.status = 'Pending';
 
     await AdvanceApplication.create(application, { transaction: t });
     await t.commit();
@@ -73,7 +74,7 @@ exports.getPendingAdvances = async (req, res) => {
 };
 
 exports.approveAdvance = async (req, res) => {
-  const { advance_id, status, remarks } = req.body;
+  const { advance_id, status, remarks, deduction_schedule } = req.body;
   
   try {
     const application = await AdvanceApplication.findOne({
@@ -86,6 +87,14 @@ exports.approveAdvance = async (req, res) => {
 
     application.status = status === 'Reject' ? 'Rejected' : status || 'Approved';
     if (remarks) application.remarks = remarks;
+    if (deduction_schedule) {
+      const schedule = typeof deduction_schedule === 'string' ? JSON.parse(deduction_schedule) : deduction_schedule;
+      application.deduction_schedule = JSON.stringify(schedule);
+      if (schedule.length > 0) {
+        application.deduct_from_month = schedule[0].month;
+        application.deduct_from_year = schedule[0].year;
+      }
+    }
     await application.save();
 
     res.json({ success: true, message: `Advance application ${application.status.toLowerCase()}d successfully.` });

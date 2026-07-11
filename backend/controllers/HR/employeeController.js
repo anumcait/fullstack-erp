@@ -799,6 +799,27 @@ exports.getPhoto = async (req, res) => {
   }
 };
 
+// ===================== Get All Photos (bulk) =====================
+exports.getPhotos = async (req, res) => {
+  try {
+    const employees = await EmployeeMaster.findAll({
+      attributes: ['empid', 'photo_blob', 'img_name', 'img_mimetype'],
+    });
+
+    const photos = employees.map((emp) => ({
+      empid: emp.empid,
+      photo: emp.photo_blob ? emp.photo_blob.toString('base64') : null,
+      fileName: emp.img_name,
+      mimeType: emp.img_mimetype || 'image/jpeg',
+    }));
+
+    res.json(photos);
+  } catch (error) {
+    console.error('Error getting photos:', error);
+    res.status(500).json({ error: 'Failed to get photos' });
+  }
+};
+
 // ===================== Delete Photo =====================
 exports.deletePhoto = async (req, res) => {
   const { empid } = req.params;
