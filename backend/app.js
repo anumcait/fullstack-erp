@@ -75,11 +75,16 @@ const pgPool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
+const sessionStore = new pgSession({
+  pool: pgPool,
+  tableName: 'session'
+});
+
+// connect-pg-simple does not auto-create its table; ensure it exists on startup.
+sessionStore.sync();
+
 app.use(session({
-  store: new pgSession({
-    pool: pgPool,
-    tableName: 'session'
-  }),
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'change-me-in-production',
   resave: false,
   saveUninitialized: false,
