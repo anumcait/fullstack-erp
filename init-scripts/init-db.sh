@@ -6,27 +6,44 @@ until pg_isready -U postgres; do
   sleep 2
 done
 
-# Count number of rows in 'Users' table to see if data exists
+# ─────────────── HR database (hrdb) ───────────────
 USER_COUNT=$(psql -U postgres -d hrdb -tAc "SELECT COUNT(*) FROM \"Users\";" 2>/dev/null || echo "0")
-
-echo "📊 Found $USER_COUNT users in database."
+echo "📊 Found $USER_COUNT users in hrdb."
 
 if [ "$USER_COUNT" -eq "0" ]; then
-  echo "🛠️ Database has no users. Restoring from backup..."
-
-  BACKUP_FILE=""
+  echo "🛠️ hrdb has no users. Restoring from backup..."
   if [ -f /pg_backup/hrdb.backup ]; then
-    BACKUP_FILE=/pg_backup/hrdb.backup
-  elif [ -f /pg_backup/hrdb_full.backup ]; then
-    BACKUP_FILE=/pg_backup/hrdb_full.backup
-  fi
-
-  if [ -n "$BACKUP_FILE" ]; then
-    pg_restore --no-owner --clean --if-exists --verbose -U postgres -d hrdb "$BACKUP_FILE" 2>&1 || true
-    echo "✅ Restore completed from $BACKUP_FILE."
+    pg_restore --no-owner --clean --if-exists --verbose -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 || true
+    echo "✅ hrdb restore completed."
   else
-    echo "❌ Backup file not found at /pg_backup/ (expected hrdb.backup or hrdb_full.backup)"
+    echo "❌ /pg_backup/hrdb.backup not found."
   fi
 else
-  echo "✅ Database already has data. Skipping restore."
+  echo "✅ hrdb already has data. Skipping hrdb restore."
 fi
+
+# ─────────────── ERP database (erpdb) ───────────────
+# Ensure the erpdb database exists (connect-pg-simple / ERP models expect it).
+DB_EXISTS=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='erpdb';" 2>/dev/null || echo "")
+if [ -z "$DB_EXISTS" ]; then
+  echo "🛠️ erpdb does not exist. Creating..."
+  psql -U postgres -c "CREATE DATABASE erpdb;" 2>&1 || true
+fi
+
+# Restore erpdb only if it is empty (no tables yet).
+ERP_TABLES=$(psql -U postgres -d erpdb -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo "0")
+echo "📊 Found $ERP_TABLES tables in erpdb."
+
+if [ "$ERP_TABLES" -eq "0" ]; then
+  echo "🛠️ erpdb is empty. Restoring from backup..."
+  if [ -f /pg_backup/erpdb.backup ]; then
+    pg_restore --no-owner --clean --if-exists --verbose -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 || true
+    echo "✅ erpdb restore completed."
+  else
+    echo "❌ /pg_backup/erpdb.backup not found."
+  fi
+else
+  echo "✅ erpdb already has data. Skipping erpdb restore."
+fi
+
+echo "🎉 Database initialization complete."
