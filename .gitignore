@@ -26,3 +26,11 @@ frontend/dist/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+terraform.tfplan
+!.terraform.lock.hcl
