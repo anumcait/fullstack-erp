@@ -5,9 +5,9 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type (t3.small recommended for the demo stack)"
+  description = "EC2 instance type. t3.large (8GB RAM) needed: the Python agent imports torch/spacy/chromadb and t3.small (2GB) swap-thrashes."
   type        = string
-  default     = "t3.small"
+  default     = "t3.large"
 }
 
 variable "key_name" {
