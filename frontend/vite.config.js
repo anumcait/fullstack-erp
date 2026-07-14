@@ -7,26 +7,22 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
-    allowedHosts: 'all',
-
-  preview: {
-    host: '0.0.0.0',
-    port: 5173,
-    strictPort: true,
-    allowedHosts: 'all',
-  },
-
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.API_TARGET || 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
-      }
+      },
     },
-
     watch: {
       usePolling: true,
     },
   },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    allowedHosts: true,
+  },
 });
-
