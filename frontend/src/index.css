@@ -65,8 +65,8 @@ textarea:focus {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --primary-color: #0b3c91;
-  --hover-color: #1565c0;
+  --primary-color: var(--heading-color, #0b3c91);
+  --hover-color: var(--primary-main, #1565c0);
   --text-color: #ffffff;
   --bg-white: #ffffff;
   --shadow: 0 4px 10px rgba(0, 0, 0, 0.15);

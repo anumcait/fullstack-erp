@@ -1,0 +1,2 @@
+(sequelize) Warning: PostgreSQL does not support BLOB (BYTEA) with options. Plain `BYTEA` will be used instead. 
+>> Check: http://www.postgresql.org/docs/9.4/static/datatype.html

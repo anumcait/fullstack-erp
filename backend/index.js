@@ -24,12 +24,16 @@ async function startServer(retries = MAX_RETRIES) {
   // 3. Load app and models ONLY after DB is ready
   const app = require('./app');
   const db = require('./models');
+  const erpDb = require('./models/ERP');
 
   while (retries > 0) {
     try {
-      // 3. Authenticate Sequelize connection
+      // 3. Authenticate Sequelize connections
       await db.sequelize.authenticate();
-      console.log(`✅ Connected to ${ENV} database`);
+      console.log(`✅ Connected to ${ENV} database (HR)`);
+
+      await erpDb.sequelize.authenticate();
+      console.log(`✅ Connected to ${ENV} database (ERP)`);
 
       const FORCE_SYNC = process.env.DB_SYNC_FORCE === 'true';
       const syncOptions = FORCE_SYNC ? { force: true } : (ENV === 'production' ? { force: false } : { alter: true });
@@ -38,9 +42,20 @@ async function startServer(retries = MAX_RETRIES) {
         console.warn('⚠️ WARNING: DB_SYNC_FORCE is enabled. All tables will be dropped and recreated!');
       }
 
-      // 4. Sync models
+      // 4. Pre-migration: drop stale defaults that block ENUM->STRING casting
+      try {
+        await erpDb.sequelize.query(`ALTER TABLE IF EXISTS t_material_requisition ALTER COLUMN status DROP DEFAULT`);
+      } catch (_) { /* table may not exist yet */ }
+      try {
+        await erpDb.sequelize.query(`ALTER TABLE IF EXISTS t_material_issue ALTER COLUMN status DROP DEFAULT`);
+      } catch (_) { /* table may not exist yet */ }
+
+      // 5. Sync models (HR + ERP share the same database now)
       await db.sequelize.sync(syncOptions);
-      console.log('✅ Database synced (tables created/updated).');
+      console.log('✅ HR database synced.');
+
+      await erpDb.sequelize.sync(syncOptions);
+      console.log('✅ ERP database synced.');
 
       // 5. Start listening
       app.listen(PORT, '0.0.0.0', () => {

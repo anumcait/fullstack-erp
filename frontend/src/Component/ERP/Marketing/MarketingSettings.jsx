@@ -4,7 +4,7 @@ import { FiSettings, FiUserPlus } from 'react-icons/fi';
 
 const MarketingSettings = () => (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Marketing Settings</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Marketing Settings</Typography>
       <Grid container spacing={3}>
         {[{ title: 'Sales Regions', desc: 'Define territories.', icon: <FiUserPlus /> }, { title: 'Pricing Rules', desc: 'Manage discounts.', icon: <FiSettings /> }].map((s, i) => (
           <Grid item xs={12} sm={6} key={i}>

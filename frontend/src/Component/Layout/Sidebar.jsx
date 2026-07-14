@@ -38,6 +38,7 @@ import {
   FiFilePlus,
   FiMail,
   FiShoppingBag,
+  FiBookOpen,
   FiUser,
   FiTag,
   FiStar,
@@ -46,7 +47,10 @@ import {
   FiRotateCcw,
   FiArrowDown,
   FiArrowUp,
-  FiList
+  FiList,
+  FiDownload,
+  FiTarget,
+  FiAlertTriangle
 } from "react-icons/fi";
 
 import "./Sidebar.css";
@@ -56,6 +60,7 @@ const Sidebar = () => {
   const { isDirty, setIsDirty } = useNavigationGuard();
   const [pendingPath, setPendingPath] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState(() => {
     return localStorage.getItem('sidebarSubmenu') || "";
   });
@@ -87,6 +92,9 @@ const Sidebar = () => {
     localStorage.removeItem('empName');
     navigate('/');
   };
+
+  const confirmLogout = () => setLogoutConfirmOpen(true);
+  const cancelLogout = () => setLogoutConfirmOpen(false);
 
   const userRole = localStorage.getItem('userRole');
   const userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
@@ -245,6 +253,10 @@ const Sidebar = () => {
                     {hasPermission('HR_HOLIDAY_MASTER') && <SubItem to="/holidays" label="Holiday Master" icon={FiCalendar} />}
                     {hasPermission('HR_LEAVE_MASTER') && <SubItem to="/leaves-master" label="Leaves Master" icon={FiCheckSquare} />}
                     {hasPermission('HR_PROFILE_APPROVE') && <SubItem to="/profile-requests" label="Profile Requests" icon={FiRefreshCw} />}
+                    <SubItem to="/training" label="Training & Skills" icon={FiBookOpen} />
+                    <SubItem to="/pms" label="PMS & Appraisals" icon={FiTarget} />
+                    <SubItem to="/disciplinary" label="Disciplinary Mgmt" icon={FiAlertTriangle} />
+                    <SubItem to="/exit-settlement" label="Exit & Settlement" icon={FiLogOut} />
                   </ul>
                 )}
               </li>
@@ -268,6 +280,7 @@ const Sidebar = () => {
                     {hasPermission('HR_SHIFT_SCHED') && <SubItem to="/shiftschedule" label="Shift Schedule" icon={FiCalendar} />}
                     {hasPermission('HR_MUSTER') && <SubItem to="/muster-roll" label="Muster Roll" icon={FiClipboard} />}
                     {hasPermission('HR_OT_APP') && <SubItem to="/ot-approval" label="OT Approval" icon={FiCheckSquare} />}
+                    <SubItem to="/attendance-collector" label="Attendance Collector" icon={FiCamera} />
                   </ul>
                 )}
               </li>
@@ -289,6 +302,7 @@ const Sidebar = () => {
                     {hasPermission('HR_ADVANCE') && <SubItem to="/advance" label="Salary Advances" icon={FiTrendingUp} />}
                     {hasPermission('HR_PAYROLL_PROC') && <SubItem to="/payroll" label="Monthly Payroll" icon={FiDollarSign} />}
                     {hasPermission('HR_ESI_LEAVE') && <SubItem to="/esileave" label="ESI Leaves" icon={FiCalendar} />}
+                    {hasPermission('HR_TAX') && <SubItem to="/tax" label="Employee Tax" icon={FiDollarSign} />}
                   </ul>
                 )}
               </li>
@@ -316,6 +330,40 @@ const Sidebar = () => {
                 )}
               </li>
             )}
+
+            <li className={`sidebar-menu-item ${openSubmenu === "hrRecruit" ? "open" : ""}`}>
+              <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrRecruit")}>
+                <FiUsers />
+                {!collapsed && (
+                  <>
+                    <span>Recruitment</span>
+                    <span className="expand-icon">{openSubmenu === "hrRecruit" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                  </>
+                )}
+              </div>
+              {openSubmenu === "hrRecruit" && (
+                <ul className="sidebar-submenu">
+                  <SubItem to="/recruitment" label="Recruitment Dashboard" icon={FiGrid} />
+                </ul>
+              )}
+            </li>
+
+            <li className={`sidebar-menu-item ${openSubmenu === "hrReports" ? "open" : ""}`}>
+              <div className="sidebar-menu-link">
+                <FiPieChart />
+                {!collapsed && (
+                  <>
+                    <NavLink to="/hr/reports" onClick={(e) => handleNavClick("/hr/reports", e)} className="sidebar-nav-text">Reports</NavLink>
+                    <span className="expand-icon" onClick={() => toggleSubmenu("hrReports")} style={{ cursor: 'pointer' }}>{openSubmenu === "hrReports" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                  </>
+                )}
+              </div>
+              {openSubmenu === "hrReports" && (
+                <ul className="sidebar-submenu">
+                  <SubItem to="/pf-accounting" label="PF Accounting" icon={FiFileText} />
+                </ul>
+              )}
+            </li>
           </>
         )}
 
@@ -342,7 +390,7 @@ const Sidebar = () => {
                 </div>
                 {openSubmenu === "storeInv" && (
                   <ul className="sidebar-submenu">
-                    {hasPermission('STORES_ITEM_MASTER') && <SubItem to="/edit-item" label="Item Master" icon={FiBox} />}
+                    {hasPermission('STORES_ITEM_MASTER') && <SubItem to="/stores/item-master" label="Item Master" icon={FiBox} />}
                     {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/inventory/ledger" label="Stock Ledger" icon={FiClipboard} />}
                     {hasPermission('STORES_PHYSICAL') && <SubItem to="/inventory/audit" label="Physical Verification" icon={FiCheckSquare} />}
                   </ul>
@@ -363,8 +411,9 @@ const Sidebar = () => {
                 {openSubmenu === "storeTrans" && (
                   <ul className="sidebar-submenu">
                     {hasPermission('STORES_GATE') && <SubItem to="/inventory/gate-entry" label="Gate Entry" icon={FiLogOut} />}
-                    {hasPermission('STORES_GRN') && <SubItem to="/inventory/grn" label="GRN / MRN" icon={FiFileText} />}
-                    {hasPermission('STORES_ISSUE') && <SubItem to="/inventory/issue" label="Material Issue" icon={FiShare} />}
+                    {hasPermission('STORES_GRN') && <SubItem to="/stores/grn" label="GRN / MRN" icon={FiFileText} />}
+                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/material-issues" label="Material Issue" icon={FiShare} />}
+                    {hasPermission('STORES_MR') && <SubItem to="/stores/material-requisitions" label="Material Requisition" icon={FiFilePlus} />}
                     {hasPermission('STORES_RETURN') && <SubItem to="/inventory/return" label="Material Return" icon={FiRotateCcw} />}
                   </ul>
                 )}
@@ -383,7 +432,7 @@ const Sidebar = () => {
                 </NavLink>
               </li>
             )}
-            {(hasPermission('PUR_REQ') || hasPermission('PUR_RFQ') || hasPermission('PUR_ORDERS')) && (
+            {(hasPermission('PUR_REQ') || hasPermission('PUR_RFQ') || hasPermission('PUR_ORDERS') || hasPermission('PUR_GRN')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "purProc" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("purProc")}>
                   <FiShoppingCart />
@@ -396,7 +445,7 @@ const Sidebar = () => {
                 </div>
                 {openSubmenu === "purProc" && (
                   <ul className="sidebar-submenu">
-                    {hasPermission('PUR_REQ') && <SubItem to="/purchase/req" label="Purchase Requisitions" icon={FiFilePlus} />}
+                    {hasPermission('PUR_REQ') && <SubItem to="/purchase/requisitions" label="Purchase Requisitions" icon={FiFilePlus} />}
                     {hasPermission('PUR_RFQ') && <SubItem to="/purchase/rfq" label="Enquiry / RFQ" icon={FiMail} />}
                     {hasPermission('PUR_ORDERS') && <SubItem to="/purchase/orders" label="Purchase Orders" icon={FiShoppingBag} />}
                   </ul>
@@ -436,6 +485,11 @@ const Sidebar = () => {
                 </NavLink>
               </li>
             )}
+            <li className="sidebar-menu-item">
+              <NavLink to="/production/orders" onClick={(e) => handleNavClick("/production/orders", e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
+                <FiLayers /> {!collapsed && <span>Production Orders</span>}
+              </NavLink>
+            </li>
             {(hasPermission('PROD_DAILY') || hasPermission('PROD_MACHINES') || hasPermission('PROD_DOWNTIME')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "prodFloor" ? "open" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("prodFloor")}>
@@ -516,6 +570,7 @@ const Sidebar = () => {
                 {openSubmenu === "engData" && (
                   <ul className="sidebar-submenu">
                     {hasPermission('ENG_ITEMS') && <SubItem to="/engineering/items" label="Item Master" icon={FiBox} />}
+                    <SubItem to="/engineering/products" label="Product Master" icon={FiStar} />
                     {hasPermission('ENG_BOM') && <SubItem to="/engineering/bom" label="Bill of Materials" icon={FiLayers} />}
                     {hasPermission('ENG_BOM_DIFF') && <SubItem to="/engineering/bom-diff" label="BOM Comparison" icon={FiShuffle} />}
                   </ul>
@@ -570,7 +625,7 @@ const Sidebar = () => {
                     {hasPermission('MARK_LEADS') && <SubItem to="/marketing/leads" label="Leads / Enquiries" icon={FiMail} />}
                     {hasPermission('MARK_QUOTES') && <SubItem to="/marketing/quotes" label="Quotations" icon={FiFileText} />}
                     {hasPermission('MARK_ORDERS') && <SubItem to="/marketing/orders" label="Sales Orders" icon={FiShoppingBag} />}
-                    {hasPermission('MARK_CUSTOMERS') && <SubItem to="/marketing/customers" label="Customer Master" icon={FiUsers} />}
+                    {hasPermission('MARK_CUSTOMERS') && <SubItem to="/purchase/vendors" label="Customer Master" icon={FiUsers} />}
                   </ul>
                 )}
               </li>
@@ -678,7 +733,7 @@ const Sidebar = () => {
         )}
 
         {/* Global Bottom Links - Apply general module-level reports/settings permissions if needed */}
-        {hasPermission(`${activeModule}_REPORTS`) && (
+        {activeModule !== "HR" && hasPermission(`${activeModule}_REPORTS`) && (
           <li className="sidebar-menu-item" style={{ marginTop: "auto" }}>
             <NavLink to={`/${activeModule.toLowerCase()}/reports`} onClick={(e) => handleNavClick(`/${activeModule.toLowerCase()}/reports`, e)} className={({ isActive }) => `sidebar-menu-link ${isActive ? "sidebar-active" : ""}`}>
               <FiPieChart /> {!collapsed && <span>Reports</span>}
@@ -693,11 +748,44 @@ const Sidebar = () => {
           </li>
         )}
         <li className="sidebar-menu-item">
-          <div className="sidebar-menu-link" onClick={handleLogout} style={{ cursor: 'pointer' }}>
+          <div className="sidebar-menu-link" onClick={confirmLogout} style={{ cursor: 'pointer' }}>
             <FiLogOut /> {!collapsed && <span>Logout</span>}
           </div>
         </li>
       </ul>
+
+      {/* Logout Confirm Dialog */}
+      {logoutConfirmOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'var(--dropdown-bg)', borderRadius: 10, padding: '28px 32px',
+            minWidth: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)'
+          }}>
+            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: 'var(--dropdown-text)' }}>Logout</p>
+            <p style={{ color: 'var(--dropdown-text)', opacity: 0.6, marginBottom: 20, fontSize: 14 }}>
+              Are you sure you want to logout?
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={cancelLogout}
+                style={{ padding: '7px 18px', borderRadius: 5, border: '1px solid var(--dropdown-border)', background: 'var(--dropdown-hover-bg)', cursor: 'pointer', fontWeight: 600, color: 'var(--dropdown-text)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setLogoutConfirmOpen(false); handleLogout(); }}
+                style={{ padding: '7px 18px', borderRadius: 5, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Yes, Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Guard Confirm Dialog */}
       {confirmOpen && (
@@ -707,17 +795,17 @@ const Sidebar = () => {
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <div style={{
-            background: '#fff', borderRadius: 10, padding: '28px 32px',
+            background: 'var(--dropdown-bg)', borderRadius: 10, padding: '28px 32px',
             minWidth: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)'
           }}>
-            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>⚠️ Unsaved Changes</p>
-            <p style={{ color: '#555', marginBottom: 20, fontSize: 14 }}>
+            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: 'var(--dropdown-text)' }}>⚠️ Unsaved Changes</p>
+            <p style={{ color: 'var(--dropdown-text)', opacity: 0.6, marginBottom: 20, fontSize: 14 }}>
               You have unsaved changes. Are you sure you want to leave without saving?
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
                 onClick={cancelLeave}
-                style={{ padding: '7px 18px', borderRadius: 5, border: '1px solid #ccc', background: '#f5f5f5', cursor: 'pointer', fontWeight: 600 }}
+                style={{ padding: '7px 18px', borderRadius: 5, border: '1px solid var(--dropdown-border)', background: 'var(--dropdown-hover-bg)', cursor: 'pointer', fontWeight: 600, color: 'var(--dropdown-text)' }}
               >
                 Stay
               </button>

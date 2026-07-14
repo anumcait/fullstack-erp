@@ -2,13 +2,18 @@
   position: fixed;
   bottom: 50px;
   right: 30px;
-  background-color: var(--hover-color);
-  color: white;
-  padding: 14px;
+  background-color: transparent;
+  color: var(--chatbot-bg, #1976d2);
+  padding: 12px;
   border-radius: 50%;
   cursor: pointer;
   font-size: 24px;
   z-index: 1000;
+  transition: all 0.2s ease;
+  border: 2px solid var(--chatbot-bg, #1976d2);
+}
+.chatbot-icon:hover {
+  background-color: color-mix(in srgb, var(--chatbot-bg, #1976d2) 15%, transparent);
 }
 
 .chatbox {
@@ -25,7 +30,7 @@
 }
 
 .chatbox-header {
-  background: #0078d4;
+  background: var(--chatbot-bg, #1976d2);
   color: white;
   padding: 10px;
   display: flex;
@@ -66,7 +71,7 @@
 
 .chat-msg.bot {
   text-align: left;
-  color: #0078d4;
+  color: var(--chatbot-bg, #1976d2);
 }
 
 .chatbox-footer {
@@ -82,7 +87,7 @@
 }
 
 .chatbox-footer button {
-  background: #0078d4;
+  background: var(--chatbot-bg, #1976d2);
   color: white;
   border: none;
   padding: 6px 10px;
@@ -99,8 +104,8 @@
 
 .option-btn {
   background: white;
-  border: 1px solid #0078d4;
-  color: #0078d4;
+  border: 1px solid var(--chatbot-bg, #1976d2);
+  color: var(--chatbot-bg, #1976d2);
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 13px;
@@ -110,7 +115,7 @@
 }
 
 .option-btn:hover {
-  background: #0078d4;
+  background: var(--chatbot-bg, #1976d2);
   color: white;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }

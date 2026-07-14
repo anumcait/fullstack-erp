@@ -39,7 +39,6 @@ router.put('/:empid', employeeController.updateEmployee);
 router.delete('/:empid', employeeController.deleteEmployee);
 
 // Photo management
-router.get('/photos', employeeController.getPhotos);
 router.get('/:empid/photo', employeeController.getPhoto);
 router.put('/:empid/photo', employeeController.uploadPhoto);
 router.delete('/:empid/photo', employeeController.deletePhoto);

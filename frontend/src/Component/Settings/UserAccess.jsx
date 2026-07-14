@@ -92,7 +92,7 @@ const UserAccess = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: '#0b3c91', fontWeight: 'bold' }}>
+      <Typography variant="h4" gutterBottom sx={{ color: 'var(--heading-color)', fontWeight: 'bold' }}>
         User Access Management
       </Typography>
       <Typography variant="body1" sx={{ mb: 4, color: '#666' }}>
@@ -136,7 +136,7 @@ const UserAccess = () => {
               fullWidth
               onClick={handleSave} 
               disabled={!selectedUser || loading}
-              sx={{ bgcolor: '#0b3c91', height: '56px' }}
+              sx={{ bgcolor: 'var(--heading-color)', height: '56px' }}
             >
               {loading ? 'Saving...' : 'Save Access & Role'}
             </Button>
@@ -172,7 +172,7 @@ const UserAccess = () => {
                           <Checkbox 
                             checked={userPermissions.includes(perm.id)} 
                             onChange={() => handlePermissionChange(perm.id)}
-                            sx={{ color: '#0b3c91', '&.Mui-checked': { color: '#0b3c91' } }}
+                            sx={{ color: 'var(--heading-color)', '&.Mui-checked': { color: 'var(--heading-color)' } }}
                           />
                         }
                         label={perm.label}

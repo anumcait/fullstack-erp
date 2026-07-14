@@ -4,7 +4,7 @@ import { FiSettings, FiCpu } from 'react-icons/fi';
 
 const EngineeringSettings = () => (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Engineering Settings</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Engineering Settings</Typography>
       <Grid container spacing={3}>
         {[{ title: 'BOM Hierarchy Levels', desc: 'Manage BOM depth.', icon: <FiCpu /> }, { title: 'Item Units (UOM)', desc: 'Manage measurement units.', icon: <FiSettings /> }].map((s, i) => (
           <Grid item xs={12} sm={6} key={i}>

@@ -4,7 +4,7 @@ import { FiLayout, FiBox, FiCpu, FiSettings } from 'react-icons/fi';
 
 const EngineeringDashboard = () => (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Engineering & BOM</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Engineering & BOM</Typography>
       <Grid container spacing={3}>
         {[
           { label: 'Active BOMs', value: '85', icon: <FiLayout />, color: '#0288d1' },

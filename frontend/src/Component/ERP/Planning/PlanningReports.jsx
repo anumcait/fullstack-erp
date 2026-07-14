@@ -4,7 +4,7 @@ import { FiLayers, FiActivity } from 'react-icons/fi';
 
 const PlanningReports = () => (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Planning Reports</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Planning Reports</Typography>
       <Grid container spacing={3}>
         {[{ title: 'MPS Fulfillment', icon: <FiLayers /> }, { title: 'MRP Variance Report', icon: <FiActivity /> }].map((r, i) => (
           <Grid item xs={12} sm={6} md={4} key={i}>

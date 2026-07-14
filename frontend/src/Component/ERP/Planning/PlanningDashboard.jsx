@@ -4,7 +4,7 @@ import { FiLayout, FiLayers, FiTool, FiActivity } from 'react-icons/fi';
 
 const PlanningDashboard = () => (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Production Planning</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Production Planning</Typography>
       <Grid container spacing={3}>
         {[
           { label: 'MPS Orders', value: '15', icon: <FiLayers />, color: '#9c27b0' },

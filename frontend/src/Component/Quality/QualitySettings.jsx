@@ -10,7 +10,7 @@ const QualitySettings = () => {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Quality Settings</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Quality Settings</Typography>
       <Grid container spacing={3}>
         {settings.map((s, i) => (
           <Grid item xs={12} sm={6} key={i}>

@@ -4,7 +4,7 @@ import { FiLayout, FiActivity } from 'react-icons/fi';
 
 const EngineeringReports = () => (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Engineering Reports</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Engineering Reports</Typography>
       <Grid container spacing={3}>
         {[{ title: 'BOM Costing Report', icon: <FiLayout /> }, { title: 'Design Cycle Time', icon: <FiActivity /> }].map((r, i) => (
           <Grid item xs={12} sm={6} md={4} key={i}>

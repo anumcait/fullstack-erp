@@ -4,7 +4,7 @@ import { FiTruck, FiRefreshCw } from 'react-icons/fi';
 
 const SubcontractReports = () => (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Subcontract Reports</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Subcontract Reports</Typography>
       <Grid container spacing={3}>
         {[{ title: 'Pending Job Work', icon: <FiTruck /> }, { title: 'Material Return Status', icon: <FiRefreshCw /> }].map((r, i) => (
           <Grid item xs={12} sm={6} md={4} key={i}>

@@ -1,0 +1,43 @@
+200mm plastic ventilation fan BOM				
+S.no	COMPONENT NAME	QTY	REMARK	COLOR
+1	Front Cover-200mm	1		White/Black/Brown
+2	Motor Housing-200mm	1		White/Black/Brown
+3	Wind Leaf-200mm	1		White/Black/Brown
+4	Lovers-200mm	3		White/Black/Brown
+5	Oil Tank Cover-200mm	1		White/Black/Brown
+6	Swing Connector-200mm	1		White/Black/Brown
+7	Fan Cover (WITH BRASS NUT)	1	Common	White/Black/Brown
+8	Capacitor Cover	1	Common	White/Black/Brown
+9	Motor (7818 series) with capacitor(1.8 mfd)	1		
+10	LED Strips	2		
+11	LED Connector/Driver	1		
+12	Thermocol	4	Common	
+13	Polybag-17*20inches	1		
+14	Rubber	1	Common	
+15	Spring	1		
+16	2 core cable	1	Common	White/Black
+17	Hardware			
+	Connector pin	3	Common	
+	6*9.5	3	Common	
+	8*13	4	Common	
+18	Inner Box (1 in 1)	1		
+19	Outer Box (4 x1)	0.17	For every 4 fans, 1 box should be issued	
+20	warranty card	1	Common	
+21	MRP Sticker AND OTHER LABELS	11		
+	MRP inner box-130*255 mm	1		
+	MRP outer box-115*300mm	0.17	For every 4 fans, 1 label should be issued	
+	Rating label	1	Common	
+	tear after use label	1	Common	
+	serial number on warranty	1	Common	
+	color label on inner box	1	Common	
+	color label on outer box	0.17	Common	
+	motor label	1	Common	
+	ROHS label	0.17	Common	
+	ok sticker on fan	1	Common	
+	ok sticker on outer box	0.17	Common	
+22	Strapping Roll and packing tape	1	Common	
+		qty (strap in kg, tape in meters)		
+	Strap	0.023	For every 4 fans, strap should be issued	
+	Tape-inner box	0.7		
+	Tape-outer box	1.8	For every 4 fans, tape should be issued	
+				

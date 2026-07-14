@@ -4,7 +4,7 @@ import { FiSettings, FiTool } from 'react-icons/fi';
 
 const MaintenanceSettings = () => (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Maintenance Settings</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Maintenance Settings</Typography>
       <Grid container spacing={3}>
         {[{ title: 'Machine Categories', desc: 'Manage assets.', icon: <FiTool /> }, { title: 'PM Checklists', desc: 'Manage preventive maintenance.', icon: <FiSettings /> }].map((s, i) => (
           <Grid item xs={12} sm={6} key={i}>

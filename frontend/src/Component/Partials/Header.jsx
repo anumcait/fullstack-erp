@@ -7,15 +7,19 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SecurityIcon from '@mui/icons-material/Security';
 import PersonIcon from '@mui/icons-material/Person';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import { Avatar } from '@mui/material';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import { Avatar, IconButton } from '@mui/material';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useThemeMode } from '../../context/ThemeContext';
 import './Header.css';
 import logo from "../../assets/images/EQIC_Image.jpg";
 
 const API = import.meta.env.VITE_API_URL || "";
 
 const Header = () => {
+  const { mode, toggleTheme, accent, setAccentColor, ACCENT_COLORS } = useThemeMode();
   const [userName, setUserName] = useState('Guest');
   const [userRole, setUserRole] = useState('');
   const [currentDate, setCurrentDate] = useState('');
@@ -380,7 +384,7 @@ const Header = () => {
         {
           title: 'Procurement',
           items: [
-            { label: 'Purchase Requisitions', path: '/purchase/req' },
+            { label: 'Purchase Requisitions', path: '/purchase/requisitions' },
             { label: 'Enquiry / RFQ', path: '/purchase/rfq' },
             { label: 'Purchase Orders', path: '/purchase/orders' }
           ]
@@ -477,7 +481,7 @@ const Header = () => {
                 sx={{ width: 32, height: 32 }}
               />
             ) : (
-              <Avatar sx={{ width: 32, height: 32, bgcolor: '#1976d2' }}>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'var(--primary-main)' }}>
                 <PersonIcon />
               </Avatar>
             )}
@@ -526,7 +530,7 @@ const Header = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid #0b3c91',
+                    border: '2px solid var(--header-bg)',
                     padding: '0 3px',
                   }}>
                     {unreadCount}
@@ -597,6 +601,27 @@ const Header = () => {
                     </Link>
                   )}
                   <div className="dropdown-divider"></div>
+                  <button onClick={() => { toggleTheme(); setIsSettingsOpen(false); }} className="dropdown-item" style={{ cursor: 'pointer' }}>
+                    {mode === 'light' ? <DarkModeIcon style={{ fontSize: '18px', marginRight: '10px' }} /> : <LightModeIcon style={{ fontSize: '18px', marginRight: '10px' }} />}
+                    {mode === 'light' ? 'Dark Mode' : 'Light Mode'}
+                  </button>
+                  <div className="dropdown-item" style={{ fontSize: 11, fontWeight: 700, opacity: 0.6, paddingTop: 8, paddingBottom: 4 }}>
+                    ACCENT COLOR
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, padding: '4px 16px 8px' }}>
+                    {ACCENT_COLORS.map((c) => (
+                      <button
+                        key={c.name}
+                        title={c.name}
+                        onClick={() => { setAccentColor(c); setIsSettingsOpen(false); }}
+                        style={{
+                          width: 20, height: 20, borderRadius: '50%', border: accent.primary === c.primary ? '2px solid var(--text-white)' : '2px solid transparent',
+                          background: c.primary, cursor: 'pointer', padding: 0, outline: accent.primary === c.primary ? '2px solid ' + c.primary : 'none',
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="dropdown-divider"></div>
                   <button onClick={handleLogout} className="dropdown-item logout-item">
                     <LogoutIcon style={{ fontSize: '18px', marginRight: '10px' }} /> Logout
                   </button>
@@ -607,6 +632,7 @@ const Header = () => {
             <button onClick={handleLogout} title="Logout" className="icon-btn logout-btn desktop-only">
               <LogoutIcon />
             </button>
+            <DarkModeToggle />
           </div>
         </div>
       </div>
@@ -690,5 +716,14 @@ const Header = () => {
     </header>
   );
 };
+
+function DarkModeToggle() {
+  const { mode, toggleTheme } = useThemeMode();
+  return (
+    <IconButton onClick={toggleTheme} title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`} sx={{ color: 'white', ml: 1 }}>
+      {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+    </IconButton>
+  );
+}
 
 export default Header;

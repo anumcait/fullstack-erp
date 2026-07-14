@@ -20,11 +20,18 @@ const woffRoutes = require('./routes/HR/woffRoutes');
 const advanceRoutes = require('./routes/HR/advanceRoutes');
 const esiLeaveRoutes = require('./routes/HR/esiLeaveRoutes');
 const payrollRoutes = require('./routes/HR/payrollRoutes');
+const taxRoutes = require('./routes/HR/taxRoutes');
 const attendanceRoutes = require('./routes/HR/attendanceRoutes');
 const holidayRoutes = require('./routes/HR/holidayRoutes');
 const extOtRoutes = require('./routes/HR/extOtRoutes');
 const settingsRoutes = require('./routes/HR/settingsRoutes');
-
+const recruitmentRoutes = require('./routes/HR/recruitmentRoutes');
+const exitSettlementRoutes = require('./routes/HR/exitSettlementRoutes');
+const trainingRoutes = require('./routes/HR/trainingRoutes');
+const pmsRoutes = require('./routes/HR/pmsRoutes');
+const disciplinaryRoutes = require('./routes/HR/disciplinaryRoutes');
+const attendanceCollectorRoutes = require('./routes/HR/attendanceCollectorRoutes');
+const pfAccountingRoutes = require('./routes/HR/pfAccountingRoutes');
 
 const app = express();
 
@@ -97,10 +104,18 @@ app.use('/api/woff', woffRoutes);
 app.use('/api/advance', advanceRoutes);
 app.use('/api/esileave', esiLeaveRoutes);
 app.use('/api/payroll', payrollRoutes);
+app.use('/api/tax', taxRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/ext-ot', extOtRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/recruitment', recruitmentRoutes);
+app.use('/api/exit', exitSettlementRoutes);
+app.use('/api/training', trainingRoutes);
+app.use('/api/pms', pmsRoutes);
+app.use('/api/disciplinary', disciplinaryRoutes);
+app.use('/api/attendance-collector', attendanceCollectorRoutes);
+app.use('/api/pf', pfAccountingRoutes);
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/notifications', require('./routes/HR/notificationRoutes'));
 
@@ -110,6 +125,8 @@ app.use('/api/accounts/invoices', require('./routes/Accounts/invoiceRoutes'));
 // ERP Module Routes
 app.use('/api/erp/purchase', require('./routes/ERP/purchaseRoutes'));
 app.use('/api/erp/stores', require('./routes/ERP/storesRoutes'));
+app.use('/api/erp/engineering', require('./routes/ERP/engineeringRoutes'));
+app.use('/api/erp/production', require('./routes/ERP/productionRoutes'));
 
 
 // Health check

@@ -1,0 +1,122 @@
+# Docker Compose for a single-EC2 demo deployment.
+# Differences from docker-compose.yaml:
+#   - Only nginx (port 80) is exposed publicly; db/backend/agent stay internal.
+#   - Backend connects to the `db` service via DB_HOST=db (not localhost).
+#   - All services use restart: unless-stopped so they recover after a reboot.
+#   - Bind mounts keep your code live; rebuild images only when deps change.
+
+version: '3.9'
+
+services:
+  # ────────────── DATABASE (PostgreSQL) ──────────────
+  db:
+    image: postgres:17
+    container_name: hr_postgres
+    environment:
+      POSTGRES_DB:       hrdb
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - hr_db_data:/var/lib/postgresql/data
+      - ./init-scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hrdb"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 300s
+    shm_size: '256mb'
+    # No public port mapping — only reachable inside hr-network.
+    command: ["/bin/bash", "-c", "/docker-entrypoint-initdb.d/01-init-db.sh & exec docker-entrypoint.sh postgres"]
+    restart: unless-stopped
+    networks: [hr-network]
+
+  # ────────────── BACKEND ──────────────
+  backend:
+    build:
+      context: ./backend
+    container_name: hr-backend
+    env_file:
+      - ./backend/.env.development
+    environment:
+      # Override connection to the in-network db service (not localhost).
+      DB_HOST: db
+      DB_PORT: 5432
+      ERP_DB_HOST: db
+      ERP_DB_PORT: 5432
+      PYTHON_AGENT_URL: http://agent_python:8001/process
+    depends_on:
+      db:
+        condition: service_healthy
+      agent_python:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/"]
+      interval: 20s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+    command: ["npm", "run", "dev"]
+    # No public port — reached only via nginx /api/.
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    working_dir: /app
+    networks: [hr-network]
+    restart: unless-stopped
+
+  # ────────────── PYTHON AGENT ──────────────
+  agent_python:
+    build:
+      context: ./agent_python
+    container_name: hr-python-agent
+    volumes:
+      - ./agent_python:/app
+    # No public port — reached only by the backend on the internal network.
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    networks: [hr-network]
+    restart: unless-stopped
+
+  # ────────────── FRONTEND ──────────────
+  frontend:
+    build:
+      context: ./frontend
+    container_name: hr-frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - API_TARGET=http://backend:5000
+    # No public port — reached only via nginx /.
+    networks: [hr-network]
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:latest
+    container_name: hr-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    networks: [hr-network]
+    restart: unless-stopped
+
+networks:
+  hr-network:
+    driver: bridge
+
+volumes:
+  hr_db_data:

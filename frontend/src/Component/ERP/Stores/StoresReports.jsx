@@ -11,7 +11,7 @@ const StoresReports = () => {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#0b3c91' }}>Stores Reports</Typography>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Stores Reports</Typography>
       <Grid container spacing={3}>
         {reports.map((r, i) => (
           <Grid item xs={12} sm={6} md={4} key={i}>
