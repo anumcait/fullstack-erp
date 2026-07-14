@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import WoffChangeForm from "./WoffChangeForm";
 import WoffChangeTable from "./WoffChangeTable";
 import WoffApproval from "./WoffApproval";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt, FaCheckDouble } from "react-icons/fa";
 
 const TABS = [

@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import ShiftChangeForm from "./ShiftChangeForm";
 import ShiftChangeTable from "./ShiftChangeTable";
 import ShiftChangeApproval from "./ShiftChangeApproval";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt, FaCheckDouble } from "react-icons/fa";
 
 const ShiftChangeDashboard = () => {

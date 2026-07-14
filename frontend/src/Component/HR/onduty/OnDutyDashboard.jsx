@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import OnDutyForm from "./OnDutyForm";
 import OnDutyTable from "./OnDutyTable";
 import OnDutyApproval from "./OnDutyApproval";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt, FaCheckDouble } from "react-icons/fa";
 
 const OnDutyDashboard = () => {

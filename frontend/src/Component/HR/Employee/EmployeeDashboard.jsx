@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import EmployeeReport from "./EmployeeMasterReport";
 import EmployeeForm from "./AddEmployee";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaUsers, FaUserPlus, FaFileExport, FaChartBar } from "react-icons/fa";
 import './EmployeeDashboard.css';
 

@@ -4,7 +4,7 @@ import LeaveReport from "./LeaveReport";
 import LeaveMaster from "./LeaveMaster";
 import LeaveApproval from "./LeaveApproval";
 import LeaveApplication from "./LeaveApplication";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt, FaCog, FaCheckDouble } from "react-icons/fa";
 
 const TABS = [

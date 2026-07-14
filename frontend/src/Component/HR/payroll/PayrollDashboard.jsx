@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import SalarySetup from "./SalarySetup";
 import SalaryProcessing from "./SalaryProcessing";
 import PayslipList from "./PayslipList";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaCog, FaPlay, FaFileAlt } from "react-icons/fa";
 
 const TABS = [

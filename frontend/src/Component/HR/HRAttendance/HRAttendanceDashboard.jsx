@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import HRAttendanceForm from "./HRAttendance";
 import HRAttendanceTable from "./HRAttendanceTable";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt } from "react-icons/fa";
 
 const TABS = [

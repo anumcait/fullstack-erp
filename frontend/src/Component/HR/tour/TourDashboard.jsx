@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import TourForm from "./TourForm";
 import TourTable from "./TourTable";
 import TourApproval from "./TourApproval";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt, FaCheckDouble } from "react-icons/fa";
 
 const TourDashboard = () => {

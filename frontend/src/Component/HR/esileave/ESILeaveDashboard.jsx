@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import ESILeaveForm from "./ESILeaveForm";
 import ESILeaveTable from "./ESILeaveTable";
 import ESILeaveApproval from "./ESILeaveApproval";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt, FaCheckDouble } from "react-icons/fa";
 
 const TABS = [

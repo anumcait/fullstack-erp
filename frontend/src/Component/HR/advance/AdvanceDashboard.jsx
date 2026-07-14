@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import AdvanceForm from "./AdvanceForm";
 import AdvanceTable from "./AdvanceTable";
 import AdvanceApproval from "./AdvanceApproval";
-import ModuleTabBar from "../Common/ModuleTabBar";
+import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt, FaCheckDouble } from "react-icons/fa";
 
 const TABS = [
