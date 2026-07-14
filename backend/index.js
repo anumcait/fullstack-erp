@@ -36,7 +36,11 @@ async function startServer(retries = MAX_RETRIES) {
       console.log(`✅ Connected to ${ENV} database (ERP)`);
 
       const FORCE_SYNC = process.env.DB_SYNC_FORCE === 'true';
-      const syncOptions = FORCE_SYNC ? { force: true } : (ENV === 'production' ? { force: false } : { alter: true });
+      // Use safe sync (create missing tables only, no destructive alters).
+      // `alter: true` re-adds foreign keys on every boot and fails on restored
+      // data that has orphaned rows (e.g. emp_attendance). Force-sync (drop &
+      // recreate) is opt-in via DB_SYNC_FORCE=true.
+      const syncOptions = FORCE_SYNC ? { force: true } : { force: false };
 
       if (FORCE_SYNC) {
         console.warn('⚠️ WARNING: DB_SYNC_FORCE is enabled. All tables will be dropped and recreated!');
