@@ -1,19 +1,24 @@
 #!/bin/bash
+exec > /var/log/erp-bootstrap.log 2>&1
 set -euo pipefail
 
-# ── Install Docker + Compose plugin + Git ──
+echo "==> Installing git and prerequisites"
 apt-get update -y
-apt-get install -y docker.io docker-compose-plugin git curl
+apt-get install -y git curl ca-certificates gnupg
+
+echo "==> Installing Docker (engine + compose plugin) via official script"
+curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+sh /tmp/get-docker.sh
 systemctl enable --now docker
 
-# ── Clone repo once (persists on EBS across stop/start) ──
+echo "==> Cloning repository (branch: ${repo_branch})"
 REPO_DIR=/opt/erp-app
 if [ ! -d "$REPO_DIR/.git" ]; then
   rm -rf "$REPO_DIR"
-  git clone ${repo_url} "$REPO_DIR"
+  git clone -b ${repo_branch} --single-branch ${repo_url} "$REPO_DIR"
 fi
 
-# ── Systemd unit: launch the stack on every boot ──
+echo "==> Writing systemd unit"
 cat > /etc/systemd/system/erp-demo.service <<UNIT
 [Unit]
 Description=ERP Demo Stack
@@ -34,3 +39,4 @@ UNIT
 
 systemctl daemon-reload
 systemctl enable --now erp-demo
+echo "==> Bootstrap complete"

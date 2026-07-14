@@ -12,6 +12,32 @@ provider "aws" {
   region = var.region
 }
 
+# ────────────── IAM (SSM access for key-less debugging) ──────────────
+data "aws_iam_policy_document" "assume_ec2" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "erp_demo" {
+  name               = "erp-demo-ssm-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_ec2.json
+}
+
+resource "aws_iam_role_policy_attachment" "erp_demo_ssm" {
+  role       = aws_iam_role.erp_demo.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "erp_demo" {
+  name = "erp-demo-ssm-profile"
+  role = aws_iam_role.erp_demo.name
+}
+
 # ────────────── Networking (default VPC) ──────────────
 data "aws_vpc" "default" {
   default = true
@@ -76,6 +102,7 @@ resource "aws_instance" "this" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
   key_name               = var.key_name
+  iam_instance_profile   = aws_iam_instance_profile.erp_demo.name
   vpc_security_group_ids = [aws_security_group.erp_demo.id]
   subnet_id              = data.aws_subnets.default.ids[0]
 
@@ -89,6 +116,7 @@ resource "aws_instance" "this" {
   user_data = templatefile("${path.module}/user-data.sh", {
     repo_url    = var.github_token != "" ? "https://${var.github_token}@${var.repo_url}" : "https://${var.repo_url}"
     compose_file = var.compose_file
+    repo_branch  = var.repo_branch
   })
 
   tags = {

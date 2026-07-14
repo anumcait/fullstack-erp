@@ -41,6 +41,12 @@ variable "compose_file" {
   default     = "docker-compose.demo.yaml"
 }
 
+variable "repo_branch" {
+  description = "Git branch to clone (demo files live on dev)"
+  type        = string
+  default     = "dev"
+}
+
 # "running" to bring up, "stopped" to halt (data preserved on EBS).
 variable "instance_state" {
   description = "Desired instance state: running or stopped"
