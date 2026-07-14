@@ -13,12 +13,19 @@ echo "📊 Found $USER_COUNT users in database."
 
 if [ "$USER_COUNT" -eq "0" ]; then
   echo "🛠️ Database has no users. Restoring from backup..."
-  
-  if [ -f /pg_backup/hrdb_full.backup ]; then
-    pg_restore --no-owner --clean --if-exists --verbose -U postgres -d hrdb /pg_backup/hrdb_full.backup 2>&1 || true
-    echo "✅ Restore completed."
+
+  BACKUP_FILE=""
+  if [ -f /pg_backup/hrdb.backup ]; then
+    BACKUP_FILE=/pg_backup/hrdb.backup
+  elif [ -f /pg_backup/hrdb_full.backup ]; then
+    BACKUP_FILE=/pg_backup/hrdb_full.backup
+  fi
+
+  if [ -n "$BACKUP_FILE" ]; then
+    pg_restore --no-owner --clean --if-exists --verbose -U postgres -d hrdb "$BACKUP_FILE" 2>&1 || true
+    echo "✅ Restore completed from $BACKUP_FILE."
   else
-    echo "❌ Backup file not found at /pg_backup/hrdb_full.backup"
+    echo "❌ Backup file not found at /pg_backup/ (expected hrdb.backup or hrdb_full.backup)"
   fi
 else
   echo "✅ Database already has data. Skipping restore."
