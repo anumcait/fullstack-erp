@@ -8,6 +8,11 @@ output "app_url" {
   value       = "http://${aws_eip.this.public_ip}"
 }
 
+output "instance_id" {
+  description = "EC2 instance ID (for SSM debugging)"
+  value       = aws_instance.this.id
+}
+
 output "ssh_command" {
   description = "SSH into the instance"
   value       = var.key_name != null ? "ssh -i <your-key.pem> ubuntu@${aws_eip.this.public_ip}" : "no key pair configured"

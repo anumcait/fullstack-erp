@@ -1,0 +1,72 @@
+========================================================================
+ERP DEPLOY — DIAGNOSTIC COMMANDS (run from Git Bash on your machine)
+========================================================================
+
+Instance ID from your diag: i-01d05324adefba29b
+(If the instance changes after a re-apply, update the ID in every command.)
+
+Run each block in Git Bash and paste the FULL output back to me.
+
+!!! BEFORE RUNNING (fixes the 'charmap' unicode error on Windows):
+    export PYTHONUTF8=1
+    export PYTHONIOENCODING=utf-8
+(CMD 1 below also avoids `systemctl status` so no bullet character is printed.)
+
+------------------------------------------------------------------------
+CMD 1 — ALL-IN-ONE health check (run this one)
+------------------------------------------------------------------------
+Tells us WHY no containers exist: docker, compose, repo clone, compose file,
+service state, and the bootstrap log — in a single ASCII-safe call.
+
+CMD=$(aws ssm send-command \
+  --instance-id i-01d05324adefba29b \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["echo DOCKER=; docker --version","echo COMPOSE=; docker compose version","echo REPO=; ls /opt/erp-app 2>&1 | head -20","echo CFGFILE=; test -f /opt/erp-app/docker-compose.demo.yaml && echo EXISTS || echo MISSING","echo SVC=; systemctl is-active erp-demo.service; systemctl show erp-demo.service -p SubState -p Result","echo BOOT=; tail -n 40 /var/log/erp-bootstrap.log"]' \
+  --query "Command.CommandId" --output text); \
+sleep 8; \
+aws ssm get-command-invocation --command-id $CMD --instance-id i-01d05324adefba29b --query StandardOutputContent --output text
+
+WHAT TO LOOK FOR:
+  - "COMPOSE=" empty or "compose is not a command"  => docker-compose-plugin MISSING (prime suspect)
+  - "REPO=" shows "No such file or directory"         => git clone FAILED (wrong repo_url / private repo)
+  - "SYSTEMD=" shows "active (running)" but no docker => compose up exited immediately
+
+------------------------------------------------------------------------
+CMD 2 — Clone failure detail (run this next)
+------------------------------------------------------------------------
+Shows the user-data bootstrap log (the git clone error) AND tests direct
+reachability/auth to the repo from the instance.
+
+CMD=$(aws ssm send-command \
+  --instance-id i-01d05324adefba29b \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["echo BOOT=; tail -n 50 /var/log/erp-bootstrap.log | LC_ALL=C sed \"s/[^[:print:]]//g\"","echo REPOTEST=; git ls-remote https://github.com/anumcait/fullstack-erp.git 2>&1 | head -5 | LC_ALL=C sed \"s/[^[:print:]]//g\"","echo CFGURL=; (grep -n repo_url /var/log/erp-bootstrap.log 2>/dev/null; grep -rn repo_url /opt/erp-app 2>/dev/null | head -3) | LC_ALL=C sed \"s/[^[:print:]]//g\""]' \
+  --query "Command.CommandId" --output text); \
+sleep 8; \
+aws ssm get-command-invocation --command-id $CMD --instance-id i-01d05324adefba29b --query StandardOutputContent --output text
+
+------------------------------------------------------------------------
+CMD 3 — Raw docker state (empty list confirms stack never started)
+------------------------------------------------------------------------
+CMD=$(aws ssm send-command \
+  --instance-id i-01d05324adefba29b \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["echo ==DOCKER PS==; docker ps -a","echo ==IMAGES==; docker images"]' \
+  --query "Command.CommandId" --output text); \
+sleep 6; \
+aws ssm get-command-invocation --command-id $CMD --instance-id i-01d05324adefba29b --query StandardOutputContent --output text
+
+------------------------------------------------------------------------
+CMD 4 — Try starting compose manually to see the real error (optional)
+------------------------------------------------------------------------
+CMD=$(aws ssm send-command \
+  --instance-id i-01d05324adefba29b \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["cd /opt/erp-app && docker compose -f docker-compose.demo.yaml config 2>&1 | head -30"]' \
+  --query "Command.CommandId" --output text); \
+sleep 8; \
+aws ssm get-command-invocation --command-id $CMD --instance-id i-01d05324adefba29b --query StandardOutputContent --output text
+
+NOTE: CMD 4 requires the repo to be cloned (REPO= in CMD 1 must list files).
+      If it errors with "command not found: compose" that confirms the plugin gap.
+========================================================================

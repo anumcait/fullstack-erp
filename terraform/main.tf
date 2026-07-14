@@ -6,6 +6,14 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  # Shared remote state so the deploy can be driven from any machine/agent
+  # without splitting the state file. Bucket is versioned for safety.
+  backend "s3" {
+    bucket = "erp-terraform-state-888577063211"
+    key    = "erp-demo/terraform.tfstate"
+    region = "us-east-1"
+  }
 }
 
 provider "aws" {

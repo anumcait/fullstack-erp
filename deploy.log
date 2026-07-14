@@ -1,0 +1,135 @@
+nohup: ignoring input
+[1;34m[deploy][0m Initialising Terraform ...
+[0m[1mInitializing the backend...[0m
+[0m[1mInitializing provider plugins...[0m
+- Finding hashicorp/aws versions matching "~> 5.0"...
+- Using previously-installed hashicorp/aws v5.100.0
+
+[0m[1m[32mTerraform has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.[0m
+[1;34m[deploy][0m Applying infrastructure (this builds EC2 + docker stack) ...
+[0m[1mdata.aws_subnets.default: Reading...[0m[0m
+[0m[1mdata.aws_ami.ubuntu: Reading...[0m[0m
+[0m[1mdata.aws_vpc.default: Reading...[0m[0m
+[0m[1mdata.aws_iam_policy_document.assume_ec2: Reading...[0m[0m
+[0m[1mdata.aws_iam_policy_document.assume_ec2: Read complete after 0s [id=2851119427][0m
+[0m[1maws_iam_role.erp_demo: Refreshing state... [id=erp-demo-ssm-role][0m
+[0m[1mdata.aws_subnets.default: Read complete after 1s [id=us-east-1][0m
+[0m[1mdata.aws_ami.ubuntu: Read complete after 1s [id=ami-0d001f8052688dc45][0m
+[0m[1maws_iam_role_policy_attachment.erp_demo_ssm: Refreshing state... [id=erp-demo-ssm-role-20260714084821745000000001][0m
+[0m[1maws_iam_instance_profile.erp_demo: Refreshing state... [id=erp-demo-ssm-profile][0m
+[0m[1mdata.aws_vpc.default: Read complete after 3s [id=vpc-000d2ddebe40c1aab][0m
+[0m[1maws_security_group.erp_demo: Refreshing state... [id=sg-087022780cc5b04cb][0m
+[0m[1maws_instance.this: Refreshing state... [id=i-007962bbbe476e853][0m
+[0m[1maws_ec2_instance_state.this: Refreshing state... [id=i-007962bbbe476e853][0m
+[0m[1maws_eip.this: Refreshing state... [id=eipalloc-02d6b8861831dbf3b][0m
+
+[0m[1m[32mNo changes.[0m[1m Your infrastructure matches the configuration.[0m
+
+[0mTerraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.
+[0m[1m[32m
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+[0m[0m[1m[32m
+Outputs:
+
+[0mapp_url = "http://44.206.35.45"
+instance_id = "i-007962bbbe476e853"
+public_ip = "44.206.35.45"
+ssh_command = "no key pair configured"
+[1;34m[deploy][0m Elastic IP allocated: http://44.206.35.45
+[1;34m[deploy][0m Waiting 180s for first-boot bootstrap, then checking clone status ...
+[1;34m[deploy][0m Bootstrap looks healthy so far; continuing to wait for the app ...
+[1;34m[deploy][0m Waiting up to 1200s for the app to become healthy ...
+................................................................................[1;33m[warn][0m Timed out waiting for health check.
+[1;34m[deploy][0m Fetching EC2 diagnostics (instance i-0b7d7f23f4523a3b1) via SSM ...
+===BOOTSTRAP===
+  Git commit:       8ec5ab3
+  Built:            Fri Jun 26 11:40:26 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.2.6
+  GitCommit:        11ce9d5f3c68c941867e82890e93e815c1304f1b
+ runc:
+  Version:          1.3.6
+  GitCommit:        v1.3.6-0-g491b69ba
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+
+================================================================================
+
+To run Docker as a non-privileged user, consider setting up the
+Docker daemon in rootless mode for your user:
+
+    dockerd-rootless-setuptool.sh install
+
+Visit https://docs.docker.com/go/rootless/ to learn about rootless mode.
+
+
+To run the Docker daemon as a fully privileged service, but granting non-root
+users access, refer to https://docs.docker.com/go/daemon-access/
+
+WARNING: Access to the remote API on a privileged Docker daemon is equivalent
+         to root access on the host. Refer to the 'Docker daemon attack surface'
+         documentation for details: https://docs.docker.com/go/attack-surface/
+
+================================================================================
+
+Reading package lists...
+Building dependency tree...
+Reading state information...
+docker-buildx-plugin is already the newest version (0.35.0-1~ubuntu.22.04~jammy).
+docker-compose-plugin is already the newest version (5.3.1-1~ubuntu.22.04~jammy).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Synchronizing state of docker.service with SysV service script with /lib/systemd/systemd-sysv-install.
+Executing: /lib/systemd/systemd-sysv-install enable docker
+ Docker daemon ready.
+==> Cloning repository (branch: dev) from https://github.com/anumcait/fullstack-erp.git
+ Network to https://github.com/anumcait/fullstack-erp.git reachable.
+Cloning into '/opt/erp-app'...
+Updating files:  86% (9406/10813)Updating files:  87% (9408/10813)Updating files:  88% (9516/10813)Updating files:  89% (9624/10813)Updating files:  90% (9732/10813)Updating files:  91% (9840/10813)Updating files:  92% (9948/10813)Updating files:  93% (10057/10813)Updating files:  94% (10165/10813)Updating files:  95% (10273/10813)Updating files:  96% (10381/10813)Updating files:  97% (10489/10813)Updating files:  98% (10597/10813)Updating files:  99% (10705/10813)Updating files: 100% (10813/10813)Updating files: 100% (10813/10813), done.
+ Repository cloned to /opt/erp-app
+==> Writing systemd unit
+Created symlink /etc/systemd/system/multi-user.target.wants/erp-demo.service  /etc/systemd/system/erp-demo.service.
+==> Bootstrap complete
+===DOCKER===
+CONTAINER ID   IMAGE         COMMAND                  CREATED          STATUS    PORTS     NAMES
+6519269081be   postgres:17   "docker-entrypoint.s…"   10 minutes ago   Created             hr_postgres
+===SVC===
+active
+Result=success
+SubState=running
+===REPO===
+5000
+AGENTS.md
+Capture.JPG
+DEPLOY_LINUX.md
+Dockerfile.jenkins
+Jenkinsfile
+README.md
+agent_python
+backend
+check.sql
+check_ot.js
+check_ot2.js
+check_swipes.py
+cloudbuild-backend.yaml
+db-init
+docker-compose.demo.yaml
+docker-compose.yaml
+docs
+erp_data.sql
+fix_company_name.sql
+===CLONE===
+017f2ce152a8fc90a9f17bc2618d47e42d326ca1HEAD
+b72dc45aa5c9f691d2466d356e2bbd1918acbaa6refs/heads/dev
+017f2ce152a8fc90a9f17bc2618d47e42d326ca1refs/heads/main
