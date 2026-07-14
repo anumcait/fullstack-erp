@@ -96,6 +96,13 @@ services:
         condition: service_healthy
     environment:
       - API_TARGET=http://backend:5000
+      - VITE_API_URL=
+    # Serve a production build via `vite preview` instead of the Vite dev server.
+    # The dev server transforms modules on-the-fly, which is extremely slow over
+    # the internet; the bundled build loads in one shot. nginx still proxies
+    # / -> frontend:5173 and /api/ -> backend. VITE_API_URL is emptied so API
+    # calls resolve relatively through nginx (same origin).
+    command: ["sh", "-c", "VITE_API_URL= npm run build && npm run preview -- --host 0.0.0.0 --port 5173"]
     # No public port — reached only via nginx /.
     networks: [hr-network]
     restart: unless-stopped
