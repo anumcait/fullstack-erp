@@ -106,10 +106,11 @@ resource "aws_instance" "this" {
   vpc_security_group_ids = [aws_security_group.erp_demo.id]
   subnet_id              = data.aws_subnets.default.ids[0]
 
-  # GP3 root volume (data persists across stop/start).
+  # GP3 root volume. Sized generously: the Python agent image pulls
+  # full CUDA/torch wheels and the build needs headroom (20G filled up).
   root_block_device {
     volume_type = "gp3"
-    volume_size = 20
+    volume_size = 50
     encrypted   = true
   }
 
