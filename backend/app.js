@@ -80,12 +80,13 @@ const sessionStore = new pgSession({
   tableName: 'session'
 });
 
-// connect-pg-simple does not auto-create its table; create it if missing.
+// connect-pg-simple (v10) does not auto-create its table; create it if missing.
+// Its expected schema is: sid (PK), sess (json), expire (timestamp).
 pgPool.query(`
   CREATE TABLE IF NOT EXISTS "session" (
     "sid" varchar NOT NULL COLLATE "default",
     "sess" json NOT NULL,
-    "exp" timestamp(6) NOT NULL
+    "expire" timestamp(6) NOT NULL
   )
 `, (err) => {
   if (err) {
