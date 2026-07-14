@@ -80,8 +80,23 @@ const sessionStore = new pgSession({
   tableName: 'session'
 });
 
-// connect-pg-simple does not auto-create its table; ensure it exists on startup.
-sessionStore.sync();
+// connect-pg-simple does not auto-create its table; create it if missing.
+pgPool.query(`
+  CREATE TABLE IF NOT EXISTS "session" (
+    "sid" varchar NOT NULL COLLATE "default",
+    "sess" json NOT NULL,
+    "exp" timestamp(6) NOT NULL
+  )
+`, (err) => {
+  if (err) {
+    console.error('❌ Failed to ensure session table exists:', err.message);
+  } else {
+    pgPool.query(
+      'ALTER TABLE "session" ADD CONSTRAINT IF NOT EXISTS "session_pkey" PRIMARY KEY ("sid")',
+      () => {}
+    );
+  }
+});
 
 app.use(session({
   store: sessionStore,
