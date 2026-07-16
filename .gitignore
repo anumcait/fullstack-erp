@@ -19,6 +19,8 @@ genai/
 # Database Dumps
 backend/oracle_dump/
 *.dmp
+# Local-only dump dir (mount source for ./pg_restore:/pg_backup); not for git
+pg_restore/
 
 # Build output
 frontend/dist/
