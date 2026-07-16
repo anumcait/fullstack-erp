@@ -49,6 +49,13 @@ _ssm_exec() {
   # (robust: avoids inline-JSON quoting issues that make send-command fail).
   params_file="$(mktemp)"
   printf '{"commands":%s}\n' "$arr" > "$params_file"
+
+  # Convert UNIX temp path to Windows-supported format for the native Windows AWS CLI
+  local win_params_file="$params_file"
+  if command -v cygpath >/dev/null 2>&1; then
+    win_params_file="$(cygpath -m "$params_file")"
+  fi
+
   # Retry the send-command a few times: the SSM agent can briefly
   # reject a command right after an instance restart (transient blip).
   cmd_id=""
@@ -56,7 +63,7 @@ _ssm_exec() {
     cmd_id="$(aws ssm send-command \
         --profile "$AWS_PROFILE" --region "$AWS_REGION" \
         --instance-id "$id" --document-name "AWS-RunShellScript" \
-        --parameters "file://$params_file" \
+        --parameters "file://$win_params_file" \
         --output text --query "Command.CommandId" 2>/dev/null || true)"
     [ -n "$cmd_id" ] && break
     sleep 5
