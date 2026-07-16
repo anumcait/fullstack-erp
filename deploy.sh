@@ -103,19 +103,21 @@ do_backup() {
   else
     log "Dumping hrdb ..."
     MSYS_NO_PATHCONV=1 docker exec -t "$LOCAL_DB_CONTAINER" \
-      pg_dump -U postgres -Fc -f /pg_backup/hrdb.backup hrdb
+      pg_dump -U postgres -Fc -f /tmp/hrdb.backup hrdb
     log "Dumping erpdb ..."
     MSYS_NO_PATHCONV=1 docker exec -t "$LOCAL_DB_CONTAINER" \
-      pg_dump -U postgres -Fc -f /pg_backup/erpdb.backup erpdb
+      pg_dump -U postgres -Fc -f /tmp/erpdb.backup erpdb
 
-    # Copy out of the container to the repo's tracked folder.
-    TMP="$(mktemp -d)"
-    MSYS_NO_PATHCONV=1 docker cp "$LOCAL_DB_CONTAINER:/pg_backup/hrdb.backup"  "$TMP/hrdb.backup"
-    MSYS_NO_PATHCONV=1 docker cp "$LOCAL_DB_CONTAINER:/pg_backup/erpdb.backup" "$TMP/erpdb.backup"
+    # Copy the dumps out of the container. We write to a container-internal
+    # /tmp (no bind-mount dependency) and `docker cp` them to the repo's
+    # tracked folder. Git-Bash rewrites Unix paths for the Windows Docker
+    # daemon, so we (a) keep the container source path literal via
+    # MSYS_NO_PATHCONV=1 and (b) translate the Windows destination with cygpath -w.
     mkdir -p "$REPO_ROOT/pg_backup"
-    cp "$TMP/hrdb.backup"  "$REPO_ROOT/pg_backup/hrdb.backup"
-    cp "$TMP/erpdb.backup" "$REPO_ROOT/pg_backup/erpdb.backup"
-    rm -rf "$TMP"
+    MSYS_NO_PATHCONV=1 docker cp "$LOCAL_DB_CONTAINER:/tmp/hrdb.backup" \
+      "$(cygpath -w "$REPO_ROOT/pg_backup")/hrdb.backup"
+    MSYS_NO_PATHCONV=1 docker cp "$LOCAL_DB_CONTAINER:/tmp/erpdb.backup" \
+      "$(cygpath -w "$REPO_ROOT/pg_backup")/erpdb.backup"
     log "Backups written to pg_backup/"
   fi
 
