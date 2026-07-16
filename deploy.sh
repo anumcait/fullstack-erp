@@ -257,11 +257,21 @@ JSON
 
    _ssm_exec "$id" "$arr"
 
-   # 3) Apply DB migrations explicitly. The backend boot migration can race with
-   #    the DB restore on first boot; running the safe, idempotent migration SQL
-   #    directly against Postgres guarantees the columns exist after every update.
-   #    ERP models span both hrdb (DB_NAME) and erpdb (ERP_DB_NAME), so run against
-   #    both databases.
+   # 3) Mirror local data onto the EC2 databases. The committed backups in
+   #    pg_backup/ (refreshed by `./deploy.sh backup`) are restored into the
+   #    live EC2 Postgres so AWS shows the same data as your local machine.
+   #    We stop the backend first (free DB connections) so pg_restore --clean can
+   #    drop/recreate cleanly, then start it again.
+   log "Restoring EC2 databases from committed backups (mirrors local) on $id ..."
+   local restore=$(cat <<JSON
+ ["docker stop hr-backend 2>&1 | tail -1","docker exec hr_postgres pg_restore --clean --if-exists --no-owner -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 | tail -3","docker exec hr_postgres pg_restore --clean --if-exists --no-owner -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 | tail -3","docker start hr-backend 2>&1 | tail -1","echo RESTORE_DONE"]
+JSON
+)
+   _ssm_exec "$id" "$restore"
+
+   # 4) Apply DB migrations explicitly. Idempotent (no-op after a full restore),
+   #    but guarantees the columns exist if the restore is ever skipped. ERP models
+   #    span both hrdb (DB_NAME) and erpdb (ERP_DB_NAME).
    log "Applying DB migrations on instance $id (hrdb + erpdb) ..."
    local mig=$(cat <<JSON
  ["docker cp /opt/erp-app/db/erp_migrations.sql hr_postgres:/tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","docker exec hr_postgres psql -U postgres -d hrdb -v ON_ERROR_STOP=0 -f /tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","docker exec hr_postgres psql -U postgres -d erpdb -v ON_ERROR_STOP=0 -f /tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","echo MIGRATIONS_DONE"]
