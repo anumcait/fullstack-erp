@@ -255,7 +255,17 @@ do_update() {
 JSON
 )
 
-  _ssm_exec "$id" "$arr"
+   _ssm_exec "$id" "$arr"
+
+   # 3) Apply DB migrations explicitly. The backend boot migration can race with
+   #    the DB restore on first boot; running the safe, idempotent migration SQL
+   #    directly against Postgres guarantees the columns exist after every update.
+   log "Applying DB migrations on instance $id (hrdb) ..."
+   local mig=$(cat <<JSON
+["docker cp /opt/erp-app/db/erp_migrations.sql hr_postgres:/tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","docker exec -t hr_postgres psql -U postgres -d hrdb -v ON_ERROR_STOP=0 -f /tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","echo MIGRATIONS_DONE"]
+JSON
+)
+   _ssm_exec "$id" "$mig"
 
   local url
   url="$(run_tf output -raw app_url 2>/dev/null || true)"
