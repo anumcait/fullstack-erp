@@ -270,14 +270,15 @@ JSON
 
    _ssm_exec "$id" "$arr"
 
-   # 3) Mirror local data onto the EC2 databases. The committed backups in
-   #    pg_backup/ (refreshed by `./deploy.sh backup`) are restored into the
-   #    live EC2 Postgres so AWS shows the same data as your local machine.
-   #    We stop the backend first (free DB connections) so pg_restore --clean can
-   #    drop/recreate cleanly, then start it again.
-   log "Restoring EC2 databases from committed backups (mirrors local) on $id ..."
-   local restore=$(cat <<JSON
- ["docker stop hr-backend 2>&1 | tail -1","for i in $(seq 1 40); do docker exec hr_postgres pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done","docker exec hr_postgres pg_restore --clean --if-exists --no-owner -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 | tail -3","docker exec hr_postgres pg_restore --clean --if-exists --no-owner -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 | tail -3","docker start hr-backend 2>&1 | tail -1","echo RESTORE_DONE"]
+    # 3) Mirror local data onto the EC2 databases. The committed backups in
+    #    pg_backup/ (refreshed by `./deploy.sh backup`) are restored into the
+    #    live EC2 Postgres so AWS shows the same data as your local machine.
+    #    We DROP + recreate each database (instead of `pg_restore --clean`
+    #    onto a live DB) because --clean trips on dependent objects and silently
+    #    skips the load. A fresh DB restores cleanly, exactly like first boot.
+    log "Restoring EC2 databases from committed backups (mirrors local) on $id ..."
+    local restore=$(cat <<JSON
+ ["docker stop hr-backend 2>&1 | tail -1","for i in $(seq 1 40); do docker exec hr_postgres pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done","docker exec hr_postgres psql -U postgres -t -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='hrdb' AND pid<>pg_backend_pid();\"","docker exec hr_postgres psql -U postgres -t -c \"DROP DATABASE IF EXISTS hrdb;\"","docker exec hr_postgres psql -U postgres -t -c \"CREATE DATABASE hrdb;\"","docker exec hr_postgres pg_restore --no-owner -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 | tail -3","docker exec hr_postgres psql -U postgres -t -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='erpdb' AND pid<>pg_backend_pid();\"","docker exec hr_postgres psql -U postgres -t -c \"DROP DATABASE IF EXISTS erpdb;\"","docker exec hr_postgres psql -U postgres -t -c \"CREATE DATABASE erpdb;\"","docker exec hr_postgres pg_restore --no-owner -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 | tail -3","docker start hr-backend 2>&1 | tail -1","echo RESTORE_DONE"]
 JSON
 )
    _ssm_exec "$id" "$restore"
