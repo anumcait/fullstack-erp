@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Box, Card, CardContent, Typography, TextField, Button, Grid, MenuItem, IconButton, LinearProgress } from "@mui/material";
+import { Box, Card, CardContent, Typography, TextField, Button, Grid, MenuItem, IconButton, LinearProgress, Autocomplete } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -11,6 +12,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 const API = "/api/erp/stores/grn";
 const PO_API = "/api/erp/purchase/orders";
 const SUPPLIER_API = "/api/erp/purchase/suppliers";
+const GATE_API = "/api/erp/stores/gate-entry";
 
 export default function GRNForm() {
   const { id } = useParams();
@@ -24,16 +26,21 @@ export default function GRNForm() {
   const [saving, setSaving] = useState(false);
   const [pos, setPos] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [gateEntries, setGateEntries] = useState([]);
   const [header, setHeader] = useState({
     grn_no: "", grn_date: new Date().toISOString().split("T")[0],
     po_id: "", supplier_id: "", invoice_no: "", invoice_date: "", gate_entry_no: "",
     status: "Received", received_by: "", notes: "",
+    approval_status: "Pending", approved_by: "", approved_date: "", approval_remarks: "",
+    qa_status: "Pending", qa_by: "", qa_date: "", qa_remarks: "",
+    ir_type: "GRR",
   });
   const [items, setItems] = useState([]);
 
   useEffect(() => {
     axios.get(SUPPLIER_API, { params: { is_active: true } }).then(({ data }) => setSuppliers(data)).catch(() => {});
     axios.get(PO_API).then(({ data }) => setPos(data)).catch(() => {});
+    axios.get(GATE_API, { params: { entry_type: "Inward" } }).then(({ data }) => setGateEntries(data)).catch(() => {});
     if (id) {
       setLoading(true);
       axios.get(`${API}/${id}`).then(({ data }) => {
@@ -43,6 +50,11 @@ export default function GRNForm() {
           invoice_no: data.invoice_no || "", invoice_date: data.invoice_date?.split("T")[0] || "",
           gate_entry_no: data.gate_entry_no || "", status: data.status || "Received",
           received_by: data.received_by || "", notes: data.notes || "",
+          approval_status: data.approval_status || "Pending", approved_by: data.approved_by || "",
+          approved_date: data.approved_date?.split("T")[0] || "", approval_remarks: data.approval_remarks || "",
+          qa_status: data.qa_status || "Pending", qa_by: data.qa_by || "",
+          qa_date: data.qa_date?.split("T")[0] || "", qa_remarks: data.qa_remarks || "",
+          ir_type: data.ir_type || "GRR",
         });
         if (data.items) setItems(data.items.map((it) => ({
           po_item_id: it.po_item_id, item_id: it.item_id, item_code: it.item_code,
@@ -51,7 +63,7 @@ export default function GRNForm() {
           reject_reason: it.reject_reason || "", rate: it.rate, amount: it.amount,
           gst_rate: it.gst_rate, gst_amount: it.gst_amount,
         })));
-      }).catch(() => showToast("Failed to load GRN", "error")).finally(() => setLoading(false));
+      }).catch(() => showToast("Failed to load GRR", "error")).finally(() => setLoading(false));
     }
   }, [id]);
 
@@ -85,7 +97,7 @@ export default function GRNForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!header.grn_no || !header.po_id) { showToast("GRN # and PO are required", "warning"); return; }
+    if (!header.grn_no || !header.po_id) { showToast("GRR # and PO are required", "warning"); return; }
     setSaving(true);
     try {
       const payload = {
@@ -106,7 +118,7 @@ export default function GRNForm() {
       };
       if (isEdit) { await axios.put(`${API}/${id}`, payload); showToast("Updated", "success"); }
       else { await axios.post(API, payload); showToast("Created", "success"); }
-      navigate("/stores/grn");
+      navigate("/stores/grr");
     } catch (err) { showToast(err.response?.data?.error || "Failed", "error"); }
     finally { setSaving(false); }
   };
@@ -116,31 +128,77 @@ export default function GRNForm() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: "var(--heading-color)" }}>
-        {isView ? "GRN Details" : isEdit ? "Edit GRN" : "New Goods Receipt Note"}
+        {isView ? "GRR Details" : isEdit ? "Edit GRR" : "New GRR"}
       </Typography>
       <form onSubmit={handleSubmit}>
         <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", mb: 3 }}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, color: "var(--heading-color)", fontWeight: 600 }}>Header</Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={3}><TextField label="GRN No *" size="small" fullWidth value={header.grn_no} onChange={(e) => setHeader({ ...header, grn_no: e.target.value })} required disabled={isView} /></Grid>
+              <Grid item xs={12} md={3}><TextField label="GRR No *" size="small" fullWidth value={header.grn_no} onChange={(e) => setHeader({ ...header, grn_no: e.target.value })} required disabled={isView} /></Grid>
               <Grid item xs={12} md={3}><TextField label="Date *" type="date" size="small" fullWidth value={header.grn_date} onChange={(e) => setHeader({ ...header, grn_date: e.target.value })} InputLabelProps={{ shrink: true }} required disabled={isView} /></Grid>
               <Grid item xs={12} md={3}>
-                <TextField label="PO Reference" select size="small" fullWidth value={header.po_id} onChange={(e) => { setHeader({ ...header, po_id: e.target.value }); loadPOItems(e.target.value); }} required disabled={isView}>
-                  <MenuItem value="">-- Select --</MenuItem>
-                  {pos.map((po) => <MenuItem key={po.id} value={po.id}>{po.po_no}</MenuItem>)}
+                <TextField label="IR Type" select size="small" fullWidth value={header.ir_type}
+                  onChange={(e) => setHeader({ ...header, ir_type: e.target.value })} disabled={isView}>
+                  <MenuItem value="GRR">GRR</MenuItem>
+                  <MenuItem value="Jobwork">Jobwork</MenuItem>
+                  <MenuItem value="Resharpening">Resharpening</MenuItem>
+                  <MenuItem value="Loan">Loan</MenuItem>
+                  <MenuItem value="Maintenance">Maintenance</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField label="Supplier" select size="small" fullWidth value={header.supplier_id} onChange={(e) => setHeader({ ...header, supplier_id: e.target.value })} disabled={isView}>
-                  <MenuItem value="">-- Select --</MenuItem>
-                  {suppliers.map((s) => <MenuItem key={s.id} value={s.id}>{s.supplier_name}</MenuItem>)}
-                </TextField>
+              <Grid item xs={12} md={3}><TextField label="Received By" size="small" fullWidth value={header.received_by} onChange={(e) => setHeader({ ...header, received_by: e.target.value })} disabled={isView} /></Grid>
+
+              <Grid item xs={12}>
+                <Autocomplete
+                  options={pos}
+                  getOptionLabel={(o) => o.po_no || ""}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  value={pos.find((p) => p.id === Number(header.po_id)) || null}
+                  disabled={isView}
+                  onChange={(e, val) => {
+                    setHeader({ ...header, po_id: val ? val.id : "" });
+                    if (val) loadPOItems(val.id);
+                  }}
+                  renderInput={(params) => (
+                    <TextField {...params} label="PO Reference *" size="small" fullWidth required
+                      InputProps={{ ...params.InputProps, startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }} />
+                  )}
+                />
               </Grid>
+
+              <Grid item xs={12}>
+                <Autocomplete
+                  options={suppliers}
+                  getOptionLabel={(o) => o.supplier_name || ""}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  value={suppliers.find((s) => s.id === Number(header.supplier_id)) || null}
+                  disabled={isView}
+                  onChange={(e, val) => setHeader({ ...header, supplier_id: val ? val.id : "" })}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Supplier" size="small" fullWidth
+                      InputProps={{ ...params.InputProps, startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }} />
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <Autocomplete
+                  options={gateEntries.filter((g) => g.entry_type === "Inward")}
+                  getOptionLabel={(o) => `${o.entry_no}${o.party_name ? " — " + o.party_name : ""}`}
+                  isOptionEqualToValue={(o, v) => o.entry_no === v.entry_no}
+                  value={gateEntries.find((g) => g.entry_no === header.gate_entry_no) || null}
+                  disabled={isView}
+                  onChange={(e, val) => setHeader({ ...header, gate_entry_no: val ? val.entry_no : "" })}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Gate Entry" size="small" fullWidth
+                      InputProps={{ ...params.InputProps, startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }} />
+                  )}
+                />
+              </Grid>
+
               <Grid item xs={12} md={3}><TextField label="Invoice No" size="small" fullWidth value={header.invoice_no} onChange={(e) => setHeader({ ...header, invoice_no: e.target.value })} disabled={isView} /></Grid>
               <Grid item xs={12} md={3}><TextField label="Invoice Date" type="date" size="small" fullWidth value={header.invoice_date} onChange={(e) => setHeader({ ...header, invoice_date: e.target.value })} InputLabelProps={{ shrink: true }} disabled={isView} /></Grid>
-              <Grid item xs={12} md={3}><TextField label="Gate Entry #" size="small" fullWidth value={header.gate_entry_no} onChange={(e) => setHeader({ ...header, gate_entry_no: e.target.value })} disabled={isView} /></Grid>
-              <Grid item xs={12} md={3}><TextField label="Received By" size="small" fullWidth value={header.received_by} onChange={(e) => setHeader({ ...header, received_by: e.target.value })} disabled={isView} /></Grid>
               <Grid item xs={12}><TextField label="Notes" size="small" fullWidth multiline rows={2} value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} disabled={isView} /></Grid>
             </Grid>
           </CardContent>
@@ -165,10 +223,49 @@ export default function GRNForm() {
           </CardContent>
         </Card>
 
+        <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 2, color: "var(--heading-color)", fontWeight: 600 }}>Approval</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={3}>
+                <TextField label="Approval Status" select size="small" fullWidth value={header.approval_status}
+                  onChange={(e) => setHeader({ ...header, approval_status: e.target.value })} disabled={isView}>
+                  <MenuItem value="Pending">Pending</MenuItem>
+                  <MenuItem value="Approved">Approved</MenuItem>
+                  <MenuItem value="Rejected">Rejected</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={3}><TextField label="Approved By" size="small" fullWidth value={header.approved_by} onChange={(e) => setHeader({ ...header, approved_by: e.target.value })} disabled={isView} /></Grid>
+              <Grid item xs={12} md={3}><TextField label="Approved Date" type="date" size="small" fullWidth value={header.approved_date} onChange={(e) => setHeader({ ...header, approved_date: e.target.value })} InputLabelProps={{ shrink: true }} disabled={isView} /></Grid>
+              <Grid item xs={12} md={3}><TextField label="Approval Remarks" size="small" fullWidth value={header.approval_remarks} onChange={(e) => setHeader({ ...header, approval_remarks: e.target.value })} disabled={isView} /></Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 2, color: "var(--heading-color)", fontWeight: 600 }}>Quality Check (QA)</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={3}>
+                <TextField label="QA Status" select size="small" fullWidth value={header.qa_status}
+                  onChange={(e) => setHeader({ ...header, qa_status: e.target.value })} disabled={isView}>
+                  <MenuItem value="Pending">Pending</MenuItem>
+                  <MenuItem value="Passed">Passed</MenuItem>
+                  <MenuItem value="Partial">Partial</MenuItem>
+                  <MenuItem value="Rejected">Rejected</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={3}><TextField label="QA By" size="small" fullWidth value={header.qa_by} onChange={(e) => setHeader({ ...header, qa_by: e.target.value })} disabled={isView} /></Grid>
+              <Grid item xs={12} md={3}><TextField label="QA Date" type="date" size="small" fullWidth value={header.qa_date} onChange={(e) => setHeader({ ...header, qa_date: e.target.value })} InputLabelProps={{ shrink: true }} disabled={isView} /></Grid>
+              <Grid item xs={12} md={3}><TextField label="QA Remarks" size="small" fullWidth value={header.qa_remarks} onChange={(e) => setHeader({ ...header, qa_remarks: e.target.value })} disabled={isView} /></Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
         {!isView && (
           <Box sx={{ display: "flex", gap: 2 }}>
-            <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving} size="large">{saving ? "Saving..." : "Save GRN"}</Button>
-            <Button variant="outlined" startIcon={<CancelIcon />} onClick={() => navigate("/stores/grn")} size="large">Cancel</Button>
+            <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving} size="large">{saving ? "Saving..." : "Save GRR"}</Button>
+            <Button variant="outlined" startIcon={<CancelIcon />} onClick={() => navigate("/stores/grr")} size="large">Cancel</Button>
           </Box>
         )}
       </form>

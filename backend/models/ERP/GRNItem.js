@@ -67,7 +67,7 @@ module.exports = (sequelize) => {
       },
     },
     {
-      tableName: 't_grn_item',
+      tableName: 't_ir_item',
       timestamps: false,
       underscored: true,
     }

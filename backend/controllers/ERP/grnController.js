@@ -8,6 +8,28 @@ const PurchaseOrder = db.PurchaseOrder;
 const PurchaseOrderItem = db.PurchaseOrderItem;
 const SupplierMaster = db.SupplierMaster;
 const PurchaseSettings = db.PurchaseSettings;
+const ItemMaster = db.ItemMaster;
+
+// Post purchase cost (moving average) and receipt into stock for a GRN.
+// Runs once per GRN (guarded by cost_posted) so it is safe to call on both
+// GRN entry and later GRN billing without double-counting.
+async function postGRNCost(grnId) {
+  const grn = await GRN.findByPk(grnId, { include: [{ model: GRNItem, as: 'items' }] });
+  if (!grn || grn.cost_posted) return;
+  for (const it of grn.items) {
+    if (!it.item_id || !(Number(it.accepted_qty) > 0) || !(Number(it.rate) > 0)) continue;
+    const item = await ItemMaster.findByPk(it.item_id);
+    if (!item) continue;
+    const stock = Number(item.current_stock || 0);
+    const oldRate = Number(item.rate || 0);
+    const qty = Number(it.accepted_qty);
+    const newRate = Number(it.rate);
+    const totalStock = stock + qty;
+    const avg = totalStock > 0 ? (stock * oldRate + qty * newRate) / totalStock : newRate;
+    await item.update({ rate: Number(avg.toFixed(2)), current_stock: Number((stock + qty).toFixed(2)) });
+  }
+  await grn.update({ cost_posted: true });
+}
 
 exports.getGRNs = async (req, res) => {
   try {
@@ -97,6 +119,7 @@ exports.createGRN = async (req, res) => {
         { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
       ],
     });
+    await postGRNCost(grn.id);
     res.status(201).json(result);
   } catch (err) {
     console.error('Error creating GRN:', err);
@@ -126,6 +149,7 @@ exports.updateGRN = async (req, res) => {
         { model: SupplierMaster, as: 'supplier' },
       ],
     });
+    if (!grn.cost_posted) await postGRNCost(id);
     res.json(result);
   } catch (err) {
     console.error('Error updating GRN:', err);

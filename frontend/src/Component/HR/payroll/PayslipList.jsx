@@ -13,6 +13,7 @@ import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { useCompany } from "../../../context/CompanyContext";
 import logo from "../../../assets/images/EQIC_Image.jpg";
+import "./PayslipPreview.css";
 
 
 const PayslipList = () => {
@@ -129,9 +130,34 @@ const PayslipList = () => {
 
   const MONTHS3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const formatDOJ = (d) => {
-    if (!d) return 'N/A';
+    // Return empty string when no value — as requested by user
+    if (!d) return '';
+    try {
+      let dateString = '';
+      if (d instanceof Date) {
+        dateString = d.toISOString().split('T')[0];
+      } else if (typeof d === 'string') {
+        dateString = d.split('T')[0];
+      } else {
+        dateString = new Date(d).toISOString().split('T')[0];
+      }
+
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        const yearStr = parts[0];
+        const monthIndex = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        // If year looks like a DOB year (before 2000), return empty
+        if (parseInt(yearStr, 10) < 2000) return '';
+        if (monthIndex >= 0 && monthIndex < 12) {
+          return `${day}-${MONTHS3[monthIndex]}-${yearStr.substring(2)}`;
+        }
+      }
+    } catch (e) {
+      console.error("Error formatting DOJ:", e);
+    }
     const dt = new Date(d);
-    if (isNaN(dt)) return 'N/A';
+    if (isNaN(dt) || dt.getFullYear() < 2000) return '';
     return `${dt.getDate()}-${MONTHS3[dt.getMonth()]}-${String(dt.getFullYear()).slice(2)}`;
   };
 
@@ -299,139 +325,182 @@ const PayslipList = () => {
             const p = selectedPayslip;
             const emp = p.employee || {};
             const off = emp.official || {};
-            const cellLabel = { fontWeight: 600, color: '#333', whiteSpace: 'nowrap', border: '1px solid #ccc', backgroundColor: '#f7f7f7', px: 1, py: 0.5 };
-            const cellVal = { border: '1px solid #ccc', px: 1, py: 0.5 };
-
-
-            const fixedRows = [
-              ['Basic', p.C_BASIC],
-              ['HRA', p.C_HRA],
-              ['Conveyance', p.C_CONV],
-              ['Washing Allowance', p.C_OTHERS],
-            ];
-            const fixedTotal = ['Total Fixed Salary', p.C_TOT_SAL];
-            const earnedMatrix = [
-              [['Basic', p.C_EARNED_BASIC], ['Attendance Bonus', p.C_EARNED_BONUS]],
-              [['HRA', p.C_EARNED_HRA], ['Extra Wage', p.C_EARNED_OT]],
-              [['Conveyance', p.C_EARNED_CONV], ['Lunch Allowance', p.C_EARNED_LUNCH]],
-              [['Washing Allowance', p.C_EARNED_OTHERS], null],
-            ];
-            const earnedTotal = ['Total Earnings Salary', p.C_EARNED_GROSS];
             const otherDed = Math.ceil(Number(p.C_DED_OTH) || 0);
-            const dedMatrix = [
-              [['P.F', p.C_DED_PF], ['Income tax', p.C_DED_TAX]],
-              [['E.S.I', p.C_DED_ESI], ['Advance', p.C_DED_ADV]],
-              [['P.T', p.C_DED_PT], ['Canteen', p.C_DED_MEALS]],
-              [['L.I.C', p.C_DED_LIC], ['Other Deduction', otherDed]],
-            ];
-            const dedTotal = ['Total Deduction', p.C_TOT_DED];
-
 
             return (
-              <div className="payslip-container" style={{ padding: '20px', fontSize: '13px' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5, borderBottom: '2px solid #333', pb: 1 }}>
-                  <img src={logo} alt="Logo" style={{ height: '46px', width: 'auto' }} />
-                  <Box sx={{ textAlign: 'left' }}>
-                    <h2 style={{ margin: 0, textTransform: 'uppercase' }}>{companyName}</h2>
-                    <div style={{ fontSize: '12px' }}>Plot No 21 &amp; 22, Phase IV, IDA, Jeedimetla, Hyderabad</div>
-                    <h4 style={{ margin: '6px 0 0' }}>Salary Slip For The Month of : {months[month - 1].label.toUpperCase()} - {year}</h4>
-                  </Box>
-                </Box>
+              <div className="payslip-print-container" id="payslip-modal-content">
 
+                {/* Unified 10-Column Table Layout */}
+                <table className="payslip-table payslip-outer-border">
+                  <colgroup>
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '13%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '5%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '17%' }} />
+                    <col style={{ width: '10%' }} />
+                  </colgroup>
+                  <tbody>
 
-                <Table size="small" sx={{ borderCollapse: 'collapse', mb: 2, '& td': { border: '1px solid #ccc', fontSize: '12px' } }}>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell sx={cellLabel}>Employee ID</TableCell>
-                      <TableCell sx={cellVal}>{p.C_EMPID}</TableCell>
-                      <TableCell sx={cellLabel}>D O J</TableCell>
-                      <TableCell sx={cellVal}>{formatDOJ(off.doj)}</TableCell>
-                      <TableCell sx={cellLabel}>Designation</TableCell>
-                      <TableCell sx={cellVal}>{p.C_DESIG}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={cellLabel}>Employee Name</TableCell>
-                      <TableCell sx={cellVal} colSpan={5}>{p.C_ENAME}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={cellLabel}>Department</TableCell>
-                      <TableCell sx={cellVal}>{p.C_DEPT}</TableCell>
-                      <TableCell sx={cellLabel}>Total Days</TableCell>
-                      <TableCell sx={cellVal}>{formatCurrency(p.C_TOT_DAYS)}</TableCell>
-                      <TableCell sx={cellLabel}>Days Present</TableCell>
-                      <TableCell sx={cellVal}>{formatCurrency(p.C_DAYS_PRESENT)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={cellLabel}>Absent Days</TableCell>
-                      <TableCell sx={cellVal}>{formatCurrency(p.C_ABSENT_DAYS)}</TableCell>
-                      <TableCell sx={cellLabel}>Late Hrs</TableCell>
-                      <TableCell sx={cellVal}>{formatCurrency(p.C_LATE_HOURS || 0)}</TableCell>
-                      <TableCell sx={cellLabel}>Leaves Allowed</TableCell>
-                      <TableCell sx={cellVal}>{formatCurrency(p.C_LEAVES_ALLOWED || 0)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={cellLabel}>UAN Number</TableCell>
-                      <TableCell sx={cellVal}>{off.c_uan_no || 'N/A'}</TableCell>
-                      <TableCell sx={cellLabel}>ESI Number</TableCell>
-                      <TableCell sx={cellVal} colSpan={3}>{p.C_ESI_NUM || off.esiacno || 'N/A'}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                    {/* Header: Logo and Company Title */}
+                    <tr>
+                      <td className="payslip-logo-cell" colSpan={2}>
+                        <img src={logo} alt="Logo" className="payslip-logo-img" />
+                      </td>
+                      <td className="payslip-company-cell" colSpan={8}>
+                        <h2 className="payslip-company-title">{companyName || "AUCTOR HOME APPLIANCES LLP"}</h2>
+                      </td>
+                    </tr>
 
+                    {/* Address Line */}
+                    <tr className="payslip-bg-grey payslip-text-center payslip-address-row">
+                      <td colSpan={10}>
+                        Plot No 21 &amp; 22, Phase IV, IDA, Jeedimetla, Hyderabad
+                      </td>
+                    </tr>
 
-                <Table size="small" sx={{ borderCollapse: 'collapse', mb: 1, '& td': { border: '1px solid #ccc', fontSize: '12px' }, '& th': { border: '1px solid #ccc', fontSize: '12px', backgroundColor: '#eee' } }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell colSpan={2} align="center"><strong>Fixed Salary</strong></TableCell>
-                      <TableCell colSpan={4} align="center"><strong>Earnings Salary</strong></TableCell>
-                      <TableCell colSpan={4} align="center"><strong>Deductions</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {[0, 1, 2, 3].map((r) => (
-                      <TableRow key={r}>
-                        <TableCell>{fixedRows[r][0]}</TableCell>
-                        <TableCell align="right">{formatCurrency(fixedRows[r][1])}</TableCell>
-                        {earnedMatrix[r].map((pair, ci) => pair ? (
-                          <React.Fragment key={ci}>
-                            <TableCell>{pair[0]}</TableCell>
-                            <TableCell align="right">{formatCurrency(pair[1])}</TableCell>
-                          </React.Fragment>
-                        ) : (
-                          <React.Fragment key={ci}><TableCell></TableCell><TableCell></TableCell></React.Fragment>
-                        ))}
-                        {dedMatrix[r].map((pair, ci) => pair ? (
-                          <React.Fragment key={ci}>
-                            <TableCell>{pair[0]}</TableCell>
-                            <TableCell align="right">{formatCurrency(pair[1])}</TableCell>
-                          </React.Fragment>
-                        ) : (
-                          <React.Fragment key={ci}><TableCell></TableCell><TableCell></TableCell></React.Fragment>
-                        ))}
-                      </TableRow>
-                    ))}
-                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                      <TableCell sx={{ fontWeight: 700 }}>{fixedTotal[0]}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(fixedTotal[1])}</TableCell>
-                      <TableCell colSpan={3} sx={{ fontWeight: 700 }}>{earnedTotal[0]}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(earnedTotal[1])}</TableCell>
-                      <TableCell colSpan={3} sx={{ fontWeight: 700 }}>{dedTotal[0]}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(dedTotal[1])}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                    {/* Month Title */}
+                    <tr className="payslip-text-center payslip-title-row">
+                      <td colSpan={10}>
+                        Salary Slip For The Month of : {(p.C_MONTH || '').toUpperCase()} - {p.C_YEAR}
+                      </td>
+                    </tr>
 
+                    {/* Employee Info Row 1: EmpID | value | D O J: (2cols) | Designation: | value */}
+                    <tr>
+                      <td className="payslip-bold" colSpan={1}>Employee ID</td>
+                      <td className="payslip-bold" colSpan={2}>{p.C_EMPID}</td>
+                      <td colSpan={2}>D O J :</td>
+                      <td colSpan={2}>Designation:</td>
+                      <td colSpan={3}>{p.C_DESIG}</td>
+                    </tr>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mt: 1, fontSize: '13px' }}>
-                  <strong>NET Salary : {formatCurrency(p.C_NET_AMT)}</strong>
-                  <span>Payment Mode : {p.C_PAY_TYPE || 'Bank'}</span>
-                  <span>Bank A/c No : {p.C_BANK_ACNO || '-'}</span>
-                </Box>
+                    {/* Employee Info Row 2: EmpName | value | DOJ-value | (continues) | Department: | value */}
+                    <tr>
+                      <td colSpan={1}>Employee Name</td>
+                      <td className="payslip-bold" colSpan={2}>{p.C_ENAME}</td>
+                      <td colSpan={2}>{formatDOJ(off.doj)}</td>
+                      <td colSpan={2}>Department:</td>
+                      <td colSpan={3}>{p.C_DEPT}</td>
+                    </tr>
 
+                    {/* Stats Row 1 */}
+                    <tr>
+                      <td colSpan={1}>Total Days</td>
+                      <td className="payslip-text-center" colSpan={1}>{Math.round(p.C_TOT_DAYS)}</td>
+                      <td colSpan={1}>Days Present:</td>
+                      <td className="payslip-text-center" colSpan={1}>{Math.round(p.C_DAYS_PRESENT)}</td>
+                      <td colSpan={1}>Leaves Allowed:</td>
+                      <td className="payslip-text-center" colSpan={1}>{Math.round(p.C_LEAVES_ALLOWED || 0)}</td>
+                      <td colSpan={2}>UAN Number</td>
+                      <td className="payslip-bold payslip-text-center" colSpan={2}>{off.c_uan_no || 'N/A'}</td>
+                    </tr>
 
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                    {/* Stats Row 2 */}
+                    <tr>
+                      <td colSpan={1}>Absent Days</td>
+                      <td className="payslip-text-center" colSpan={1}>{Number(p.C_ABSENT_DAYS).toFixed(1)}</td>
+                      <td colSpan={1}>Late Hrs</td>
+                      <td className="payslip-text-center" colSpan={1}>{p.C_LATE_HOURS || 0}</td>
+                      <td colSpan={1}>Late: D:</td>
+                      <td className="payslip-text-center" colSpan={1}>{p.C_LATE_HALF_DAYS || 0}</td>
+                      <td colSpan={2}>ESI Number</td>
+                      <td className="payslip-text-center" colSpan={2}>{p.C_ESI_NUM || off.esiacno || 'N/A'}</td>
+                    </tr>
+
+                    {/* Salary Section Headers */}
+                    <tr className="payslip-bg-grey payslip-bold payslip-text-center">
+                      <td colSpan={2}>Fixed Salary</td>
+                      <td colSpan={4}>Earnings Salary</td>
+                      <td colSpan={4}>Deductions</td>
+                    </tr>
+
+                    {/* Salary Breakdown Row 1 */}
+                    <tr>
+                      <td>Basic</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_BASIC)}</td>
+                      <td>Basic</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_EARNED_BASIC)}</td>
+                      <td>Attendance Bonus</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_EARNED_BONUS)}</td>
+                      <td>P.F</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_DED_PF)}</td>
+                      <td>Income tax</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_DED_TAX)}</td>
+                    </tr>
+
+                    {/* Salary Breakdown Row 2 */}
+                    <tr>
+                      <td>HRA</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_HRA)}</td>
+                      <td>HRA</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_EARNED_HRA)}</td>
+                      <td>Extra Wage</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_EARNED_OT)}</td>
+                      <td>E.S.I</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_DED_ESI)}</td>
+                      <td>Advance</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_DED_ADV)}</td>
+                    </tr>
+
+                    {/* Salary Breakdown Row 3 */}
+                    <tr>
+                      <td>Conveyance</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_CONV)}</td>
+                      <td>Conveyance</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_EARNED_CONV)}</td>
+                      <td>Lunch Allowance</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_EARNED_LUNCH || 0)}</td>
+                      <td>P.T</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_DED_PT)}</td>
+                      <td>Canteen</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_DED_MEALS || 0)}</td>
+                    </tr>
+
+                    {/* Salary Breakdown Row 4 */}
+                    <tr>
+                      <td>Washing Allowance</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_OTHERS)}</td>
+                      <td>Washing Allowance</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_EARNED_OTHERS)}</td>
+                      <td></td>
+                      <td></td>
+                      <td>L.I.C</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_DED_LIC)}</td>
+                      <td>Other Deduction</td>
+                      <td className="payslip-text-right">{formatCurrency(otherDed)}</td>
+                    </tr>
+
+                    {/* Totals Row */}
+                    <tr className="payslip-bold">
+                      <td>Total Fixed Salary</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_TOT_SAL)}</td>
+                      <td colSpan={2}>Total Earnings Salary :</td>
+                      <td className="payslip-text-right" colSpan={2}>{formatCurrency(p.C_EARNED_GROSS)}</td>
+                      <td colSpan={2}>Total Deduction:</td>
+                      <td className="payslip-text-right" colSpan={2}>{formatCurrency(p.C_TOT_DED)}</td>
+                    </tr>
+
+                    {/* Net Salary & Bank Info Bar */}
+                    <tr className="payslip-bold">
+                      <td>NET Salary :</td>
+                      <td className="payslip-text-right">{formatCurrency(p.C_NET_AMT)}</td>
+                      <td colSpan={2} className="payslip-bold" style={{ fontWeight: 'normal' }}>Payment Mode :</td>
+                      <td colSpan={2}>{p.C_PAY_TYPE || 'Bank'}</td>
+                      <td colSpan={2} className="payslip-bold" style={{ fontWeight: 'normal' }}>Bank A/c No :</td>
+                      <td colSpan={2}>{p.C_BANK_ACNO || '-'}</td>
+                    </tr>
+
+                  </tbody>
+                </table>
+
+                <div className="payslip-actions-bar">
                   <Button variant="contained" startIcon={<PrintIcon />} onClick={handlePrint}>Print Payslip</Button>
-                </Box>
+                </div>
               </div>
             );
           })()}

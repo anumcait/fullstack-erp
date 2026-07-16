@@ -6,23 +6,53 @@ const grnController = require('../../controllers/ERP/grnController');
 const materialRequisitionController = require('../../controllers/ERP/materialRequisitionController');
 const materialIssueController = require('../../controllers/ERP/materialIssueController');
 const stockLedgerController = require('../../controllers/ERP/stockLedgerController');
+const stockReportController = require('../../controllers/ERP/stockReportController');
 const stockAuditController = require('../../controllers/ERP/stockAuditController');
 const gateEntryController = require('../../controllers/ERP/gateEntryController');
 const materialReturnController = require('../../controllers/ERP/materialReturnController');
+const deliveryChallanController = require('../../controllers/ERP/deliveryChallanController');
+const billingController = require('../../controllers/ERP/billingController');
 const storesSettingsController = require('../../controllers/ERP/storesSettingsController');
+const storesReportController = require('../../controllers/ERP/storesReportController');
 
 // ── Dashboard ──
 router.get('/dashboard', storesController.getDashboardStats);
+
+// ── Reports ──
+router.get('/reports/valuation', storesReportController.getInventoryValuation);
+router.get('/reports/low-stock', storesReportController.getLowStock);
+router.get('/reports/stock-movement', storesReportController.getStockMovement);
+router.get('/reports/abc', storesReportController.getAbcSummary);
 
 // ── Stock ──
 router.get('/stock', storesController.getStock);
 router.get('/material-requisitions/:id/stock-check', storesController.checkStockForMR);
 
-// ── Item Categories ──
-router.get('/categories', itemController.getCategories);
-router.post('/categories', itemController.createCategory);
-router.put('/categories/:id', itemController.updateCategory);
-router.delete('/categories/:id', itemController.deleteCategory);
+// ── Item Group / Sub Group / Type / Sub Type (4-level classification) ──
+router.get('/groups', itemController.getGroups);
+router.post('/groups', itemController.createGroup);
+router.put('/groups/:id', itemController.updateGroup);
+router.delete('/groups/:id', itemController.deleteGroup);
+
+// Alias used by the Item Master (AddItem) UI for the "Item Group" lookup/create.
+// Frontend refers to the item group as "category" — keep both endpoints in sync.
+router.get('/categories', itemController.getGroups);
+router.post('/categories', itemController.createGroup);
+
+router.get('/subgroups', itemController.getSubGroups);
+router.post('/subgroups', itemController.createSubGroup);
+router.put('/subgroups/:id', itemController.updateSubGroup);
+router.delete('/subgroups/:id', itemController.deleteSubGroup);
+
+router.get('/item-types', itemController.getItemTypes);
+router.post('/item-types', itemController.createItemType);
+router.put('/item-types/:id', itemController.updateItemType);
+router.delete('/item-types/:id', itemController.deleteItemType);
+
+router.get('/subtypes', itemController.getSubTypes);
+router.post('/subtypes', itemController.createSubType);
+router.put('/subtypes/:id', itemController.updateSubType);
+router.delete('/subtypes/:id', itemController.deleteSubType);
 
 // ── Units ──
 router.get('/units', itemController.getUnits);
@@ -32,6 +62,7 @@ router.delete('/units/:id', itemController.deleteUnit);
 
 // ── Item Master ──
 router.get('/items', itemController.getItems);
+router.get('/items/next-code', itemController.getNextItemCode);
 router.get('/items/:id', itemController.getItem);
 router.post('/items', itemController.createItem);
 router.put('/items/:id', itemController.updateItem);
@@ -61,6 +92,7 @@ router.delete('/material-issues/:id', materialIssueController.delete);
 
 // ── Stock Ledger ──
 router.get('/stock-ledger', stockLedgerController.getStockLedger);
+router.get('/day-wise-stock', stockReportController.getDayWiseStock);
 
 // ── Stock Audit / Physical Verification ──
 router.get('/stock-audit', stockAuditController.getList);
@@ -82,6 +114,23 @@ router.get('/material-returns', materialReturnController.getList);
 router.get('/material-returns/:id', materialReturnController.getOne);
 router.post('/material-returns', materialReturnController.create);
 router.delete('/material-returns/:id', materialReturnController.delete);
+
+// ── Delivery Challan ──
+router.get('/delivery-challans', deliveryChallanController.getList);
+router.get('/delivery-challans/:id', deliveryChallanController.getOne);
+router.post('/delivery-challans', deliveryChallanController.create);
+router.put('/delivery-challans/:id', deliveryChallanController.update);
+router.post('/delivery-challans/:id/issue', deliveryChallanController.issue);
+router.post('/delivery-challans/:id/return', deliveryChallanController.returnDc);
+router.delete('/delivery-challans/:id', deliveryChallanController.remove);
+
+// ── Billing (Tax Invoice) ──
+router.get('/invoices', billingController.getList);
+router.get('/invoices/:id', billingController.getOne);
+router.post('/invoices', billingController.create);
+router.put('/invoices/:id', billingController.update);
+router.post('/invoices/:id/bill', billingController.markBilled);
+router.delete('/invoices/:id', billingController.remove);
 
 // ── Stores Settings ──
 router.get('/settings', storesSettingsController.getSettings);

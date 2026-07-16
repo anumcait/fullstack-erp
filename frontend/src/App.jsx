@@ -14,9 +14,11 @@ import { NavigationGuardProvider } from "./context/NavigationGuardContext";
 import MainLayout from "./Component/Layout/MainLayout";
 import OnDutyPreview from "./Component/HR/onduty/OnDutyPreview";
 import OnDutyDashboard from "./Component/HR/onduty/OnDutyDashboard";
-import EditItem from "./Component/ERP/Stores/ItemMaster/EditItem";
 import ItemMaster from "./Component/ERP/Stores/ItemMaster/ItemMaster";
 import AddItem from "./Component/ERP/Stores/ItemMaster/AddItem";
+import UOMMaster from "./Component/ERP/Stores/UOMMaster/UOMMaster";
+import ItemGroupMaster from "./Component/ERP/Stores/ItemGroupMaster/ItemGroupMaster";
+import ItemTypeMaster from "./Component/ERP/Stores/ItemTypeMaster/ItemTypeMaster";
 import { ThemeContextProvider } from './context/ThemeContext';
 import LeaveDashboard from "./Component/HR/LeaveApplication/LeaveDashboard.jsx";
 import EmployeeDashboard from "./Component/HR/Employee/EmployeeDashboard.jsx";
@@ -75,6 +77,7 @@ import BOMList from "./Component/ERP/Engineering/BOM/BOMList.jsx";
 import BOMForm from "./Component/ERP/Engineering/BOM/BOMForm.jsx";
 import ProductMasterList from "./Component/ERP/Engineering/ProductMaster/ProductMasterList.jsx";
 import ProductMasterForm from "./Component/ERP/Engineering/ProductMaster/ProductMasterForm.jsx";
+import CategoryMaster from "./Component/ERP/Engineering/CategoryMaster/CategoryMaster.jsx";
 import MarketingDashboard from "./Component/ERP/Marketing/MarketingDashboard.jsx";
 import QualityDashboard from "./Component/Quality/QualityDashboard.jsx";
 import SubcontractDashboard from "./Component/ERP/Subcontract/SubcontractDashboard.jsx";
@@ -85,9 +88,14 @@ import PurchaseSettings from "./Component/ERP/Purchase/PurchaseSettings.jsx";
 import StoresReports from "./Component/ERP/Stores/StoresReports.jsx";
 import StoresSettings from "./Component/ERP/Stores/StoresSettings.jsx";
 import StockLedger from "./Component/ERP/Stores/StockLedger/StockLedger.jsx";
+import DayWiseStock from "./Component/ERP/Stores/DayWiseStock/DayWiseStock.jsx";
 import StockAuditList from "./Component/ERP/Stores/StockAudit/StockAuditList.jsx";
 import StockAuditForm from "./Component/ERP/Stores/StockAudit/StockAuditForm.jsx";
 import GateEntryList from "./Component/ERP/Stores/GateEntry/GateEntryList.jsx";
+import DeliveryChallanList from "./Component/ERP/Stores/DeliveryChallan/DeliveryChallanList.jsx";
+import DeliveryChallanForm from "./Component/ERP/Stores/DeliveryChallan/DeliveryChallanForm.jsx";
+import BillingList from "./Component/ERP/Stores/Billing/BillingList.jsx";
+import BillingForm from "./Component/ERP/Stores/Billing/BillingForm.jsx";
 import GateEntryForm from "./Component/ERP/Stores/GateEntry/GateEntryForm.jsx";
 import MaterialReturnList from "./Component/ERP/Stores/MaterialReturn/MaterialReturnList.jsx";
 import MaterialReturnForm from "./Component/ERP/Stores/MaterialReturn/MaterialReturnForm.jsx";
@@ -185,10 +193,13 @@ function App() {
                     <Route path="/stores/item-master" element={<ItemMaster />} />
                     <Route path="/stores/item-master/add" element={<AddItem />} />
                     <Route path="/stores/item-master/edit/:id" element={<AddItem />} />
-                    <Route path="/stores/grn" element={<GRNList />} />
-                    <Route path="/stores/grn/add" element={<GRNForm />} />
-                    <Route path="/stores/grn/view/:id" element={<GRNForm />} />
-                    <Route path="/stores/grn/edit/:id" element={<GRNForm />} />
+                    <Route path="/stores/uom" element={<UOMMaster />} />
+                    <Route path="/stores/item-groups" element={<ItemGroupMaster />} />
+                    <Route path="/stores/item-types" element={<ItemTypeMaster />} />
+                    <Route path="/stores/grr" element={<GRNList />} />
+                    <Route path="/stores/grr/add" element={<GRNForm />} />
+                    <Route path="/stores/grr/view/:id" element={<GRNForm />} />
+                    <Route path="/stores/grr/edit/:id" element={<GRNForm />} />
                     <Route path="/stores/material-requisitions" element={<MaterialRequisitionList />} />
                     <Route path="/stores/material-requisitions/add" element={<MaterialRequisitionForm />} />
                     <Route path="/stores/material-requisitions/view/:id" element={<MaterialRequisitionForm />} />
@@ -197,6 +208,7 @@ function App() {
                     <Route path="/stores/material-issues/add" element={<MaterialIssueForm />} />
                     <Route path="/stores/material-issues/view/:id" element={<MaterialIssueForm />} />
                     <Route path="/inventory/ledger" element={<StockLedger />} />
+                    <Route path="/stores/day-wise-stock" element={<DayWiseStock />} />
                     <Route path="/stores/stock-audit" element={<StockAuditList />} />
                     <Route path="/stores/stock-audit/add" element={<StockAuditForm />} />
                     <Route path="/stores/stock-audit/view/:id" element={<StockAuditForm />} />
@@ -208,12 +220,25 @@ function App() {
                     <Route path="/stores/material-returns" element={<MaterialReturnList />} />
                     <Route path="/stores/material-returns/add" element={<MaterialReturnForm />} />
                     <Route path="/stores/material-returns/view/:id" element={<MaterialReturnForm />} />
+
+                    {/* Delivery Challan */}
+                    <Route path="/stores/delivery-challans" element={<DeliveryChallanList />} />
+                    <Route path="/stores/delivery-challans/add" element={<DeliveryChallanForm />} />
+                    <Route path="/stores/delivery-challans/view/:id" element={<DeliveryChallanForm />} />
+                    <Route path="/stores/delivery-challans/edit/:id" element={<DeliveryChallanForm />} />
+
+                    {/* Billing (Tax Invoice) */}
+                    <Route path="/stores/invoices" element={<BillingList />} />
+                    <Route path="/stores/invoices/add" element={<BillingForm />} />
+                    <Route path="/stores/invoices/view/:id" element={<BillingForm />} />
+                    <Route path="/stores/invoices/edit/:id" element={<BillingForm />} />
                     <Route path="/production" element={<ProductionDashboard />} />
                     <Route path="/production/orders" element={<ProductionOrderList />} />
                     <Route path="/production/orders/add" element={<ProductionOrderForm />} />
                     <Route path="/production/orders/view/:id" element={<ProductionOrderForm />} />
                     <Route path="/planning" element={<PlanningDashboard />} />
                     <Route path="/engineering" element={<EngineeringDashboard />} />
+                    <Route path="/engineering/categories" element={<CategoryMaster />} />
                     <Route path="/engineering/products" element={<ProductMasterList />} />
                     <Route path="/engineering/products/add" element={<ProductMasterForm />} />
                     <Route path="/engineering/products/view/:id" element={<ProductMasterForm />} />
@@ -264,7 +289,6 @@ function App() {
                     <Route path="/onduty" element={<OnDutyDashboard />} />
                     <Route path="/onduty-preview" element={<OnDutyPreview />} />
                     <Route path="/shiftchange" element={<ShiftChangeDashboard />} />
-                    <Route path="/edit-item" element={<EditItem />} />
                     <Route path="/attendance-mod" element={<AttendanceModification />} />
                     <Route path="/hr-attendance" element={<HRAttendance />} />
                     <Route path="/change-password" element={<ChangePasswordForm />} />

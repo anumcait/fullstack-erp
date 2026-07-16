@@ -4,18 +4,46 @@ const { Op } = require('sequelize');
 const BOM = db.BOM;
 const BOMItem = db.BOMItem;
 const ItemMaster = db.ItemMaster;
+const ProductMaster = db.ProductMaster;
+
+function sanitizeHeader(header) {
+  return {
+    ...header,
+    labour_cost: Number(header.labour_cost || 0),
+    overhead_cost: Number(header.overhead_cost || 0),
+    overhead_is_percent: !!header.overhead_is_percent,
+    margin_percent: Number(header.margin_percent || 0),
+    selling_price: Number(header.selling_price || 0),
+  };
+}
+
+async function resolveProduct(header) {
+  if (header.product_id) {
+    const product = await ProductMaster.findByPk(header.product_id);
+    if (product) {
+      header.product_code = product.product_code || header.product_code || '';
+      header.product_name = product.part_name || header.product_name || '';
+      if (!header.product_item_id && product.item_id) header.product_item_id = product.item_id;
+    }
+  }
+  return header;
+}
 
 async function buildTree(bomId) {
   const bom = await BOM.findByPk(bomId, {
-    include: [{
-      model: BOMItem,
-      as: 'items',
-      include: [
-        { model: BOMItem, as: 'children' },
-        { model: BOM, as: 'subBom', attributes: ['id', 'bom_no', 'bom_name', 'product_name'] },
-      ],
-      order: [['sort_order', 'ASC'], ['id', 'ASC']],
-    }],
+    include: [
+      {
+        model: BOMItem,
+        as: 'items',
+        include: [
+          { model: BOMItem, as: 'children' },
+          { model: BOM, as: 'subBom', attributes: ['id', 'bom_no', 'bom_name', 'product_name'] },
+          { model: ItemMaster, as: 'item', attributes: ['id', 'item_code', 'rate', 'gst_rate'] },
+        ],
+        order: [['sort_order', 'ASC'], ['id', 'ASC']],
+      },
+      { model: ProductMaster, as: 'product', attributes: ['id', 'product_uid', 'part_name', 'product_code', 'item_id'] },
+    ],
   });
   if (!bom) return null;
 
@@ -50,6 +78,7 @@ async function explodeBOMRecursive(bomId, multiplier = 1, visited = new Set()) {
       include: [
         { model: BOMItem, as: 'children' },
         { model: BOM, as: 'subBom', attributes: ['id', 'bom_no', 'bom_name'] },
+        { model: ItemMaster, as: 'item', attributes: ['id', 'item_code', 'rate', 'gst_rate'] },
       ],
     }],
   });
@@ -88,6 +117,9 @@ function calculateMaterialRow(item, calculatedQty) {
   const wastagePct = Number(item.wastage_percent || 0);
   const effectiveQty = Math.ceil(calculatedQty * 100) / 100;
   const withWastage = calculatedQty * (1 + wastagePct / 100);
+  const unitCost = Number(item.unit_cost != null ? item.unit_cost : item.item?.rate || 0);
+  const requiredQty = Math.ceil(withWastage * 100) / 100;
+  const lineCost = Number((requiredQty * unitCost).toFixed(2));
 
   return {
     item_id: item.item_id,
@@ -96,10 +128,14 @@ function calculateMaterialRow(item, calculatedQty) {
     quantity: calculatedQty,
     lot_quantity: lotQty,
     effective_quantity: effectiveQty,
-    required_quantity: Math.ceil(withWastage * 100) / 100,
+    required_quantity: requiredQty,
     unit_id: item.unit_id,
     color: item.color,
     wastage_percent: wastagePct,
+    operation: item.operation || null,
+    unit_cost: unitCost,
+    line_cost: lineCost,
+    cost_source: item.unit_cost != null ? 'override' : (item.item ? 'item_master' : 'missing'),
     remarks: item.remarks,
     source: item.sub_bom_id ? `BOM:${item.subBom?.bom_no || ''}` : 'Raw',
   };
@@ -118,7 +154,10 @@ exports.getList = async (req, res) => {
     }
     const data = await BOM.findAll({
       where,
-      include: [{ model: BOMItem, as: 'items', attributes: ['id'] }],
+      include: [
+        { model: BOMItem, as: 'items', attributes: ['id'] },
+        { model: ProductMaster, as: 'product', attributes: ['id', 'product_uid', 'part_name', 'product_code'] },
+      ],
       order: [['created_at', 'DESC']],
     });
     res.json(data);
@@ -152,6 +191,7 @@ exports.explode = async (req, res) => {
         grouped[key].quantity += m.quantity;
         grouped[key].effective_quantity += m.effective_quantity;
         grouped[key].required_quantity += m.required_quantity;
+        grouped[key].line_cost = Number((grouped[key].line_cost + m.line_cost).toFixed(2));
         grouped[key].source = [].concat(grouped[key].source, m.source).join(', ');
       } else {
         grouped[key] = { ...m };
@@ -164,9 +204,77 @@ exports.explode = async (req, res) => {
   }
 };
 
+exports.costing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.query;
+    const bom = await BOM.findByPk(id);
+    if (!bom) return res.status(404).json({ error: 'Not found' });
+
+    const outputQty = Number(bom.output_quantity || 1);
+    const plannedQty = Number(quantity) || outputQty;
+    const scale = plannedQty / outputQty;
+
+    const materials = await explodeBOMRecursive(id, plannedQty);
+    const byItem = {};
+    for (const m of materials) {
+      const key = m.item_id || m.item_code;
+      if (byItem[key]) {
+        byItem[key].required_quantity = Number((byItem[key].required_quantity + m.required_quantity).toFixed(4));
+        byItem[key].line_cost = Number((byItem[key].line_cost + m.line_cost).toFixed(2));
+      } else {
+        byItem[key] = { ...m };
+      }
+    }
+    const materialRows = Object.values(byItem).sort((a, b) => b.line_cost - a.line_cost);
+    const materialCost = Number(materialRows.reduce((s, r) => s + r.line_cost, 0).toFixed(2));
+
+    const labourCost = Number(bom.labour_cost || 0) * scale;
+    let overheadCost;
+    if (bom.overhead_is_percent) {
+      overheadCost = materialCost * (Number(bom.overhead_cost || 0) / 100);
+    } else {
+      overheadCost = Number(bom.overhead_cost || 0) * scale;
+    }
+    overheadCost = Number(overheadCost.toFixed(2));
+
+    const totalCost = Number((materialCost + labourCost + overheadCost).toFixed(2));
+    const costPerUnit = plannedQty > 0 ? Number((totalCost / plannedQty).toFixed(2)) : 0;
+    const marginPct = Number(bom.margin_percent || 0);
+    const sellingPrice = Number(bom.selling_price || 0) > 0
+      ? Number(bom.selling_price)
+      : Number((costPerUnit * (1 + marginPct / 100)).toFixed(2));
+
+    res.json({
+      bom_no: bom.bom_no,
+      bom_name: bom.bom_name,
+      product_name: bom.product_name,
+      output_quantity: outputQty,
+      planned_quantity: plannedQty,
+      material_rows: materialRows,
+      summary: {
+        material_cost: materialCost,
+        labour_cost: Number(labourCost.toFixed(2)),
+        overhead_cost: overheadCost,
+        overhead_is_percent: !!bom.overhead_is_percent,
+        total_cost: totalCost,
+        cost_per_unit: costPerUnit,
+        margin_percent: marginPct,
+        selling_price: sellingPrice,
+        profit_per_unit: Number((sellingPrice - costPerUnit).toFixed(2)),
+      },
+    });
+  } catch (err) {
+    console.error('Error computing BOM costing:', err);
+    res.status(500).json({ error: 'Failed to compute costing' });
+  }
+};
+
 exports.create = async (req, res) => {
   try {
     let { items, ...header } = req.body;
+    header = sanitizeHeader(header);
+    header = await resolveProduct(header);
     if (!header.bom_no) {
       const count = await BOM.count();
       header.bom_no = `PROD-${String(count + 1).padStart(4, '0')}`;
@@ -188,6 +296,8 @@ exports.create = async (req, res) => {
         unit_id: it.unit_id || null,
         wastage_percent: it.wastage_percent || 0,
         color: it.color || null,
+        unit_cost: it.unit_cost != null ? it.unit_cost : null,
+        operation: it.operation || null,
         remarks: it.remarks || '',
       }));
       await BOMItem.bulkCreate(rows);
@@ -205,7 +315,7 @@ exports.update = async (req, res) => {
     const doc = await BOM.findByPk(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Not found' });
     const { items, ...header } = req.body;
-    await doc.update(header);
+    await doc.update(await resolveProduct(sanitizeHeader(header)));
     await BOMItem.destroy({ where: { bom_id: doc.id } });
     if (items && items.length > 0) {
       const rows = items.map((it, idx) => ({
@@ -223,6 +333,8 @@ exports.update = async (req, res) => {
         unit_id: it.unit_id || null,
         wastage_percent: it.wastage_percent || 0,
         color: it.color || null,
+        unit_cost: it.unit_cost != null ? it.unit_cost : null,
+        operation: it.operation || null,
         remarks: it.remarks || '',
       }));
       await BOMItem.bulkCreate(rows);

@@ -20,6 +20,7 @@ import BOMSelectDialog from './BOMSelectDialog';
 
 const API = '/api/erp/engineering/bom';
 const ITEMS_API = '/api/erp/stores/items';
+const PRODUCTS_API = '/api/erp/engineering/products';
 const STATUS_OPTS = ['Draft', 'Active', 'Inactive'];
 
 let idCounter = Date.now();
@@ -37,25 +38,32 @@ export default function BOMForm() {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
   const [itemMasterList, setItemMasterList] = useState([]);
+  const [productList, setProductList] = useState([]);
   const [bomList, setBomList] = useState([]);
   const [bomSelectOpen, setBomSelectOpen] = useState(false);
   const [form, setForm] = useState({
-    bom_no: '', bom_name: '', product_item_id: '', product_code: '', product_name: '',
+    bom_no: '', bom_name: '', product_id: '', product_item_id: '', product_code: '', product_name: '',
     output_quantity: 1, unit_id: '', status: 'Draft', version: '1.0', remarks: '',
+    labour_cost: 0, overhead_cost: 0, overhead_is_percent: false, margin_percent: 0, selling_price: 0,
   });
 
   useEffect(() => {
     axios.get(ITEMS_API).then(({ data }) => setItemMasterList(data)).catch(() => {});
+    axios.get(PRODUCTS_API).then(({ data }) => setProductList(data)).catch(() => {});
     axios.get(API).then(({ data }) => setBomList(data)).catch(() => {});
     if (id && !location.pathname.includes('/add')) {
       setLoading(true);
       axios.get(`${API}/${id}`).then(({ data }) => {
         setForm({
           bom_no: data.bom_no || '', bom_name: data.bom_name || '',
-          product_item_id: data.product_item_id || '', product_code: data.product_code || '',
+          product_id: data.product_id || '', product_item_id: data.product_item_id || '',
+          product_code: data.product_code || '',
           product_name: data.product_name || '', output_quantity: data.output_quantity || 1,
           unit_id: data.unit_id || '', status: data.status || 'Draft',
           version: data.version || '1.0', remarks: data.remarks || '',
+          labour_cost: data.labour_cost || 0, overhead_cost: data.overhead_cost || 0,
+          overhead_is_percent: !!data.overhead_is_percent, margin_percent: data.margin_percent || 0,
+          selling_price: data.selling_price || 0,
         });
         const loaded = [];
         function flatten(items, parentTempId) {
@@ -69,6 +77,7 @@ export default function BOMForm() {
               wastage_percent: it.wastage_percent || 0, is_phantom: !!it.is_phantom,
               sub_bom_id: it.sub_bom_id || '', section_name: it.section_name || '',
               color: it.color || '', sort_order: it.sort_order || 0,
+              unit_cost: it.unit_cost != null ? it.unit_cost : '', operation: it.operation || '',
               remarks: it.remarks || '', subBom: it.subBom || null,
             });
             if (it.children && it.children.length > 0) {
@@ -85,8 +94,14 @@ export default function BOMForm() {
 
   const handleChange = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   const handleProductChange = (value) => {
-    const sel = itemMasterList.find((im) => im.id === value);
-    if (sel) setForm((f) => ({ ...f, product_item_id: sel.id, product_code: sel.item_code, product_name: sel.item_name, unit_id: sel.unit_id }));
+    const sel = productList.find((p) => p.id === value);
+    if (sel) setForm((f) => ({
+      ...f,
+      product_id: sel.id,
+      product_code: sel.product_code || '',
+      product_name: sel.part_name || '',
+      product_item_id: sel.item_id || f.product_item_id,
+    }));
   };
 
   const addRow = (type) => {
@@ -177,6 +192,8 @@ export default function BOMForm() {
       unit_id: r.unit_id || null,
       wastage_percent: r.wastage_percent || 0,
       color: r.color || null,
+      unit_cost: r.is_phantom ? null : (r.unit_cost === '' || r.unit_cost == null ? null : Number(r.unit_cost)),
+      operation: r.is_phantom ? null : (r.operation || null),
       remarks: r.remarks || '',
     }));
     const payload = { ...form, items };
@@ -212,9 +229,9 @@ export default function BOMForm() {
                 <TextField label="BOM Name" size="small" fullWidth value={form.bom_name} onChange={handleChange('bom_name')} disabled={readOnly} required />
               </Grid>
               <Grid item xs={6} md={3}>
-                <TextField label="Product Item" select size="small" fullWidth value={form.product_item_id} onChange={(e) => handleProductChange(Number(e.target.value))} disabled={readOnly} required>
+                <TextField label="Product" select size="small" fullWidth value={form.product_id} onChange={(e) => handleProductChange(Number(e.target.value))} disabled={readOnly} required helperText="Finished product (Product Master)">
                   <MenuItem value=""><em>Select Product</em></MenuItem>
-                  {itemMasterList.map((im) => <MenuItem key={im.id} value={im.id}>{im.item_code} - {im.item_name}</MenuItem>)}
+                  {productList.map((p) => <MenuItem key={p.id} value={p.id}>{p.product_uid || ''} - {p.part_name}</MenuItem>)}
                 </TextField>
               </Grid>
               <Grid item xs={6} md={1}>
@@ -233,6 +250,31 @@ export default function BOMForm() {
               </Grid>
               <Grid item xs={12}>
                 <TextField label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} multiline rows={2} />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ borderRadius: 3, mb: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Costing (per output batch)</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6} md={2}>
+                <TextField label="Labour Cost" type="number" size="small" fullWidth value={form.labour_cost} onChange={handleChange('labour_cost')} disabled={readOnly} InputProps={{ startAdornment: '₹' }} />
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <TextField label="Overhead" type="number" size="small" fullWidth value={form.overhead_cost} onChange={handleChange('overhead_cost')} disabled={readOnly} InputProps={{ startAdornment: '₹' }} />
+              </Grid>
+              <Grid item xs={6} md={2} display="flex" alignItems="center">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                  <input type="checkbox" checked={!!form.overhead_is_percent} onChange={(e) => setForm((f) => ({ ...f, overhead_is_percent: e.target.checked }))} disabled={readOnly} /> % of Material
+                </label>
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <TextField label="Margin %" type="number" size="small" fullWidth value={form.margin_percent} onChange={handleChange('margin_percent')} disabled={readOnly} InputProps={{ endAdornment: '%' }} />
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <TextField label="Selling Price" type="number" size="small" fullWidth value={form.selling_price} onChange={handleChange('selling_price')} disabled={readOnly} helperText="0 = auto from margin" InputProps={{ startAdornment: '₹' }} />
               </Grid>
             </Grid>
           </CardContent>
@@ -258,10 +300,12 @@ export default function BOMForm() {
                   <TableCell sx={{ minWidth: 180 }}>Component Name</TableCell>
                   <TableCell sx={{ width: 80 }}>Qty</TableCell>
                   <TableCell sx={{ width: 70 }}>Lot Qty</TableCell>
-                  <TableCell sx={{ width: 60 }}>Scrap%</TableCell>
-                  <TableCell sx={{ width: 100 }}>Color</TableCell>
-                  <TableCell sx={{ minWidth: 120 }}>Remarks</TableCell>
-                  {!readOnly && <TableCell sx={{ width: 120 }}>Actions</TableCell>}
+                   <TableCell sx={{ width: 60 }}>Scrap%</TableCell>
+                   <TableCell sx={{ width: 90 }}>Unit Cost</TableCell>
+                   <TableCell sx={{ width: 110 }}>Operation</TableCell>
+                   <TableCell sx={{ width: 100 }}>Color</TableCell>
+                   <TableCell sx={{ minWidth: 120 }}>Remarks</TableCell>
+                   {!readOnly && <TableCell sx={{ width: 120 }}>Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -317,6 +361,22 @@ export default function BOMForm() {
                         <TextField type="number" size="small" sx={{ width: 55 }} value={r.wastage_percent}
                           disabled={readOnly} onChange={(e) => handleRowChange(r.tempId, 'wastage_percent', Number(e.target.value))}
                           InputProps={{ endAdornment: '%' }} />
+                      </TableCell>
+                      <TableCell>
+                        {r.is_phantom ? <Typography color="text.disabled">-</Typography> : (
+                          <TextField type="number" size="small" sx={{ width: 80 }} value={r.unit_cost}
+                            disabled={readOnly}
+                            onChange={(e) => handleRowChange(r.tempId, 'unit_cost', e.target.value === '' ? '' : Number(e.target.value))}
+                            placeholder={itemMasterList.find((im) => im.id === r.item_id)?.rate || ''}
+                            helperText={r.unit_cost === '' ? 'uses item rate' : 'override'} />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.is_phantom ? <Typography color="text.disabled">-</Typography> : (
+                          <TextField size="small" sx={{ width: 100 }} value={r.operation}
+                            disabled={readOnly} onChange={(e) => handleRowChange(r.tempId, 'operation', e.target.value)}
+                            placeholder="e.g. Winding" />
+                        )}
                       </TableCell>
                       <TableCell>
                         <TextField size="small" sx={{ width: 90 }} value={r.color}

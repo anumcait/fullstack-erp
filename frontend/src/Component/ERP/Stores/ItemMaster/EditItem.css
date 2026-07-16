@@ -2,7 +2,7 @@
   background-color: #fff;
   padding: 16px;
   border-radius: 4px;
-  box-shadow: 0 0 4px rgba(0,0,0,0.1);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
   font-family: 'Roboto', sans-serif;
 }
 
@@ -19,7 +19,7 @@
 }
 
 .menu-icon {
-  color: #1976d2;
+  color: var(--primary-main, #1976d2);
   font-size: 28px;
   margin-right: 8px;
 }
@@ -34,20 +34,185 @@
   padding: 8px;
 }
 
+/* Classification banner (Group + Sub Group) above the tabs */
+.item-class-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0;
+  padding: 14px 18px;
+  max-width: 1080px;
+  background: linear-gradient(90deg, #eef4fb 0%, #f7faff 100%);
+  border: 1px solid #d7e3f4;
+  border-left: 4px solid var(--primary-main, #1976d2);
+  border-radius: 6px;
+}
+
+.item-class-banner .banner-info {
+  min-width: 200px;
+}
+
+.item-class-banner .banner-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f3a5f;
+}
+
+.item-class-banner .banner-sub {
+  display: block;
+  color: #5a6b80;
+}
+
+.item-class-banner .banner-fields {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.item-class-banner .banner-picker {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+
+.item-class-banner .banner-picker label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #33475b;
+}
+
+.item-class-banner .banner-code {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+}
+
+.item-class-banner .banner-code label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #33475b;
+}
+
+.item-class-banner .banner-code-value {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary-main, #1976d2);
+  background: #fff;
+  border: 1px dashed #b9cde6;
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+/* Prominent Item Code field in the form */
+.item-code-box {
+  margin-bottom: 16px;
+}
+
+.item-code-box > label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #33475b;
+}
+
+.item-code-field {
+  font-family: 'Roboto Mono', monospace;
+}
+
+.item-code-field .MuiOutlinedInput-root {
+  background: #eef6ff;
+  border: 1px solid #b9d6f5;
+  border-radius: 6px;
+}
+
+.item-code-field .MuiInputBase-input {
+  font-size: 1.25rem !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--primary-main, #1976d2);
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.item-code-field .MuiOutlinedInput-root.Mui-focused {
+  background: #e3f0ff;
+  border-color: var(--primary-main, #1976d2);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15);
+}
+
 .form-row {
   display: flex;
-  align-items: flex-start; /* Top-align labels and inputs */
+  align-items: flex-start;
+  /* Top-align labels and inputs */
   margin-bottom: 16px;
   flex-wrap: nowrap !important;
-  
+
 }
 
 .form-row label {
- width: 120px; 
+  width: 120px;
   font-size: 0.875rem;
   margin-right: 8px;
   white-space: nowrap;
 
+}
+
+.form-row-stacked {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.form-row-stacked .MuiTextField-root,
+.form-row-stacked .MuiFormControl-root {
+  width: 100%;
+}
+
+.form-row-stacked textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Two-column layout for Item Details tab */
+.item-form.two-col {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: stretch;
+  max-width: 1080px;
+}
+
+.item-form.two-col .col-main {
+  flex: 1 1 360px;
+  max-width: 620px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-form.two-col .col-side {
+  flex: 1 1 300px;
+  max-width: 420px;
+  min-width: 0;
+}
+
+.item-form.two-col .col-main .desc-fill {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row-stacked label {
+  display: block;
+  font-size: 0.875rem;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .combo-box {
@@ -96,13 +261,18 @@
 }
 
 .combo-add-btn {
-  background-color: #007bff;
-  color: white;
+  background-color: var(--primary-main, #1976d2);
+  color: #fff;
   border: none;
   padding: 4px 12px;
   font-size: 0.75rem;
   border-radius: 12px;
   cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.combo-add-btn:hover {
+  filter: brightness(0.92);
 }
 
 

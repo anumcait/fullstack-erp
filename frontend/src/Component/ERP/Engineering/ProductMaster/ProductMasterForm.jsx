@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, TextField, Button, Grid, IconButton,
   Table, TableHead, TableRow, TableCell, TableBody, MenuItem, LinearProgress,
-  Switch, FormControlLabel,
+  Switch, FormControlLabel, Autocomplete,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -14,6 +14,7 @@ import { useToast } from '../../../../context/ToastContext';
 
 const API = '/api/erp/engineering/products';
 const ITEMS_API = '/api/erp/stores/items';
+const CATEGORIES_API = '/api/erp/engineering/categories';
 
 const PRODUCT_TYPES = ['FG', 'SFG', 'Assembly', 'Spare'];
 const FINISH_TYPES = ['Paint', 'Powder Coat', 'Anodized', 'Polished', 'Raw', 'Galvanized'];
@@ -28,21 +29,31 @@ export default function ProductMasterForm() {
 
   const [loading, setLoading] = useState(false);
   const [itemMasterList, setItemMasterList] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({
-    product_uid: '', product_type: 'FG', product_code: '', part_name: '',
+    product_uid: '', product_type: 'FG', main_category_name: '', sub_category_name: '', product_code: '', part_name: '', color: '', item_id: '',
     description: '', finish_type: '', assembly_qty: 0, qty_per_pallet: 0, is_active: true,
   });
 
+  const mainOptions = categories.filter((c) => c.type === 'Main').map((c) => c.name);
+  const subOptions = categories
+    .filter((c) => c.type === 'Sub' && (!form.main_category_name || (c.parent && c.parent.name === form.main_category_name)))
+    .map((c) => c.name);
+
   useEffect(() => {
     axios.get(ITEMS_API).then(({ data }) => setItemMasterList(data)).catch(() => {});
+    axios.get(CATEGORIES_API).then(({ data }) => setCategories(data)).catch(() => {});
     if (id) {
       setLoading(true);
       axios.get(`${API}/${id}`).then(({ data }) => {
+        const category = data.category;
         setForm({
           product_uid: data.product_uid || '', product_type: data.product_type || 'FG',
+          main_category_name: category && category.parent ? category.parent.name : '',
+          sub_category_name: category ? category.name : '',
           product_code: data.product_code || '', part_name: data.part_name || '',
-          description: data.description || '', finish_type: data.finish_type || '',
+          color: data.color || '', item_id: data.item_id || '', description: data.description || '', finish_type: data.finish_type || '',
           assembly_qty: data.assembly_qty || 0, qty_per_pallet: data.qty_per_pallet || 0,
           is_active: data.is_active !== false,
         });
@@ -87,7 +98,11 @@ export default function ProductMasterForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const payload = { ...form, items };
+    const { product_uid, product_type, main_category_name, sub_category_name, product_code, part_name, color, item_id, description, finish_type, assembly_qty, qty_per_pallet, is_active } = form;
+    const payload = {
+      product_uid, product_type, main_category_name, sub_category_name, product_code, part_name, color, item_id, description, finish_type, assembly_qty, qty_per_pallet, is_active,
+      items,
+    };
     try {
       if (isEdit) await axios.put(`${API}/${id}`, payload);
       else await axios.post(API, payload);
@@ -124,11 +139,42 @@ export default function ProductMasterForm() {
                   {PRODUCT_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
                 </TextField>
               </Grid>
+              <Grid item xs={6} md={2}>
+                <Autocomplete
+                  size="small" freeSolo
+                  options={mainOptions}
+                  value={form.main_category_name || ''}
+                  onChange={(e, v) => setForm((f) => ({ ...f, main_category_name: v || '' }))}
+                  onInputChange={(e, v) => setForm((f) => ({ ...f, main_category_name: v || '' }))}
+                  disabled={readOnly}
+                  renderInput={(params) => <TextField {...params} label="Main Category" required helperText="Type to add new" />}
+                />
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <Autocomplete
+                  size="small" freeSolo
+                  options={subOptions}
+                  value={form.sub_category_name || ''}
+                  onChange={(e, v) => setForm((f) => ({ ...f, sub_category_name: v || '' }))}
+                  onInputChange={(e, v) => setForm((f) => ({ ...f, sub_category_name: v || '' }))}
+                  disabled={readOnly}
+                  renderInput={(params) => <TextField {...params} label="Sub Category" required helperText="Type to add new" />}
+                />
+              </Grid>
+              <Grid item xs={6} md={1}>
+                <TextField label="Color" size="small" fullWidth value={form.color} onChange={handleChange('color')} disabled={readOnly} helperText="e.g. White" />
+              </Grid>
               <Grid item xs={6} md={1.5}>
                 <TextField label="Product Code" size="small" fullWidth value={form.product_code} onChange={handleChange('product_code')} disabled={readOnly} />
               </Grid>
               <Grid item xs={6} md={2}>
                 <TextField label="Part Name" size="small" fullWidth value={form.part_name} onChange={handleChange('part_name')} disabled={readOnly} required />
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <TextField label="Inventory Item" select size="small" fullWidth value={form.item_id} onChange={handleChange('item_id')} disabled={readOnly} helperText="Finished-goods stock item">
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  {itemMasterList.map((im) => <MenuItem key={im.id} value={im.id}>{im.item_code} - {im.item_name}</MenuItem>)}
+                </TextField>
               </Grid>
               <Grid item xs={6} md={1.5}>
                 <TextField label="Finish Type" select size="small" fullWidth value={form.finish_type} onChange={handleChange('finish_type')} disabled={readOnly}>

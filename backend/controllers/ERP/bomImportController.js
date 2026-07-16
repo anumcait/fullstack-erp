@@ -5,7 +5,11 @@ const { Op } = require('sequelize');
 const BOM = db.BOM;
 const BOMItem = db.BOMItem;
 const ItemMaster = db.ItemMaster;
+const ProductMaster = db.ProductMaster;
+const ProductCategory = db.ProductCategory;
+const ItemGroup = db.ItemGroup;
 const Unit = db.Unit;
+const { buildProductCode } = require('../../controllers/ERP/productController');
 
 function genCode(prefix) {
   return new Promise(async (resolve) => {
@@ -42,10 +46,12 @@ function normalizeRow(name, qty, remark, color, childrenDefault) {
 
 function guessGroup(name) {
   const n = (name || '').toLowerCase();
-  if (/(box|carton|label|sticker|card|cover|bag|tape|strap|thermocol|polybag|wrap|manual|mrp)/i.test(n)) return 'CMP';
-  if (/(motor|blower|assembly|fan|knob|plate|swing|switch|cord|cable|rubber|gromet|bush|section|pin|spring|screw|nut|washer|tie|connector|cap|lover|leaf|housing|tank|capacitor)/i.test(n)) return 'CMP';
+  if (/(box|carton|label|sticker|card|cover|bag|tape|strap|thermocol|polybag|wrap|manual|mrp|bubble|shrink|film)/i.test(n)) return 'PACK';
+  if (/(motor|blower|assembly|fan|knob|plate|swing|switch|cord|cable|rubber|gromet|bush|section|pin|spring|screw|nut|washer|tie|connector|cap|lover|leaf|housing|tank|capacitor)/i.test(n)) return 'COMP';
   return 'RM';
 }
+
+const ITEM_TYPE_MAP = { RM: 'Raw Material', CMP: 'Sub Assembly', COMP: 'Sub Assembly', PACK: 'Packing Material', FG: 'Finished Goods' };
 
 function parseSheet(rows) {
   let headerIdx = -1;
@@ -114,18 +120,59 @@ async function findOrCreateItem(name, group, defaultUnitId) {
       return { item_id: it.id, item_code: it.item_code, item_name: it.item_name };
     }
   }
-  const prefix = group || guessGroup(name);
+  const grp = group || guessGroup(name);
+  const prefix = grp;
   const code = await genCode(prefix);
+  const itemType = ITEM_TYPE_MAP[grp] || 'Raw Material';
   const created = await ItemMaster.create({
     item_code: code,
     item_name: (name || '').toString().slice(0, 200),
-    category_id: null,
+    group_id: null,
     unit_id: defaultUnitId,
     opening_stock: 0,
     current_stock: 0,
     is_active: true,
   });
+  const grpName = itemType;
+  if (grpName) {
+    const grp = await ItemGroup.findOne({ where: { name: grpName } });
+    if (grp) await created.update({ group_id: grp.id });
+  }
   return { item_id: created.id, item_code: created.item_code, item_name: created.item_name };
+}
+
+function pad(n) { return String(n).padStart(4, '0'); }
+
+async function findOrCreateMainCategory(name) {
+  const existing = await ProductCategory.findOne({ where: { type: 'Main', name } });
+  if (existing) return existing;
+  return ProductCategory.create({ name: (name || '').toString().slice(0, 100), type: 'Main', is_active: true });
+}
+
+async function findOrCreateSubCategory(name, parentId) {
+  const existing = await ProductCategory.findOne({ where: { type: 'Sub', name, parent_id: parentId } });
+  if (existing) return existing;
+  return ProductCategory.create({ name: (name || '').toString().slice(0, 100), type: 'Sub', parent_id: parentId, is_active: true });
+}
+
+async function findOrCreateProduct(name, subCategory, fgItem) {
+  const existing = await ProductMaster.findOne({ where: { category_id: subCategory.id, part_name: name } });
+  if (existing) {
+    if (!existing.item_id && fgItem) await existing.update({ item_id: fgItem.item_id });
+    return existing;
+  }
+  const count = await ProductMaster.count();
+  const seq = (await ProductMaster.count({ where: { category_id: subCategory.id } })) + 1;
+  const product_code = fgItem ? fgItem.item_code : buildProductCode(subCategory.name, '', seq);
+  return ProductMaster.create({
+    product_uid: `PROD${String(count + 1).padStart(4, '0')}`,
+    product_type: 'FG',
+    category_id: subCategory.id,
+    part_name: (name || '').toString().slice(0, 200),
+    product_code,
+    item_id: fgItem ? fgItem.item_id : null,
+    is_active: true,
+  });
 }
 
 exports.importExcel = async (req, res) => {
@@ -137,6 +184,10 @@ exports.importExcel = async (req, res) => {
 
     const summary = [];
     const errors = [];
+    const fileName = req.file.originalname || '';
+    const categoryName = (fileName.replace(/\.xlsx$/i, '').replace(/bom$/i, '').trim()) || 'General';
+    const mainCategory = await findOrCreateMainCategory(categoryName);
+
     for (const sheetName of wb.SheetNames) {
       try {
         const ws = wb.Sheets[sheetName];
@@ -144,21 +195,31 @@ exports.importExcel = async (req, res) => {
         const { title, items } = parseSheet(rows);
         if (items.length === 0) continue;
 
-        const productName = title || sheetName;
-        const product = await findOrCreateItem(productName, 'FG', defaultUnitId);
-        const count = await BOM.count();
-        const bomNo = `PROD-${String(count + 1).padStart(4, '0')}`;
-        const bom = await BOM.create({
-          bom_no: bomNo,
-          bom_name: sheetName,
-          product_item_id: product.item_id,
-          product_code: product.item_code,
-          product_name: product.item_name,
-          output_quantity: 1,
-          status: 'Active',
-          version: '1.0',
-          remarks: `Imported from ${req.file.originalname} (${sheetName})`,
-        });
+        const modelName = title || sheetName;
+        const subCategory = await findOrCreateSubCategory(modelName, mainCategory.id);
+        const product = await findOrCreateProduct(modelName, subCategory, null);
+        const fgItem = await findOrCreateItem(`${modelName} (FG)`, 'FG', defaultUnitId);
+        if (!product.item_id) await product.update({ item_id: fgItem.item_id });
+
+        let bom = await BOM.findOne({ where: { product_id: product.id } });
+        if (!bom) {
+          const count = await BOM.count();
+          const bomNo = `PROD-${String(count + 1).padStart(4, '0')}`;
+          bom = await BOM.create({
+            bom_no: bomNo,
+            bom_name: sheetName,
+            product_id: product.id,
+            product_item_id: fgItem.item_id,
+            product_code: fgItem.item_code,
+            product_name: product.part_name || fgItem.item_name,
+            output_quantity: 1,
+            status: 'Active',
+            version: '1.0',
+            remarks: `Imported from ${req.file.originalname} (${sheetName})`,
+          });
+        } else {
+          await BOMItem.destroy({ where: { bom_id: bom.id } });
+        }
 
         const flatRows = [];
         let order = 0;
@@ -227,7 +288,7 @@ exports.importExcel = async (req, res) => {
           throw bulkErr;
         }
 
-        summary.push({ sheet: sheetName, bom_no: bomNo, product: product.item_name, components: flatRows.length });
+        summary.push({ sheet: sheetName, model: product.part_name, category: `${mainCategory.name} / ${subCategory.name}`, bom_no: bom.bom_no, components: flatRows.length });
       } catch (sheetErr) {
         errors.push({ sheet: sheetName, error: sheetErr.message });
       }

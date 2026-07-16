@@ -155,6 +155,16 @@
   color: var(--sidebar-header-text);
 }
 
+.sidebar-menu-item.sidebar-active-parent>.sidebar-menu-link {
+  background-color: var(--sidebar-hover);
+  color: var(--primary-main, #0077cc);
+  font-weight: 600;
+}
+
+.sidebar-menu-item.sidebar-active-parent>.sidebar-menu-link .expand-icon {
+  color: var(--primary-main, #0077cc);
+}
+
 .sidebar-menu-list::-webkit-scrollbar {
   width: 5px;
 }

@@ -15,6 +15,9 @@ module.exports = (sequelize) => {
     quantity: { type: DataTypes.DECIMAL(12, 4), allowNull: false },
     lot_quantity: { type: DataTypes.DECIMAL(12, 2), defaultValue: 1 },
     unit_id: { type: DataTypes.INTEGER, allowNull: true },
+    // ── Costing per component ──
+    unit_cost: { type: DataTypes.DECIMAL(14, 2), allowNull: true },
+    operation: { type: DataTypes.STRING(100), allowNull: true },
     wastage_percent: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
     color: { type: DataTypes.STRING(100), allowNull: true },
     remarks: { type: DataTypes.TEXT, allowNull: true },
@@ -30,6 +33,7 @@ module.exports = (sequelize) => {
     BOMItem.belongsTo(models.BOMItem, { foreignKey: 'parent_item_id', as: 'parent' });
     BOMItem.hasMany(models.BOMItem, { foreignKey: 'parent_item_id', as: 'children' });
     BOMItem.belongsTo(models.BOM, { foreignKey: 'sub_bom_id', as: 'subBom' });
+    BOMItem.belongsTo(models.ItemMaster, { foreignKey: 'item_id', as: 'item' });
   };
 
   return BOMItem;

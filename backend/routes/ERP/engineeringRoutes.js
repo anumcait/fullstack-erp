@@ -13,6 +13,10 @@ router.get('/products/:id', productController.getOne);
 router.post('/products', productController.create);
 router.put('/products/:id', productController.update);
 router.delete('/products/:id', productController.delete);
+router.get('/categories', productController.getCategories);
+router.post('/categories', productController.createCategory);
+router.put('/categories/:id', productController.updateCategory);
+router.delete('/categories/:id', productController.deleteCategory);
 
 // ── BOM Import ──
 router.post('/bom/import', upload.single('file'), bomImportController.importExcel);
@@ -20,6 +24,7 @@ router.post('/bom/import', upload.single('file'), bomImportController.importExce
 // ── BOM ──
 router.get('/bom', bomController.getList);
 router.get('/bom/:id/explode', bomController.explode);
+router.get('/bom/:id/costing', bomController.costing);
 router.get('/bom/:id', bomController.getOne);
 router.post('/bom', bomController.create);
 router.put('/bom/:id', bomController.update);

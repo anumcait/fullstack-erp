@@ -18,27 +18,41 @@ export default function ProductMasterList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = search ? { search } : {};
+      const params = {};
+      if (search) params.search = search;
+      if (categoryFilter) params.category_id = categoryFilter;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast('Failed to load', 'error'); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [search, categoryFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    axios.get('/api/erp/engineering/categories').then(({ data }) => setCategories(data)).catch(() => {});
+  }, []);
+
+  const colorSwatch = (name) => {
+    const map = { white: '#ffffff', black: '#222222', brown: '#8b5a2b', grey: '#9e9e9e', gray: '#9e9e9e', blue: '#1976d2', red: '#d32f2f' };
+    return map[(name || '').toString().toLowerCase()] || '#bbbbbb';
+  };
 
   const columns = [
     { field: 'product_uid', headerName: 'UID', width: 100 },
     { field: 'product_code', headerName: 'Code', width: 120 },
     { field: 'part_name', headerName: 'Part Name', width: 180 },
-    { field: 'product_type', headerName: 'Type', width: 110 },
-    { field: 'finish_type', headerName: 'Finish', width: 100 },
-    { field: 'assembly_qty', headerName: 'Assembly Qty', width: 120 },
-    { field: 'qty_per_pallet', headerName: 'Qty/Pallet', width: 110 },
+    { field: 'product_type', headerName: 'Type', width: 90 },
+    { field: 'category', headerName: 'Category Path', width: 220, valueGetter: (v) => (v ? `${v.parent ? v.parent.name + ' / ' : ''}${v.name}` : '-') },
+    { field: 'color', headerName: 'Color', width: 140, renderCell: (p) => p.value
+      ? <Chip size="small" label={p.value} variant="outlined" icon={<span style={{ width: 12, height: 12, borderRadius: '50%', background: colorSwatch(p.value), border: '1px solid #ccc', display: 'inline-block' }} />} />
+      : <span style={{ color: 'gray' }}>-</span> },
     { field: 'items', headerName: 'Components', width: 120, valueGetter: (v) => v?.length || 0 },
     {
       field: 'is_active', headerName: 'Active', width: 90,
@@ -63,6 +77,10 @@ export default function ProductMasterList() {
           <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
             <TextField size="small" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'gray' }} /> }} sx={{ minWidth: 300 }} />
+            <TextField size="small" select label="Category" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} sx={{ minWidth: 200 }} SelectProps={{ native: true }}>
+              <option value="">All</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.parent ? c.parent.name + ' / ' : ''}{c.name}</option>)}
+            </TextField>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/engineering/products/add')}>New Product</Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
           </Box>

@@ -13,7 +13,7 @@ exports.getStockLedger = async (req, res) => {
       const grnItems = await db.GRNItem.findAll({
         where: { item_id },
         include: [{ model: db.GRN, as: 'grn', attributes: ['grn_no', 'grn_date'] }],
-        attributes: ['id', 'item_code', 'item_name', 'quantity', 'created_at'],
+        attributes: ['id', 'item_code', 'item_name', 'accepted_qty', 'created_at'],
       });
       for (const g of grnItems) {
         transactions.push({
@@ -22,7 +22,7 @@ exports.getStockLedger = async (req, res) => {
           ref_no: g.grn?.grn_no || '-',
           item_code: g.item_code,
           item_name: g.item_name,
-          inward_qty: parseFloat(g.quantity) || 0,
+          inward_qty: parseFloat(g.accepted_qty) || 0,
           outward_qty: 0,
           created_at: g.created_at,
         });
@@ -76,7 +76,7 @@ exports.getStockLedger = async (req, res) => {
 
     const items = await ItemMaster.findAll({
       attributes: ['id', 'item_code', 'item_name'],
-      include: [{ model: Unit, as: 'unit', attributes: ['unit_name'] }],
+      include: [{ model: Unit, as: 'unit', attributes: ['name', 'short_name'] }],
       order: [['item_code', 'ASC']],
     });
 

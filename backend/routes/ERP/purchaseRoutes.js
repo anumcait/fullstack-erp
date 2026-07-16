@@ -8,9 +8,17 @@ const rfqController = require('../../controllers/ERP/rfqController');
 const priceListController = require('../../controllers/ERP/priceListController');
 const vendorRatingController = require('../../controllers/ERP/vendorRatingController');
 const purchaseSettingsController = require('../../controllers/ERP/purchaseSettingsController');
+const purchaseReportController = require('../../controllers/ERP/purchaseReportController');
 
 // ── Dashboard ──
 router.get('/dashboard', purchaseController.getDashboardStats);
+router.get('/recent-activity', purchaseReportController.getRecentActivity);
+
+// ── Reports ──
+router.get('/reports/register', purchaseReportController.getPurchaseRegister);
+router.get('/reports/vendor-spend', purchaseReportController.getVendorSpend);
+router.get('/reports/monthly-trend', purchaseReportController.getMonthlyTrend);
+router.get('/reports/grn-summary', purchaseReportController.getGrnSummary);
 
 // ── Purchase Orders ──
 router.get('/orders', poController.getPurchaseOrders);

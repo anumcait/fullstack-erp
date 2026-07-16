@@ -21,7 +21,7 @@ export default function PurchaseSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    pr_prefix: 'PR', po_prefix: 'PO', rfq_prefix: 'RFQ', grn_prefix: 'GRN',
+    pr_prefix: 'PR', po_prefix: 'PO', rfq_prefix: 'RFQ', grn_prefix: 'GRR',
     fin_year_format: 'FY-{YYYY}-{YY}',
     default_payment_terms: '30 Days', default_delivery_terms: 'Ex Works',
     default_currency: 'INR', default_gst_rate: 18,
@@ -37,7 +37,7 @@ export default function PurchaseSettings() {
         pr_prefix: data.pr_prefix || 'PR',
         po_prefix: data.po_prefix || 'PO',
         rfq_prefix: data.rfq_prefix || 'RFQ',
-        grn_prefix: data.grn_prefix || 'GRN',
+        grn_prefix: data.grn_prefix || 'GRR',
         fin_year_format: data.fin_year_format || 'FY-{YYYY}-{YY}',
         default_payment_terms: data.default_payment_terms || '30 Days',
         default_delivery_terms: data.default_delivery_terms || 'Ex Works',
@@ -105,7 +105,7 @@ export default function PurchaseSettings() {
                     <TextField label="RFQ Prefix" size="small" fullWidth value={form.rfq_prefix} onChange={handleChange('rfq_prefix')} />
                   </Grid>
                   <Grid item xs={6}>
-                    <TextField label="GRN Prefix" size="small" fullWidth value={form.grn_prefix} onChange={handleChange('grn_prefix')} />
+                    <TextField label="GRR Prefix" size="small" fullWidth value={form.grn_prefix} onChange={handleChange('grn_prefix')} />
                   </Grid>
                   <Grid item xs={12}>
                     <TextField label="Financial Year Format" size="small" fullWidth value={form.fin_year_format} onChange={handleChange('fin_year_format')}
@@ -121,7 +121,7 @@ export default function PurchaseSettings() {
                     <FormControlLabel control={<Switch checked={form.auto_generate_rfq} onChange={handleChange('auto_generate_rfq')} />} label="Auto-generate RFQ #" />
                   </Grid>
                   <Grid item xs={6}>
-                    <FormControlLabel control={<Switch checked={form.auto_generate_grn} onChange={handleChange('auto_generate_grn')} />} label="Auto-generate GRN #" />
+                    <FormControlLabel control={<Switch checked={form.auto_generate_grn} onChange={handleChange('auto_generate_grn')} />} label="Auto-generate GRR #" />
                   </Grid>
                 </Grid>
               </CardContent>

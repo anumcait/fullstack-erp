@@ -24,14 +24,15 @@ export default function GRNList() {
       const params = search ? { search } : {};
       const { data } = await axios.get(API, { params });
       setRows(data);
-    } catch { showToast("Failed to load GRNs", "error"); }
+    } catch { showToast("Failed to load GRRs", "error"); }
     finally { setLoading(false); }
   }, [search]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const columns = [
-    { field: "grn_no", headerName: "GRN #", width: 130 },
+    { field: "grn_no", headerName: "GRR #", width: 130 },
+    { field: "ir_type", headerName: "IR Type", width: 130, valueGetter: (v) => v || "GRR" },
     { field: "grn_date", headerName: "Date", width: 110, valueGetter: (v) => v ? v.split("T")[0] : "" },
     { field: "purchaseOrder", headerName: "PO #", width: 130, valueGetter: (v) => v?.po_no || "" },
     { field: "supplier", headerName: "Supplier", width: 200, valueGetter: (v) => v?.supplier_name || "" },
@@ -40,24 +41,32 @@ export default function GRNList() {
     { field: "status", headerName: "Status", width: 110, renderCell: (p) => (
       <Chip label={p.value} size="small" color={p.value === "Received" ? "success" : "warning"} />
     )},
+    { field: "approval_status", headerName: "Approval", width: 110, renderCell: (p) => {
+      const c = p.value === "Approved" ? "success" : p.value === "Rejected" ? "error" : "warning";
+      return <Chip label={p.value || "Pending"} size="small" color={c} />;
+    }},
+    { field: "qa_status", headerName: "QA", width: 100, renderCell: (p) => {
+      const c = p.value === "Passed" ? "success" : p.value === "Rejected" ? "error" : p.value === "Partial" ? "info" : "warning";
+      return <Chip label={p.value || "Pending"} size="small" color={c} />;
+    }},
     { field: "received_by", headerName: "Received By", width: 140 },
     {
       field: "actions", headerName: "Actions", width: 100, sortable: false,
       renderCell: (p) => (
-        <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/stores/grn/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+        <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/stores/grr/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
       ),
     },
   ];
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: "var(--heading-color)" }}>Goods Receipt Notes</Typography>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: "var(--heading-color)" }}>GRR</Typography>
       <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
         <CardContent>
           <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
-            <TextField size="small" placeholder="Search GRN..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <TextField size="small" placeholder="Search GRR..." value={search} onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }} sx={{ minWidth: 300 }} />
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/stores/grn/add")}>New GRN</Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/stores/grr/add")}>New GRR</Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}

@@ -2,7 +2,7 @@ const db = require('../../models/ERP');
 const { Op } = require('sequelize');
 
 const ItemMaster = db.ItemMaster;
-const ItemCategory = db.ItemCategory;
+const ItemGroup = db.ItemGroup;
 const MaterialRequisition = db.MaterialRequisition;
 const MaterialRequisitionItem = db.MaterialRequisitionItem;
 const MaterialIssue = db.MaterialIssue;
@@ -66,13 +66,18 @@ exports.getDashboardStats = async (req, res) => {
       pendingMRs,
       pendingIssues,
       recentGRNs,
+      stockValue,
     ] = await Promise.all([
       ItemMaster.count({ where: { is_active: true } }),
-      ItemMaster.count({ where: { current_stock: { [Op.lte]: { [Op.col]: 'min_stock' } }, is_active: true } }),
-      ItemCategory.count({ where: { is_active: true } }),
+      ItemMaster.count({ where: { current_stock: { [Op.lte]: { [Op.col]: 'reorder_level' } }, is_active: true } }),
+      ItemGroup.count({ where: { is_active: true } }),
       MaterialRequisition.count({ where: { status: { [Op.in]: ['Pending', 'Approved'] } } }),
-      MaterialIssue.count().catch(() => 0),
+      MaterialIssue.count({ where: { status: { [Op.in]: ['Pending', 'Approved'] } } }).catch(() => 0),
       GRN.count({ where: { created_at: { [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } }).catch(() => 0),
+      db.sequelize.query(
+        `SELECT COALESCE(SUM(current_stock * COALESCE(NULLIF(moving_average_cost,0), standard_cost, 0)),0) AS v FROM m_item_master WHERE is_active = true AND current_stock > 0`,
+        { type: db.Sequelize.QueryTypes.SELECT }
+      ).then((r) => r[0]?.v || 0),
     ]);
 
     res.json({
@@ -82,6 +87,7 @@ exports.getDashboardStats = async (req, res) => {
       pending_mrs: pendingMRs,
       pending_issues: pendingIssues,
       recent_grns: recentGRNs,
+      total_stock_value: Number(stockValue || 0).toFixed(2),
     });
   } catch (err) {
     console.error('Error fetching stores dashboard:', err);

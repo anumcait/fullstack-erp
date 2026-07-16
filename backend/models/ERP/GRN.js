@@ -42,9 +42,28 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(30),
         defaultValue: 'Received',
       },
-      received_by: {
-        type: DataTypes.STRING(100),
-        allowNull: true,
+      approval_status: {
+        type: DataTypes.STRING(20),
+        defaultValue: 'Pending',
+        validate: { isIn: [['Pending', 'Approved', 'Rejected']] },
+      },
+      approved_by: { type: DataTypes.STRING(100), allowNull: true },
+      approved_date: { type: DataTypes.DATEONLY, allowNull: true },
+      approval_remarks: { type: DataTypes.TEXT, allowNull: true },
+      qa_status: {
+        type: DataTypes.STRING(20),
+        defaultValue: 'Pending',
+        validate: { isIn: [['Pending', 'Passed', 'Rejected', 'Partial']] },
+      },
+      qa_by: { type: DataTypes.STRING(100), allowNull: true },
+      qa_date: { type: DataTypes.DATEONLY, allowNull: true },
+      qa_remarks: { type: DataTypes.TEXT, allowNull: true },
+      bill_no: { type: DataTypes.STRING(20), allowNull: true },
+      bill_date: { type: DataTypes.DATEONLY, allowNull: true },
+      ir_type: {
+        type: DataTypes.STRING(20),
+        defaultValue: 'GRR',
+        validate: { isIn: [['GRR', 'Jobwork', 'Resharpening', 'Loan', 'Maintenance']] },
       },
       notes: {
         type: DataTypes.TEXT,
@@ -60,7 +79,7 @@ module.exports = (sequelize) => {
       },
     },
     {
-      tableName: 't_grn',
+      tableName: 't_ir',
       timestamps: false,
       underscored: true,
     }

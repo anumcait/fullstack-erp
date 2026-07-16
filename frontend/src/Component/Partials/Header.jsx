@@ -274,7 +274,8 @@ const Header = () => {
         {
           title: 'Design Data',
           items: [
-            { label: 'Item Master (Eng)', path: '/engineering/items' },
+            { label: 'Product Master', path: '/engineering/products' },
+            { label: 'Category Master', path: '/engineering/categories' },
             { label: 'Bill of Materials (BOM)', path: '/engineering/bom' },
             { label: 'BOM Comparison', path: '/engineering/bom-diff' }
           ]
@@ -415,7 +416,10 @@ const Header = () => {
         {
           title: 'Inventory Control',
           items: [
-            { label: 'Item Master (Stores)', path: '/edit-item' },
+            { label: 'Item Master', path: '/stores/item-master' },
+            { label: 'UOM Master', path: '/stores/uom' },
+            { label: 'Item Group Master', path: '/stores/item-groups' },
+            { label: 'Item Type Master', path: '/stores/item-types' },
             { label: 'Stock Ledger', path: '/inventory/ledger' },
             { label: 'Physical Verification', path: '/inventory/audit' }
           ]
@@ -424,7 +428,7 @@ const Header = () => {
           title: 'Transactions',
           items: [
             { label: 'Gate Entry', path: '/inventory/gate-entry' },
-            { label: 'GRN / MRN', path: '/inventory/grn' },
+            { label: 'GRR', path: '/stores/grr' },
             { label: 'Material Issue (SRV)', path: '/inventory/issue' },
             { label: 'Material Return', path: '/inventory/return' }
           ]

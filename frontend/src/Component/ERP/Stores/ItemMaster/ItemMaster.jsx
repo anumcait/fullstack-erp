@@ -22,22 +22,38 @@ export default function ItemMaster() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [itemTypes, setItemTypes] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const GROUP_COLORS = {
+    "Raw Material": "default",
+    "Consumables": "info",
+    "Sub Assembly": "secondary",
+    "Packing Material": "warning",
+    "Finished Goods": "success",
+    "Spares": "error",
+  };
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const params = search ? { search } : {};
+      const params = {};
+      if (search) params.search = search;
+      if (typeFilter) params.type_id = typeFilter;
       const { data } = await axios.get(API, { params });
-      setItems(data);
+      setItems(data.map((it, i) => ({ ...it, sno: i + 1 })));
     } catch (err) {
       showToast("Failed to load items", "error");
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, typeFilter]);
 
-  useEffect(() => { fetchItems(); }, [fetchItems]);
+  useEffect(() => {
+    fetchItems();
+    axios.get("/api/erp/stores/item-types").then(({ data }) => setItemTypes(data)).catch(() => {});
+  }, [fetchItems]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -52,22 +68,45 @@ export default function ItemMaster() {
   };
 
   const columns = [
+    { field: "sno", headerName: "S.No", width: 70, sortable: false },
     { field: "item_code", headerName: "Item Code", width: 130 },
     { field: "item_name", headerName: "Item Name", width: 220 },
     {
-      field: "category",
-      headerName: "Category",
+      field: "group",
+      headerName: "Group",
       width: 150,
-      valueGetter: (params) => params?.name || "-",
+      valueGetter: (value, row) => row?.group?.name || "-",
+      renderCell: (params) => (
+        <Chip label={params.value || "-"} color={GROUP_COLORS[params.value] || "default"} size="small" />
+      ),
+    },
+    {
+      field: "subgroup",
+      headerName: "Sub Group",
+      width: 150,
+      valueGetter: (value, row) => row?.subGroup?.name || "-",
+    },
+    {
+      field: "type",
+      headerName: "Type",
+      width: 160,
+      valueGetter: (value, row) => row?.type?.name || "-",
+    },
+    {
+      field: "subtype",
+      headerName: "Sub Type",
+      width: 150,
+      valueGetter: (value, row) => row?.subType?.name || "-",
     },
     {
       field: "unit",
-      headerName: "Unit",
+      headerName: "UOM",
       width: 100,
-      valueGetter: (params) => params?.short_name || params?.name || "-",
+      valueGetter: (value, row) => row?.unit?.short_name || row?.unit?.name || "-",
     },
     { field: "current_stock", headerName: "Stock", width: 100, type: "number" },
-    { field: "rate", headerName: "Rate", width: 110, type: "number" },
+    { field: "standard_cost", headerName: "Std Cost", width: 110, type: "number" },
+    { field: "last_purchase_cost", headerName: "Last Cost", width: 110, type: "number" },
     { field: "gst_rate", headerName: "GST %", width: 90, type: "number" },
     { field: "hsn_code", headerName: "HSN", width: 110 },
     {
@@ -128,6 +167,20 @@ export default function ItemMaster() {
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }}
               sx={{ minWidth: 300 }}
             />
+              <TextField
+                size="small"
+                select
+                label="Type"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                sx={{ minWidth: 170 }}
+                SelectProps={{ native: true }}
+              >
+                <option value="">All</option>
+                {itemTypes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </TextField>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/stores/item-master/add")}>
               Add Item
             </Button>
