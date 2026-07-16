@@ -46,11 +46,18 @@ run_tf() {
 _ssm_exec() {
   local id="$1" arr="$2" params cmd_id out=""
   params="{\"commands\":$arr}"
-  cmd_id="$(aws ssm send-command \
-      --profile "$AWS_PROFILE" --region "$AWS_REGION" \
-      --instance-id "$id" --document-name "AWS-RunShellScript" \
-      --parameters "$params" \
-      --output text --query "Command.CommandId" 2>/dev/null || true)"
+  # Retry the send-command a few times: the SSM agent can briefly
+  # reject a command right after an instance restart (transient blip).
+  cmd_id=""
+  for _ in 1 2 3; do
+    cmd_id="$(aws ssm send-command \
+        --profile "$AWS_PROFILE" --region "$AWS_REGION" \
+        --instance-id "$id" --document-name "AWS-RunShellScript" \
+        --parameters "$params" \
+        --output text --query "Command.CommandId" 2>/dev/null || true)"
+    [ -n "$cmd_id" ] && break
+    sleep 5
+  done
   [ -n "$cmd_id" ] || { warn "SSM send-command failed (is the SSM agent/role attached?)."; return 1; }
   out=""
   for _ in $(seq 1 40); do
