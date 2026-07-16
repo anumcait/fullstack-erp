@@ -102,16 +102,16 @@ do_backup() {
     warn "Container '$LOCAL_DB_CONTAINER' is not running. Using committed pg_backup/ as-is."
   else
     log "Dumping hrdb ..."
-    docker exec -t "$LOCAL_DB_CONTAINER" \
+    MSYS_NO_PATHCONV=1 docker exec -t "$LOCAL_DB_CONTAINER" \
       pg_dump -U postgres -Fc -f /pg_backup/hrdb.backup hrdb
     log "Dumping erpdb ..."
-    docker exec -t "$LOCAL_DB_CONTAINER" \
+    MSYS_NO_PATHCONV=1 docker exec -t "$LOCAL_DB_CONTAINER" \
       pg_dump -U postgres -Fc -f /pg_backup/erpdb.backup erpdb
 
     # Copy out of the container to the repo's tracked folder.
     TMP="$(mktemp -d)"
-    docker cp "$LOCAL_DB_CONTAINER:/pg_backup/hrdb.backup"  "$TMP/hrdb.backup"
-    docker cp "$LOCAL_DB_CONTAINER:/pg_backup/erpdb.backup" "$TMP/erpdb.backup"
+    MSYS_NO_PATHCONV=1 docker cp "$LOCAL_DB_CONTAINER:/pg_backup/hrdb.backup"  "$TMP/hrdb.backup"
+    MSYS_NO_PATHCONV=1 docker cp "$LOCAL_DB_CONTAINER:/pg_backup/erpdb.backup" "$TMP/erpdb.backup"
     mkdir -p "$REPO_ROOT/pg_backup"
     cp "$TMP/hrdb.backup"  "$REPO_ROOT/pg_backup/hrdb.backup"
     cp "$TMP/erpdb.backup" "$REPO_ROOT/pg_backup/erpdb.backup"

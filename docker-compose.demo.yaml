@@ -19,7 +19,7 @@ services:
     volumes:
       - hr_db_data:/var/lib/postgresql/data
       - ./init-scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh:ro
-      - ./pg_backup:/pg_backup:ro
+      - ./pg_backup:/pg_backup:rw
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d hrdb"]
       interval: 15s
