@@ -44,8 +44,11 @@ run_tf() {
 # Uses a proper JSON-object --parameters so it works from Git Bash (the intended
 # runner). Prints the command output once the invocation finishes.
 _ssm_exec() {
-  local id="$1" arr="$2" params cmd_id out=""
-  params="{\"commands\":$arr}"
+  local id="$1" arr="$2" params_file cmd_id out=""
+  # Write the command array to a temp file and pass it via --parameters file://
+  # (robust: avoids inline-JSON quoting issues that make send-command fail).
+  params_file="$(mktemp)"
+  printf '{"commands":%s}\n' "$arr" > "$params_file"
   # Retry the send-command a few times: the SSM agent can briefly
   # reject a command right after an instance restart (transient blip).
   cmd_id=""
@@ -53,11 +56,12 @@ _ssm_exec() {
     cmd_id="$(aws ssm send-command \
         --profile "$AWS_PROFILE" --region "$AWS_REGION" \
         --instance-id "$id" --document-name "AWS-RunShellScript" \
-        --parameters "$params" \
+        --parameters "file://$params_file" \
         --output text --query "Command.CommandId" 2>/dev/null || true)"
     [ -n "$cmd_id" ] && break
     sleep 5
   done
+  rm -f "$params_file"
   [ -n "$cmd_id" ] || { warn "SSM send-command failed (is the SSM agent/role attached?)."; return 1; }
   out=""
   for _ in $(seq 1 40); do
