@@ -1,43 +1,54 @@
-200mm plastic ventilation fan BOM				
-S.no	COMPONENT NAME	QTY	REMARK	COLOR
-1	Front Cover-200mm	1		White/Black/Brown
-2	Motor Housing-200mm	1		White/Black/Brown
-3	Wind Leaf-200mm	1		White/Black/Brown
-4	Lovers-200mm	3		White/Black/Brown
-5	Oil Tank Cover-200mm	1		White/Black/Brown
-6	Swing Connector-200mm	1		White/Black/Brown
-7	Fan Cover (WITH BRASS NUT)	1	Common	White/Black/Brown
-8	Capacitor Cover	1	Common	White/Black/Brown
-9	Motor (7818 series) with capacitor(1.8 mfd)	1		
-10	LED Strips	2		
-11	LED Connector/Driver	1		
-12	Thermocol	4	Common	
-13	Polybag-17*20inches	1		
-14	Rubber	1	Common	
-15	Spring	1		
-16	2 core cable	1	Common	White/Black
-17	Hardware			
-	Connector pin	3	Common	
-	6*9.5	3	Common	
-	8*13	4	Common	
-18	Inner Box (1 in 1)	1		
-19	Outer Box (4 x1)	0.17	For every 4 fans, 1 box should be issued	
-20	warranty card	1	Common	
-21	MRP Sticker AND OTHER LABELS	11		
-	MRP inner box-130*255 mm	1		
-	MRP outer box-115*300mm	0.17	For every 4 fans, 1 label should be issued	
-	Rating label	1	Common	
-	tear after use label	1	Common	
-	serial number on warranty	1	Common	
-	color label on inner box	1	Common	
-	color label on outer box	0.17	Common	
-	motor label	1	Common	
-	ROHS label	0.17	Common	
-	ok sticker on fan	1	Common	
-	ok sticker on outer box	0.17	Common	
-22	Strapping Roll and packing tape	1	Common	
-		qty (strap in kg, tape in meters)		
-	Strap	0.023	For every 4 fans, strap should be issued	
-	Tape-inner box	0.7		
-	Tape-outer box	1.8	For every 4 fans, tape should be issued	
-				
+CREATE TABLE "AUCTOR"."T_IR" 
+   (	"MIS_NO" NUMBER(10,0) NOT NULL ENABLE, "MIS_DT" DATE DEFAULT SYSDATE NOT NULL ENABLE, "PR_NO" VARCHAR2(10 BYTE) NOT NULL ENABLE, "PR_DT" DATE, "DC_NO" VARCHAR2(10 BYTE) NOT NULL ENABLE, 
+	"DC_DT" DATE, "PO_NO" VARCHAR2(10 BYTE), "PTY_CODE" VARCHAR2(10 BYTE) NOT NULL ENABLE, "ITEM_CODE" VARCHAR2(50 BYTE) NOT NULL ENABLE, "OPN_1" NUMBER(4,0) NOT NULL ENABLE, "OPN_2" NUMBER(4,0) NOT NULL ENABLE, 
+	"OPN_3" NUMBER(4,0) NOT NULL ENABLE, "OPN_4" NUMBER(4,0) NOT NULL ENABLE, "OPN_5" NUMBER(5,0) NOT NULL ENABLE, "QTY_SUPP" NUMBER(12,3) NOT NULL ENABLE, "QTY_ACCP" NUMBER(12,3) NOT NULL ENABLE, 
+	"QTY_REJ" NUMBER(12,3) NOT NULL ENABLE, "QTY_RETF" NUMBER(12,3) NOT NULL ENABLE, 
+	"RATE" NUMBER(12,2) DEFAULT 0 NOT NULL ENABLE, 
+	"VALUE" NUMBER(12,2) DEFAULT 0 NOT NULL ENABLE, 
+	"RECVD_BY" VARCHAR2(10 BYTE), 
+	"REMARKS" VARCHAR2(100 BYTE), 
+	"INSP_AUTH" VARCHAR2(10 BYTE), 
+	"INSP_DT" DATE, 
+	"STATUS" VARCHAR2(1 BYTE) NOT NULL ENABLE, 
+	"PAID_STAT" VARCHAR2(1 BYTE) NOT NULL ENABLE, 
+	"REJ_DCNO" VARCHAR2(10 BYTE), 
+	"BOX_NO" VARCHAR2(5 BYTE), 
+	"REJ_ERR" VARCHAR2(1 BYTE), 
+	"REJ_DIA" VARCHAR2(5 BYTE), 
+	"RET_ERR" VARCHAR2(1 BYTE), 
+	"RET_DIA" VARCHAR2(5 BYTE), 
+	"REJ_NO" NUMBER(5,0), 
+	"QTY_LOST" NUMBER(12,3), 
+	"WO_NO" VARCHAR2(10 BYTE), 
+	"ITEM_DES" VARCHAR2(150 BYTE), 
+	"PTY_NAME" VARCHAR2(100 BYTE), 
+	"REJ_RATE" NUMBER(12,2), 
+	"ITEM_SR" NUMBER(6,0), 
+	"ITEM_GRP" VARCHAR2(10 BYTE), 
+	"AGM_INSP" NUMBER(5,0), 
+	"AGM_INSPDT" DATE, 
+	"QTY_PREJ" NUMBER(12,3), 
+	"QTY_OREJ" NUMBER(12,3), 
+	"QTY_ISS" NUMBER(12,3), 
+	"NEWBOX_NO" VARCHAR2(50 BYTE), 
+	"UNIT_CD" CHAR(1 BYTE), 
+	"DEPT_CD" VARCHAR2(10 BYTE) NOT NULL ENABLE, 
+	"QTY_REC" NUMBER(12,3), 
+	"KG_REC" NUMBER(12,3), 
+	"KG_ACCP" NUMBER(12,3), 
+	"LEN" NUMBER(12,3), 
+	"WID" NUMBER(12,3), 
+	"THK" NUMBER(12,3), 
+	"DIA" NUMBER(12,3), 
+	"VAN_QUL_RAT" NUMBER(5,2), 
+	"VAN_DSP_RAT" NUMBER(5,2), 
+	"VAN_PRICE_RAT" NUMBER(5,2), 
+	"VAN_SER_RAT" NUMBER(5,2), 
+	"QTY_WTOPN" NUMBER(12,3), 
+	"YR" NUMBER(4,0) NOT NULL ENABLE, 
+	"UT_REP_NO" VARCHAR2(10 BYTE), 
+	"PO_DT" DATE, 
+	"BILL_NO" VARCHAR2(20 BYTE), 
+	"BILL_DT" DATE, 
+	"REFNO" VARCHAR2(10 BYTE), 
+	 CONSTRAINT "T_IR_CHK1" CHECK (TRUNC(MIS_DT) >= TRUNC(DC_DT)) ENABLE, 

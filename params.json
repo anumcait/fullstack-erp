@@ -1,1 +1,9 @@
-{"Parameters":{"commands":["echo \u0027===FRONTEND LOG TAIL===\u0027; sudo docker logs hr-frontend --tail 20 2\u003e\u00261 | LC_ALL=C sed \u0027s/[^[:print:]]//g\u0027; echo \u0027===LOCAL ROOT (first 350 chars)===\u0027; curl -s --max-time 15 http://localhost/ 2\u003e/dev/null | head -c 350 | LC_ALL=C sed \u0027s/[^[:print:]]//g\u0027; echo; echo \u0027===EXT ROOT===\u0027; "]},"DocumentName":"AWS-RunShellScript","InstanceIds":["i-0143d546f5f7b1918"]}
+{
+  "commands": [
+    "cd /opt/erp-app",
+    "git pull origin dev",
+    "docker compose -f docker-compose.demo.yaml up -d --force-recreate frontend",
+    "sleep 8",
+    "docker compose -f docker-compose.demo.yaml ps --format '{{.Name}} {{.State}}'"
+  ]
+}

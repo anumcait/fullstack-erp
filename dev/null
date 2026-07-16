@@ -1,0 +1,35 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Box, Typography, Card, CardContent, TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, IconButton, Chip, LinearProgress, MenuItem } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import axios from "axios";
+import { useToast } from "../../../../context/ToastContext";
+const API = "/api/erp/stores/invoices";
+const statusColor = { Draft: "default", Billed: "success", Cancelled: "error" };
+export default function BillingList() {
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const [rows, setRows] = useState([]);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
+  const fetchData = () => {
+    setLoading(true);
+    axios.get(API, { params: { search, status } }).then(({ data }) => setRows(data)).catch(() => showToast("Failed to load", "error")).finally(() => setLoading(false));
+  };
+  useEffect(fetchData, []);
+  const remove = async (id) => {
+    if (!window.confirm("Delete this invoice?")) return;
+    try {
+      await axios.delete(`${API}/${id}`);
+      showToast("Deleted", "success");
+      fetchData();
+    } catch (e) {
+      showToast(e.response?.data?.error || "Failed", "error");
+    }
+  };
+  return /* @__PURE__ */ React.createElement(Box, { sx: { p: 3 } }, /* @__PURE__ */ React.createElement(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }, /* @__PURE__ */ React.createElement(Typography, { variant: "h4", sx: { fontWeight: "bold", color: "var(--heading-color)" } }, "GRR Billing"), /* @__PURE__ */ React.createElement(Button, { variant: "contained", startIcon: /* @__PURE__ */ React.createElement(AddIcon, null), onClick: () => navigate("/stores/invoices/add") }, "New Invoice")), /* @__PURE__ */ React.createElement(Card, { sx: { borderRadius: 3, mb: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" } }, /* @__PURE__ */ React.createElement(CardContent, null, /* @__PURE__ */ React.createElement(Box, { display: "flex", gap: 2, flexWrap: "wrap" }, /* @__PURE__ */ React.createElement(TextField, { size: "small", label: "Search", value: search, onChange: (e) => setSearch(e.target.value), onKeyDown: (e) => e.key === "Enter" && fetchData(), sx: { minWidth: 240 } }), /* @__PURE__ */ React.createElement(TextField, { size: "small", select: true, label: "Status", value: status, onChange: (e) => setStatus(e.target.value), sx: { minWidth: 160 } }, /* @__PURE__ */ React.createElement(MenuItem, { value: "" }, "All"), Object.keys(statusColor).map((s) => /* @__PURE__ */ React.createElement(MenuItem, { key: s, value: s }, s))), /* @__PURE__ */ React.createElement(Button, { variant: "outlined", onClick: fetchData }, "Search")))), loading && /* @__PURE__ */ React.createElement(LinearProgress, { sx: { mb: 1 } }), /* @__PURE__ */ React.createElement(Card, { sx: { borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" } }, /* @__PURE__ */ React.createElement(CardContent, null, /* @__PURE__ */ React.createElement(Table, { size: "small", sx: { "& th": { fontWeight: 700, bgcolor: "#f5f7fa", fontSize: "0.8rem" } } }, /* @__PURE__ */ React.createElement(TableHead, null, /* @__PURE__ */ React.createElement(TableRow, null, /* @__PURE__ */ React.createElement(TableCell, null, "Invoice #"), /* @__PURE__ */ React.createElement(TableCell, null, "Date"), /* @__PURE__ */ React.createElement(TableCell, null, "Party"), /* @__PURE__ */ React.createElement(TableCell, null, "GRR"), /* @__PURE__ */ React.createElement(TableCell, null, "Grand Total"), /* @__PURE__ */ React.createElement(TableCell, null, "Payment"), /* @__PURE__ */ React.createElement(TableCell, null, "Status"), /* @__PURE__ */ React.createElement(TableCell, { align: "right" }, "Actions"))), /* @__PURE__ */ React.createElement(TableBody, null, rows.length === 0 && /* @__PURE__ */ React.createElement(TableRow, null, /* @__PURE__ */ React.createElement(TableCell, { colSpan: 6, align: "center", sx: { py: 4, color: "gray" } }, "No invoices found.")), rows.map((r) => /* @__PURE__ */ React.createElement(TableRow, { key: r.id, hover: true }, /* @__PURE__ */ React.createElement(TableCell, { sx: { fontWeight: 600 } }, r.invoice_no), /* @__PURE__ */ React.createElement(TableCell, null, r.invoice_date), /* @__PURE__ */ React.createElement(TableCell, null, r.party_name || "-"), /* @__PURE__ */ React.createElement(TableCell, null, r.dc_no || "-"), /* @__PURE__ */ React.createElement(TableCell, { sx: { fontWeight: 600 } }, "\u20B9 ", Number(r.grand_total || 0).toFixed(2)), /* @__PURE__ */ React.createElement(TableCell, null, /* @__PURE__ */ React.createElement(Chip, { size: "small", label: r.paid_status || "Unpaid", color: r.paid_status === "Paid" ? "success" : r.paid_status === "Partially Paid" ? "info" : "warning" })), /* @__PURE__ */ React.createElement(TableCell, null, /* @__PURE__ */ React.createElement(Chip, { size: "small", label: r.status, color: statusColor[r.status] || "default" })), /* @__PURE__ */ React.createElement(TableCell, { align: "right" }, /* @__PURE__ */ React.createElement(IconButton, { size: "small", onClick: () => navigate(`/stores/invoices/view/${r.id}`) }, /* @__PURE__ */ React.createElement(VisibilityIcon, { fontSize: "small" })), r.status === "Draft" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(IconButton, { size: "small", onClick: () => navigate(`/stores/invoices/edit/${r.id}`) }, /* @__PURE__ */ React.createElement(EditIcon, { fontSize: "small" })), /* @__PURE__ */ React.createElement(IconButton, { size: "small", color: "error", onClick: () => remove(r.id) }, /* @__PURE__ */ React.createElement(DeleteIcon, { fontSize: "small" })))))))))));
+}
