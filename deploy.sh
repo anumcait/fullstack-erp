@@ -266,7 +266,7 @@ JSON
    #    drop/recreate cleanly, then start it again.
    log "Restoring EC2 databases from committed backups (mirrors local) on $id ..."
    local restore=$(cat <<JSON
- ["docker stop hr-backend 2>&1 | tail -1","docker exec hr_postgres pg_restore --clean --if-exists --no-owner -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 | tail -3","docker exec hr_postgres pg_restore --clean --if-exists --no-owner -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 | tail -3","docker start hr-backend 2>&1 | tail -1","echo RESTORE_DONE"]
+ ["docker stop hr-backend 2>&1 | tail -1","for i in $(seq 1 40); do docker exec hr_postgres pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done","docker exec hr_postgres pg_restore --clean --if-exists --no-owner -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 | tail -3","docker exec hr_postgres pg_restore --clean --if-exists --no-owner -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 | tail -3","docker start hr-backend 2>&1 | tail -1","echo RESTORE_DONE"]
 JSON
 )
    _ssm_exec "$id" "$restore"
