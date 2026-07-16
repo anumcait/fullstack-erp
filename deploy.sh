@@ -270,10 +270,11 @@ do_update() {
   [ -n "$id" ] || die "Cannot read instance_id (is the stack applied & running?)."
   log "Applying changes on instance $id via SSM (git pull + rebuild + restart) ..."
 
-  arr=$(cat <<JSON
-["export DOCKER_BUILDKIT=0; cd /opt/erp-app && git pull origin $BRANCH 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","export DOCKER_BUILDKIT=0; cd /opt/erp-app && docker compose -f docker-compose.demo.yaml build 2>&1 | tail -n 25 | LC_ALL=C sed 's/[^[:print:]]//g'","systemctl restart erp-demo.service 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","sleep 12; docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null | LC_ALL=C sed 's/[^[:print:]]//g'"]
+  arr=$(cat <<'JSON'
+["export DOCKER_BUILDKIT=0; cd /opt/erp-app && git pull origin __BRANCH__ 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","export DOCKER_BUILDKIT=0; cd /opt/erp-app && docker compose -f docker-compose.demo.yaml build 2>&1 | tail -n 25 | LC_ALL=C sed 's/[^[:print:]]//g'","systemctl restart erp-demo.service 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","sleep 12; docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null | LC_ALL=C sed 's/[^[:print:]]//g'"]
 JSON
 )
+  arr="${arr//__BRANCH__/$BRANCH}"
 
    _ssm_exec "$id" "$arr"
 
@@ -284,7 +285,7 @@ JSON
     #    onto a live DB) because --clean trips on dependent objects and silently
     #    skips the load. A fresh DB restores cleanly, exactly like first boot.
     log "Restoring EC2 databases from committed backups (mirrors local) on $id ..."
-    local restore=$(cat <<JSON
+    local restore=$(cat <<'JSON'
  ["docker stop hr-backend 2>&1 | tail -1","for i in $(seq 1 40); do docker exec hr_postgres pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done","docker exec hr_postgres psql -U postgres -t -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='hrdb' AND pid<>pg_backend_pid();\"","docker exec hr_postgres psql -U postgres -t -c \"DROP DATABASE IF EXISTS hrdb;\"","docker exec hr_postgres psql -U postgres -t -c \"CREATE DATABASE hrdb;\"","docker exec hr_postgres pg_restore --no-owner -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 | tail -3","docker exec hr_postgres psql -U postgres -t -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='erpdb' AND pid<>pg_backend_pid();\"","docker exec hr_postgres psql -U postgres -t -c \"DROP DATABASE IF EXISTS erpdb;\"","docker exec hr_postgres psql -U postgres -t -c \"CREATE DATABASE erpdb;\"","docker exec hr_postgres pg_restore --no-owner -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 | tail -3","docker start hr-backend 2>&1 | tail -1","echo RESTORE_DONE"]
 JSON
 )
@@ -294,7 +295,7 @@ JSON
    #    but guarantees the columns exist if the restore is ever skipped. ERP models
    #    span both hrdb (DB_NAME) and erpdb (ERP_DB_NAME).
    log "Applying DB migrations on instance $id (hrdb + erpdb) ..."
-   local mig=$(cat <<JSON
+   local mig=$(cat <<'JSON'
  ["docker cp /opt/erp-app/db/erp_migrations.sql hr_postgres:/tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","docker exec hr_postgres psql -U postgres -d hrdb -v ON_ERROR_STOP=0 -f /tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","docker exec hr_postgres psql -U postgres -d erpdb -v ON_ERROR_STOP=0 -f /tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","echo MIGRATIONS_DONE"]
 JSON
 )
