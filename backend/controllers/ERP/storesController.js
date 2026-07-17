@@ -73,7 +73,7 @@ exports.getDashboardStats = async (req, res) => {
       ItemGroup.count({ where: { is_active: true } }),
       MaterialRequisition.count({ where: { status: { [Op.in]: ['Pending', 'Approved'] } } }),
       MaterialIssue.count({ where: { status: { [Op.in]: ['Pending', 'Approved'] } } }).catch(() => 0),
-      GRN.count({ where: { created_at: { [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } }).catch(() => 0),
+      GRN.count({ where: { created_date: { [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } }).catch(() => 0),
       db.sequelize.query(
         `SELECT COALESCE(SUM(current_stock * COALESCE(NULLIF(moving_average_cost,0), standard_cost, 0)),0) AS v FROM m_item_master WHERE is_active = true AND current_stock > 0`,
         { type: db.Sequelize.QueryTypes.SELECT }

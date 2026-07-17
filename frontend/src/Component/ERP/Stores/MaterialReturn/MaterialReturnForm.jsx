@@ -6,6 +6,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
+import CountedTextArea from '../../../Common/CountedTextArea';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const API = '/api/erp/stores/material-returns';
@@ -142,7 +143,7 @@ export default function MaterialReturnForm() {
               <TextField fullWidth size="small" label="Status" value={header.status} disabled />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth size="small" label="Remarks" name="remarks" value={header.remarks} onChange={handleHeaderChange} multiline rows={2} disabled={isView} />
+              <CountedTextArea fullWidth size="small" label="Remarks" name="remarks" value={header.remarks} onChange={handleHeaderChange} rows={2} disabled={isView} />
             </Grid>
           </Grid>
         </CardContent>

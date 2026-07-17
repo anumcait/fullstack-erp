@@ -20,7 +20,7 @@ module.exports = (sequelize) => {
     margin_percent: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
     selling_price: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },
     remarks: { type: DataTypes.TEXT, allowNull: true },
-    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, {
     tableName: 't_bom',

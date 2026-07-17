@@ -28,7 +28,7 @@ exports.getRFQs = async (req, res) => {
           include: [{ model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] }],
         },
       ],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(rfqs);
   } catch (err) {

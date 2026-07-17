@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
+import CountedTextArea from "../../../Common/CountedTextArea";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const API = "/api/erp/purchase/orders";
@@ -134,7 +135,7 @@ export default function POForm() {
                 <TextField label="Delivery Terms" size="small" fullWidth value={header.delivery_terms} onChange={(e) => setHeader({ ...header, delivery_terms: e.target.value })} disabled={isView} />
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Notes" size="small" fullWidth multiline rows={2} value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} disabled={isView} />
+                <CountedTextArea label="Notes" size="small" fullWidth rows={2} value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} disabled={isView} />
               </Grid>
             </Grid>
           </CardContent>
@@ -181,12 +182,12 @@ export default function POForm() {
             ))}
 
             <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, gap: 3 }}>
-              <Box><Typography variant="body2" color="textSecondary">Subtotal:</Typography><Typography fontWeight="bold">{header.subtotal.toFixed(2)}</Typography></Box>
+              <Box><Typography variant="body2" color="textSecondary">Subtotal:</Typography><Typography fontWeight="bold">{Number(header.subtotal || 0).toFixed(2)}</Typography></Box>
               <Box><Typography variant="body2" color="textSecondary">Discount %:</Typography>
                 <TextField type="number" size="small" value={header.discount_percent} onChange={(e) => { setHeader({ ...header, discount_percent: e.target.value }); setTimeout(recalcHeader, 50); }} sx={{ width: 80 }} disabled={isView} />
               </Box>
-              <Box><Typography variant="body2" color="textSecondary">Tax:</Typography><Typography fontWeight="bold">{header.tax_amount.toFixed(2)}</Typography></Box>
-              <Box><Typography variant="body2" color="textSecondary">Grand Total:</Typography><Typography fontWeight="bold" color="primary" variant="h6">{header.grand_total.toFixed(2)}</Typography></Box>
+              <Box><Typography variant="body2" color="textSecondary">Tax:</Typography><Typography fontWeight="bold">{Number(header.tax_amount || 0).toFixed(2)}</Typography></Box>
+                <Box><Typography variant="body2" color="textSecondary">Grand Total:</Typography><Typography fontWeight="bold" color="primary" variant="h6">{Number(header.grand_total || 0).toFixed(2)}</Typography></Box>
             </Box>
           </CardContent>
         </Card>

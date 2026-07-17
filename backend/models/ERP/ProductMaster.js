@@ -18,7 +18,7 @@ module.exports = (sequelize) => {
     qty_per_pallet: { type: DataTypes.DECIMAL(12, 3), allowNull: true },
     created_by: { type: DataTypes.INTEGER, allowNull: true },
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
-    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, {
     tableName: 'm_product_master',

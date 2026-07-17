@@ -12,6 +12,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import ItemSelectDialog from '../ItemMaster/ItemSelectDialog';
+import CountedTextArea from '../../../Common/CountedTextArea';
 
 const API = '/api/erp/stores/invoices';
 const ITEMS_API = '/api/erp/stores/items';
@@ -142,8 +143,8 @@ export default function BillingForm() {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} md={6}><TextField label="Address" size="small" fullWidth value={form.address} onChange={handleChange('address')} disabled={readOnly} multiline rows={1} /></Grid>
-            <Grid item xs={12} md={6}><TextField label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} multiline rows={1} /></Grid>
+            <Grid item xs={12} md={6}><CountedTextArea label="Address" size="small" fullWidth value={form.address} onChange={handleChange('address')} disabled={readOnly} rows={1} /></Grid>
+            <Grid item xs={12} md={6}><CountedTextArea label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} rows={1} /></Grid>
           </Grid>
         </CardContent>
       </Card>

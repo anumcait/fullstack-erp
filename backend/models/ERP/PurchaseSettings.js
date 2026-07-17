@@ -26,7 +26,7 @@ module.exports = (sequelize) => {
       auto_generate_po: { type: DataTypes.BOOLEAN, defaultValue: false },
       auto_generate_rfq: { type: DataTypes.BOOLEAN, defaultValue: false },
       auto_generate_grn: { type: DataTypes.BOOLEAN, defaultValue: false },
-      created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+      created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
       updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     },
     {

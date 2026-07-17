@@ -23,7 +23,7 @@ exports.getList = async (req, res) => {
     const data = await MaterialRequisition.findAll({
       where,
       include: [{ model: MaterialRequisitionItem, as: 'items' }],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(data);
   } catch (err) {

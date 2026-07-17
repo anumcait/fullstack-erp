@@ -27,7 +27,7 @@ const Footer = () => {
         <Divider sx={{ bgcolor: '#ffffff33' }} />
         <Container maxWidth="xl" sx={{ py: 3, pb: 4 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Box display="flex" alignItems="center" gap={2} mb={1.5}>
                 <Box component="img" src={logo} alt="Logo" sx={{
                   height: 56, width: 'auto', maxWidth: 160, objectFit: 'contain',
@@ -57,7 +57,7 @@ const Footer = () => {
               </Box>
             </Grid>
 
-            <Grid item xs={6} md={2}>
+            <Grid size={{ xs: 6, md: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--footer-section-title)', display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 1 }}>Operations</Typography>
               <Box component={Link} to="/purchase" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Purchase</Box>
               <Box component={Link} to="/stores" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Stores</Box>
@@ -66,7 +66,7 @@ const Footer = () => {
               <Box component={Link} to="/engineering" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Engineering</Box>
             </Grid>
 
-            <Grid item xs={6} md={2}>
+            <Grid size={{ xs: 6, md: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--footer-section-title)', display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 1 }}>Support</Typography>
               <Box component={Link} to="/quality" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Quality</Box>
               <Box component={Link} to="/marketing" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Marketing</Box>
@@ -75,7 +75,7 @@ const Footer = () => {
               <Box component={Link} to="/accounts" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Accounts</Box>
             </Grid>
 
-            <Grid item xs={6} md={2}>
+            <Grid size={{ xs: 6, md: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--footer-section-title)', display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 1 }}>HRMS</Typography>
               <Box component={Link} to="/employees" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Employees</Box>
               <Box component={Link} to="/leave" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Leaves</Box>
@@ -84,7 +84,7 @@ const Footer = () => {
               <Box component={Link} to="/useraccess" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>User Access</Box>
             </Grid>
 
-            <Grid item xs={6} md={2}>
+            <Grid size={{ xs: 6, md: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--footer-section-title)', display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 1 }}>Quick Links</Typography>
               <Box component={Link} to="/dashboard" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Dashboard</Box>
               <Box component={Link} to="/purchase/reports" sx={{ color: 'white', textDecoration: 'none', fontSize: '0.82rem', display: 'block', py: 0.3, '&:hover': { color: 'var(--footer-link-hover)' } }}>Reports</Box>

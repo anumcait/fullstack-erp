@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, LinearProgress } from "@mui/material";
 import axios from "axios";
 
-const DEFAULT_IDLE_MS = 15 * 60 * 1000; // 15 minutes idle before warning
-const DEFAULT_COUNTDOWN_MS = 60 * 1000; // 60 seconds to respond
+const DEFAULT_IDLE_MS = 60 * 60 * 1000; // 1 hour idle before warning
+const DEFAULT_COUNTDOWN_MS = 5 * 60 * 1000; // 5 minutes to respond
 
 const AUTH_KEYS = ["userName", "userRole", "empName", "empId", "userPermissions"];
 

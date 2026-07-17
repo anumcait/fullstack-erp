@@ -16,6 +16,7 @@ import SubdirectoryArrowLeftIcon from '@mui/icons-material/SubdirectoryArrowLeft
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
+import CountedTextArea from '../../../Common/CountedTextArea';
 import BOMSelectDialog from './BOMSelectDialog';
 
 const API = '/api/erp/engineering/bom';
@@ -249,7 +250,7 @@ export default function BOMForm() {
                 </TextField>
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} multiline rows={2} />
+                <CountedTextArea label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} rows={2} />
               </Grid>
             </Grid>
           </CardContent>

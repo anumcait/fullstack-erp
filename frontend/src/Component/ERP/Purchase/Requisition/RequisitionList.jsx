@@ -6,28 +6,37 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PrintIcon from "@mui/icons-material/Print";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const API = "/api/erp/purchase/requisitions";
 
 export default function RequisitionList() {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
+  const statusFilter = searchParams.get("status") || "";
+  const title = statusFilter === "Pending" ? "PR Authorization — Pending"
+    : statusFilter === "Approved" ? "Authorized PRs"
+    : "Purchase Requisitions";
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = search ? { search } : {};
+      const params = {};
+      if (search) params.search = search;
+      if (statusFilter) params.status = statusFilter;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast("Failed to load requisitions", "error"); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [search, statusFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -53,10 +62,11 @@ export default function RequisitionList() {
     )},
     { field: "items", headerName: "Items", width: 80, valueGetter: (v) => v?.length || 0 },
     {
-      field: "actions", headerName: "Actions", width: 160, sortable: false,
+      field: "actions", headerName: "Actions", width: 200, sortable: false,
       renderCell: (p) => (
         <Box>
           <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/purchase/requisitions/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title="Print"><IconButton size="small" onClick={() => navigate(`/purchase/requisitions/print/${p.row.id}`)}><PrintIcon fontSize="small" /></IconButton></Tooltip>
           {p.row.status === "Pending" && (
             <>
               <Tooltip title="Approve"><IconButton size="small" color="success" onClick={() => handleApprove(p.row.id, "Approved")}><CheckCircleIcon fontSize="small" /></IconButton></Tooltip>
@@ -70,7 +80,7 @@ export default function RequisitionList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: "var(--heading-color)" }}>Purchase Requisitions</Typography>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: "var(--heading-color)" }}>{title}</Typography>
       <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
         <CardContent>
           <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
@@ -78,6 +88,9 @@ export default function RequisitionList() {
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }} sx={{ minWidth: 300 }} />
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/purchase/requisitions/add")}>New Requisition</Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
+            {!statusFilter && <Button size="small" variant="text" onClick={() => navigate("/purchase/requisitions?status=Pending")}>Pending</Button>}
+            {!statusFilter && <Button size="small" variant="text" onClick={() => navigate("/purchase/requisitions?status=Approved")}>Approved</Button>}
+            {statusFilter && <Button size="small" variant="text" onClick={() => navigate("/purchase/requisitions")}>Clear Filter</Button>}
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
           <div style={{ height: 520, width: "100%" }}>

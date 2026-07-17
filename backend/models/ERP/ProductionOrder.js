@@ -11,11 +11,12 @@ module.exports = (sequelize) => {
     planned_quantity: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
     produced_quantity: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
     status: { type: DataTypes.STRING(20), defaultValue: 'Planning' },
+    order_type: { type: DataTypes.STRING(20), defaultValue: 'Job Order' },
     start_date: { type: DataTypes.DATEONLY, allowNull: true },
     end_date: { type: DataTypes.DATEONLY, allowNull: true },
     department: { type: DataTypes.STRING(100), allowNull: true },
     remarks: { type: DataTypes.TEXT, allowNull: true },
-    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, {
     tableName: 't_production_order',

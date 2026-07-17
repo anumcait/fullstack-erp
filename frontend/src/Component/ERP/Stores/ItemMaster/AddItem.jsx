@@ -14,6 +14,7 @@ import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useParams } from "react-router-dom";
 import ItemSelectDialog from "./ItemSelectDialog";
+import CountedTextArea from "../../../Common/CountedTextArea";
 import "./EditItem.css";
 
 const CATEGORIES_API = "/api/erp/stores/categories";
@@ -591,7 +592,7 @@ export default function AddItem() {
         {tabIndex === 8 && (
           <Box className="item-form two-col">
             <Box className="col-main">
-              <Field label="Short Desc"><TextField size="small" fullWidth multiline rows={3} value={form.ecommerce.short_desc} onChange={(e) => setField("ecommerce", { ...form.ecommerce, short_desc: e.target.value })} /></Field>
+              <Field label="Short Desc"><CountedTextArea size="small" fullWidth rows={3} value={form.ecommerce.short_desc} onChange={(e) => setField("ecommerce", { ...form.ecommerce, short_desc: e.target.value })} /></Field>
               <Field label="SEO Title"><TextField size="small" fullWidth value={form.ecommerce.seo_title} onChange={(e) => setField("ecommerce", { ...form.ecommerce, seo_title: e.target.value })} /></Field>
               <Field label="Meta Keywords"><TextField size="small" fullWidth value={form.ecommerce.meta_keywords} onChange={(e) => setField("ecommerce", { ...form.ecommerce, meta_keywords: e.target.value })} /></Field>
             </Box>

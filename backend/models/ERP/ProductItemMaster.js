@@ -10,7 +10,7 @@ module.exports = (sequelize) => {
     quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 1 },
     unit_id: { type: DataTypes.INTEGER, allowNull: true },
     wastage_percent: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
-    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
   }, {
     tableName: 'm_product_item_master',
     timestamps: false,

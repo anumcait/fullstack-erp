@@ -22,6 +22,10 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(100),
         allowNull: true,
       },
+      sub_department: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
       requested_by: {
         type: DataTypes.STRING(100),
         allowNull: true,
@@ -50,8 +54,8 @@ module.exports = (sequelize) => {
         type: DataTypes.DATE,
         allowNull: true,
       },
-      created_at: {
-        type: DataTypes.DATE,
+      created_date: {
+        type: DataTypes.DATEONLY,
         defaultValue: DataTypes.NOW,
       },
       updated_at: {

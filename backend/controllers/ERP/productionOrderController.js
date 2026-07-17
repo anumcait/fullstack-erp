@@ -74,9 +74,15 @@ function calculateMaterialRow(item, calculatedQty) {
 
 exports.getList = async (req, res) => {
   try {
-    const { search, status } = req.query;
+    const { search, status, order_type, from, to } = req.query;
     const where = {};
     if (status) where.status = status;
+    if (order_type) where.order_type = order_type;
+    if (from || to) {
+      where.created_date = {};
+      if (from) where.created_date[Op.gte] = from;
+      if (to) where.created_date[Op.lte] = to;
+    }
     if (search) {
       where[Op.or] = [
         { order_no: { [Op.iLike]: `%${search}%` } },
@@ -86,7 +92,7 @@ exports.getList = async (req, res) => {
     const data = await ProductionOrder.findAll({
       where,
       include: [{ model: ProductionOrderItem, as: 'items' }],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(data);
   } catch (err) {
@@ -128,6 +134,7 @@ exports.create = async (req, res) => {
       planned_quantity,
       produced_quantity: 0,
       status: 'Planning',
+      order_type: rest.order_type || 'Job Order',
       ...rest,
     });
 

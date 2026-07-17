@@ -4,6 +4,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
+import CountedTextArea from "../../../Common/CountedTextArea";
 import { useNavigate } from "react-router-dom";
 
 const API = "/api/erp/purchase/vendor-ratings";
@@ -80,7 +81,7 @@ export default function VendorRatingForm() {
                 </Typography>
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Remarks" size="small" fullWidth multiline rows={3} value={form.remarks}
+                <CountedTextArea label="Remarks" size="small" fullWidth rows={3} value={form.remarks}
                   onChange={(e) => setForm({ ...form, remarks: e.target.value })} />
               </Grid>
             </Grid>

@@ -59,6 +59,8 @@ import PriceList from "./Component/ERP/Purchase/PriceList/PriceList.jsx";
 import PriceForm from "./Component/ERP/Purchase/PriceList/PriceForm.jsx";
 import GRNList from "./Component/ERP/Purchase/GRN/GRNList.jsx";
 import GRNForm from "./Component/ERP/Purchase/GRN/GRNForm.jsx";
+import PurchaseApprovals from "./Component/ERP/Purchase/PurchaseApprovals.jsx";
+import StoresApprovals from "./Component/ERP/Stores/StoresApprovals.jsx";
 import VendorRatingList from "./Component/ERP/Purchase/VendorRating/VendorRatingList.jsx";
 import VendorRatingForm from "./Component/ERP/Purchase/VendorRating/VendorRatingForm.jsx";
 import SupplierMaster from "./Component/ERP/Purchase/VendorMaster/SupplierMaster.jsx";
@@ -84,6 +86,10 @@ import SubcontractDashboard from "./Component/ERP/Subcontract/SubcontractDashboa
 import MaintenanceDashboard from "./Component/ERP/Maintenance/MaintenanceDashboard.jsx";
 import AccountsReports from "./Component/Accounts/AccountsReports.jsx";
 import PurchaseReports from "./Component/ERP/Purchase/PurchaseReports.jsx";
+import DailyReports from "./Component/ERP/Purchase/DailyReports.jsx";
+import JobOrderList from "./Component/ERP/Purchase/JobOrderList.jsx";
+import PRAmendment from "./Component/ERP/Purchase/PRAmendment.jsx";
+import PRPrintView from "./Component/ERP/Purchase/Requisition/PRPrintView.jsx";
 import PurchaseSettings from "./Component/ERP/Purchase/PurchaseSettings.jsx";
 import StoresReports from "./Component/ERP/Stores/StoresReports.jsx";
 import StoresSettings from "./Component/ERP/Stores/StoresSettings.jsx";
@@ -171,6 +177,7 @@ function App() {
                     <Route path="/purchase/requisitions/add" element={<RequisitionForm />} />
                     <Route path="/purchase/requisitions/view/:id" element={<RequisitionForm />} />
                     <Route path="/purchase/requisitions/edit/:id" element={<RequisitionForm />} />
+                    <Route path="/purchase/requisitions/print/:id" element={<PRPrintView />} />
                     <Route path="/purchase/orders" element={<POList />} />
                     <Route path="/purchase/orders/add" element={<POForm />} />
                     <Route path="/purchase/orders/view/:id" element={<POForm />} />
@@ -189,6 +196,8 @@ function App() {
                     <Route path="/purchase/vendors/add" element={<AddSupplier />} />
                     <Route path="/purchase/vendors/view/:id" element={<AddSupplier />} />
                     <Route path="/purchase/vendors/edit/:id" element={<AddSupplier />} />
+                    <Route path="/purchase/approvals" element={<PurchaseApprovals />} />
+                    <Route path="/stores/approvals" element={<StoresApprovals />} />
                     <Route path="/stores" element={<StoresDashboard />} />
                     <Route path="/stores/item-master" element={<ItemMaster />} />
                     <Route path="/stores/item-master/add" element={<AddItem />} />
@@ -256,6 +265,9 @@ function App() {
                     <Route path="/hr/reports" element={<Reports />} />
                     <Route path="/accounts/reports" element={<AccountsReports />} />
                     <Route path="/purchase/reports" element={<PurchaseReports />} />
+                    <Route path="/purchase/daily-reports" element={<DailyReports />} />
+                    <Route path="/purchase/job-orders" element={<JobOrderList />} />
+                    <Route path="/purchase/pr-amendment" element={<PRAmendment />} />
                     <Route path="/stores/reports" element={<StoresReports />} />
                     <Route path="/production/reports" element={<ProductionReports />} />
                     <Route path="/planning/reports" element={<PlanningReports />} />

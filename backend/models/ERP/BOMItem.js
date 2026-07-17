@@ -21,7 +21,7 @@ module.exports = (sequelize) => {
     wastage_percent: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
     color: { type: DataTypes.STRING(100), allowNull: true },
     remarks: { type: DataTypes.TEXT, allowNull: true },
-    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
   }, {
     tableName: 't_bom_item',
     timestamps: false,

@@ -91,6 +91,7 @@ async function startServer(retries = MAX_RETRIES) {
         // ── Inward Register: rename legacy t_grn -> t_ir (GRR + Jobwork/Resharpening/Loan/Maintenance) ──
         `ALTER TABLE IF EXISTS t_grn RENAME TO t_ir`,
         `ALTER TABLE IF EXISTS t_grn_item RENAME TO t_ir_item`,
+        `ALTER TABLE IF EXISTS t_stock_audit_item ALTER COLUMN item_id DROP NOT NULL`,
         `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS cost_posted BOOLEAN NOT NULL DEFAULT FALSE`,
         `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) NOT NULL DEFAULT 'Pending'`,
         `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100)`,
@@ -104,10 +105,79 @@ async function startServer(retries = MAX_RETRIES) {
         `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS bill_date DATE`,
         `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS ir_type VARCHAR(20) NOT NULL DEFAULT 'GRR'`,
         `ALTER TABLE IF EXISTS t_invoice ADD COLUMN IF NOT EXISTS paid_status VARCHAR(20) NOT NULL DEFAULT 'Unpaid'`,
+        // ── PR Amendment audit trail (idempotent) ──
+        `CREATE TABLE IF NOT EXISTS t_pr_amendment (
+          id SERIAL PRIMARY KEY,
+          requisition_id INTEGER NOT NULL,
+          amended_by VARCHAR(100),
+          amendment_date TIMESTAMP,
+          change_summary TEXT,
+          old_value JSONB,
+          new_value JSONB
+        )`,
+        `CREATE INDEX IF NOT EXISTS idx_pr_amendment_req ON t_pr_amendment (requisition_id)`,
+        // ── Production/Job Order type classification (idempotent) ──
+        `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS order_type VARCHAR(20) NOT NULL DEFAULT 'Job Order'`,
+        // ── Rename created_at -> created_date (DATE) across all ERP tables ──
+        `DO $$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN SELECT table_name FROM information_schema.columns WHERE column_name = 'created_at' AND table_schema = 'public'
+  LOOP
+    BEGIN
+      EXECUTE format('ALTER TABLE %I RENAME COLUMN created_at TO created_date', r.table_name);
+    EXCEPTION WHEN others THEN END;
+    BEGIN
+      EXECUTE format('ALTER TABLE %I ALTER COLUMN created_date TYPE DATE USING created_date::DATE', r.table_name);
+    EXCEPTION WHEN others THEN END;
+  END LOOP;
+END $$;`,
+        // ── PR form new columns (Apex-style) ──
+        `ALTER TABLE IF EXISTS t_purchase_requisition ADD COLUMN IF NOT EXISTS sub_department VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS cost_center VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS uom VARCHAR(20)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS purpose VARCHAR(200)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS len DECIMAL(10,2)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS item_no VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS kg DECIMAL(12,3)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS mat_code VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS mat_desc VARCHAR(200)`,
+        `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS est_cost DECIMAL(14,2)`,
+        // ── Cost Center master table ──
+        `CREATE TABLE IF NOT EXISTS m_cost_center (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(100) NOT NULL UNIQUE,
+          code VARCHAR(20),
+          is_active BOOLEAN NOT NULL DEFAULT TRUE,
+          created_date DATE DEFAULT CURRENT_DATE,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
       ];
       for (const sql of erpMigrations) {
         try { await erpDb.sequelize.query(sql); } catch (_) { /* ignore */ }
       }
+
+      // 4c. Drop any stale foreign keys that still reference the legacy
+      // `m_supplier_master` table. Suppliers were migrated to `m_party_master`
+      // (SupplierMaster model), so these orphaned FKs block every
+      // supplier-linked insert (GRN, PO, RFQ, vendor rating, price list).
+      // Idempotent — safe to run on every boot.
+      try {
+        await erpDb.sequelize.query(`
+          DO $$
+          DECLARE r RECORD;
+          BEGIN
+            FOR r IN
+              SELECT conname, conrelid::regclass::text AS tbl
+              FROM pg_constraint
+              WHERE contype = 'f'
+                AND confrelid = 'm_supplier_master'::regclass
+            LOOP
+              EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', r.tbl, r.conname);
+            END LOOP;
+          END $$;
+        `);
+      } catch (_) { /* ignore */ }
 
       // 5. Sync models (HR + ERP share the same database now)
       await db.sequelize.sync(syncOptions);

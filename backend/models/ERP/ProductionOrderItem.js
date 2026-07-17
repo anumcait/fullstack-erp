@@ -11,7 +11,7 @@ module.exports = (sequelize) => {
     issued_quantity: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
     unit_id: { type: DataTypes.INTEGER, allowNull: true },
     remarks: { type: DataTypes.TEXT, allowNull: true },
-    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
   }, {
     tableName: 't_production_order_item',
     timestamps: false,

@@ -8,7 +8,7 @@ module.exports = (sequelize) => {
     parent_id: { type: DataTypes.INTEGER, allowNull: true },
     description: { type: DataTypes.STRING(200), allowNull: true },
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
-    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, {
     tableName: 'm_product_category',

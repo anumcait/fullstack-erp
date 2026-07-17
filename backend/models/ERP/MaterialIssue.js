@@ -20,7 +20,7 @@ module.exports = (sequelize) => {
         },
       },
       remarks: { type: DataTypes.TEXT, allowNull: true },
-      created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+      created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
       updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     },
     {

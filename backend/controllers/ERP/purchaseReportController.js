@@ -180,19 +180,19 @@ exports.getRecentActivity = async (req, res) => {
     const [pos, grns, prs] = await Promise.all([
       PO.findAll({
         limit: 6,
-        order: [['created_at', 'DESC']],
+        order: [['created_date', 'DESC']],
         include: [{ model: Supplier, as: 'supplier', attributes: ['supplier_name'] }],
         attributes: ['id', 'po_no', 'po_date', 'status', 'grand_total'],
       }),
       GRN.findAll({
         limit: 6,
-        order: [['created_at', 'DESC']],
+        order: [['created_date', 'DESC']],
         include: [{ model: Supplier, as: 'supplier', attributes: ['supplier_name'] }],
         attributes: ['id', 'grn_no', 'grn_date', 'status', 'ir_type'],
       }),
       PR.findAll({
         limit: 6,
-        order: [['created_at', 'DESC']],
+        order: [['created_date', 'DESC']],
         attributes: ['id', 'req_no', 'req_date', 'status', 'priority'],
       }),
     ]);
@@ -200,5 +200,358 @@ exports.getRecentActivity = async (req, res) => {
   } catch (err) {
     console.error('Error recent activity:', err);
     res.status(500).json({ error: 'Failed to fetch recent activity' });
+  }
+};
+
+// ── Pending Purchase Requisitions (Indents) ──────────────────────────
+exports.getPendingPRs = async (req, res) => {
+  try {
+    const rows = await PR.findAll({
+      where: { status: 'Pending' },
+      order: [['req_date', 'DESC']],
+      include: [{ model: db.PurchaseRequisitionItem, as: 'items' }],
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error pending PRs:', err);
+    res.status(500).json({ error: 'Failed to fetch pending PRs' });
+  }
+};
+
+// ── Pending Purchase Orders ──────────────────────────────────────────
+exports.getPendingPOs = async (req, res) => {
+  try {
+    const rows = await PO.findAll({
+      where: { status: { [Op.in]: ['Draft', 'Pending'] } },
+      order: [['po_date', 'DESC']],
+      include: [{ model: Supplier, as: 'supplier', attributes: ['supplier_code', 'supplier_name'] }],
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error pending POs:', err);
+    res.status(500).json({ error: 'Failed to fetch pending POs' });
+  }
+};
+
+// ── Received Material Report (Goods Receipt lines, date-range) ───────
+exports.getReceivedMaterial = async (req, res) => {
+  try {
+    const { from, to, supplier_id } = req.query;
+    const clauses = [];
+    const replacements = {};
+    addDateRange(clauses, replacements, 'grn.grn_date', from, to);
+    addFilter(clauses, replacements, 'grn.supplier_id', supplier_id);
+    const where = buildWhere(clauses, replacements);
+
+    const sql = `
+      SELECT grn.grn_no, grn.grn_date, grn.ir_type, grn.approval_status,
+             s.supplier_code, s.supplier_name,
+              gi.item_code, im.item_name,
+              gi.accepted_qty, gi.rejected_qty, gi.rate, gi.amount,
+             grn.invoice_no
+      FROM t_ir grn
+      LEFT JOIN m_party_master s ON s.id = grn.supplier_id
+      LEFT JOIN t_ir_item gi ON gi.grn_id = grn.id
+      LEFT JOIN m_item_master im ON im.id = gi.item_id
+      ${where}
+      ORDER BY grn.grn_date DESC, grn.grn_no
+    `;
+    const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error received material:', err);
+    res.status(500).json({ error: 'Failed to fetch received material' });
+  }
+};
+
+// ── PR Details Report (one PR with its lines) ────────────────────────
+exports.getPRDetails = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const where = id ? { id } : {};
+    const rows = await PR.findAll({
+      where,
+      order: [['req_date', 'DESC']],
+      include: [{ model: db.PurchaseRequisitionItem, as: 'items' }],
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error PR details:', err);
+    res.status(500).json({ error: 'Failed to fetch PR details' });
+  }
+};
+
+// ── Raw Material Inspection Report (QA status of RM receipts) ────────
+exports.getRawMaterialInspection = async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const clauses = ['g.name = :rm'];
+    const replacements = { rm: 'Raw Material' };
+    addDateRange(clauses, replacements, 'grn.grn_date', from, to);
+    const where = `WHERE ${clauses.join(' AND ')}`;
+
+    const sql = `
+      SELECT grn.grn_no, grn.grn_date, grn.qa_status, grn.qa_by, grn.qa_date,
+             s.supplier_name, gi.item_code, im.item_name, gi.accepted_qty, gi.rejected_qty
+      FROM t_ir grn
+      JOIN t_ir_item gi ON gi.grn_id = grn.id
+      JOIN m_item_master im ON im.id = gi.item_id
+      JOIN m_item_group g ON g.id = im.group_id
+      LEFT JOIN m_party_master s ON s.id = grn.supplier_id
+      ${where}
+      ORDER BY grn.grn_date DESC
+    `;
+    const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error RM inspection:', err);
+    res.status(500).json({ error: 'Failed to fetch RM inspection' });
+  }
+};
+
+// ── Supplier Summary (with / without taxes) ──────────────────────────
+// taxes=with  -> includes GST (po.grand_total)
+// taxes=without -> excludes GST (sum of item amounts)
+// raw=1 -> restrict to raw-material items only
+exports.getSupplierSummary = async (req, res) => {
+  try {
+    const { taxes = 'with', raw = '0', from, to } = req.query;
+    const clauses = ['po.po_date IS NOT NULL'];
+    const replacements = {};
+    addDateRange(clauses, replacements, 'po.po_date', from, to);
+    if (raw === '1') clauses.push('g.name = :rm');
+    if (raw === '1') replacements.rm = 'Raw Material';
+    const where = `WHERE ${clauses.join(' AND ')}`;
+
+    const valueExpr = taxes === 'without'
+      ? 'COALESCE(SUM(poi.amount), 0)'
+      : 'COALESCE(SUM(poi.total), 0)';
+
+    const joinGroup = raw === '1'
+      ? 'JOIN m_item_master im ON im.id = poi.item_id JOIN m_item_group g ON g.id = im.group_id'
+      : '';
+
+    const sql = `
+      SELECT s.id AS supplier_id, s.supplier_code, s.supplier_name, s.city, s.state,
+             COUNT(DISTINCT po.id) AS po_count,
+             ${valueExpr} AS total_value
+      FROM t_purchase_order po
+      JOIN m_party_master s ON s.id = po.supplier_id
+      LEFT JOIN t_purchase_order_item poi ON poi.po_id = po.id ${joinGroup}
+      ${where}
+      GROUP BY s.id, s.supplier_code, s.supplier_name, s.city, s.state
+      ORDER BY total_value DESC
+    `;
+    const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error supplier summary:', err);
+    res.status(500).json({ error: 'Failed to fetch supplier summary' });
+  }
+};
+
+// ── Raw Material Purchase Report (RM item receipts, date-range) ──────
+exports.getRawMaterialPurchase = async (req, res) => {
+  try {
+    const { from, to, supplier_id } = req.query;
+    const clauses = ['g.name = :rm'];
+    const replacements = { rm: 'Raw Material' };
+    addDateRange(clauses, replacements, 'grn.grn_date', from, to);
+    addFilter(clauses, replacements, 'grn.supplier_id', supplier_id);
+    const where = `WHERE ${clauses.join(' AND ')}`;
+
+    const sql = `
+      SELECT grn.grn_no, grn.grn_date, s.supplier_name,
+              gi.item_code, im.item_name, gi.accepted_qty, gi.rate, gi.amount
+      FROM t_ir grn
+      JOIN t_ir_item gi ON gi.grn_id = grn.id
+      JOIN m_item_master im ON im.id = gi.item_id
+      JOIN m_item_group g ON g.id = im.group_id
+      LEFT JOIN m_party_master s ON s.id = grn.supplier_id
+      ${where}
+      ORDER BY grn.grn_date DESC
+    `;
+    const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error RM purchase:', err);
+    res.status(500).json({ error: 'Failed to fetch RM purchase' });
+  }
+};
+
+// ── Item Information Report ──────────────────────────────────────────
+exports.getItemInformation = async (req, res) => {
+  try {
+    const { group_id, search } = req.query;
+    const where = {};
+    if (group_id) where.group_id = group_id;
+    if (search) where[Op.or] = [{ item_code: { [Op.iLike]: `%${search}%` } }, { item_name: { [Op.iLike]: `%${search}%` } }];
+    const rows = await db.ItemMaster.findAll({
+      where,
+      attributes: ['id', 'item_code', 'item_name', 'hsn_code', 'gst_rate', 'current_stock', 'standard_cost', 'moving_average_cost', 'valuation_method', 'abc_class'],
+      include: [
+        { model: db.ItemGroup, as: 'group', attributes: ['name'] },
+        { model: db.Unit, as: 'unit', attributes: ['short_name'] },
+      ],
+      order: [['item_code', 'ASC']],
+      limit: 500,
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error item information:', err);
+    res.status(500).json({ error: 'Failed to fetch item information' });
+  }
+};
+
+// ── Party (Vendor) Master Report ─────────────────────────────────────
+exports.getPartyMaster = async (req, res) => {
+  try {
+    const rows = await Supplier.findAll({
+      attributes: ['id', 'supplier_code', 'supplier_name', 'gstin', 'city', 'state', 'payment_terms', 'is_active'],
+      order: [['supplier_name', 'ASC']],
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error party master:', err);
+    res.status(500).json({ error: 'Failed to fetch party master' });
+  }
+};
+
+// ── Supplier Rating Report ───────────────────────────────────────────
+exports.getSupplierRatingReport = async (req, res) => {
+  try {
+    const sql = `
+      SELECT s.supplier_code, s.supplier_name,
+             COUNT(r.id) AS ratings,
+             COALESCE(AVG(r.quality_score), 0) AS avg_quality,
+             COALESCE(AVG(r.delivery_score), 0) AS avg_delivery,
+             COALESCE(AVG(r.price_score), 0) AS avg_price,
+             COALESCE(AVG((r.quality_score + r.delivery_score + r.price_score) / 3.0), 0) AS overall
+       FROM m_party_master s
+       LEFT JOIN t_vendor_rating r ON r.supplier_id = s.id
+       WHERE s.party_type = 'Supplier'
+       GROUP BY s.supplier_code, s.supplier_name
+       ORDER BY overall DESC
+    `;
+    const rows = await db.sequelize.query(sql, { type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error supplier rating report:', err);
+    res.status(500).json({ error: 'Failed to fetch supplier rating report' });
+  }
+};
+
+// ── Pending Material by Party (open PO line items still to be received) ─
+exports.getPendingMaterialByParty = async (req, res) => {
+  try {
+    const { supplier_id } = req.query;
+    const clauses = [`po.status IN ('Draft', 'Pending', 'Approved')`, `(poi.quantity - COALESCE(poi.received_quantity, 0)) > 0`];
+    const replacements = {};
+    if (supplier_id) { clauses.push('po.supplier_id = :sid'); replacements.sid = supplier_id; }
+    const where = `WHERE ${clauses.join(' AND ')}`;
+
+    const sql = `
+      SELECT s.supplier_code, s.supplier_name, s.city,
+             po.id AS po_id, po.po_no, po.status,
+             poi.item_code, im.item_name,
+             poi.quantity AS ordered_qty,
+             COALESCE(poi.received_quantity, 0) AS received_qty,
+             (poi.quantity - COALESCE(poi.received_quantity, 0)) AS pending_qty,
+             ((poi.quantity - COALESCE(poi.received_quantity, 0)) * poi.rate) AS pending_value
+      FROM t_purchase_order po
+      JOIN m_party_master s ON s.id = po.supplier_id
+      JOIN t_purchase_order_item poi ON poi.po_id = po.id
+      LEFT JOIN m_item_master im ON im.id = poi.item_id
+      ${where}
+      ORDER BY s.supplier_name, po.po_no
+    `;
+    const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error pending material by party:', err);
+    res.status(500).json({ error: 'Failed to fetch pending material by party' });
+  }
+};
+
+// ── Daily Reports (PR / PO / GRN activity for a single date) ──────────
+exports.getDailyReport = async (req, res) => {
+  try {
+    const day = req.query.date || new Date().toISOString().slice(0, 10);
+    const rep = { date: day };
+
+    const prSql = `
+      SELECT pr.id, pr.req_no, pr.requested_by, pr.department, pr.status, pr.priority,
+             COUNT(pri.id) AS items
+      FROM t_purchase_requisition pr
+      LEFT JOIN t_purchase_requisition_item pri ON pri.requisition_id = pr.id
+      WHERE DATE(pr.created_date) = :day
+      GROUP BY pr.id, pr.req_no, pr.requested_by, pr.department, pr.status, pr.priority
+      ORDER BY pr.req_no
+    `;
+    const poSql = `
+      SELECT po.id, po.po_no, s.supplier_name, po.status, po.grand_total, po.currency, po.payment_terms
+      FROM t_purchase_order po
+      LEFT JOIN m_party_master s ON s.id = po.supplier_id
+      WHERE DATE(po.created_date) = :day
+      ORDER BY po.po_no
+    `;
+    const grnSql = `
+      SELECT g.id, g.grn_no, s.supplier_name, g.ir_type, g.qa_status, g.approval_status,
+             COALESCE(SUM(gi.amount), 0) AS value
+      FROM t_ir g
+      LEFT JOIN m_party_master s ON s.id = g.supplier_id
+      LEFT JOIN t_ir_item gi ON gi.grn_id = g.id
+      WHERE DATE(g.created_date) = :day
+      GROUP BY g.id, s.supplier_name, g.ir_type, g.qa_status, g.approval_status
+      ORDER BY g.grn_no
+    `;
+
+    const [prs, pos, grns] = await Promise.all([
+      db.sequelize.query(prSql, { replacements: { day }, type: Sequelize.QueryTypes.SELECT }),
+      db.sequelize.query(poSql, { replacements: { day }, type: Sequelize.QueryTypes.SELECT }),
+      db.sequelize.query(grnSql, { replacements: { day }, type: Sequelize.QueryTypes.SELECT }),
+    ]);
+
+    rep.prs = prs;
+    rep.pos = pos;
+    rep.grns = grns;
+    rep.summary = {
+      pr_count: prs.length,
+      po_count: pos.length,
+      po_value: pos.reduce((a, p) => a + Number(p.grand_total || 0), 0),
+      grn_count: grns.length,
+      grn_value: grns.reduce((a, g) => a + Number(g.value || 0), 0),
+    };
+    res.json(rep);
+  } catch (err) {
+    console.error('Error daily report:', err);
+    res.status(500).json({ error: 'Failed to fetch daily report' });
+  }
+};
+
+// ── PR Amendment Details Report (audit trail of requisition edits) ────
+exports.getPRAmendmentDetails = async (req, res) => {
+  try {
+    const { from, to, requisition_id } = req.query;
+    const clauses = [];
+    const replacements = {};
+    if (from) { clauses.push('a.amendment_date >= :from'); replacements.from = `${from} 00:00:00`; }
+    if (to) { clauses.push('a.amendment_date <= :to'); replacements.to = `${to} 23:59:59`; }
+    if (requisition_id) { clauses.push('a.requisition_id = :rid'); replacements.rid = requisition_id; }
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+
+    const sql = `
+      SELECT a.id, a.requisition_id, a.amended_by, a.amendment_date, a.change_summary,
+             pr.req_no, pr.department, pr.status
+      FROM t_pr_amendment a
+      LEFT JOIN t_purchase_requisition pr ON pr.id = a.requisition_id
+      ${where}
+      ORDER BY a.amendment_date DESC
+    `;
+    const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error PR amendment details:', err);
+    res.status(500).json({ error: 'Failed to fetch PR amendment details' });
   }
 };

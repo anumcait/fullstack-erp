@@ -119,7 +119,7 @@ const DataTable = ({ title, columns, rows, loading, emptyMessage = 'No records f
         page={page}
         onPageChange={(e, p) => setPage(p)}
         rowsPerPage={rowsPerPage}
-        onRowsPerPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[10, 25, 50, 100]}
       />
     </Paper>

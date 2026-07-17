@@ -51,7 +51,7 @@ exports.getGRNs = async (req, res) => {
         { model: PurchaseOrder, as: 'purchaseOrder', attributes: ['id', 'po_no', 'po_date'] },
         { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
       ],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(grns);
   } catch (err) {
@@ -154,6 +154,25 @@ exports.updateGRN = async (req, res) => {
   } catch (err) {
     console.error('Error updating GRN:', err);
     res.status(500).json({ error: 'Failed to update GRN' });
+  }
+};
+
+exports.approveGRN = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, approved_by, remarks } = req.body;
+    const grn = await GRN.findByPk(id);
+    if (!grn) return res.status(404).json({ error: 'GRN not found' });
+    await grn.update({
+      approval_status: status || 'Approved',
+      approved_by: approved_by || req.session?.user?.name || 'System',
+      approved_date: new Date(),
+      approval_remarks: remarks || grn.approval_remarks,
+    });
+    res.json(grn);
+  } catch (err) {
+    console.error('Error approving GRN:', err);
+    res.status(500).json({ error: 'Failed to approve GRN' });
   }
 };
 

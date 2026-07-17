@@ -73,6 +73,7 @@ router.get('/grn', grnController.getGRNs);
 router.get('/grn/:id', grnController.getGRN);
 router.post('/grn', grnController.createGRN);
 router.put('/grn/:id', grnController.updateGRN);
+router.put('/grn/:id/approve', grnController.approveGRN);
 router.delete('/grn/:id', grnController.deleteGRN);
 
 // ── Material Requisition ──

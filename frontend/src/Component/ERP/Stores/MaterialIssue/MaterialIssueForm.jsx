@@ -8,6 +8,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
+import CountedTextArea from '../../../Common/CountedTextArea';
 
 const API = '/api/erp/stores/material-issues';
 const MR_API = '/api/erp/stores/material-requisitions';
@@ -141,7 +142,7 @@ export default function MaterialIssueForm() {
                 <TextField label="Status" size="small" fullWidth value={form.status} disabled />
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} multiline rows={2} />
+                <CountedTextArea label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} rows={2} />
               </Grid>
             </Grid>
           </CardContent>

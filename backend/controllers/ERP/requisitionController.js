@@ -5,6 +5,30 @@ const { generateDocNumber } = require('../../utils/docNumber');
 const PurchaseRequisition = db.PurchaseRequisition;
 const PurchaseRequisitionItem = db.PurchaseRequisitionItem;
 const PurchaseSettings = db.PurchaseSettings;
+const PRAmendment = db.PRAmendment;
+
+// Strip volatile/identity columns before snapshotting a record for audit.
+function sanitize(obj) {
+  const o = { ...obj };
+  ['id', 'created_date', 'updated_at', 'requisition_id'].forEach((k) => delete o[k]);
+  return o;
+}
+
+// Produce a short, human-readable list of what changed between two snapshots.
+function diffSummary(oldV, newV) {
+  const changes = [];
+  const oh = oldV.header || {};
+  const nh = newV.header || {};
+  for (const k of Object.keys(nh)) {
+    if (JSON.stringify(oh[k]) !== JSON.stringify(nh[k])) {
+      changes.push(`${k}: ${JSON.stringify(oh[k] ?? null)} → ${JSON.stringify(nh[k] ?? null)}`);
+    }
+  }
+  if (JSON.stringify(oldV.items) !== JSON.stringify(newV.items)) {
+    changes.push(`Items: ${oldV.items.length} → ${newV.items.length} line(s)`);
+  }
+  return changes;
+}
 
 exports.getRequisitions = async (req, res) => {
   try {
@@ -21,7 +45,7 @@ exports.getRequisitions = async (req, res) => {
     const requisitions = await PurchaseRequisition.findAll({
       where,
       include: [{ model: PurchaseRequisitionItem, as: 'items' }],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(requisitions);
   } catch (err) {
@@ -81,12 +105,34 @@ exports.updateRequisition = async (req, res) => {
     if (!requisition) return res.status(404).json({ error: 'Requisition not found' });
 
     const { items, ...header } = req.body;
+
+    const oldValue = {
+      header: sanitize(requisition.toJSON()),
+      items: (requisition.items || []).map((i) => sanitize(i.toJSON())),
+    };
+
     await requisition.update(header);
 
     if (items) {
       await PurchaseRequisitionItem.destroy({ where: { requisition_id: id } });
       const itemRows = items.map((it) => ({ ...it, requisition_id: id }));
       await PurchaseRequisitionItem.bulkCreate(itemRows);
+    }
+
+    const newValue = {
+      header: sanitize(requisition.toJSON()),
+      items: items ? items.map((it) => sanitize(it)) : oldValue.items,
+    };
+    const summary = diffSummary(oldValue, newValue);
+    if (summary.length) {
+      await PRAmendment.create({
+        requisition_id: id,
+        amended_by: req.body.amended_by || req.session?.user?.name || 'System',
+        amendment_date: new Date(),
+        change_summary: summary.join('; '),
+        old_value: oldValue,
+        new_value: newValue,
+      });
     }
 
     const result = await PurchaseRequisition.findByPk(id, {

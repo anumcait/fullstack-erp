@@ -25,7 +25,7 @@ exports.getPurchaseOrders = async (req, res) => {
         { model: PurchaseOrderItem, as: 'items' },
         { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
       ],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(orders);
   } catch (err) {

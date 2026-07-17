@@ -66,7 +66,7 @@ exports.getList = async (req, res) => {
         { model: ProductItemMaster, as: 'items' },
         { model: ProductCategory, as: 'category', include: [{ model: ProductCategory, as: 'parent', attributes: ['id', 'name'] }] },
       ],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(data);
   } catch (err) {

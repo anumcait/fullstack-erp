@@ -12,6 +12,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import ItemSelectDialog from '../ItemMaster/ItemSelectDialog';
+import CountedTextArea from '../../../Common/CountedTextArea';
 
 const API = '/api/erp/stores/delivery-challans';
 const ITEMS_API = '/api/erp/stores/items';
@@ -127,7 +128,7 @@ export default function DeliveryChallanForm() {
               <TextField label="Driver" size="small" fullWidth value={form.driver_name} onChange={handleChange('driver_name')} disabled={readOnly} />
             </Grid>
             <Grid item xs={12} md={8}>
-              <TextField label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} multiline rows={1} />
+              <CountedTextArea label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} rows={1} />
             </Grid>
           </Grid>
         </CardContent>

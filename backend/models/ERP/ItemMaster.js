@@ -55,7 +55,7 @@ module.exports = (sequelize) => {
       authorized_by: { type: DataTypes.STRING(100), allowNull: true },
       authorized_date: { type: DataTypes.DATE, allowNull: true },
 
-      created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+      created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
       updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     },
     { tableName: 'm_item_master', timestamps: false, underscored: true }

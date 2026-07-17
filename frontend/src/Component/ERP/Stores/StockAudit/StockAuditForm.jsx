@@ -7,6 +7,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
+import CountedTextArea from '../../../Common/CountedTextArea';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const API = '/api/erp/stores/stock-audit';
@@ -145,7 +146,7 @@ export default function StockAuditForm() {
               <TextField fullWidth size="small" label="Status" value={header.status} disabled />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth size="small" label="Remarks" name="remarks" value={header.remarks} onChange={handleHeaderChange} multiline rows={2} disabled={isView} />
+              <CountedTextArea fullWidth size="small" label="Remarks" name="remarks" value={header.remarks} onChange={handleHeaderChange} rows={2} disabled={isView} />
             </Grid>
           </Grid>
         </CardContent>

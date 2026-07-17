@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
+import CountedTextArea from "../../../Common/CountedTextArea";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const API = "/api/erp/purchase/rfq";
@@ -85,7 +86,7 @@ export default function RFQForm() {
               </Grid>
               <Grid item xs={12} md={3}><TextField label="Closing Date" type="date" size="small" fullWidth value={header.closing_date} onChange={(e) => setHeader({ ...header, closing_date: e.target.value })} InputLabelProps={{ shrink: true }} disabled={isView} /></Grid>
               <Grid item xs={12}><TextField label="Subject" size="small" fullWidth value={header.subject} onChange={(e) => setHeader({ ...header, subject: e.target.value })} disabled={isView} /></Grid>
-              <Grid item xs={12}><TextField label="Remarks" size="small" fullWidth multiline rows={2} value={header.remarks} onChange={(e) => setHeader({ ...header, remarks: e.target.value })} disabled={isView} /></Grid>
+              <Grid item xs={12}><CountedTextArea label="Remarks" size="small" fullWidth rows={2} value={header.remarks} onChange={(e) => setHeader({ ...header, remarks: e.target.value })} disabled={isView} /></Grid>
             </Grid>
           </CardContent>
         </Card>

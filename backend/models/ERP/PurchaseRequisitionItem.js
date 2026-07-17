@@ -41,6 +41,42 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+      cost_center: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
+      uom: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+      },
+      purpose: {
+        type: DataTypes.STRING(200),
+        allowNull: true,
+      },
+      len: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+      },
+      item_no: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
+      kg: {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: true,
+      },
+      mat_code: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
+      mat_desc: {
+        type: DataTypes.STRING(200),
+        allowNull: true,
+      },
+      est_cost: {
+        type: DataTypes.DECIMAL(14, 2),
+        allowNull: true,
+      },
     },
     {
       tableName: 't_purchase_requisition_item',

@@ -1,0 +1,135 @@
+.item-container {
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 4px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.item-title {
+  display: flex;
+  align-items: center;
+}
+
+.menu-icon {
+  color: var(--primary-main, #1976d2);
+  font-size: 28px;
+  margin-right: 8px;
+}
+
+.item-form {
+  padding: 8px;
+}
+
+.form-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-wrap: nowrap !important;
+}
+
+.form-row label {
+  width: 120px;
+  font-size: 0.875rem;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.form-row-stacked {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.form-row-stacked .MuiTextField-root,
+.form-row-stacked .MuiFormControl-root {
+  width: 100%;
+}
+
+.item-form.two-col {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  max-width: 1080px;
+}
+
+.item-form.two-col .col-main {
+  flex: 1 1 360px;
+  max-width: 620px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-form.two-col .col-side {
+  flex: 1 1 300px;
+  max-width: 420px;
+  min-width: 0;
+}
+
+.items-section {
+  margin-top: 16px;
+}
+
+.items-section h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f3a5f;
+  margin-bottom: 8px;
+}
+
+.items-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.items-table-wrap table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 1400px;
+}
+
+.items-table-wrap th {
+  background: #f5f7fa;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #475569;
+  padding: 6px 4px;
+  border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.items-table-wrap td {
+  padding: 3px 4px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.items-table-wrap .MuiInputBase-root {
+  font-size: 0.75rem !important;
+}
+
+.items-table-wrap .MuiOutlinedInput-notchedOutline {
+  border: none !important;
+}
+
+.items-table-wrap .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border: 1px solid #bdbdbd !important;
+}
+
+.items-table-wrap .Mui-focused .MuiOutlinedInput-notchedOutline {
+  border: 1px solid #1976d2 !important;
+}
+
+.item-form .MuiLinearProgress-root {
+  margin: 16px 0;
+}

@@ -11,6 +11,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
+import CountedTextArea from '../../../Common/CountedTextArea';
 
 const API = '/api/erp/engineering/products';
 const ITEMS_API = '/api/erp/stores/items';
@@ -192,7 +193,7 @@ export default function ProductMasterForm() {
                 <FormControlLabel control={<Switch checked={form.is_active} onChange={handleChange('is_active')} disabled={readOnly} />} label="Active" sx={{ mt: 1 }} />
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Description" size="small" fullWidth value={form.description} onChange={handleChange('description')} disabled={readOnly} multiline rows={2} />
+                <CountedTextArea label="Description" size="small" fullWidth value={form.description} onChange={handleChange('description')} disabled={readOnly} rows={2} />
               </Grid>
             </Grid>
           </CardContent>

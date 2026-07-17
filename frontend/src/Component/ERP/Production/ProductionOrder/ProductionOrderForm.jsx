@@ -8,6 +8,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
+import CountedTextArea from '../../../Common/CountedTextArea';
 
 const API = '/api/erp/production/orders';
 const BOM_API = '/api/erp/engineering/bom';
@@ -135,7 +136,7 @@ export default function ProductionOrderForm() {
                 <TextField label="Start Date" type="date" size="small" fullWidth value={form.start_date} onChange={handleChange('start_date')} disabled={readOnly} InputLabelProps={{ shrink: true }} />
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} multiline rows={2} />
+                <CountedTextArea label="Remarks" size="small" fullWidth value={form.remarks} onChange={handleChange('remarks')} disabled={readOnly} rows={2} />
               </Grid>
             </Grid>
           </CardContent>

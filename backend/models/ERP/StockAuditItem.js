@@ -6,7 +6,7 @@ module.exports = (sequelize) => {
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       audit_id: { type: DataTypes.INTEGER, allowNull: false },
-      item_id: { type: DataTypes.INTEGER, allowNull: false },
+      item_id: { type: DataTypes.INTEGER, allowNull: true },
       item_code: { type: DataTypes.STRING(50), allowNull: true },
       item_name: { type: DataTypes.STRING(200), allowNull: false },
       system_qty: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },

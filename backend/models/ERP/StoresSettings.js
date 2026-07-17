@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
       auto_generate_mi: { type: DataTypes.BOOLEAN, defaultValue: false },
       negative_stock_allowed: { type: DataTypes.BOOLEAN, defaultValue: false },
       low_stock_alert: { type: DataTypes.BOOLEAN, defaultValue: true },
-      created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+      created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
       updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     },
     {

@@ -24,7 +24,7 @@ module.exports = (sequelize) => {
         defaultValue: 'Open',
         validate: { isIn: [['Open', 'Closed', 'Cancelled']] },
       },
-      created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+      created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
       updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     },
     {

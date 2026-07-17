@@ -19,7 +19,7 @@ module.exports = (sequelize) => {
       remarks: { type: DataTypes.TEXT, allowNull: true },
       approved_by: { type: DataTypes.STRING(100), allowNull: true },
       approved_date: { type: DataTypes.DATE, allowNull: true },
-      created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+      created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
       updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     },
     {

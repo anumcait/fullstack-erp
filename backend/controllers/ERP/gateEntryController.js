@@ -19,7 +19,7 @@ exports.getList = async (req, res) => {
     }
     const data = await GateEntry.findAll({
       where,
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(data);
   } catch (err) {

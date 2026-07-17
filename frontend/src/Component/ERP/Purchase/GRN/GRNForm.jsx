@@ -8,6 +8,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import CountedTextArea from "../../../Common/CountedTextArea";
 
 const API = "/api/erp/stores/grn";
 const PO_API = "/api/erp/purchase/orders";
@@ -199,7 +200,7 @@ export default function GRNForm() {
 
               <Grid item xs={12} md={3}><TextField label="Invoice No" size="small" fullWidth value={header.invoice_no} onChange={(e) => setHeader({ ...header, invoice_no: e.target.value })} disabled={isView} /></Grid>
               <Grid item xs={12} md={3}><TextField label="Invoice Date" type="date" size="small" fullWidth value={header.invoice_date} onChange={(e) => setHeader({ ...header, invoice_date: e.target.value })} InputLabelProps={{ shrink: true }} disabled={isView} /></Grid>
-              <Grid item xs={12}><TextField label="Notes" size="small" fullWidth multiline rows={2} value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} disabled={isView} /></Grid>
+              <Grid item xs={12}><CountedTextArea label="Notes" size="small" fullWidth rows={2} value={header.notes} onChange={(e) => setHeader({ ...header, notes: e.target.value })} disabled={isView} /></Grid>
             </Grid>
           </CardContent>
         </Card>

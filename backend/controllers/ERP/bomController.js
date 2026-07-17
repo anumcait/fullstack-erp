@@ -158,7 +158,7 @@ exports.getList = async (req, res) => {
         { model: BOMItem, as: 'items', attributes: ['id'] },
         { model: ProductMaster, as: 'product', attributes: ['id', 'product_uid', 'part_name', 'product_code'] },
       ],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(data);
   } catch (err) {

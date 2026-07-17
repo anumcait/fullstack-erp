@@ -24,7 +24,7 @@ exports.getList = async (req, res) => {
         { model: MaterialIssueItem, as: 'items' },
         { model: MaterialRequisition, as: 'requisition', attributes: ['id', 'req_no'] },
       ],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(data);
   } catch (err) {

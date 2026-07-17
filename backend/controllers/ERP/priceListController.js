@@ -19,7 +19,7 @@ exports.getPriceList = async (req, res) => {
         { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
         { model: ItemMaster, as: 'item', attributes: ['id', 'item_code', 'item_name'] },
       ],
-      order: [['created_at', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(prices);
   } catch (err) {
