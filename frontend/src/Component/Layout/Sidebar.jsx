@@ -37,7 +37,7 @@ import {
   FiCircle,
   FiShuffle,
   FiFilePlus,
-  FiPlus,
+  FiPlusCircle,
   FiCheckCircle,
   FiXCircle,
   FiMail,
@@ -73,6 +73,7 @@ const SUBMENUS = {
   storeMaster: ["/stores/item-master", "/stores/uom", "/stores/item-groups", "/stores/item-types"],
   storeInv: ["/inventory/ledger", "/stores/day-wise-stock", "/inventory/audit"],
   storeTrans: ["/inventory/gate-entry", "/stores/grr", "/stores/material-issues", "/stores/material-requisitions", "/inventory/return", "/stores/delivery-challans", "/stores/invoices"],
+  purPR: ["/purchase/requisitions"],
   purProc: ["/purchase/rfq", "/purchase/orders"],
   purVend: ["/purchase/vendors", "/purchase/prices", "/purchase/rating"],
   prodFloor: ["/production/daily-entry", "/production/machines", "/production/downtime"],
@@ -145,8 +146,17 @@ const Sidebar = () => {
   };
 
   const isActive = (to, exact = false) => {
-    if (exact) return path === to;
-    return path === to || path.startsWith(to + "/");
+    const [targetPath, targetSearch] = to.includes("?") ? to.split("?") : [to, undefined];
+    const currentPath = path;
+    const currentSearch = location.search || "";
+
+    if (exact) {
+      if (targetSearch !== undefined) return currentPath === targetPath && currentSearch === "?" + targetSearch;
+      return currentPath === targetPath && !currentSearch;
+    }
+    const pathMatch = currentPath === targetPath || currentPath.startsWith(targetPath + "/");
+    if (targetSearch !== undefined) return pathMatch && currentSearch === "?" + targetSearch;
+    return pathMatch && !currentSearch;
   };
 
   const isSubmenuActive = (key) =>
@@ -519,10 +529,9 @@ const Sidebar = () => {
                 </div>
                 {openSubmenu === "purPR" && (
                   <ul className="sidebar-submenu">
-                    {hasPermission('PUR_PR_NEW') && <SubItem to="/purchase/requisitions/add" label="New PR" icon={FiPlus} />}
+                    {hasPermission('PUR_PR_AUTH') && <SubItem to="/purchase/requisitions" label="New PR" icon={FiPlusCircle} />}
                     {hasPermission('PUR_PR_AUTH') && <SubItem to="/purchase/requisitions?status=Pending" label="PR Authorization" icon={FiCheckSquare} />}
                     {hasPermission('PUR_PR_SANCTION') && <SubItem to="/purchase/approvals?stage=sanction" label="PR Sanction" icon={FiCheckCircle} />}
-                    {hasPermission('PUR_PR_STATUS') && <SubItem to="/purchase/requisitions" label="PR Status Updation" icon={FiRefreshCw} exact />}
                     {hasPermission('PUR_LOI') && <SubItem to="/purchase/requisitions?type=loi" label="Letter Of Indent" icon={FiFileText} />}
                     {hasPermission('PUR_PR_SHORTCLOSE') && <SubItem to="/purchase/requisitions?status=Closed" label="PR Shortclose" icon={FiXCircle} />}
                   </ul>

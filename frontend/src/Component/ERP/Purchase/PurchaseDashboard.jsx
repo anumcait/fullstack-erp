@@ -12,6 +12,7 @@ import {
   FiMail, FiRefreshCw, FiExternalLink, FiChevronRight,
 } from 'react-icons/fi';
 import axios from 'axios';
+import { useToast } from '../../../context/ToastContext';
 import PageHeader from '../../Common/PageHeader';
 import DataTable from '../../Common/DataTable';
 import { AreaTrendChart } from '../../Common/Charts';
@@ -95,6 +96,7 @@ const KpiRow = ({ config, stats, loading, onClick }) => {
 /* ─── Main Component ─────────────────────────────────────────── */
 const PurchaseDashboard = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [date, setDate] = useState(today());
   const [stats, setStats] = useState(null);
   const [daily, setDaily] = useState({ summary: {}, prs: [], pos: [], grns: [] });
@@ -104,6 +106,7 @@ const PurchaseDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [snapTab, setSnapTab] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
 
   const fetchData = () => {
     setLoading(true);
@@ -113,12 +116,14 @@ const PurchaseDashboard = () => {
       axios.get('/api/erp/purchase/reports/pending-by-party').catch(() => ({ data: [] })),
       axios.get('/api/erp/purchase/reports/monthly-trend').catch(() => ({ data: [] })),
       axios.get('/api/erp/purchase/recent-activity').catch(() => ({ data: { purchase_orders: [], grns: [], requisitions: [] } })),
-    ]).then(([s, d, p, t, a]) => {
+      axios.get('/api/erp/purchase/requisitions', { params: { status: 'Pending' } }).catch(() => ({ data: [] })),
+    ]).then(([s, d, p, t, a, pa]) => {
       setStats(s.data);
       setDaily(d.data || { summary: {}, prs: [], pos: [], grns: [] });
       setParty(p.data || []);
       setTrend(t.data || []);
       setActivity(a.data || { purchase_orders: [], grns: [], requisitions: [] });
+      setPendingApprovals(pa.data || []);
     }).finally(() => setLoading(false));
   };
 
@@ -392,6 +397,75 @@ const PurchaseDashboard = () => {
               />
             </Box>
           </Card>
+
+          {/* Pending PR Approvals */}
+          {pendingApprovals.length > 0 && (
+            <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', borderLeft: '4px solid #ed6c02' }}>
+              <Box sx={{ px: 2, pt: 1.25, pb: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <FiClock size={15} style={{ color: '#ed6c02' }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Pending PR Approvals</Typography>
+                </Stack>
+                <Chip label={`${pendingApprovals.length} awaiting you`} size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
+              </Box>
+              <Box sx={{ overflowX: 'auto' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: 'grey.50' }}>
+                      <TableCell sx={{ fontWeight: 700, py: 0.75, fontSize: '0.73rem', color: 'text.secondary' }}>Req #</TableCell>
+                      <TableCell sx={{ fontWeight: 700, py: 0.75, fontSize: '0.73rem', color: 'text.secondary' }}>Requested By</TableCell>
+                      <TableCell sx={{ fontWeight: 700, py: 0.75, fontSize: '0.73rem', color: 'text.secondary' }}>Dept</TableCell>
+                      <TableCell sx={{ fontWeight: 700, py: 0.75, fontSize: '0.73rem', color: 'text.secondary' }}>Items</TableCell>
+                      <TableCell sx={{ fontWeight: 700, py: 0.75, fontSize: '0.73rem', color: 'text.secondary' }}>Value</TableCell>
+                      <TableCell sx={{ width: 100, py: 0.75 }} />
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {pendingApprovals.slice(0, 5).map((pr) => (
+                      <TableRow key={pr.id} hover>
+                        <TableCell sx={{ py: 0.4, fontSize: '0.78rem', fontWeight: 600 }}>{pr.req_no}</TableCell>
+                        <TableCell sx={{ py: 0.4, fontSize: '0.78rem' }}>{pr.requested_by || '—'}</TableCell>
+                        <TableCell sx={{ py: 0.4, fontSize: '0.78rem' }}>{pr.department || '—'}</TableCell>
+                        <TableCell sx={{ py: 0.4, fontSize: '0.78rem' }}>{pr.items?.length || 0}</TableCell>
+                        <TableCell sx={{ py: 0.4, fontSize: '0.78rem' }}>
+                          ₹{pr.items?.reduce((s, i) => s + (Number(i.est_cost) || 0), 0).toLocaleString()}
+                        </TableCell>
+                        <TableCell sx={{ py: 0.4 }}>
+                          <Stack direction="row" spacing={0.5}>
+                            <Button size="small" variant="contained" color="success"
+                              sx={{ fontSize: '0.68rem', minWidth: 56, height: 24, textTransform: 'none' }}
+                              onClick={async () => {
+                                try {
+                                  const emp = localStorage.getItem('empId') || '';
+                                  await axios.put(`/api/erp/purchase/requisitions/${pr.id}/approve`, { status: 'Approved', approved_by: emp });
+                                  setPendingApprovals((prev) => prev.filter((r) => r.id !== pr.id));
+                                  setRefreshKey(k => k + 1);
+                                } catch { showToast('Approve failed', 'error'); }
+                              }}>
+                              Approve
+                            </Button>
+                            <Button size="small" variant="outlined" color="error"
+                              sx={{ fontSize: '0.68rem', minWidth: 48, height: 24, textTransform: 'none' }}
+                              onClick={() => navigate(`/purchase/requisitions/view/${pr.id}`)}>
+                              View
+                            </Button>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+              {pendingApprovals.length > 5 && (
+                <Box sx={{ px: 2, py: 1, textAlign: 'center', borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Button size="small" sx={{ textTransform: 'none', fontSize: '0.73rem' }}
+                    onClick={() => navigate('/purchase/requisitions?status=Pending')}>
+                    View all {pendingApprovals.length} pending approvals →
+                  </Button>
+                </Box>
+              )}
+            </Card>
+          )}
 
           {/* Material Pending at Party */}
           <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>

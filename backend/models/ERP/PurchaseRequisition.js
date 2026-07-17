@@ -36,7 +36,7 @@ module.exports = (sequelize) => {
       },
       status: {
         type: DataTypes.STRING(30),
-        defaultValue: 'Pending',
+        defaultValue: 'Draft',
       },
       priority: {
         type: DataTypes.STRING(20),

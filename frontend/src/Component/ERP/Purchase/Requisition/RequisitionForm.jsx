@@ -57,7 +57,7 @@ export default function RequisitionForm() {
   const nowLocal = () => {
     const d = new Date();
     const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   };
 
   const formatDateTime = (val) => {
@@ -125,16 +125,18 @@ export default function RequisitionForm() {
 
   useEffect(() => {
     if (!id) {
-      axios.get(API).then(({ data }) => {
+      axios.get(`${API}?status=Approved`).then(({ data }) => {
         const arr = data || [];
         let nextNum = 1;
-        if (arr.length > 0) {
-          const last = arr.reduce((a, b) => (a.id > b.id ? a : b));
-          const match = last.req_no?.match(/(\d+)$/);
-          if (match) nextNum = parseInt(match[1], 10) + 1;
-        }
+        arr.forEach((r) => {
+          const match = r.req_no?.match(/^PR-(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num >= nextNum) nextNum = num + 1;
+          }
+        });
         const now = new Date();
-        const ts = `${now.getHours()}${String(now.getMinutes()).padStart(2, "0")}`;
+        const ts = `${now.getHours()}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
         setHeader((p) => ({ ...p, req_no: `PR-${nextNum}-${ts}` }));
       }).catch(() => {});
     }
@@ -151,6 +153,7 @@ export default function RequisitionForm() {
           department: data.department || "",
           sub_department: data.sub_department || "",
           requested_by: data.requested_by || "",
+          status: data.status || "Draft",
           indent_type: data.indent_type || "Regular",
           priority: data.priority || "Normal",
           notes: data.notes || "",
@@ -160,15 +163,15 @@ export default function RequisitionForm() {
           item_name: it.item_name || "",
           cost_center: it.cost_center || "",
           uom: it.uom || "NOS",
-          quantity: it.quantity || "",
+          quantity: it.quantity != null ? parseFloat(it.quantity).toString() : "",
           expected_date: it.expected_date?.split("T")[0] || "",
           purpose: it.purpose || "",
           len: it.len || "",
           item_no: it.item_no || "",
-          kg: it.kg || "",
+          kg: it.kg != null ? parseFloat(it.kg).toString() : "",
           mat_code: it.mat_code || "",
           mat_desc: it.mat_desc || "",
-          est_cost: it.est_cost || "",
+          est_cost: it.est_cost != null ? parseFloat(it.est_cost).toString() : "",
         })));
       }).catch(() => showToast("Failed to load requisition", "error"))
         .finally(() => setLoading(false));
@@ -242,7 +245,8 @@ export default function RequisitionForm() {
     try {
       const payload = {
         ...header,
-        req_date: nowLocal(),
+        status: isEdit ? header.status : "Draft",
+        req_date: isEdit ? header.req_date : nowLocal(),
         items: items.map((i) => ({
           ...i,
           quantity: parseFloat(i.quantity) || 0,
@@ -286,7 +290,7 @@ export default function RequisitionForm() {
           {!isView && (
             <Button variant="contained" color="primary" size="medium" onClick={handleSubmit}
               startIcon={<SaveIcon />} disabled={saving}>
-              {saving ? "Saving..." : "Save Requisition"}
+              {saving ? "Saving..." : "Save as Draft"}
             </Button>
           )}
           <Button variant="outlined" color="secondary" size="medium" startIcon={<CancelIcon />}
@@ -340,7 +344,7 @@ export default function RequisitionForm() {
                 <MenuItem value="Urgent">Urgent</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={6} sm={3} sx={{ width: 110, flex: "0 0 auto" }}>
+            <Grid item xs={6} sm={3} sx={{ width: 150, flex: "0 0 auto" }}>
               <Box sx={{ bgcolor: "#f0f4ff", border: "1px solid #d0d9f0", borderRadius: 1, px: 1.5, py: 0.5, height: 34, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <Typography variant="caption" sx={{ fontSize: "0.7rem", color: "#475569", lineHeight: 1 }}>Req No</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.88rem", color: "#1e293b", lineHeight: 1.3 }}>{header.req_no || "—"}</Typography>

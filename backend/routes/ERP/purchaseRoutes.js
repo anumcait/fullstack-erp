@@ -48,6 +48,7 @@ router.delete('/orders/:id', poController.deletePurchaseOrder);
 // ── Purchase Requisitions (Indents) ──
 router.get('/requisitions', requisitionController.getRequisitions);
 router.get('/requisitions/:id', requisitionController.getRequisition);
+router.get('/requisitions/:id/amendments', requisitionController.getAmendmentHistory);
 router.post('/requisitions', requisitionController.createRequisition);
 router.put('/requisitions/:id', requisitionController.updateRequisition);
 router.put('/requisitions/:id/approve', requisitionController.approveRequisition);

@@ -48,7 +48,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     created_at: {
       type: DataTypes.DATE,
-      allowNull: true
+      allowNull: true,
+      field: 'created_date'
     },
     updated_at: {
       type: DataTypes.DATE,
@@ -56,9 +57,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     tableName: 'Users',
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    timestamps: false,
   },);
 
   //   // ✅ Add the association
