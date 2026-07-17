@@ -123,6 +123,23 @@ export default function RequisitionForm() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!id) {
+      axios.get(API).then(({ data }) => {
+        const arr = data || [];
+        let nextNum = 1;
+        if (arr.length > 0) {
+          const last = arr.reduce((a, b) => (a.id > b.id ? a : b));
+          const match = last.req_no?.match(/(\d+)$/);
+          if (match) nextNum = parseInt(match[1], 10) + 1;
+        }
+        const now = new Date();
+        const ts = `${now.getHours()}${String(now.getMinutes()).padStart(2, "0")}`;
+        setHeader((p) => ({ ...p, req_no: `PR-${nextNum}-${ts}` }));
+      }).catch(() => {});
+    }
+  }, [id]);
+
 
   useEffect(() => {
     if (id) {
@@ -262,7 +279,7 @@ export default function RequisitionForm() {
     <Box sx={{ p: 3, maxWidth: 1600, fontSize: "0.95rem" }}>
       {/* ── Title + Action Bar ── */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.4rem" }}>
+        <Typography variant="h4" sx={{ fontWeight: "bold", color: "var(--heading-color)" }}>
           {isView ? "Requisition Details" : isEdit ? "Edit Requisition" : "New Purchase Requisition"}
         </Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
@@ -283,7 +300,7 @@ export default function RequisitionForm() {
       {/* ── Header Information Card ── */}
       <Card sx={{ borderRadius: 2, boxShadow: "0 1px 6px rgba(0,0,0,0.05)", mb: 2.5, border: "1px solid #e2e8f0" }}>
         <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-          <Typography variant="subtitle2" sx={{ mb: 1.5, color: "#0f172a", fontWeight: 700 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: "var(--heading-color)", fontWeight: 700, fontSize: "1rem" }}>
             Header Information
           </Typography>
 
@@ -324,12 +341,16 @@ export default function RequisitionForm() {
               </TextField>
             </Grid>
             <Grid item xs={6} sm={3} sx={{ width: 110, flex: "0 0 auto" }}>
-              <TextField label="Req No *" size="small" fullWidth value={header.req_no || ""}
-                onChange={handleChange("req_no")} required disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
+              <Box sx={{ bgcolor: "#f0f4ff", border: "1px solid #d0d9f0", borderRadius: 1, px: 1.5, py: 0.5, height: 34, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <Typography variant="caption" sx={{ fontSize: "0.7rem", color: "#475569", lineHeight: 1 }}>Req No</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.88rem", color: "#1e293b", lineHeight: 1.3 }}>{header.req_no || "—"}</Typography>
+              </Box>
             </Grid>
             <Grid item xs={6} sm={3} sx={{ width: 170, flex: "0 0 auto" }}>
-              <TextField label="Date *" size="small" fullWidth value={formatDateTime(header.req_date)}
-                InputLabelProps={{ shrink: true }} required disabled sx={fsx} />
+              <Box sx={{ bgcolor: "#f0f4ff", border: "1px solid #d0d9f0", borderRadius: 1, px: 1.5, py: 0.5, height: 34, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <Typography variant="caption" sx={{ fontSize: "0.7rem", color: "#475569", lineHeight: 1 }}>Date</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.88rem", color: "#1e293b", lineHeight: 1.3 }}>{formatDateTime(header.req_date) || "—"}</Typography>
+              </Box>
             </Grid>
           </Grid>
           <Grid container spacing={2}>
@@ -367,7 +388,7 @@ export default function RequisitionForm() {
       <Card sx={{ borderRadius: 2, boxShadow: "0 1px 6px rgba(0,0,0,0.05)", border: "1px solid #e2e8f0" }}>
         <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <Typography variant="subtitle2" sx={{ color: "#0f172a", fontWeight: 700 }}>
+            <Typography variant="subtitle2" sx={{ color: "var(--heading-color)", fontWeight: 700, fontSize: "1rem" }}>
               Item Details
             </Typography>
             {!isView && (
@@ -376,7 +397,7 @@ export default function RequisitionForm() {
                   onChange={(e) => setItemSearch(e.target.value)}
                   InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
                   sx={{ "& .MuiInputBase-root": { fontSize: "0.8rem", height: 28, width: 200 } }} />
-                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={addItem} sx={{ height: 28 }}>Add Item</Button>
+                <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={addItem} sx={{ height: 28 }}>Add Item</Button>
               </Box>
             )}
           </Box>
@@ -384,15 +405,15 @@ export default function RequisitionForm() {
             <Table size="small" sx={{ minWidth: 1550 }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 160 }}>Cost Center</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 120 }}>Cost Center</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 110 }}>Item Code</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569" }}>Item Desc *</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569" }}>Description *</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 70 }}>UOM</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 70 }}>Qty *</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 100 }}>Req. Date</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569" }}>Purpose</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 60 }}>Len</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 80 }}>No of Kgs</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 60 }}>No of Kgs</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 90 }}>Mat. Code</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569" }}>Mat. Desc</TableCell>
                   <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 80 }}>Est Cost</TableCell>

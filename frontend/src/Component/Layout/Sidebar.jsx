@@ -73,7 +73,7 @@ const SUBMENUS = {
   storeMaster: ["/stores/item-master", "/stores/uom", "/stores/item-groups", "/stores/item-types"],
   storeInv: ["/inventory/ledger", "/stores/day-wise-stock", "/inventory/audit"],
   storeTrans: ["/inventory/gate-entry", "/stores/grr", "/stores/material-issues", "/stores/material-requisitions", "/inventory/return", "/stores/delivery-challans", "/stores/invoices"],
-  purProc: ["/purchase/requisitions", "/purchase/rfq", "/purchase/orders"],
+  purProc: ["/purchase/rfq", "/purchase/orders"],
   purVend: ["/purchase/vendors", "/purchase/prices", "/purchase/rating"],
   prodFloor: ["/production/daily-entry", "/production/machines", "/production/downtime"],
   planProd: ["/planning/schedule", "/planning/mrp", "/planning/capacity"],
@@ -205,9 +205,9 @@ const Sidebar = () => {
     </NavLink>
   );
 
-  const SubItem = ({ to, label, icon: Icon = FiCircle }) => (
+  const SubItem = ({ to, label, icon: Icon = FiCircle, exact = false }) => (
     <li>
-      <SideNavLink to={to} label={label} icon={Icon} />
+      <SideNavLink to={to} label={label} icon={Icon} exact={exact} />
     </li>
   );
 
@@ -506,30 +506,6 @@ const Sidebar = () => {
                 <SideNavLink to="/purchase" label="Dashboard" icon={FiHome} exact />
               </li>
             )}
-            {hasPermission('PUR_DASHBOARD') && (
-              <li className="sidebar-menu-item">
-                <SideNavLink to="/purchase/approvals" label="Approvals" icon={FiCheckSquare} exact />
-              </li>
-            )}
-            {(hasPermission('PUR_REQ') || hasPermission('PUR_RFQ') || hasPermission('PUR_ORDERS') || hasPermission('PUR_GRN')) && (
-              <li className={`sidebar-menu-item ${openSubmenu === "purProc" ? "open" : ""} ${isSubmenuActive("purProc") ? "sidebar-active-parent" : ""}`}>
-                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("purProc")}>
-                  <FiShoppingCart />
-                  {!collapsed && (
-                    <>
-                      <span>Procurement</span>
-                      <span className="expand-icon">{openSubmenu === "purProc" ? <FiChevronDown /> : <FiChevronRight />}</span>
-                    </>
-                  )}
-                </div>
-                {openSubmenu === "purProc" && (
-                  <ul className="sidebar-submenu">
-                    {hasPermission('PUR_RFQ') && <SubItem to="/purchase/rfq" label="Enquiry / RFQ" icon={FiMail} />}
-                    {hasPermission('PUR_ORDERS') && <SubItem to="/purchase/orders" label="Purchase Orders" icon={FiShoppingBag} />}
-                  </ul>
-                )}
-              </li>
-            )}
             {(hasPermission('PUR_PR_NEW') || hasPermission('PUR_PR_AUTH') || hasPermission('PUR_PR_SANCTION') || hasPermission('PUR_PR_STATUS') || hasPermission('PUR_LOI') || hasPermission('PUR_PR_SHORTCLOSE')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "purPR" ? "open" : ""} ${isSubmenuActive("purPR") ? "sidebar-active-parent" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("purPR")}>
@@ -546,36 +522,36 @@ const Sidebar = () => {
                     {hasPermission('PUR_PR_NEW') && <SubItem to="/purchase/requisitions/add" label="New PR" icon={FiPlus} />}
                     {hasPermission('PUR_PR_AUTH') && <SubItem to="/purchase/requisitions?status=Pending" label="PR Authorization" icon={FiCheckSquare} />}
                     {hasPermission('PUR_PR_SANCTION') && <SubItem to="/purchase/approvals?stage=sanction" label="PR Sanction" icon={FiCheckCircle} />}
-                    {hasPermission('PUR_PR_STATUS') && <SubItem to="/purchase/requisitions" label="PR Status Updation" icon={FiRefreshCw} />}
+                    {hasPermission('PUR_PR_STATUS') && <SubItem to="/purchase/requisitions" label="PR Status Updation" icon={FiRefreshCw} exact />}
                     {hasPermission('PUR_LOI') && <SubItem to="/purchase/requisitions?type=loi" label="Letter Of Indent" icon={FiFileText} />}
                     {hasPermission('PUR_PR_SHORTCLOSE') && <SubItem to="/purchase/requisitions?status=Closed" label="PR Shortclose" icon={FiXCircle} />}
                   </ul>
                 )}
               </li>
             )}
-            {(hasPermission('PUR_VENDORS') || hasPermission('PUR_PRICES') || hasPermission('PUR_RATING')) && (
-              <li className={`sidebar-menu-item ${openSubmenu === "purVend" ? "open" : ""} ${isSubmenuActive("purVend") ? "sidebar-active-parent" : ""}`}>
-                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("purVend")}>
-                  <FiUsers />
+            {(hasPermission('PUR_REQ') || hasPermission('PUR_RFQ') || hasPermission('PUR_ORDERS') || hasPermission('PUR_GRN')) && (
+              <li className={`sidebar-menu-item ${openSubmenu === "purProc" ? "open" : ""} ${isSubmenuActive("purProc") ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("purProc")}>
+                  <FiShoppingCart />
                   {!collapsed && (
                     <>
-                      <span>Vendor Mgmt</span>
-                      <span className="expand-icon">{openSubmenu === "purVend" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                      <span>Procurement</span>
+                      <span className="expand-icon">{openSubmenu === "purProc" ? <FiChevronDown /> : <FiChevronRight />}</span>
                     </>
                   )}
                 </div>
-                {openSubmenu === "purVend" && (
+                {openSubmenu === "purProc" && (
                   <ul className="sidebar-submenu">
-                    {hasPermission('PUR_VENDORS') && <SubItem to="/purchase/vendors" label="Vendor Master" icon={FiUser} />}
-                    {hasPermission('PUR_PRICES') && <SubItem to="/purchase/prices" label="Price List Master" icon={FiTag} />}
-                    {hasPermission('PUR_RATING') && <SubItem to="/purchase/rating" label="Vendor Rating" icon={FiStar} />}
+                    {hasPermission('PUR_RFQ') && <SubItem to="/purchase/rfq" label="Enquiry / RFQ" icon={FiMail} />}
+                    {hasPermission('PUR_ORDERS') && <SubItem to="/purchase/job-orders" label="Job Order" icon={FiBriefcase} />}
+                    {hasPermission('PUR_ORDERS') && <SubItem to="/purchase/orders" label="Purchase Orders" icon={FiShoppingBag} />}
                   </ul>
                 )}
               </li>
             )}
-            {hasPermission('PUR_ORDERS') && (
+            {hasPermission('PUR_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <SideNavLink to="/purchase/job-orders" label="Job Order" icon={FiBriefcase} exact />
+                <SideNavLink to="/purchase/approvals" label="Approvals" icon={FiCheckSquare} exact />
               </li>
             )}
             {hasPermission('PUR_DASHBOARD') && (
