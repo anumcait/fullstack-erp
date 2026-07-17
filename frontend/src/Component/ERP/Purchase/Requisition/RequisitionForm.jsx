@@ -252,10 +252,11 @@ export default function RequisitionForm() {
           </Typography>
 
           <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <TextField label="Department *" size="small" fullWidth select value={header.department}
                 onChange={handleChange("department")} required disabled={isView}
-                InputLabelProps={{ shrink: true }} sx={fsx}>
+                InputLabelProps={{ shrink: true }} sx={fsx}
+                SelectProps={{ displayEmpty: true }}>
                 <MenuItem value="">-- Select Department --</MenuItem>
                 {DEPARTMENTS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
               </TextField>
@@ -264,7 +265,7 @@ export default function RequisitionForm() {
               <TextField label="Sub Department" size="small" fullWidth value={header.sub_department || ""}
                 onChange={handleChange("sub_department")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
             </Grid>
-            <Grid item xs={6} sm={3} md={1}>
+            <Grid item xs={6} sm={3} md={2}>
               <TextField label="Req No *" size="small" fullWidth value={header.req_no || ""}
                 onChange={handleChange("req_no")} required disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
             </Grid>
@@ -343,9 +344,19 @@ export default function RequisitionForm() {
             <Table size="small" sx={{ minWidth: 1550 }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                  {["Cost Center", "Item Code", "Item Desc *", "UOM", "Qty *", "Req. Date", "Purpose", "Len", "No", "Kg", "Mat. Code", "Mat. Desc", "Est Cost"].map((h) => (
-                    <TableCell key={h} sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569" }}>{h}</TableCell>
-                  ))}
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 160 }}>Cost Center</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 110 }}>Item Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569" }}>Item Desc *</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 70 }}>UOM</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 70 }}>Qty *</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 100 }}>Req. Date</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569" }}>Purpose</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 60 }}>Len</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 60 }}>No</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 60 }}>Kg</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 90 }}>Mat. Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569" }}>Mat. Desc</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 80 }}>Est Cost</TableCell>
                   {!isView && <TableCell sx={{ width: 36, py: 0.75 }} />}
                 </TableRow>
               </TableHead>
