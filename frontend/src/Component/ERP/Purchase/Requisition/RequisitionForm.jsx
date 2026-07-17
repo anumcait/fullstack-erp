@@ -54,8 +54,41 @@ export default function RequisitionForm() {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const nowLocal = () => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const formatDateTime = (val) => {
+    if (!val) return "";
+    const hasTime = val.includes("T") || val.includes(" ");
+    const d = new Date(val);
+    if (isNaN(d.getTime())) {
+      const [datePart, timePart] = val.split("T");
+      if (!datePart) return val;
+      const [y, m, day] = datePart.split("-").map(Number);
+      const [h, min] = timePart ? timePart.split(":").map(Number) : [0, 0];
+      if (!y || !m || !day) return val;
+      const d2 = new Date(y, m - 1, day, h || 0, min || 0);
+      if (isNaN(d2.getTime())) return val;
+      const pad = (n) => String(n).padStart(2, "0");
+      if (!hasTime) return `${pad(day)}-${pad(m)}-${y}`;
+      const hrs = d2.getHours(), mins = d2.getMinutes();
+      const ampm = hrs >= 12 ? "PM" : "AM";
+      const h12 = hrs % 12 || 12;
+      return `${pad(day)}-${pad(m)}-${y} ${h12}.${pad(mins)} ${ampm}`;
+    }
+    const pad = (n) => String(n).padStart(2, "0");
+    if (!hasTime) return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+    const hrs = d.getHours(), mins = d.getMinutes();
+    const ampm = hrs >= 12 ? "PM" : "AM";
+    const h12 = hrs % 12 || 12;
+    return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${h12}.${pad(mins)} ${ampm}`;
+  };
+
   const [header, setHeader] = useState({
-    req_no: "", req_date: new Date().toISOString().split("T")[0],
+    req_no: "", req_date: nowLocal(),
     department: "", sub_department: "", requested_by: "",
     indent_type: "Regular", priority: "Normal", notes: "",
   });
@@ -65,6 +98,7 @@ export default function RequisitionForm() {
   const [costCenters, setCostCenters] = useState([]);
   const [allItems, setAllItems] = useState([]);
   const [units, setUnits] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [itemSearch, setItemSearch] = useState("");
 
 
@@ -80,10 +114,12 @@ export default function RequisitionForm() {
       axios.get(COST_CENTERS_API).catch(() => ({ data: [] })),
       axios.get(ITEMS_API).catch(() => ({ data: [] })),
       axios.get(UNITS_API).catch(() => ({ data: [] })),
-    ]).then(([cc, it, u]) => {
+      axios.get("/api/employees").catch(() => ({ data: [] })),
+    ]).then(([cc, it, u, emp]) => {
       setCostCenters(cc.data || []);
       setAllItems(it.data || []);
       setUnits(u.data || []);
+      setEmployees(emp.data || []);
     });
   }, []);
 
@@ -94,7 +130,7 @@ export default function RequisitionForm() {
       axios.get(`${API}/${id}`).then(({ data }) => {
         setHeader({
           req_no: data.req_no || "",
-          req_date: data.req_date?.split("T")[0] || "",
+          req_date: data.req_date ? data.req_date.slice(0, 16) : "",
           department: data.department || "",
           sub_department: data.sub_department || "",
           requested_by: data.requested_by || "",
@@ -157,7 +193,6 @@ export default function RequisitionForm() {
         item_name: item.item_name || "",
         uom: item.uom || "NOS",
         mat_code: item.mat_code || "",
-        mat_desc: item.item_description || item.mat_description || "",
       };
       return updated;
     });
@@ -190,6 +225,7 @@ export default function RequisitionForm() {
     try {
       const payload = {
         ...header,
+        req_date: nowLocal(),
         items: items.map((i) => ({
           ...i,
           quantity: parseFloat(i.quantity) || 0,
@@ -210,30 +246,30 @@ export default function RequisitionForm() {
 
 
   const fsx = {
-    "& .MuiInputBase-root": { fontSize: "0.82rem", height: 32 },
-    "& .MuiInputLabel-root": { fontSize: "0.82rem", mt: -0.25 },
+    "& .MuiInputBase-root": { fontSize: "0.88rem", height: 34 },
+    "& .MuiInputLabel-root": { fontSize: "0.88rem", mt: -0.25 },
     "& .MuiInputLabel-shrink": { mt: 0 }
   };
 
 
   const fTextAreaSx = {
-    "& .MuiInputBase-root": { fontSize: "0.82rem" },
-    "& .MuiInputLabel-root": { fontSize: "0.82rem" }
+    "& .MuiInputBase-root": { fontSize: "0.88rem" },
+    "& .MuiInputLabel-root": { fontSize: "0.88rem" }
   };
 
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1600, fontSize: "0.9rem" }}>
+    <Box sx={{ p: 3, maxWidth: 1600, fontSize: "0.95rem" }}>
       {/* ── Title + Action Bar ── */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.35rem" }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.4rem" }}>
           {isView ? "Requisition Details" : isEdit ? "Edit Requisition" : "New Purchase Requisition"}
         </Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           {!isView && (
             <Button variant="contained" color="primary" size="medium" onClick={handleSubmit}
               startIcon={<SaveIcon />} disabled={saving}>
-              {saving ? "Saving..." : "Save"}
+              {saving ? "Saving..." : "Save Requisition"}
             </Button>
           )}
           <Button variant="outlined" color="secondary" size="medium" startIcon={<CancelIcon />}
@@ -251,45 +287,49 @@ export default function RequisitionForm() {
             Header Information
           </Typography>
 
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} sm={6} md={2}>
+          <Grid container spacing={1} sx={{ mb: 2 }}>
+            <Grid item xs={12} sm={6} sx={{ width: 200, flex: "0 0 auto" }}>
               <TextField label="Department *" size="small" fullWidth select value={header.department}
                 onChange={handleChange("department")} required disabled={isView}
                 InputLabelProps={{ shrink: true }} sx={fsx}
                 SelectProps={{ displayEmpty: true }}>
-                <MenuItem value="">-- Select Department --</MenuItem>
+                <MenuItem value="">-- Select --</MenuItem>
                 {DEPARTMENTS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField label="Sub Department" size="small" fullWidth value={header.sub_department || ""}
+            <Grid item xs={12} sm={6} sx={{ width: 170, flex: "0 0 auto" }}>
+              <TextField label="Sub Dept" size="small" fullWidth value={header.sub_department || ""}
                 onChange={handleChange("sub_department")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
             </Grid>
-            <Grid item xs={6} sm={3} md={2}>
-              <TextField label="Req No *" size="small" fullWidth value={header.req_no || ""}
-                onChange={handleChange("req_no")} required disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
+            <Grid item xs={6} sm={3} sx={{ width: 170, flex: "0 0 auto" }}>
+              <TextField label="Request By" size="small" fullWidth select value={header.requested_by || ""}
+                onChange={handleChange("requested_by")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx}
+                SelectProps={{ displayEmpty: true }}>
+                <MenuItem value="">-- Select --</MenuItem>
+                {employees.map((emp) => <MenuItem key={emp.empid || emp.id} value={emp.ename}>{emp.ename} - {emp.empid}</MenuItem>)}
+              </TextField>
             </Grid>
-            <Grid item xs={6} sm={3} md={2}>
-              <TextField label="Date *" type="date" size="small" fullWidth value={header.req_date || ""}
-                onChange={handleChange("req_date")} InputLabelProps={{ shrink: true }} required disabled={isView} sx={fsx} />
-            </Grid>
-            <Grid item xs={6} sm={3} md={2}>
-              <TextField label="Requested By" size="small" fullWidth value={header.requested_by || ""}
-                onChange={handleChange("requested_by")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
-            </Grid>
-            <Grid item xs={6} sm={3} md={1}>
+            <Grid item xs={6} sm={3} sx={{ width: 140, flex: "0 0 auto" }}>
               <TextField label="Indent Type" size="small" fullWidth select value={header.indent_type || "Regular"}
                 onChange={handleChange("indent_type")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx}>
                 {INDENT_TYPES.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
               </TextField>
             </Grid>
-            <Grid item xs={6} sm={3} md={1}>
+            <Grid item xs={6} sm={3} sx={{ width: 120, flex: "0 0 auto" }}>
               <TextField label="Priority" size="small" fullWidth select value={header.priority || "Normal"}
                 onChange={handleChange("priority")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx}>
                 <MenuItem value="Normal">Normal</MenuItem>
                 <MenuItem value="High">High</MenuItem>
                 <MenuItem value="Urgent">Urgent</MenuItem>
               </TextField>
+            </Grid>
+            <Grid item xs={6} sm={3} sx={{ width: 110, flex: "0 0 auto" }}>
+              <TextField label="Req No *" size="small" fullWidth value={header.req_no || ""}
+                onChange={handleChange("req_no")} required disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
+            </Grid>
+            <Grid item xs={6} sm={3} sx={{ width: 170, flex: "0 0 auto" }}>
+              <TextField label="Date *" size="small" fullWidth value={formatDateTime(header.req_date)}
+                InputLabelProps={{ shrink: true }} required disabled sx={fsx} />
             </Grid>
           </Grid>
           <Grid container spacing={2}>
@@ -344,19 +384,18 @@ export default function RequisitionForm() {
             <Table size="small" sx={{ minWidth: 1550 }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 160 }}>Cost Center</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 110 }}>Item Code</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569" }}>Item Desc *</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 70 }}>UOM</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 70 }}>Qty *</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 100 }}>Req. Date</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569" }}>Purpose</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 60 }}>Len</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 60 }}>No</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 60 }}>Kg</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 90 }}>Mat. Code</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569" }}>Mat. Desc</TableCell>
-                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.78rem", py: 0.75, color: "#475569", width: 80 }}>Est Cost</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 160 }}>Cost Center</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 110 }}>Item Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569" }}>Item Desc *</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 70 }}>UOM</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 70 }}>Qty *</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 100 }}>Req. Date</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569" }}>Purpose</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 60 }}>Len</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 80 }}>No of Kgs</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 90 }}>Mat. Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569" }}>Mat. Desc</TableCell>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: "nowrap", fontSize: "0.84rem", py: 0.75, color: "#475569", width: 80 }}>Est Cost</TableCell>
                   {!isView && <TableCell sx={{ width: 36, py: 0.75 }} />}
                 </TableRow>
               </TableHead>
@@ -373,7 +412,7 @@ export default function RequisitionForm() {
                           )
                         }}
                         placeholder="Select"
-                        sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44, cursor: isView ? "default" : "pointer" } }} />
+                        sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44, cursor: isView ? "default" : "pointer" } }} />
                     </TableCell>
                     {/* Item Code */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
@@ -385,7 +424,7 @@ export default function RequisitionForm() {
                           )
                         }}
                         placeholder="Select"
-                        sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44, cursor: isView ? "default" : "pointer" } }} />
+                        sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44, cursor: isView ? "default" : "pointer" } }} />
                     </TableCell>
                     {/* Item Desc (textarea rows=2) */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top", minWidth: 200 }}>
@@ -394,7 +433,7 @@ export default function RequisitionForm() {
                           onChange={handleItemChange(idx, "item_name")} required disabled={isView}
                           placeholder="Description" inputProps={{ maxLength: 200 }}
                           sx={{
-                            "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44, p: "4px 8px", alignItems: "flex-start" },
+                            "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44, p: "4px 8px", alignItems: "flex-start" },
                             "& .MuiInputBase-input": { height: "100% !important", overflow: "auto" }
                           }} />
                       </Tooltip>
@@ -402,7 +441,7 @@ export default function RequisitionForm() {
                     {/* UOM */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
                       <TextField size="small" fullWidth select value={it.uom} onChange={handleItemChange(idx, "uom")} disabled={isView}
-                        sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44 } }}>
+                        sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44 } }}>
                         <MenuItem value="NOS">NOS</MenuItem>
                         {units.map((u) => <MenuItem key={u.id} value={u.short_name || u.name}>{u.short_name || u.name}</MenuItem>)}
                       </TextField>
@@ -410,13 +449,13 @@ export default function RequisitionForm() {
                     {/* Qty */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
                       <TextField size="small" fullWidth type="number" value={it.quantity} onChange={handleItemChange(idx, "quantity")} required disabled={isView}
-                        placeholder="Qty" sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44 } }} />
+                        placeholder="Qty" sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44 } }} />
                     </TableCell>
                     {/* Req. Date */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
                       <TextField type="date" size="small" fullWidth value={it.expected_date} onChange={handleItemChange(idx, "expected_date")}
                         InputLabelProps={{ shrink: true }} disabled={isView}
-                        sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44 } }} />
+                        sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44 } }} />
                     </TableCell>
                     {/* Purpose (textarea rows=2) */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top", minWidth: 150 }}>
@@ -425,7 +464,7 @@ export default function RequisitionForm() {
                           onChange={handleItemChange(idx, "purpose")} disabled={isView}
                           placeholder="Purpose" inputProps={{ maxLength: 200 }}
                           sx={{
-                            "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44, p: "4px 8px", alignItems: "flex-start" },
+                            "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44, p: "4px 8px", alignItems: "flex-start" },
                             "& .MuiInputBase-input": { height: "100% !important", overflow: "auto" }
                           }} />
                       </Tooltip>
@@ -433,22 +472,17 @@ export default function RequisitionForm() {
                     {/* Len */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
                       <TextField size="small" fullWidth type="number" value={it.len} onChange={handleItemChange(idx, "len")} disabled={isView}
-                        placeholder="0" sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44 } }} />
+                        placeholder="0" sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44 } }} />
                     </TableCell>
-                    {/* No */}
-                    <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
-                      <TextField size="small" fullWidth value={it.item_no} onChange={handleItemChange(idx, "item_no")} disabled={isView}
-                        placeholder="0" sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44 } }} />
-                    </TableCell>
-                    {/* Kg */}
+                    {/* No of Kgs */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
                       <TextField size="small" fullWidth type="number" value={it.kg} onChange={handleItemChange(idx, "kg")} disabled={isView}
-                        placeholder="0" sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44 } }} />
+                        placeholder="0" sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44 } }} />
                     </TableCell>
                     {/* Mat Code */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
                       <TextField size="small" fullWidth value={it.mat_code} onChange={handleItemChange(idx, "mat_code")} disabled={isView}
-                        placeholder="Mat Code" sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44 } }} />
+                        placeholder="Mat Code" sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44 } }} />
                     </TableCell>
                     {/* Mat Desc (textarea rows=2) */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top", minWidth: 150 }}>
@@ -457,7 +491,7 @@ export default function RequisitionForm() {
                           onChange={handleItemChange(idx, "mat_desc")} disabled={isView}
                           placeholder="Mat Desc" inputProps={{ maxLength: 200 }}
                           sx={{
-                            "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44, p: "4px 8px", alignItems: "flex-start" },
+                            "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44, p: "4px 8px", alignItems: "flex-start" },
                             "& .MuiInputBase-input": { height: "100% !important", overflow: "auto" }
                           }} />
                       </Tooltip>
@@ -465,7 +499,7 @@ export default function RequisitionForm() {
                     {/* Est Cost */}
                     <TableCell sx={{ py: 0.5, px: 0.5, verticalAlign: "top" }}>
                       <TextField size="small" fullWidth type="number" value={it.est_cost} onChange={handleItemChange(idx, "est_cost")} disabled={isView}
-                        placeholder="0.00" sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem", height: 44 } }} />
+                        placeholder="0.00" sx={{ "& .MuiInputBase-root": { fontSize: "0.84rem", height: 44 } }} />
                     </TableCell>
                     {/* Delete */}
                     {!isView && (
