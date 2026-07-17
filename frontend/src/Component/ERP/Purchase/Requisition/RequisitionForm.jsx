@@ -15,15 +15,18 @@ import { useToast } from "../../../../context/ToastContext";
 import ItemSelectDialog from "../../Stores/ItemMaster/ItemSelectDialog";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 
+
 const API = "/api/erp/purchase/requisitions";
 const COST_CENTERS_API = "/api/erp/purchase/cost-centers";
 const ITEMS_API = "/api/erp/stores/items";
 const UNITS_API = "/api/erp/stores/units";
 
+
 const DEPARTMENTS = [
   "Production", "Maintenance", "Quality", "Stores", "Engineering",
   "Planning", "Marketing", "HR", "Accounts", "Purchase", "Other",
 ];
+
 
 const INDENT_TYPES = [
   { value: "Regular", label: "Regular", desc: "Routine items for day-to-day operations (standard approval)" },
@@ -32,11 +35,13 @@ const INDENT_TYPES = [
   { value: "Service", label: "Service", desc: "Services such as AMC, consultancy, maintenance contracts" },
 ];
 
+
 const emptyItem = () => ({
   item_code: "", item_name: "", cost_center: "", uom: "NOS",
   quantity: "", expected_date: "", purpose: "",
   len: "", item_no: "", kg: "", mat_code: "", mat_desc: "", est_cost: "",
 });
+
 
 export default function RequisitionForm() {
   const { id } = useParams();
@@ -45,6 +50,7 @@ export default function RequisitionForm() {
   const isEdit = Boolean(id) && !isView;
   const { showToast } = useToast();
   const navigate = useNavigate();
+
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -55,15 +61,19 @@ export default function RequisitionForm() {
   });
   const [items, setItems] = useState([emptyItem()]);
 
+
   const [costCenters, setCostCenters] = useState([]);
   const [allItems, setAllItems] = useState([]);
   const [units, setUnits] = useState([]);
   const [itemSearch, setItemSearch] = useState("");
 
+
   const [costCenterDialog, setCostCenterDialog] = useState(-1);
   const [itemDialog, setItemDialog] = useState(null);
 
+
   const indentType = INDENT_TYPES.find((t) => t.value === header.indent_type);
+
 
   useEffect(() => {
     Promise.all([
@@ -76,6 +86,7 @@ export default function RequisitionForm() {
       setUnits(u.data || []);
     });
   }, []);
+
 
   useEffect(() => {
     if (id) {
@@ -111,8 +122,10 @@ export default function RequisitionForm() {
     }
   }, [id]);
 
+
   const setField = (f, v) => setHeader((p) => ({ ...p, [f]: v }));
   const handleChange = (f) => (e) => setField(f, e.target.value);
+
 
   const handleItemChange = (idx, field) => (e) => {
     const updated = [...items];
@@ -120,8 +133,10 @@ export default function RequisitionForm() {
     setItems(updated);
   };
 
+
   const addItem = () => setItems([...items, emptyItem()]);
   const removeItem = (idx) => { if (items.length > 1) setItems(items.filter((_, i) => i !== idx)); };
+
 
   const filteredItems = useMemo(() => {
     const q = itemSearch.trim().toLowerCase();
@@ -130,6 +145,7 @@ export default function RequisitionForm() {
       Object.values(it).some((v) => String(v || "").toLowerCase().includes(q))
     );
   }, [itemSearch, items]);
+
 
   const handleItemSelect = (item) => {
     if (itemDialog === null || itemDialog < 0) return;
@@ -148,6 +164,7 @@ export default function RequisitionForm() {
     setItemDialog(null);
   };
 
+
   const handleCostCenterSelect = (cc) => {
     if (costCenterDialog < 0) return;
     setItems((prev) => {
@@ -157,6 +174,7 @@ export default function RequisitionForm() {
     });
     setCostCenterDialog(-1);
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -187,7 +205,9 @@ export default function RequisitionForm() {
     finally { setSaving(false); }
   };
 
+
   if (loading) return <LinearProgress />;
+
 
   const fsx = {
     "& .MuiInputBase-root": { fontSize: "0.82rem", height: 32 },
@@ -195,10 +215,12 @@ export default function RequisitionForm() {
     "& .MuiInputLabel-shrink": { mt: 0 }
   };
 
+
   const fTextAreaSx = {
     "& .MuiInputBase-root": { fontSize: "0.82rem" },
     "& .MuiInputLabel-root": { fontSize: "0.82rem" }
   };
+
 
   return (
     <Box sx={{ p: 3, maxWidth: 1600, fontSize: "0.9rem" }}>
@@ -221,19 +243,20 @@ export default function RequisitionForm() {
         </Box>
       </Box>
 
+
       {/* ── Header Information Card ── */}
       <Card sx={{ borderRadius: 2, boxShadow: "0 1px 6px rgba(0,0,0,0.05)", mb: 2.5, border: "1px solid #e2e8f0" }}>
         <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
           <Typography variant="subtitle2" sx={{ mb: 1.5, color: "#0f172a", fontWeight: 700 }}>
             Header Information
           </Typography>
-          <Grid container spacing={2}>
-            {/* Row 1: All 7 header fields side by side */}
-            <Grid item xs={12} sm={6} md={2}>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            <Grid item xs={12} sm={6} md={3}>
               <TextField label="Department *" size="small" fullWidth select value={header.department}
                 onChange={handleChange("department")} required disabled={isView}
                 InputLabelProps={{ shrink: true }} sx={fsx}>
-                <MenuItem value="">-- Select --</MenuItem>
+                <MenuItem value="">-- Select Department --</MenuItem>
                 {DEPARTMENTS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
               </TextField>
             </Grid>
@@ -241,25 +264,25 @@ export default function RequisitionForm() {
               <TextField label="Sub Department" size="small" fullWidth value={header.sub_department || ""}
                 onChange={handleChange("sub_department")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
             </Grid>
-            <Grid item xs={12} sm={6} md={1.5}>
+            <Grid item xs={6} sm={3} md={1}>
               <TextField label="Req No *" size="small" fullWidth value={header.req_no || ""}
                 onChange={handleChange("req_no")} required disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
             </Grid>
-            <Grid item xs={12} sm={6} md={1.5}>
+            <Grid item xs={6} sm={3} md={2}>
               <TextField label="Date *" type="date" size="small" fullWidth value={header.req_date || ""}
                 onChange={handleChange("req_date")} InputLabelProps={{ shrink: true }} required disabled={isView} sx={fsx} />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={6} sm={3} md={2}>
               <TextField label="Requested By" size="small" fullWidth value={header.requested_by || ""}
                 onChange={handleChange("requested_by")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
             </Grid>
-            <Grid item xs={12} sm={6} md={1.5}>
+            <Grid item xs={6} sm={3} md={1}>
               <TextField label="Indent Type" size="small" fullWidth select value={header.indent_type || "Regular"}
                 onChange={handleChange("indent_type")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx}>
                 {INDENT_TYPES.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={1.5}>
+            <Grid item xs={6} sm={3} md={1}>
               <TextField label="Priority" size="small" fullWidth select value={header.priority || "Normal"}
                 onChange={handleChange("priority")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx}>
                 <MenuItem value="Normal">Normal</MenuItem>
@@ -267,8 +290,8 @@ export default function RequisitionForm() {
                 <MenuItem value="Urgent">Urgent</MenuItem>
               </TextField>
             </Grid>
-
-            {/* Row 2: Notes field + Info banner side by side */}
+          </Grid>
+          <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField label="Notes" size="small" fullWidth multiline rows={2} value={header.notes || ""}
                 onChange={handleChange("notes")} disabled={isView} placeholder="Enter any extra notes..."
@@ -297,6 +320,7 @@ export default function RequisitionForm() {
           </Grid>
         </CardContent>
       </Card>
+
 
       {/* ── Item Details Card ── */}
       <Card sx={{ borderRadius: 2, boxShadow: "0 1px 6px rgba(0,0,0,0.05)", border: "1px solid #e2e8f0" }}>
@@ -453,10 +477,12 @@ export default function RequisitionForm() {
         </CardContent>
       </Card>
 
+
       {/* ── Dialogs ── */}
       <ItemSelectDialog open={costCenterDialog >= 0} onClose={() => setCostCenterDialog(-1)}
         onSelect={handleCostCenterSelect} title="Select Cost Center"
         data={costCenters} columns={[{ key: "code", label: "Code" }, { key: "name", label: "Name" }]} />
+
 
       <ItemSelectDialog open={itemDialog !== null} onClose={() => setItemDialog(null)}
         onSelect={handleItemSelect} title="Select Item"
