@@ -1,8 +1,9 @@
 jenkins_data/
 jenkins_data.rar
 pgdata-new/
-.github/
-!.github/workflows/*
+.github/*.md
+.github/ISSUE_TEMPLATE/
+.github/PULL_REQUEST_TEMPLATE/
 
 # Environment files (secrets)
 .env
