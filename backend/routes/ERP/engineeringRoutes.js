@@ -4,6 +4,7 @@ const router = express.Router();
 const bomController = require('../../controllers/ERP/bomController');
 const bomImportController = require('../../controllers/ERP/bomImportController');
 const productController = require('../../controllers/ERP/productController');
+const engineeringSettingsController = require('../../controllers/ERP/engineeringSettingsController');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -29,5 +30,9 @@ router.get('/bom/:id', bomController.getOne);
 router.post('/bom', bomController.create);
 router.put('/bom/:id', bomController.update);
 router.delete('/bom/:id', bomController.delete);
+
+// ── Settings ──
+router.get('/settings', engineeringSettingsController.get);
+router.put('/settings', engineeringSettingsController.update);
 
 module.exports = router;

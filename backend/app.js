@@ -142,12 +142,18 @@ app.use('/api/notifications', require('./routes/HR/notificationRoutes'));
 
 // Accounts Module Routes
 app.use('/api/accounts/invoices', require('./routes/Accounts/invoiceRoutes'));
+app.use('/api/accounts', require('./routes/Accounts/accountsRoutes'));
 
 // ERP Module Routes
 app.use('/api/erp/purchase', require('./routes/ERP/purchaseRoutes'));
 app.use('/api/erp/stores', require('./routes/ERP/storesRoutes'));
 app.use('/api/erp/engineering', require('./routes/ERP/engineeringRoutes'));
 app.use('/api/erp/production', require('./routes/ERP/productionRoutes'));
+app.use('/api/erp/marketing', require('./routes/ERP/marketingRoutes'));
+app.use('/api/erp/quality', require('./routes/ERP/qualityRoutes'));
+app.use('/api/erp/subcontract', require('./routes/ERP/subcontractRoutes'));
+app.use('/api/erp/maintenance', require('./routes/ERP/maintenanceRoutes'));
+app.use('/api/erp/planning', require('./routes/ERP/planningRoutes'));
 
 
 // Health check

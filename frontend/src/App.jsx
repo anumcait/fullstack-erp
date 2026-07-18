@@ -48,6 +48,18 @@ import PfAccountingDashboard from "./Component/HR/PFAccounting/PfAccountingDashb
 import Reports from "./Component/Reports/Reports.jsx";
 import Settings from "./Component/Settings/Settings.jsx";
 import AccountsDashboard from "./Component/Accounts/AccountsDashboard.jsx";
+import ChartOfAccounts from "./Component/AccountPages/Accounting/ChartOfAccounts.jsx";
+import VoucherList from "./Component/AccountPages/Vouchers/VoucherList.jsx";
+import VoucherForm from "./Component/AccountPages/Vouchers/VoucherForm.jsx";
+import VoucherView from "./Component/AccountPages/Accounting/VoucherView.jsx";
+import LedgerReport from "./Component/AccountPages/Reports/LedgerReport.jsx";
+import DayBook from "./Component/AccountPages/Reports/DayBook.jsx";
+import TrialBalance from "./Component/AccountPages/Reports/TrialBalance.jsx";
+import ProfitLoss from "./Component/AccountPages/Reports/ProfitLoss.jsx";
+import BalanceSheet from "./Component/AccountPages/Reports/BalanceSheet.jsx";
+import APReport from "./Component/AccountPages/Reports/APReport.jsx";
+import BudgetPage from "./Component/AccountPages/Accounting/BudgetPage.jsx";
+import AccountSettings from "./Component/AccountPages/Accounting/AccountSettings.jsx";
 import PurchaseDashboard from "./Component/ERP/Purchase/PurchaseDashboard.jsx";
 import RequisitionList from "./Component/ERP/Purchase/Requisition/RequisitionList.jsx";
 import RequisitionForm from "./Component/ERP/Purchase/Requisition/RequisitionForm.jsx";
@@ -73,7 +85,19 @@ import MaterialIssueForm from "./Component/ERP/Stores/MaterialIssue/MaterialIssu
 import ProductionDashboard from "./Component/ERP/Production/ProductionDashboard.jsx";
 import ProductionOrderList from "./Component/ERP/Production/ProductionOrder/ProductionOrderList.jsx";
 import ProductionOrderForm from "./Component/ERP/Production/ProductionOrder/ProductionOrderForm.jsx";
+import MachineList from "./Component/ERP/Production/MachineList.jsx";
+import MachineForm from "./Component/ERP/Production/MachineForm.jsx";
+import DailyEntryList from "./Component/ERP/Production/DailyEntryList.jsx";
+import DailyEntryForm from "./Component/ERP/Production/DailyEntryForm.jsx";
+import DowntimeList from "./Component/ERP/Production/DowntimeList.jsx";
+import DowntimeForm from "./Component/ERP/Production/DowntimeForm.jsx";
 import PlanningDashboard from "./Component/ERP/Planning/PlanningDashboard.jsx";
+import ScheduleList from "./Component/ERP/Planning/ScheduleList.jsx";
+import ScheduleForm from "./Component/ERP/Planning/ScheduleForm.jsx";
+import MRPList from "./Component/ERP/Planning/MRPList.jsx";
+import MRPForm from "./Component/ERP/Planning/MRPForm.jsx";
+import CapacityList from "./Component/ERP/Planning/CapacityList.jsx";
+import CapacityForm from "./Component/ERP/Planning/CapacityForm.jsx";
 import EngineeringDashboard from "./Component/ERP/Engineering/EngineeringDashboard.jsx";
 import BOMList from "./Component/ERP/Engineering/BOM/BOMList.jsx";
 import BOMForm from "./Component/ERP/Engineering/BOM/BOMForm.jsx";
@@ -81,9 +105,33 @@ import ProductMasterList from "./Component/ERP/Engineering/ProductMaster/Product
 import ProductMasterForm from "./Component/ERP/Engineering/ProductMaster/ProductMasterForm.jsx";
 import CategoryMaster from "./Component/ERP/Engineering/CategoryMaster/CategoryMaster.jsx";
 import MarketingDashboard from "./Component/ERP/Marketing/MarketingDashboard.jsx";
+import CustomerMaster from "./Component/ERP/Marketing/Customers/CustomerMaster.jsx";
+import AddCustomer from "./Component/ERP/Marketing/Customers/AddCustomer.jsx";
+import LeadList from "./Component/ERP/Marketing/Leads/LeadList.jsx";
+import LeadForm from "./Component/ERP/Marketing/Leads/LeadForm.jsx";
+import QuotationList from "./Component/ERP/Marketing/Quotations/QuotationList.jsx";
+import QuotationForm from "./Component/ERP/Marketing/Quotations/QuotationForm.jsx";
+import SalesOrderList from "./Component/ERP/Marketing/SalesOrders/SalesOrderList.jsx";
+import SalesOrderForm from "./Component/ERP/Marketing/SalesOrders/SalesOrderForm.jsx";
 import QualityDashboard from "./Component/Quality/QualityDashboard.jsx";
+import InspectionList from "./Component/Quality/InspectionList.jsx";
+import InspectionForm from "./Component/Quality/InspectionForm.jsx";
+import NonConformanceList from "./Component/Quality/NonConformanceList.jsx";
+import NonConformanceForm from "./Component/Quality/NonConformanceForm.jsx";
 import SubcontractDashboard from "./Component/ERP/Subcontract/SubcontractDashboard.jsx";
+import OrderList from "./Component/ERP/Subcontract/OrderList.jsx";
+import OrderForm from "./Component/ERP/Subcontract/OrderForm.jsx";
+import IssueList from "./Component/ERP/Subcontract/IssueList.jsx";
+import IssueForm from "./Component/ERP/Subcontract/IssueForm.jsx";
+import ReceiptList from "./Component/ERP/Subcontract/ReceiptList.jsx";
+import ReceiptForm from "./Component/ERP/Subcontract/ReceiptForm.jsx";
 import MaintenanceDashboard from "./Component/ERP/Maintenance/MaintenanceDashboard.jsx";
+import MaintenanceMachineList from "./Component/ERP/Maintenance/MachineList.jsx";
+import MaintenanceMachineForm from "./Component/ERP/Maintenance/MachineForm.jsx";
+import AssetList from "./Component/ERP/Maintenance/AssetList.jsx";
+import AssetForm from "./Component/ERP/Maintenance/AssetForm.jsx";
+import MaintenanceScheduleList from "./Component/ERP/Maintenance/ScheduleList.jsx";
+import MaintenanceScheduleForm from "./Component/ERP/Maintenance/ScheduleForm.jsx";
 import AccountsReports from "./Component/Accounts/AccountsReports.jsx";
 import PurchaseReports from "./Component/ERP/Purchase/PurchaseReports.jsx";
 import DailyReports from "./Component/ERP/Purchase/DailyReports.jsx";
@@ -169,6 +217,35 @@ function App() {
                   }>
                     <Route path="/dashboard" element={<DashBoard />} />
                     <Route path="/accounts" element={<AccountsDashboard />} />
+                    <Route path="/accounts/coa" element={<ChartOfAccounts />} />
+                    <Route path="/accounts/budgets" element={<BudgetPage />} />
+                    <Route path="/accounts/settings" element={<AccountSettings />} />
+
+                    {/* Invoice routes (sidebar links from old AccInv submenu) */}
+                    <Route path="/invoice/sales" element={<VoucherList type="sales" />} />
+                    <Route path="/invoice/purchase" element={<VoucherList type="purchase" />} />
+                    <Route path="/invoice/debit-note" element={<VoucherList type="debit-note" />} />
+                    <Route path="/invoice/credit-note" element={<VoucherList type="credit-note" />} />
+
+                    {/* Voucher routes (sidebar links from AccVouch submenu) */}
+                    <Route path="/accounts/payment" element={<VoucherList type="payment" />} />
+                    <Route path="/accounts/receipt" element={<VoucherList type="receipt" />} />
+                    <Route path="/accounts/journal" element={<VoucherList type="journal" />} />
+                    <Route path="/accounts/contra" element={<VoucherList type="contra" />} />
+
+                    {/* Voucher add/edit */}
+                    <Route path="/accounts/voucher/:type/add" element={<VoucherForm />} />
+                    <Route path="/accounts/voucher/:type/:id" element={<VoucherView />} />
+
+                    {/* Accounts reports */}
+                    <Route path="/accounts/reports" element={<AccountsReports />} />
+                    <Route path="/reports/ledger" element={<LedgerReport />} />
+                    <Route path="/reports/daybook" element={<DayBook />} />
+                    <Route path="/reports/trial-balance" element={<TrialBalance />} />
+                    <Route path="/reports/pl" element={<ProfitLoss />} />
+                    <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
+                    <Route path="/reports/ap" element={<APReport />} />
+                    <Route path="/reports/ar" element={<APReport />} />
 
                     {/* ERP & Operations Modules */}
                     <Route path="/purchase" element={<PurchaseDashboard />} />
@@ -247,7 +324,31 @@ function App() {
                     <Route path="/production/orders" element={<ProductionOrderList />} />
                     <Route path="/production/orders/add" element={<ProductionOrderForm />} />
                     <Route path="/production/orders/view/:id" element={<ProductionOrderForm />} />
+                    <Route path="/production/machines" element={<MachineList />} />
+                    <Route path="/production/machines/add" element={<MachineForm />} />
+                    <Route path="/production/machines/view/:id" element={<MachineForm />} />
+                    <Route path="/production/machines/edit/:id" element={<MachineForm />} />
+                    <Route path="/production/daily-entry" element={<DailyEntryList />} />
+                    <Route path="/production/daily-entry/add" element={<DailyEntryForm />} />
+                    <Route path="/production/daily-entry/view/:id" element={<DailyEntryForm />} />
+                    <Route path="/production/daily-entry/edit/:id" element={<DailyEntryForm />} />
+                    <Route path="/production/downtime" element={<DowntimeList />} />
+                    <Route path="/production/downtime/add" element={<DowntimeForm />} />
+                    <Route path="/production/downtime/view/:id" element={<DowntimeForm />} />
+                    <Route path="/production/downtime/edit/:id" element={<DowntimeForm />} />
                     <Route path="/planning" element={<PlanningDashboard />} />
+                    <Route path="/planning/schedule" element={<ScheduleList />} />
+                    <Route path="/planning/schedule/add" element={<ScheduleForm />} />
+                    <Route path="/planning/schedule/view/:id" element={<ScheduleForm />} />
+                    <Route path="/planning/schedule/edit/:id" element={<ScheduleForm />} />
+                    <Route path="/planning/mrp" element={<MRPList />} />
+                    <Route path="/planning/mrp/add" element={<MRPForm />} />
+                    <Route path="/planning/mrp/view/:id" element={<MRPForm />} />
+                    <Route path="/planning/mrp/edit/:id" element={<MRPForm />} />
+                    <Route path="/planning/capacity" element={<CapacityList />} />
+                    <Route path="/planning/capacity/add" element={<CapacityForm />} />
+                    <Route path="/planning/capacity/view/:id" element={<CapacityForm />} />
+                    <Route path="/planning/capacity/edit/:id" element={<CapacityForm />} />
                     <Route path="/engineering" element={<EngineeringDashboard />} />
                     <Route path="/engineering/categories" element={<CategoryMaster />} />
                     <Route path="/engineering/products" element={<ProductMasterList />} />
@@ -259,9 +360,61 @@ function App() {
                     <Route path="/engineering/bom/view/:id" element={<BOMForm />} />
                     <Route path="/engineering/bom/edit/:id" element={<BOMForm />} />
                     <Route path="/quality" element={<QualityDashboard />} />
+                    <Route path="/quality/incoming" element={<InspectionList />} />
+                    <Route path="/quality/process" element={<InspectionList />} />
+                    <Route path="/quality/final" element={<InspectionList />} />
+                    <Route path="/quality/inspections/add" element={<InspectionForm />} />
+                    <Route path="/quality/inspections/view/:id" element={<InspectionForm />} />
+                    <Route path="/quality/inspections/edit/:id" element={<InspectionForm />} />
+                    <Route path="/quality/non-conformances" element={<NonConformanceList />} />
+                    <Route path="/quality/non-conformances/add" element={<NonConformanceForm />} />
+                    <Route path="/quality/non-conformances/view/:id" element={<NonConformanceForm />} />
+                    <Route path="/quality/non-conformances/edit/:id" element={<NonConformanceForm />} />
                     <Route path="/marketing" element={<MarketingDashboard />} />
+                    <Route path="/marketing/customers" element={<CustomerMaster />} />
+                    <Route path="/marketing/customers/add" element={<AddCustomer />} />
+                    <Route path="/marketing/customers/view/:id" element={<AddCustomer />} />
+                    <Route path="/marketing/customers/edit/:id" element={<AddCustomer />} />
+                    <Route path="/marketing/leads" element={<LeadList />} />
+                    <Route path="/marketing/leads/add" element={<LeadForm />} />
+                    <Route path="/marketing/leads/view/:id" element={<LeadForm />} />
+                    <Route path="/marketing/leads/edit/:id" element={<LeadForm />} />
+                    <Route path="/marketing/quotes" element={<QuotationList />} />
+                    <Route path="/marketing/quotes/add" element={<QuotationForm />} />
+                    <Route path="/marketing/quotes/view/:id" element={<QuotationForm />} />
+                    <Route path="/marketing/quotes/edit/:id" element={<QuotationForm />} />
+                    <Route path="/marketing/orders" element={<SalesOrderList />} />
+                    <Route path="/marketing/orders/add" element={<SalesOrderForm />} />
+                    <Route path="/marketing/orders/view/:id" element={<SalesOrderForm />} />
+                    <Route path="/marketing/orders/edit/:id" element={<SalesOrderForm />} />
                     <Route path="/subcontract" element={<SubcontractDashboard />} />
+                    <Route path="/subcontract/orders" element={<OrderList />} />
+                    <Route path="/subcontract/orders/add" element={<OrderForm />} />
+                    <Route path="/subcontract/orders/view/:id" element={<OrderForm />} />
+                    <Route path="/subcontract/orders/edit/:id" element={<OrderForm />} />
+                    <Route path="/subcontract/issue" element={<IssueList />} />
+                    <Route path="/subcontract/issue/add" element={<IssueForm />} />
+                    <Route path="/subcontract/issue/view/:id" element={<IssueForm />} />
+                    <Route path="/subcontract/issue/edit/:id" element={<IssueForm />} />
+                    <Route path="/subcontract/receipt" element={<ReceiptList />} />
+                    <Route path="/subcontract/receipt/add" element={<ReceiptForm />} />
+                    <Route path="/subcontract/receipt/view/:id" element={<ReceiptForm />} />
+                    <Route path="/subcontract/receipt/edit/:id" element={<ReceiptForm />} />
                     <Route path="/maintenance" element={<MaintenanceDashboard />} />
+                    <Route path="/maintenance/machines" element={<MaintenanceMachineList />} />
+                    <Route path="/maintenance/machines/add" element={<MaintenanceMachineForm />} />
+
+                    <Route path="/maintenance/machines/view/:id" element={<MaintenanceMachineForm />} />
+
+                    <Route path="/maintenance/machines/edit/:id" element={<MaintenanceMachineForm />} />
+                    <Route path="/maintenance/assets" element={<AssetList />} />
+                    <Route path="/maintenance/assets/add" element={<AssetForm />} />
+                    <Route path="/maintenance/assets/view/:id" element={<AssetForm />} />
+                    <Route path="/maintenance/assets/edit/:id" element={<AssetForm />} />
+                    <Route path="/maintenance/schedule" element={<MaintenanceScheduleList />} />
+                    <Route path="/maintenance/schedule/add" element={<MaintenanceScheduleForm />} />
+                    <Route path="/maintenance/schedule/view/:id" element={<MaintenanceScheduleForm />} />
+                    <Route path="/maintenance/schedule/edit/:id" element={<MaintenanceScheduleForm />} />
 
                     {/* Departmental Reports */}
                     <Route path="/hr/reports" element={<Reports />} />

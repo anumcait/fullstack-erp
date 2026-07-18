@@ -20,6 +20,9 @@ ssh_cidr = ["0.0.0.0/0"]
 # Keep running; set "stopped" to halt compute while preserving EBS data.
 instance_state = "running"
 
+# Pin AMI to prevent auto-detection from replacing the instance
+ami_id = "ami-09f3f0acf030a6270"
+
 # Hostinger DNS Automation Configuration
 hostinger_api_token = "UtjqflK7e6JfDotkJ0PcBymQhW0faWdLlEHs9lN5fa2e6955"
 hostinger_zone      = "anushaengg.com"

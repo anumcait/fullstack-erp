@@ -357,6 +357,96 @@ END $$;`,
         console.log(`✅ Seeded ${TYPES.length} default item type(s).`);
       } catch (_) { /* non-fatal */ }
 
+      // 10. Seed Accounts module defaults (voucher types + chart of accounts)
+      try {
+        const { VoucherType, ChartOfAccount, FinancialYear, AccountsSettings } = db;
+
+        const VOUCHER_TYPES = [
+          { code: 'SI', name: 'Sales Invoice' },
+          { code: 'PI', name: 'Purchase Invoice' },
+          { code: 'DN', name: 'Debit Note' },
+          { code: 'CN', name: 'Credit Note' },
+          { code: 'PV', name: 'Payment Voucher' },
+          { code: 'RV', name: 'Receipt Voucher' },
+          { code: 'JV', name: 'Journal Voucher' },
+          { code: 'CV', name: 'Contra Voucher' },
+        ];
+        for (const vt of VOUCHER_TYPES) {
+          await VoucherType.findOrCreate({ where: { code: vt.code }, defaults: { ...vt, is_active: true } });
+        }
+        console.log(`✅ Seeded ${VOUCHER_TYPES.length} voucher type(s).`);
+
+        const DEFAULT_COA = [
+          { account_code: '1000', account_name: 'Current Assets', account_type: 'Asset', is_group: true },
+          { account_code: '1100', account_name: 'Cash & Bank', account_type: 'Asset', is_group: true },
+          { account_code: '1101', account_name: 'Cash in Hand', account_type: 'Asset', parent_code: '1100' },
+          { account_code: '1102', account_name: 'Bank Account', account_type: 'Asset', parent_code: '1100' },
+          { account_code: '1200', account_name: 'Accounts Receivable', account_type: 'Asset', is_group: true },
+          { account_code: '1201', account_name: 'Sundry Debtors', account_type: 'Asset', parent_code: '1200' },
+          { account_code: '1300', account_name: 'Inventory', account_type: 'Asset', is_group: true },
+          { account_code: '1301', account_name: 'Raw Materials', account_type: 'Asset', parent_code: '1300' },
+          { account_code: '1302', account_name: 'Finished Goods', account_type: 'Asset', parent_code: '1300' },
+          { account_code: '1400', account_name: 'Fixed Assets', account_type: 'Asset', is_group: true },
+          { account_code: '1401', account_name: 'Plant & Machinery', account_type: 'Asset', parent_code: '1400' },
+          { account_code: '1402', account_name: 'Furniture & Fixtures', account_type: 'Asset', parent_code: '1400' },
+          { account_code: '1403', account_name: 'Computers & Peripherals', account_type: 'Asset', parent_code: '1400' },
+          { account_code: '2000', account_name: 'Current Liabilities', account_type: 'Liability', is_group: true },
+          { account_code: '2100', account_name: 'Accounts Payable', account_type: 'Liability', is_group: true },
+          { account_code: '2101', account_name: 'Sundry Creditors', account_type: 'Liability', parent_code: '2100' },
+          { account_code: '2200', account_name: 'Short Term Borrowings', account_type: 'Liability', is_group: true },
+          { account_code: '2201', account_name: 'Bank OD / CC', account_type: 'Liability', parent_code: '2200' },
+          { account_code: '2300', account_name: 'Provisions', account_type: 'Liability', is_group: true },
+          { account_code: '2301', account_name: 'GST Payable', account_type: 'Liability', parent_code: '2300' },
+          { account_code: '2302', account_name: 'TDS Payable', account_type: 'Liability', parent_code: '2300' },
+          { account_code: '2400', account_name: 'Long Term Liabilities', account_type: 'Liability', is_group: true },
+          { account_code: '2401', account_name: 'Term Loan', account_type: 'Liability', parent_code: '2400' },
+          { account_code: '3000', account_name: 'Equity & Reserves', account_type: 'Equity', is_group: true },
+          { account_code: '3100', account_name: 'Capital Account', account_type: 'Equity', parent_code: '3000' },
+          { account_code: '3200', account_name: 'Retained Earnings', account_type: 'Equity', parent_code: '3000' },
+          { account_code: '4000', account_name: 'Income', account_type: 'Income', is_group: true },
+          { account_code: '4100', account_name: 'Sales Revenue', account_type: 'Income', parent_code: '4000' },
+          { account_code: '4200', account_name: 'Other Income', account_type: 'Income', parent_code: '4000' },
+          { account_code: '5000', account_name: 'Expenses', account_type: 'Expense', is_group: true },
+          { account_code: '5100', account_name: 'Direct Expenses', account_type: 'Expense', parent_code: '5000' },
+          { account_code: '5101', account_name: 'Raw Material Consumed', account_type: 'Expense', parent_code: '5100' },
+          { account_code: '5102', account_name: 'Manufacturing Expenses', account_type: 'Expense', parent_code: '5100' },
+          { account_code: '5200', account_name: 'Indirect Expenses', account_type: 'Expense', parent_code: '5000' },
+          { account_code: '5201', account_name: 'Salary & Wages', account_type: 'Expense', parent_code: '5200' },
+          { account_code: '5202', account_name: 'Rent', account_type: 'Expense', parent_code: '5200' },
+          { account_code: '5203', account_name: 'Electricity', account_type: 'Expense', parent_code: '5200' },
+          { account_code: '5204', account_name: 'Office Expenses', account_type: 'Expense', parent_code: '5200' },
+          { account_code: '5205', account_name: 'Travel & Conveyance', account_type: 'Expense', parent_code: '5200' },
+          { account_code: '5206', account_name: 'Legal & Professional', account_type: 'Expense', parent_code: '5200' },
+        ];
+
+        // Build COA with parent lookup by code
+        const coaCache = {};
+        for (const def of DEFAULT_COA) {
+          let parent_id = null;
+          if (def.parent_code) {
+            parent_id = coaCache[def.parent_code];
+          }
+          const [coa] = await ChartOfAccount.findOrCreate({
+            where: { account_code: def.account_code },
+            defaults: { account_code: def.account_code, account_name: def.account_name, account_type: def.account_type, is_group: def.is_group || false, parent_id, is_active: true },
+          });
+          coaCache[def.account_code] = coa.id;
+        }
+        console.log(`✅ Seeded ${DEFAULT_COA.length} chart of account(s).`);
+
+        // Financial year (current if not exists)
+        const now = new Date();
+        const fyName = `${now.getFullYear()}-${String(now.getFullYear() + 1).slice(2)}`;
+        const fyStart = `${now.getFullYear()}-04-01`;
+        const fyEnd = `${now.getFullYear() + 1}-03-31`;
+        const [fy] = await FinancialYear.findOrCreate({
+          where: { name: fyName },
+          defaults: { name: fyName, start_date: fyStart, end_date: fyEnd, is_active: true },
+        });
+        if (fy) await FinancialYear.update({ is_active: true }, { where: { id: fy.id } });
+        console.log(`✅ Seeded financial year ${fyName}.`);
+      } catch (_) { console.log('⚠️ Accounts seed skipped (may already exist).'); }
+
       // 5. Start listening
       app.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ Server running at http://localhost:${PORT}`);

@@ -75,10 +75,12 @@ export const PERMISSIONS = {
   PRODUCTION: [
     { id: 'MOD_PRODUCTION', label: 'Access PRODUCTION Module' },
     { id: 'PROD_DASHBOARD', label: 'Dashboard' },
+    { id: 'PROD_ORDERS', label: 'Production Orders' },
     { id: 'PROD_DAILY', label: 'Daily Production' },
     { id: 'PROD_MACHINES', label: 'Machine Monitoring' },
     { id: 'PROD_DOWNTIME', label: 'Down-Time Entry' },
     { id: 'PROD_REPORTS', label: 'Reports' },
+    { id: 'PROD_SETTINGS', label: 'Settings' },
   ],
   PLANNING: [
     { id: 'MOD_PLANNING', label: 'Access PLANNING Module' },
@@ -87,6 +89,7 @@ export const PERMISSIONS = {
     { id: 'PLAN_MRP', label: 'MRP Run' },
     { id: 'PLAN_CAPACITY', label: 'Capacity Planning' },
     { id: 'PLAN_REPORTS', label: 'Reports' },
+    { id: 'PLAN_SETTINGS', label: 'Settings' },
   ],
   ENGINEERING: [
     { id: 'MOD_ENGINEERING', label: 'Access ENGINEERING Module' },
@@ -106,6 +109,7 @@ export const PERMISSIONS = {
     { id: 'MARK_ORDERS', label: 'Sales Orders' },
     { id: 'MARK_CUSTOMERS', label: 'Customer Master' },
     { id: 'MARK_REPORTS', label: 'Reports' },
+    { id: 'MARK_SETTINGS', label: 'Settings' },
   ],
   QUALITY: [
     { id: 'MOD_QUALITY', label: 'Access QUALITY Module' },
@@ -114,6 +118,7 @@ export const PERMISSIONS = {
     { id: 'QUAL_PROCESS', label: 'In-Process Inspection' },
     { id: 'QUAL_FINAL', label: 'Final QC / PDI' },
     { id: 'QUAL_REPORTS', label: 'Reports' },
+    { id: 'QUAL_SETTINGS', label: 'Settings' },
   ],
   MAINTENANCE: [
     { id: 'MOD_MAINTENANCE', label: 'Access MAINTENANCE Module' },
@@ -122,6 +127,7 @@ export const PERMISSIONS = {
     { id: 'MAINT_ASSETS', label: 'Asset Register' },
     { id: 'MAINT_SCHEDULE', label: 'PM Schedule' },
     { id: 'MAINT_REPORTS', label: 'Reports' },
+    { id: 'MAINT_SETTINGS', label: 'Settings' },
   ],
   SUBCONTRACT: [
     { id: 'MOD_SUBCONTRACT', label: 'Access SUBCONTRACT Module' },
@@ -130,5 +136,6 @@ export const PERMISSIONS = {
     { id: 'SUB_ISSUE', label: 'Material Issue' },
     { id: 'SUB_RECEIPT', label: 'Material Receipt' },
     { id: 'SUB_REPORTS', label: 'Reports' },
+    { id: 'SUB_SETTINGS', label: 'Settings' },
   ]
 };

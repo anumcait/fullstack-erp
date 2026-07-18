@@ -53,36 +53,25 @@ resource "aws_iam_role_policy_attachment" "erp_demo_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-resource "aws_iam_role_policy_attachment" "erp_demo_ecr" {
-  role       = aws_iam_role.erp_demo.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+# Allow EC2 to self-create AMI for fast subsequent boots
+resource "aws_iam_role_policy" "erp_demo_ami" {
+  name = "erp-demo-create-ami"
+  role = aws_iam_role.erp_demo.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ec2:CreateImage", "ec2:CreateTags", "ec2:DescribeImages"]
+        Resource = "*"
+      },
+    ]
+  })
 }
-
 resource "aws_iam_instance_profile" "erp_demo" {
   name = "erp-demo-ssm-profile"
   role = aws_iam_role.erp_demo.name
 }
-
-# ────────────── ECR Repositories ──────────────
-resource "aws_ecr_repository" "backend" {
-  name                 = "erp-backend"
-  image_tag_mutability = "MUTABLE"
-  image_scanning_configuration { scan_on_push = true }
-}
-
-resource "aws_ecr_repository" "frontend" {
-  name                 = "erp-frontend"
-  image_tag_mutability = "MUTABLE"
-  image_scanning_configuration { scan_on_push = true }
-}
-
-resource "aws_ecr_repository" "agent" {
-  name                 = "erp-agent"
-  image_tag_mutability = "MUTABLE"
-  image_scanning_configuration { scan_on_push = true }
-}
-# resource "aws_ecr_repository" "frontend" { ... }
-# resource "aws_ecr_repository" "agent" { ... }
 
 # ────────────── Networking (default VPC) ──────────────
 data "aws_vpc" "default" {
@@ -107,6 +96,15 @@ data "aws_ami" "ubuntu" {
     values = ["hvm"]
   }
   owners = ["099720109477"]
+}
+
+# Find latest custom AMI for fast boots (auto-created by EC2 after first build)
+data "aws_ami_ids" "erp_demo_custom" {
+  owners = ["self"]
+  filter {
+    name   = "name"
+    values = ["erp-demo-*"]
+  }
 }
 
 # ────────────── Security group ──────────────
@@ -146,7 +144,10 @@ resource "aws_security_group" "erp_demo" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  ami_id  = var.ami_id != null && var.ami_id != "" ? var.ami_id : data.aws_ami.ubuntu.id
+  has_custom_ami = length(data.aws_ami_ids.erp_demo_custom.ids) > 0
+  ami_id = var.ami_id != null && var.ami_id != "" ? var.ami_id : (
+    local.has_custom_ami ? data.aws_ami_ids.erp_demo_custom.ids[0] : data.aws_ami.ubuntu.id
+  )
   app_url = "http://${aws_eip.this.public_ip}"
 }
 
@@ -171,8 +172,6 @@ resource "aws_instance" "this" {
     repo_url     = var.github_token != "" ? "https://${var.github_token}@${var.repo_url}" : "https://${var.repo_url}"
     compose_file = var.compose_file
     repo_branch  = var.repo_branch
-    aws_region   = var.region
-    ecr_registry = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
   })
 
   tags = {
@@ -182,12 +181,15 @@ resource "aws_instance" "this" {
 
 # ────────────── Elastic IP (stable address across stop/start) ──────────────
 resource "aws_eip" "this" {
-  domain                    = "vpc"
-  instance                  = aws_instance.this.id
-  associate_with_private_ip = aws_instance.this.private_ip
+  domain = "vpc"
   tags = {
     Name = "erp-demo-eip"
   }
+}
+
+resource "aws_eip_association" "this" {
+  allocation_id = aws_eip.this.id
+  instance_id   = aws_instance.this.id
 }
 
 # ────────────── Start / Stop (keeps data, no destroy) ──────────────
@@ -197,17 +199,19 @@ resource "aws_ec2_instance_state" "this" {
 }
 
 
-# ────────────── Hostinger DNS record (CNAME via API — bypasses provider bug) ──────────────
+# ────────────── Hostinger DNS record (CNAME via API) ──────────────
 resource "null_resource" "hostinger_dns" {
   count = var.hostinger_zone != "" && var.hostinger_subdomain != "" ? 1 : 0
 
   triggers = {
-    zone       = var.hostinger_zone
-    name       = var.hostinger_subdomain
-    public_dns = aws_instance.this.public_dns
-    token      = var.hostinger_api_token
-    ttl        = tostring(var.hostinger_ttl)
+    zone        = var.hostinger_zone
+    name        = var.hostinger_subdomain
+    instance_id = aws_instance.this.id
+    token       = var.hostinger_api_token
+    ttl         = tostring(var.hostinger_ttl)
   }
+
+  depends_on = [aws_eip_association.this]
 
   provisioner "local-exec" {
     interpreter = ["powershell.exe", "-Command"]
@@ -215,16 +219,21 @@ resource "null_resource" "hostinger_dns" {
 $token='${self.triggers.token}'
 $zone='${self.triggers.zone}'
 $name='${self.triggers.name}'
-$dns='${self.triggers.public_dns}'
+$instanceId='${self.triggers.instance_id}'
 $ttl=${self.triggers.ttl}
-$body=@"
-{"zone":[{"name":"$name","records":[{"content":"$dns"}],"type":"CNAME","ttl":$ttl}],"overwrite":true}
-"@
+Start-Sleep -Seconds 10
+$dns=(aws ec2 describe-instances --instance-ids $instanceId --region us-east-1 --query "Reservations[0].Instances[0].PublicDnsName" --output text)
+Write-Host "Resolved DNS: $dns"
+foreach ($type in @("A","CNAME")) {
+  $deleteBody="{`"filters`":[{`"name`":`"$name`",`"type`":`"$type`"}]}"
+  try { Invoke-RestMethod -Uri "https://developers.hostinger.com/api/dns/v1/zones/$zone" -Method DELETE -ContentType "application/json" -Headers @{Authorization="Bearer $token"} -Body $deleteBody -ErrorAction Stop | Out-Null } catch {}
+}
+$putBody="{`"zone`":[{`"name`":`"$name`",`"records`":[{`"content`":`"$dns`"}],`"type`":`"CNAME`",`"ttl`":$ttl}],`"overwrite`":true}"
 try {
-  $r=Invoke-RestMethod -Uri "https://developers.hostinger.com/api/dns/v1/zones/$zone" -Method PUT -ContentType "application/json" -Headers @{Authorization="Bearer $token"} -Body $body -ErrorAction Stop
+  Invoke-RestMethod -Uri "https://developers.hostinger.com/api/dns/v1/zones/$zone" -Method PUT -ContentType "application/json" -Headers @{Authorization="Bearer $token"} -Body $putBody -ErrorAction Stop | Out-Null
   Write-Host "Hostinger DNS: CNAME $name.$zone -> $dns created"
 } catch {
-  Write-Warning "Hostinger DNS ($_ )"
+  Write-Warning "Hostinger DNS PUT failed: $_"
 }
 PSCMD
   }
@@ -236,14 +245,12 @@ PSCMD
 $token='${self.triggers.token}'
 $zone='${self.triggers.zone}'
 $name='${self.triggers.name}'
-$body=@"
-{"zone":[{"name":"$name","type":"CNAME"}]}
-"@
-try {
-  $r=Invoke-RestMethod -Uri "https://developers.hostinger.com/api/dns/v1/zones/$zone" -Method DELETE -ContentType "application/json" -Headers @{Authorization="Bearer $token"} -Body $body -ErrorAction Stop
-  Write-Host "Hostinger DNS: CNAME $name.$zone deleted"
-} catch {
-  Write-Warning "Hostinger DNS delete ($_ )"
+foreach ($type in @("CNAME","A")) {
+  $body="{`"filters`":[{`"name`":`"$name`",`"type`":`"$type`"}]}"
+  try {
+    Invoke-RestMethod -Uri "https://developers.hostinger.com/api/dns/v1/zones/$zone" -Method DELETE -ContentType "application/json" -Headers @{Authorization="Bearer $token"} -Body $body -ErrorAction Stop | Out-Null
+    Write-Host "Hostinger DNS: $type $name.$zone deleted"
+  } catch {}
 }
 PSCMD
   }

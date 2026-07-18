@@ -1,18 +1,65 @@
-import React from 'react';
-import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
-import { FiTool, FiActivity } from 'react-icons/fi';
+import React, { useEffect, useState } from 'react';
+import { Box, Card, CardContent, Typography, Grid, LinearProgress } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
+import { FiTool, FiCalendar } from 'react-icons/fi';
+import axios from 'axios';
 
-const MaintenanceReports = () => (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'var(--heading-color)' }}>Maintenance Reports</Typography>
+const MaintenanceReports = () => {
+  const [machineStatus, setMachineStatus] = useState([]);
+  const [scheduleStatus, setScheduleStatus] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      axios.get('/api/erp/maintenance/reports/machine-status'),
+      axios.get('/api/erp/maintenance/reports/schedule-status'),
+    ]).then(([ms, ss]) => {
+      setMachineStatus(ms.data);
+      setScheduleStatus(ss.data);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <LinearProgress />;
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'var(--heading-color)' }}>Maintenance Reports</Typography>
       <Grid container spacing={3}>
-        {[{ title: 'Breakdown Summary', icon: <FiTool /> }, { title: 'MTTR / MTBF Report', icon: <FiActivity /> }].map((r, i) => (
-          <Grid item xs={12} sm={6} md={4} key={i}>
-            <Card sx={{ borderRadius: '16px' }}><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}><Box sx={{ p: 1.5, bgcolor: '#f1f8e9', color: '#33691e', borderRadius: '12px' }}>{r.icon}</Box><Typography variant="h6">{r.title}</Typography></CardContent></Card>
-          </Grid>
-        ))}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <FiTool /> <Typography variant="h6">Machine Status Summary</Typography>
+              </Box>
+              <div style={{ height: 300 }}>
+                <DataGrid rows={machineStatus} columns={[
+                  { field: 'status', headerName: 'Status', flex: 1 },
+                  { field: 'count', headerName: 'Count', flex: 1 },
+                ]} getRowId={(r, i) => i} hideFooter disableColumnMenu
+                  sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { bgcolor: '#f2f4f7', fontWeight: 700 } }} />
+              </div>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <FiCalendar /> <Typography variant="h6">Schedule Status Summary</Typography>
+              </Box>
+              <div style={{ height: 300 }}>
+                <DataGrid rows={scheduleStatus} columns={[
+                  { field: 'status', headerName: 'Status', flex: 1 },
+                  { field: 'count', headerName: 'Count', flex: 1 },
+                ]} getRowId={(r, i) => i} hideFooter disableColumnMenu
+                  sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { bgcolor: '#f2f4f7', fontWeight: 700 } }} />
+              </div>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
     </Box>
-);
+  );
+};
 
 export default MaintenanceReports;

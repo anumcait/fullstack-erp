@@ -1,5 +1,5 @@
 # Docker Compose for a single-EC2 demo deployment.
-# Services pull pre-built images from ECR for fast startup.
+# Services are pre-built in the custom AMI for fast boots.
 # Only nginx (port 80) is exposed publicly; db/backend/agent stay internal.
 # All services restart automatically after a reboot.
 
@@ -29,7 +29,7 @@ services:
 
   # ────────────── BACKEND ──────────────
   backend:
-    image: ${ECR_REGISTRY}/erp-backend:latest
+    image: erp-backend:latest
     container_name: hr-backend
     env_file:
       - ./backend/.env.development
@@ -55,7 +55,7 @@ services:
 
   # ────────────── PYTHON AGENT ──────────────
   agent_python:
-    image: ${ECR_REGISTRY}/erp-agent:latest
+    image: erp-agent:latest
     container_name: hr-python-agent
     deploy:
       resources:
@@ -67,7 +67,7 @@ services:
 
   # ────────────── FRONTEND ──────────────
   frontend:
-    image: ${ECR_REGISTRY}/erp-frontend:latest
+    image: erp-frontend:latest
     container_name: hr-frontend
     depends_on:
       backend:

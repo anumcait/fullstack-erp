@@ -80,8 +80,8 @@ const SUBMENUS = {
   planProd: ["/planning/schedule", "/planning/mrp", "/planning/capacity"],
   engData: ["/engineering/products", "/engineering/categories", "/engineering/bom", "/engineering/bom-diff"],
   engProc: ["/engineering/routing", "/engineering/work-centers"],
-  markSales: ["/marketing/leads", "/marketing/quotes", "/marketing/orders", "/purchase/vendors"],
-  qualInsp: ["/quality/incoming", "/quality/process", "/quality/final"],
+  markSales: ["/marketing/leads", "/marketing/quotes", "/marketing/orders", "/marketing/customers"],
+  qualInsp: ["/quality/incoming", "/quality/process", "/quality/final", "/quality/non-conformances"],
   maintAssets: ["/maintenance/machines", "/maintenance/assets", "/maintenance/schedule"],
   subOps: ["/subcontract/orders", "/subcontract/issue", "/subcontract/receipt"],
 };
@@ -283,6 +283,44 @@ const Sidebar = () => {
                 )}
               </li>
             )}
+
+            {/* Masters */}
+            <li className="sidebar-menu-item">
+              <SideNavLink to="/accounts/coa" label="Chart of Accounts" icon={FiBookOpen} />
+            </li>
+            <li className="sidebar-menu-item">
+              <SideNavLink to="/accounts/budgets" label="Budget" icon={FiTarget} />
+            </li>
+
+            {/* Reports */}
+            {(hasPermission('ACC_REP_LEDGER') || hasPermission('ACC_REP_DAYBOOK') || hasPermission('ACC_REP_TB') || hasPermission('ACC_REP_PL') || hasPermission('ACC_REP_BS')) && (
+              <li className={`sidebar-menu-item ${openSubmenu === "accReports" ? "open" : ""} ${isSubmenuActive("accReports") ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("accReports")}>
+                  <FiFileText />
+                  {!collapsed && (
+                    <>
+                      <span>Reports</span>
+                      <span className="expand-icon">{openSubmenu === "accReports" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                    </>
+                  )}
+                </div>
+                {openSubmenu === "accReports" && (
+                  <ul className="sidebar-submenu">
+                    {hasPermission('ACC_REP_LEDGER') && <SubItem to="/reports/ledger" label="General Ledger" icon={FiFileText} />}
+                    {hasPermission('ACC_REP_DAYBOOK') && <SubItem to="/reports/daybook" label="Day Book" icon={FiFileText} />}
+                    {hasPermission('ACC_REP_TB') && <SubItem to="/reports/trial-balance" label="Trial Balance" icon={FiBarChart} />}
+                    {hasPermission('ACC_REP_PL') && <SubItem to="/reports/pl" label="P&L Statement" icon={FiTrendingUp} />}
+                    {hasPermission('ACC_REP_BS') && <SubItem to="/reports/balance-sheet" label="Balance Sheet" icon={FiPieChart} />}
+                    {hasPermission('ACC_REP_AP') && <SubItem to="/reports/ap" label="Accounts Payable" icon={FiFileText} />}
+                    {hasPermission('ACC_REP_AR') && <SubItem to="/reports/ar" label="Accounts Receivable" icon={FiFileText} />}
+                  </ul>
+                )}
+              </li>
+            )}
+
+            <li className="sidebar-menu-item">
+              <SideNavLink to="/accounts/settings" label="Settings" icon={FiSettings} />
+            </li>
           </>
         )}
 
@@ -584,9 +622,11 @@ const Sidebar = () => {
                 <SideNavLink to="/production" label="Dashboard" icon={FiHome} exact />
               </li>
             )}
-            <li className="sidebar-menu-item">
-              <SideNavLink to="/production/orders" label="Production Orders" icon={FiLayers} />
-            </li>
+            {hasPermission('PROD_ORDERS') && (
+              <li className="sidebar-menu-item">
+                <SideNavLink to="/production/orders" label="Production Orders" icon={FiLayers} />
+              </li>
+            )}
             {(hasPermission('PROD_DAILY') || hasPermission('PROD_MACHINES') || hasPermission('PROD_DOWNTIME')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "prodFloor" ? "open" : ""} ${isSubmenuActive("prodFloor") ? "sidebar-active-parent" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("prodFloor")}>
@@ -716,7 +756,7 @@ const Sidebar = () => {
                     {hasPermission('MARK_LEADS') && <SubItem to="/marketing/leads" label="Leads / Enquiries" icon={FiMail} />}
                     {hasPermission('MARK_QUOTES') && <SubItem to="/marketing/quotes" label="Quotations" icon={FiFileText} />}
                     {hasPermission('MARK_ORDERS') && <SubItem to="/marketing/orders" label="Sales Orders" icon={FiShoppingBag} />}
-                    {hasPermission('MARK_CUSTOMERS') && <SubItem to="/purchase/vendors" label="Customer Master" icon={FiUsers} />}
+                    {hasPermission('MARK_CUSTOMERS') && <SubItem to="/marketing/customers" label="Customer Master" icon={FiUsers} />}
                   </ul>
                 )}
               </li>
@@ -750,6 +790,11 @@ const Sidebar = () => {
                     {hasPermission('QUAL_FINAL') && <SubItem to="/quality/final" label="Final QC / PDI" icon={FiArrowUp} />}
                   </ul>
                 )}
+              </li>
+            )}
+            {(hasPermission('QUAL_REPORTS')) && (
+              <li className="sidebar-menu-item">
+                <SideNavLink to="/quality/non-conformances" label="Non-Conformance" icon={FiAlertTriangle} exact />
               </li>
             )}
           </>
