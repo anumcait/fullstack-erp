@@ -72,7 +72,13 @@ if [ "$CLONED" -ne 1 ] || [ ! -d "$REPO_DIR/.git" ]; then
 fi
 echo "✅ Repository cloned to $REPO_DIR"
 
-echo "==> Writing systemd unit (pulls images from ECR, builds only on first push)"
+echo "==> Building Docker images locally (tagged with ECR registry URL for compose)"
+docker build -t ${ecr_registry}/erp-backend:latest "$REPO_DIR/backend"
+docker build -t ${ecr_registry}/erp-frontend:latest "$REPO_DIR/frontend"
+docker build -t ${ecr_registry}/erp-agent:latest "$REPO_DIR/agent_python"
+echo "✅ Local build complete — containers use these images until ECR images are pushed"
+
+echo "==> Writing systemd unit (pulls updated images from ECR on restart)"
 cat > /etc/systemd/system/erp-demo.service <<UNIT
 [Unit]
 Description=ERP Demo Stack
@@ -84,6 +90,7 @@ Type=simple
 WorkingDirectory=$REPO_DIR
 Environment=ECR_REGISTRY=${ecr_registry}
 ExecStartPre=/bin/bash -c "/usr/bin/aws ecr get-login-password --region ${aws_region} | /usr/bin/docker login --username AWS --password-stdin ${ecr_registry}"
+ExecStartPre=/usr/bin/docker compose -f ${compose_file} pull 2>&1 | tail -5
 ExecStartPre=/usr/bin/docker compose -f ${compose_file} down --remove-orphans
 ExecStart=/usr/bin/docker compose -f ${compose_file} up --remove-orphans
 ExecStop=/usr/bin/docker compose -f ${compose_file} down --remove-orphans
