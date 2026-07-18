@@ -95,18 +95,25 @@ exports.createGRN = async (req, res) => {
     const existing = await GRN.findOne({ where: { grn_no: header.grn_no } });
     if (existing) return res.status(409).json({ error: `GRN '${header.grn_no}' already exists` });
 
+    // Default to Draft unless explicitly submitted
+    if (!header.status || header.status === 'Received') {
+      header.status = 'Draft';
+    }
+
     const grn = await GRN.create(header);
     if (items && items.length > 0) {
       const itemRows = items.map((it) => ({ ...it, grn_id: grn.id }));
       await GRNItem.bulkCreate(itemRows);
 
-      // Update PO item received quantities
-      for (const it of items) {
-        if (it.po_item_id) {
-          const poItem = await PurchaseOrderItem.findByPk(it.po_item_id);
-          if (poItem) {
-            const newReceived = parseFloat(poItem.received_quantity || 0) + parseFloat(it.accepted_qty || 0);
-            await poItem.update({ received_quantity: newReceived });
+      // Update PO item received quantities only when status is Received
+      if (header.status !== 'Draft') {
+        for (const it of items) {
+          if (it.po_item_id) {
+            const poItem = await PurchaseOrderItem.findByPk(it.po_item_id);
+            if (poItem) {
+              const newReceived = parseFloat(poItem.received_quantity || 0) + parseFloat(it.accepted_qty || 0);
+              await poItem.update({ received_quantity: newReceived });
+            }
           }
         }
       }
@@ -119,7 +126,8 @@ exports.createGRN = async (req, res) => {
         { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
       ],
     });
-    await postGRNCost(grn.id);
+    // Only post cost when status is not Draft
+    if (header.status !== 'Draft') await postGRNCost(grn.id);
     res.status(201).json(result);
   } catch (err) {
     console.error('Error creating GRN:', err);
@@ -130,16 +138,48 @@ exports.createGRN = async (req, res) => {
 exports.updateGRN = async (req, res) => {
   try {
     const { id } = req.params;
-    const grn = await GRN.findByPk(id);
+    const grn = await GRN.findByPk(id, {
+      include: [{ model: GRNItem, as: 'items' }],
+    });
     if (!grn) return res.status(404).json({ error: 'GRN not found' });
+    if (grn.status !== 'Draft') return res.status(400).json({ error: 'Only draft GRNs can be edited' });
 
     const { items, ...header } = req.body;
+    const wasDraft = grn.status === 'Draft';
+    const becomingReceived = header.status === 'Received';
+
     await grn.update(header);
 
     if (items) {
+      // Reverse old PO item received quantities
+      if (grn.items) {
+        for (const oldIt of grn.items) {
+          if (oldIt.po_item_id) {
+            const poItem = await PurchaseOrderItem.findByPk(oldIt.po_item_id);
+            if (poItem) {
+              const newReceived = Math.max(0, parseFloat(poItem.received_quantity || 0) - parseFloat(oldIt.accepted_qty || 0));
+              await poItem.update({ received_quantity: newReceived });
+            }
+          }
+        }
+      }
+
       await GRNItem.destroy({ where: { grn_id: id } });
       const itemRows = items.map((it) => ({ ...it, grn_id: id }));
       await GRNItem.bulkCreate(itemRows);
+
+      // Apply new PO item received quantities (only when becoming Received)
+      if (becomingReceived) {
+        for (const it of items) {
+          if (it.po_item_id) {
+            const poItem = await PurchaseOrderItem.findByPk(it.po_item_id);
+            if (poItem) {
+              const newReceived = parseFloat(poItem.received_quantity || 0) + parseFloat(it.accepted_qty || 0);
+              await poItem.update({ received_quantity: newReceived });
+            }
+          }
+        }
+      }
     }
 
     const result = await GRN.findByPk(id, {
@@ -149,7 +189,10 @@ exports.updateGRN = async (req, res) => {
         { model: SupplierMaster, as: 'supplier' },
       ],
     });
-    if (!grn.cost_posted) await postGRNCost(id);
+    // Post cost when becoming Received and not already posted
+    if (becomingReceived && !grn.cost_posted) {
+      await postGRNCost(id);
+    }
     res.json(result);
   } catch (err) {
     console.error('Error updating GRN:', err);
@@ -163,12 +206,17 @@ exports.approveGRN = async (req, res) => {
     const { status, approved_by, remarks } = req.body;
     const grn = await GRN.findByPk(id);
     if (!grn) return res.status(404).json({ error: 'GRN not found' });
+    const isApproved = (status || 'Approved') === 'Approved';
     await grn.update({
       approval_status: status || 'Approved',
       approved_by: approved_by || req.session?.user?.name || 'System',
       approved_date: new Date(),
       approval_remarks: remarks || grn.approval_remarks,
     });
+    // Post cost on approval if not already posted
+    if (isApproved && !grn.cost_posted) {
+      await postGRNCost(id);
+    }
     res.json(grn);
   } catch (err) {
     console.error('Error approving GRN:', err);
@@ -179,8 +227,24 @@ exports.approveGRN = async (req, res) => {
 exports.deleteGRN = async (req, res) => {
   try {
     const { id } = req.params;
-    const grn = await GRN.findByPk(id);
+    const grn = await GRN.findByPk(id, {
+      include: [{ model: GRNItem, as: 'items' }],
+    });
     if (!grn) return res.status(404).json({ error: 'GRN not found' });
+
+    // Reverse PO item received quantities if status was Received
+    if (grn.status === 'Received' && grn.items) {
+      for (const it of grn.items) {
+        if (it.po_item_id) {
+          const poItem = await PurchaseOrderItem.findByPk(it.po_item_id);
+          if (poItem) {
+            const newReceived = Math.max(0, parseFloat(poItem.received_quantity || 0) - parseFloat(it.accepted_qty || 0));
+            await poItem.update({ received_quantity: newReceived });
+          }
+        }
+      }
+    }
+
     await GRNItem.destroy({ where: { grn_id: id } });
     await grn.destroy();
     res.json({ message: 'GRN deleted' });

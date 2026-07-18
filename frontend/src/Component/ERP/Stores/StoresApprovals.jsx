@@ -35,11 +35,8 @@ export default function StoresApprovals() {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const { data } = await axios.get("/api/erp/purchase/approvals");
-            // filter only MR, AUDIT, and GRN types
-            const rawItems = data.items || [];
-            const storesItems = rawItems.filter(item => ["MR", "AUDIT", "GRN"].includes(item.type));
-            setRows(storesItems);
+            const { data } = await axios.get("/api/erp/stores/approvals");
+            setRows(data.items || []);
         } catch {
             showToast("Failed to load stores approvals", "error");
         } finally { setLoading(false); }

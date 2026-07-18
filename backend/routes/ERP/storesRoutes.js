@@ -14,9 +14,13 @@ const deliveryChallanController = require('../../controllers/ERP/deliveryChallan
 const billingController = require('../../controllers/ERP/billingController');
 const storesSettingsController = require('../../controllers/ERP/storesSettingsController');
 const storesReportController = require('../../controllers/ERP/storesReportController');
+const approvalController = require('../../controllers/ERP/approvalController');
 
 // ── Dashboard ──
 router.get('/dashboard', storesController.getDashboardStats);
+
+// ── Approvals Inbox ──
+router.get('/approvals', approvalController.getStoresApprovals);
 
 // ── Reports ──
 router.get('/reports/valuation', storesReportController.getInventoryValuation);
@@ -89,6 +93,7 @@ router.delete('/material-requisitions/:id', materialRequisitionController.delete
 router.get('/material-issues', materialIssueController.getList);
 router.get('/material-issues/:id', materialIssueController.getOne);
 router.post('/material-issues', materialIssueController.create);
+router.put('/material-issues/:id', materialIssueController.update);
 router.delete('/material-issues/:id', materialIssueController.delete);
 
 // ── Stock Ledger ──
@@ -114,6 +119,7 @@ router.delete('/gate-entry/:id', gateEntryController.delete);
 router.get('/material-returns', materialReturnController.getList);
 router.get('/material-returns/:id', materialReturnController.getOne);
 router.post('/material-returns', materialReturnController.create);
+router.put('/material-returns/:id', materialReturnController.update);
 router.delete('/material-returns/:id', materialReturnController.delete);
 
 // ── Delivery Challan ──

@@ -7,7 +7,7 @@ description: Run deployment management scripts for AWS ERP including up, down, u
 Use this workflow to guide your system deployment commands. All commands should be executed from the root of the project directory.
 
 ## 1. Local Database Backup
-Dump the local PostgreSQL databases (`hrdb` and `erpdb`) from the local running Docker container into the `pg_backup/` directory, and push the changes to Git.
+Dump the local PostgreSQL databases (`hrdb` and `erpdb`) from the local running Docker container into the `pg_backup/` directory, and upload them to AWS S3.
 ```bash
 ./deploy.sh backup
 ```
@@ -19,7 +19,7 @@ Bootstrap and spin up the complete AWS EC2 instance, associate the Elastic IP, a
 ```
 
 ## 3. Sync and Update AWS (Sync local to AWS)
-Commit changes, push to origin, pull on EC2 target, rebuild containers, and restore the databases cloned from Local.
+Build new Docker images locally on your machine, tag and push them to AWS ECR, upload local database backups to AWS S3, and trigger the remote EC2 instance via SSM to pull the new ECR container images and restore databases from S3 backups.
 // turbo
 ```bash
 ./deploy.sh update

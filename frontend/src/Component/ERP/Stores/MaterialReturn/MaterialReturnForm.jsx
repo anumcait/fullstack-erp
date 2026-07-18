@@ -7,7 +7,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import CountedTextArea from '../../../Common/CountedTextArea';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 const API = '/api/erp/stores/material-returns';
 const ITEMS_API = '/api/erp/stores/items';
@@ -15,8 +15,10 @@ const ITEMS_API = '/api/erp/stores/items';
 export default function MaterialReturnForm() {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
-  const isView = window.location.pathname.includes('/view/');
+  const isView = location.pathname.includes('/view/');
+  const isEdit = location.pathname.includes('/edit/');
 
   const [header, setHeader] = useState({
     return_date: new Date().toISOString().split('T')[0],
@@ -93,9 +95,14 @@ export default function MaterialReturnForm() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = { ...header, items: items.map(({ id, ...rest }) => rest) };
-      await axios.post(API, payload);
-      showToast('Return created successfully', 'success');
+      const payload = { ...header, items: items.map(({ id, return_id, ...rest }) => rest) };
+      if (isEdit) {
+        await axios.put(`${API}/${id}`, payload);
+        showToast('Return updated successfully', 'success');
+      } else {
+        await axios.post(API, payload);
+        showToast('Return created successfully', 'success');
+      }
       navigate('/stores/material-returns');
     } catch { showToast('Failed to save', 'error'); }
     finally { setSaving(false); }
@@ -108,7 +115,7 @@ export default function MaterialReturnForm() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <IconButton onClick={() => navigate('/stores/material-returns')}><ArrowBackIcon /></IconButton>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'var(--heading-color)' }}>
-          {isView ? 'View Material Return' : 'New Material Return'}
+          {isView ? 'View Material Return' : isEdit ? 'Edit Material Return' : 'New Material Return'}
         </Typography>
       </Box>
       <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', mb: 3 }}>

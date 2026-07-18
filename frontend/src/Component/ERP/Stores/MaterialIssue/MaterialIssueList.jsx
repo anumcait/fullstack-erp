@@ -3,6 +3,7 @@ import { Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProg
 import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
@@ -47,9 +48,14 @@ export default function MaterialIssueList() {
       renderCell: (p) => <Chip label={p.value} size="small" color={statusColors[p.value] || 'default'} />,
     },
     {
-      field: 'actions', headerName: 'Actions', width: 100, sortable: false,
+      field: 'actions', headerName: 'Actions', width: 140, sortable: false,
       renderCell: (p) => (
-        <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/stores/material-issues/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+        <Box>
+          <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/stores/material-issues/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+          {p.row.status === 'Draft' && (
+            <Tooltip title="Edit"><IconButton size="small" color="primary" onClick={() => navigate(`/stores/material-issues/edit/${p.row.id}`)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+          )}
+        </Box>
       ),
     },
   ];

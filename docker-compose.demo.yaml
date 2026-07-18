@@ -1,11 +1,7 @@
 # Docker Compose for a single-EC2 demo deployment.
-# Differences from docker-compose.yaml:
-#   - Only nginx (port 80) is exposed publicly; db/backend/agent stay internal.
-#   - Backend connects to the `db` service via DB_HOST=db (not localhost).
-#   - All services use restart: unless-stopped so they recover after a reboot.
-#   - Bind mounts keep your code live; rebuild images only when deps change.
-
-version: '3.9'
+# Services pull pre-built images from ECR for fast startup.
+# Only nginx (port 80) is exposed publicly; db/backend/agent stay internal.
+# All services restart automatically after a reboot.
 
 services:
   # ────────────── DATABASE (PostgreSQL) ──────────────
@@ -27,20 +23,17 @@ services:
       retries: 30
       start_period: 300s
     shm_size: '256mb'
-    # No public port mapping — only reachable inside hr-network.
     command: ["/bin/bash", "-c", "/docker-entrypoint-initdb.d/01-init-db.sh & exec docker-entrypoint.sh postgres"]
     restart: unless-stopped
     networks: [hr-network]
 
   # ────────────── BACKEND ──────────────
   backend:
-    build:
-      context: ./backend
+    image: ${ECR_REGISTRY}/erp-backend:latest
     container_name: hr-backend
     env_file:
       - ./backend/.env.development
     environment:
-      # Override connection to the in-network db service (not localhost).
       DB_HOST: db
       DB_PORT: 5432
       ERP_DB_HOST: db
@@ -57,24 +50,13 @@ services:
       timeout: 10s
       retries: 20
       start_period: 300s
-    command: ["npm", "run", "dev"]
-    # No public port — reached only via nginx /api/.
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    working_dir: /app
     networks: [hr-network]
     restart: unless-stopped
 
   # ────────────── PYTHON AGENT ──────────────
   agent_python:
-    build:
-      context: ./agent_python
+    image: ${ECR_REGISTRY}/erp-agent:latest
     container_name: hr-python-agent
-    volumes:
-      - ./agent_python:/app
-    # No public port — reached only by the backend on the internal network.
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
     deploy:
       resources:
         limits:
@@ -85,25 +67,14 @@ services:
 
   # ────────────── FRONTEND ──────────────
   frontend:
-    build:
-      context: ./frontend
+    image: ${ECR_REGISTRY}/erp-frontend:latest
     container_name: hr-frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     depends_on:
       backend:
         condition: service_healthy
     environment:
       - API_TARGET=http://backend:5000
       - VITE_API_URL=
-    # Serve a production build via `vite preview` instead of the Vite dev server.
-    # The dev server transforms modules on-the-fly, which is extremely slow over
-    # the internet; the bundled build loads in one shot. nginx still proxies
-    # / -> frontend:5173 and /api/ -> backend. VITE_API_URL is emptied so API
-    # calls resolve relatively through nginx (same origin).
-    command: ["sh", "-c", "VITE_API_URL= npm run build && npm run preview -- --host 0.0.0.0 --port 5173"]
-    # No public port — reached only via nginx /.
     networks: [hr-network]
     restart: unless-stopped
 

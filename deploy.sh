@@ -117,7 +117,7 @@ do_backup() {
   log "Backing up local databases from container '$LOCAL_DB_CONTAINER'"
 
   if ! docker ps --format '{{.Names}}' | grep -qx "$LOCAL_DB_CONTAINER"; then
-    warn "Container '$LOCAL_DB_CONTAINER' is not running. Using committed pg_backup/ as-is."
+    warn "Container '$LOCAL_DB_CONTAINER' is not running. Using local pg_backup/ as-is."
   else
     log "Dumping hrdb ..."
     MSYS_NO_PATHCONV=1 docker exec -t "$LOCAL_DB_CONTAINER" \
@@ -126,11 +126,7 @@ do_backup() {
     MSYS_NO_PATHCONV=1 docker exec -t "$LOCAL_DB_CONTAINER" \
       pg_dump -U postgres -Fc -f /tmp/erpdb.backup erpdb
 
-    # Copy the dumps out of the container. We write to a container-internal
-    # /tmp (no bind-mount dependency) and `docker cp` them to the repo's
-    # tracked folder. Git-Bash rewrites Unix paths for the Windows Docker
-    # daemon, so we (a) keep the container source path literal via
-    # MSYS_NO_PATHCONV=1 and (b) translate the Windows destination with cygpath -w.
+    # Copy the dumps out of the container.
     mkdir -p "$REPO_ROOT/pg_backup"
     MSYS_NO_PATHCONV=1 docker cp "$LOCAL_DB_CONTAINER:/tmp/hrdb.backup" \
       "$(cygpath -w "$REPO_ROOT/pg_backup")/hrdb.backup"
@@ -139,18 +135,21 @@ do_backup() {
     log "Backups written to pg_backup/"
   fi
 
-  # Commit + push the latest data so a fresh deploy restores it.
-  ( cd "$REPO_ROOT"
-    git checkout "$BRANCH" 2>/dev/null || true
-    git add pg_backup/
-    if git diff --cached --quiet; then
-      log "No backup changes to commit."
-    else
-      git commit -m "chore: update demo DB backups ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
-      log "Pushing to origin/$BRANCH ..."
-      git push origin "$BRANCH"
+  # Upload to S3 if the bucket has been created (infrastructure exists).
+  local bucket
+  bucket="$(run_tf output -raw backup_bucket_name 2>/dev/null || true)"
+  if [ -n "$bucket" ] && [[ ! "$bucket" =~ "No outputs" ]] && [[ ! "$bucket" =~ "Warning:" ]]; then
+    log "Uploading backups to S3 bucket $bucket ..."
+    if [ -f "$REPO_ROOT/pg_backup/hrdb.backup" ]; then
+      aws s3 cp "$(cygpath -w "$REPO_ROOT/pg_backup")/hrdb.backup" "s3://$bucket/hrdb.backup" --profile "$AWS_PROFILE" --region "$AWS_REGION"
     fi
-  )
+    if [ -f "$REPO_ROOT/pg_backup/erpdb.backup" ]; then
+      aws s3 cp "$(cygpath -w "$REPO_ROOT/pg_backup")/erpdb.backup" "s3://$bucket/erpdb.backup" --profile "$AWS_PROFILE" --region "$AWS_REGION"
+    fi
+    log "S3 backup sync complete."
+  else
+    log "Notice: Terraform backup bucket not yet created. Backups will be synchronized to S3 during next deploy/up command."
+  fi
   log "Backup step complete."
 }
 
@@ -168,6 +167,60 @@ do_up() {
   url="$(run_tf output -raw app_url 2>/dev/null || true)"
   [ -n "$url" ] || die "Could not read app_url from terraform output."
   log "Elastic IP allocated: $url"
+
+  # Upload database backups to S3 if they exist locally
+  local bucket
+  bucket="$(run_tf output -raw backup_bucket_name 2>/dev/null || true)"
+  if [ -n "$bucket" ] && [[ ! "$bucket" =~ "No outputs" ]] && [[ ! "$bucket" =~ "Warning:" ]]; then
+    log "Uploading initial database backups to S3 bucket $bucket ..."
+    if [ -f "$REPO_ROOT/pg_backup/hrdb.backup" ]; then
+      aws s3 cp "$(cygpath -w "$REPO_ROOT/pg_backup")/hrdb.backup" "s3://$bucket/hrdb.backup" --profile "$AWS_PROFILE" --region "$AWS_REGION"
+    fi
+    if [ -f "$REPO_ROOT/pg_backup/erpdb.backup" ]; then
+      aws s3 cp "$(cygpath -w "$REPO_ROOT/pg_backup")/erpdb.backup" "s3://$bucket/erpdb.backup" --profile "$AWS_PROFILE" --region "$AWS_REGION"
+    fi
+  fi
+
+  # Build and push images to ECR
+  local backend_url frontend_url agent_url ecr_registry
+  backend_url="$(run_tf output -raw ecr_backend_url 2>/dev/null || true)"
+  frontend_url="$(run_tf output -raw ecr_frontend_url 2>/dev/null || true)"
+  agent_url="$(run_tf output -raw ecr_agent_url 2>/dev/null || true)"
+  
+  if [ -n "$backend_url" ] && [[ ! "$backend_url" =~ "No outputs" ]] && [[ ! "$backend_url" =~ "Warning:" ]]; then
+    ecr_registry="$(echo "$backend_url" | cut -d'/' -f1)"
+    log "Logging in to AWS ECR at $ecr_registry ..."
+    aws ecr get-login-password --region "$AWS_REGION" --profile "$AWS_PROFILE" | docker login --username AWS --password-stdin "$ecr_registry"
+
+    log "Building and pushing services to ECR..."
+    
+    log "Building Backend..."
+    docker build -t "$backend_url:latest" "$REPO_ROOT/backend"
+    docker push "$backend_url:latest"
+
+    log "Building Agent..."
+    docker build -t "$agent_url:latest" "$REPO_ROOT/agent_python"
+    docker push "$agent_url:latest"
+
+    log "Building Frontend..."
+    docker build -t "$frontend_url:latest" "$REPO_ROOT/frontend"
+    docker push "$frontend_url:latest"
+    
+    log "ECR Build & Push complete."
+  fi
+
+  # Trigger pull and restart on EC2 instance via SSM
+  local id
+  id="$(run_tf output -raw instance_id 2>/dev/null || true)"
+  if [ -n "$id" ] && [[ ! "$id" =~ "No outputs" ]] && [[ ! "$id" =~ "Warning:" ]] && [ -n "$backend_url" ] && [[ ! "$backend_url" =~ "No outputs" ]]; then
+    log "Triggering initial image pull and database setup on EC2 instance $id via SSM..."
+    
+    local init_cmd=$(cat <<JSON
+["mkdir -p /opt/erp-app/pg_backup","aws s3 cp s3://$bucket/hrdb.backup /opt/erp-app/pg_backup/hrdb.backup --region $AWS_REGION || echo 'skip'","aws s3 cp s3://$bucket/erpdb.backup /opt/erp-app/pg_backup/erpdb.backup --region $AWS_REGION || echo 'skip'","aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ecr_registry","cd /opt/erp-app && ECR_REGISTRY=$ecr_registry docker compose -f docker-compose.demo.yaml pull","systemctl restart erp-demo.service"]
+JSON
+)
+    _ssm_exec "$id" "$init_cmd"
+  fi
 
   # Fast failure path: confirm the repo cloned within ~3 min so a broken
   # bootstrap surfaces quickly instead of after the full health timeout.
@@ -264,36 +317,69 @@ do_update() {
     git push -u origin "$BRANCH"
   )
 
-  # 2) Pull + rebuild changed images + restart on the instance (DB volume persists).
-  local id arr
+  local bucket backend_url frontend_url agent_url ecr_registry id
+  bucket="$(run_tf output -raw backup_bucket_name 2>/dev/null || true)"
+  backend_url="$(run_tf output -raw ecr_backend_url 2>/dev/null || true)"
+  frontend_url="$(run_tf output -raw ecr_frontend_url 2>/dev/null || true)"
+  agent_url="$(run_tf output -raw ecr_agent_url 2>/dev/null || true)"
   id="$(run_tf output -raw instance_id 2>/dev/null || true)"
+
   [ -n "$id" ] || die "Cannot read instance_id (is the stack applied & running?)."
-  log "Applying changes on instance $id via SSM (git pull + rebuild + restart) ..."
 
-  arr=$(cat <<'JSON'
-["export DOCKER_BUILDKIT=0; cd /opt/erp-app && git pull origin __BRANCH__ 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","export DOCKER_BUILDKIT=0; cd /opt/erp-app && docker compose -f docker-compose.demo.yaml build 2>&1 | tail -n 25 | LC_ALL=C sed 's/[^[:print:]]//g'","systemctl restart erp-demo.service 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","sleep 12; docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null | LC_ALL=C sed 's/[^[:print:]]//g'"]
+  if [ -n "$backend_url" ] && [[ ! "$backend_url" =~ "No outputs" ]] && [[ ! "$backend_url" =~ "Warning:" ]]; then
+    ecr_registry="$(echo "$backend_url" | cut -d'/' -f1)"
+
+    log "Log in to AWS ECR locally..."
+    aws ecr get-login-password --region "$AWS_REGION" --profile "$AWS_PROFILE" | docker login --username AWS --password-stdin "$ecr_registry"
+
+    log "Building and pushing local updates to ECR..."
+    
+    log "Building Backend..."
+    docker build -t "$backend_url:latest" "$REPO_ROOT/backend"
+    docker push "$backend_url:latest"
+
+    log "Building Agent..."
+    docker build -t "$agent_url:latest" "$REPO_ROOT/agent_python"
+    docker push "$agent_url:latest"
+
+    log "Building Frontend..."
+    docker build -t "$frontend_url:latest" "$REPO_ROOT/frontend"
+    docker push "$frontend_url:latest"
+    
+    log "ECR Push complete."
+  fi
+
+  # 2) Pull latest git code + login to ECR + pull images + restart on the instance (DB volume persists).
+  log "Applying changes on instance $id via SSM (git pull + ECR pull + restart) ..."
+
+  if [ -n "$backend_url" ] && [[ ! "$backend_url" =~ "No outputs" ]]; then
+    local arr=$(cat <<JSON
+["cd /opt/erp-app && git pull origin __BRANCH__ 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ecr_registry","cd /opt/erp-app && ECR_REGISTRY=$ecr_registry docker compose -f docker-compose.demo.yaml pull 2>&1 | tail -n 25 | LC_ALL=C sed 's/[^[:print:]]//g'","systemctl restart erp-demo.service 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","sleep 12; docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null | LC_ALL=C sed 's/[^[:print:]]//g'"]
 JSON
 )
-  arr="${arr//__BRANCH__/$BRANCH}"
+    arr="${arr//__BRANCH__/$BRANCH}"
+    _ssm_exec "$id" "$arr"
+  fi
 
-   _ssm_exec "$id" "$arr"
+  # 3) Mirror local data onto the EC2 databases (using S3 storage).
+  if [ -n "$bucket" ] && [[ ! "$bucket" =~ "No outputs" ]] && [[ ! "$bucket" =~ "Warning:" ]]; then
+    log "Uploading latest backups to S3 bucket $bucket ..."
+    if [ -f "$REPO_ROOT/pg_backup/hrdb.backup" ]; then
+      aws s3 cp "$(cygpath -w "$REPO_ROOT/pg_backup")/hrdb.backup" "s3://$bucket/hrdb.backup" --profile "$AWS_PROFILE" --region "$AWS_REGION"
+    fi
+    if [ -f "$REPO_ROOT/pg_backup/erpdb.backup" ]; then
+      aws s3 cp "$(cygpath -w "$REPO_ROOT/pg_backup")/erpdb.backup" "s3://$bucket/erpdb.backup" --profile "$AWS_PROFILE" --region "$AWS_REGION"
+    fi
 
-    # 3) Mirror local data onto the EC2 databases. The committed backups in
-    #    pg_backup/ (refreshed by `./deploy.sh backup`) are restored into the
-    #    live EC2 Postgres so AWS shows the same data as your local machine.
-    #    We DROP + recreate each database (instead of `pg_restore --clean`
-    #    onto a live DB) because --clean trips on dependent objects and silently
-    #    skips the load. A fresh DB restores cleanly, exactly like first boot.
-    log "Restoring EC2 databases from committed backups (mirrors local) on $id ..."
-    local restore=$(cat <<'JSON'
- ["docker stop hr-backend 2>&1 | tail -1","for i in $(seq 1 40); do docker exec hr_postgres pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done","docker exec hr_postgres psql -U postgres -t -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='hrdb' AND pid<>pg_backend_pid();\"","docker exec hr_postgres psql -U postgres -t -c \"DROP DATABASE IF EXISTS hrdb;\"","docker exec hr_postgres psql -U postgres -t -c \"CREATE DATABASE hrdb;\"","docker exec hr_postgres pg_restore --no-owner -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 | tail -3","docker exec hr_postgres psql -U postgres -t -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='erpdb' AND pid<>pg_backend_pid();\"","docker exec hr_postgres psql -U postgres -t -c \"DROP DATABASE IF EXISTS erpdb;\"","docker exec hr_postgres psql -U postgres -t -c \"CREATE DATABASE erpdb;\"","docker exec hr_postgres pg_restore --no-owner -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 | tail -3","docker start hr-backend 2>&1 | tail -1","echo RESTORE_DONE"]
+    log "Restoring EC2 databases from S3 backups on $id ..."
+    local restore=$(cat <<JSON
+["aws s3 cp s3://$bucket/hrdb.backup /opt/erp-app/pg_backup/hrdb.backup --region $AWS_REGION","aws s3 cp s3://$bucket/erpdb.backup /opt/erp-app/pg_backup/erpdb.backup --region $AWS_REGION","docker stop hr-backend 2>&1 | tail -1","for i in \$(seq 1 40); do docker exec hr_postgres pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done","docker exec hr_postgres psql -U postgres -t -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='hrdb' and pid<>pg_backend_pid();\"","docker exec hr_postgres psql -U postgres -t -c \"DROP DATABASE IF EXISTS hrdb;\"","docker exec hr_postgres psql -U postgres -t -c \"CREATE DATABASE hrdb;\"","docker exec hr_postgres pg_restore --no-owner -U postgres -d hrdb /pg_backup/hrdb.backup 2>&1 | tail -3","docker exec hr_postgres psql -U postgres -t -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='erpdb' and pid<>pg_backend_pid();\"","docker exec hr_postgres psql -U postgres -t -c \"DROP DATABASE IF EXISTS erpdb;\"","docker exec hr_postgres psql -U postgres -t -c \"CREATE DATABASE erpdb;\"","docker exec hr_postgres pg_restore --no-owner -U postgres -d erpdb /pg_backup/erpdb.backup 2>&1 | tail -3","docker start hr-backend 2>&1 | tail -1","echo RESTORE_DONE"]
 JSON
 )
-   _ssm_exec "$id" "$restore"
+    _ssm_exec "$id" "$restore"
+  fi
 
-   # 4) Apply DB migrations explicitly. Idempotent (no-op after a full restore),
-   #    but guarantees the columns exist if the restore is ever skipped. ERP models
-   #    span both hrdb (DB_NAME) and erpdb (ERP_DB_NAME).
+   # 4) Apply DB migrations explicitly.
    log "Applying DB migrations on instance $id (hrdb + erpdb) ..."
    local mig=$(cat <<'JSON'
  ["docker cp /opt/erp-app/db/erp_migrations.sql hr_postgres:/tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","docker exec hr_postgres psql -U postgres -d hrdb -v ON_ERROR_STOP=0 -f /tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","docker exec hr_postgres psql -U postgres -d erpdb -v ON_ERROR_STOP=0 -f /tmp/erp_migrations.sql 2>&1 | LC_ALL=C sed 's/[^[:print:]]//g'","echo MIGRATIONS_DONE"]

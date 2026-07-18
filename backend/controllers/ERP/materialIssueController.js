@@ -104,6 +104,68 @@ exports.create = async (req, res) => {
   }
 };
 
+exports.update = async (req, res) => {
+  try {
+    const doc = await MaterialIssue.findByPk(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (doc.status !== 'Draft') return res.status(400).json({ error: 'Only draft issues can be edited' });
+
+    let { items, ...header } = req.body;
+    await doc.update(header);
+
+    if (items) {
+      // Reverse old stock adjustments
+      const oldItems = await MaterialIssueItem.findAll({ where: { issue_id: doc.id } });
+      for (const it of oldItems) {
+        if (it.item_id) {
+          const item = await ItemMaster.findByPk(it.item_id);
+          if (item) {
+            await item.update({ current_stock: parseFloat(item.current_stock || 0) + parseFloat(it.quantity || 0) });
+          }
+        }
+        if (it.req_item_id) {
+          const mrItem = await MaterialRequisitionItem.findByPk(it.req_item_id);
+          if (mrItem) {
+            const newIssued = Math.max(0, parseFloat(mrItem.issued_quantity || 0) - parseFloat(it.quantity || 0));
+            const newPending = parseFloat(mrItem.quantity) - newIssued;
+            await mrItem.update({ issued_quantity: newIssued, pending_quantity: Math.max(0, newPending) });
+          }
+        }
+      }
+
+      await MaterialIssueItem.destroy({ where: { issue_id: doc.id } });
+
+      // Apply new stock adjustments
+      const rows = items.map((it) => ({ ...it, issue_id: doc.id }));
+      await MaterialIssueItem.bulkCreate(rows);
+      for (const it of items) {
+        if (it.item_id) {
+          const item = await ItemMaster.findByPk(it.item_id);
+          if (item) {
+            await item.update({ current_stock: Math.max(0, parseFloat(item.current_stock || 0) - parseFloat(it.quantity || 0)) });
+          }
+        }
+        if (it.req_item_id) {
+          const mrItem = await MaterialRequisitionItem.findByPk(it.req_item_id);
+          if (mrItem) {
+            const newIssued = parseFloat(mrItem.issued_quantity || 0) + parseFloat(it.quantity || 0);
+            const newPending = Math.max(0, parseFloat(mrItem.quantity) - newIssued);
+            await mrItem.update({ issued_quantity: newIssued, pending_quantity: newPending });
+          }
+        }
+      }
+    }
+
+    const result = await MaterialIssue.findByPk(doc.id, {
+      include: [{ model: MaterialIssueItem, as: 'items' }],
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error updating material issue:', err);
+    res.status(500).json({ error: 'Failed to update' });
+  }
+};
+
 exports.delete = async (req, res) => {
   try {
     const doc = await MaterialIssue.findByPk(req.params.id);

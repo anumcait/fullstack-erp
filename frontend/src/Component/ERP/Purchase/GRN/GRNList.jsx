@@ -3,6 +3,7 @@ import { Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProg
 import { DataGrid } from "@mui/x-data-grid";
 import AddIcon from "@mui/icons-material/Add";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
@@ -38,9 +39,10 @@ export default function GRNList() {
     { field: "supplier", headerName: "Supplier", width: 200, valueGetter: (v) => v?.supplier_name || "" },
     { field: "invoice_no", headerName: "Invoice #", width: 130 },
     { field: "invoice_date", headerName: "Inv Date", width: 110, valueGetter: (v) => v ? v.split("T")[0] : "" },
-    { field: "status", headerName: "Status", width: 110, renderCell: (p) => (
-      <Chip label={p.value} size="small" color={p.value === "Received" ? "success" : "warning"} />
-    )},
+    { field: "status", headerName: "Status", width: 110, renderCell: (p) => {
+      const c = p.value === "Received" ? "success" : p.value === "Draft" ? "default" : "warning";
+      return <Chip label={p.value} size="small" color={c} />;
+    }},
     { field: "approval_status", headerName: "Approval", width: 110, renderCell: (p) => {
       const c = p.value === "Approved" ? "success" : p.value === "Rejected" ? "error" : "warning";
       return <Chip label={p.value || "Pending"} size="small" color={c} />;
@@ -51,9 +53,14 @@ export default function GRNList() {
     }},
     { field: "received_by", headerName: "Received By", width: 140 },
     {
-      field: "actions", headerName: "Actions", width: 100, sortable: false,
+      field: "actions", headerName: "Actions", width: 140, sortable: false,
       renderCell: (p) => (
-        <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/stores/grr/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+        <Box>
+          <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/stores/grr/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+          {p.row.status === "Draft" && (
+            <Tooltip title="Edit"><IconButton size="small" color="primary" onClick={() => navigate(`/stores/grr/edit/${p.row.id}`)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+          )}
+        </Box>
       ),
     },
   ];

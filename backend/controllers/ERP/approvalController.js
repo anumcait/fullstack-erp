@@ -108,3 +108,19 @@ exports.getPendingApprovals = async (req, res) => {
     res.status(500).json({ error: 'Failed to load approvals' });
   }
 };
+
+exports.getStoresApprovals = async (req, res) => {
+  try {
+    const items = await buildApprovalList();
+    const storesTypes = ['MR', 'AUDIT', 'GRN'];
+    const filtered = items.filter((it) => storesTypes.includes(it.type));
+    const byType = filtered.reduce((acc, it) => {
+      acc[it.type] = (acc[it.type] || 0) + 1;
+      return acc;
+    }, {});
+    res.json({ total: filtered.length, byType, items: filtered });
+  } catch (err) {
+    console.error('getStoresApprovals', err);
+    res.status(500).json({ error: 'Failed to load stores approvals' });
+  }
+};

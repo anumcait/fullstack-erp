@@ -2,26 +2,26 @@
 
 Quick reference for spinning the fullstack ERP demo up and down on AWS EC2 via Terraform.
 The stack: PostgreSQL (`hr_postgres`, DBs `hrdb` + `erpdb`) → Node backend → Python ML agent
-→ Vite React frontend → nginx (port 80). Every fresh deploy auto-restores the **latest committed
-database backup**, so the live data survives `terraform destroy` + `terraform apply`.
+→ Vite React frontend → nginx (port 80). Every fresh deploy auto-restores the **database backups from S3**,
+so the live data survives `terraform destroy` + `terraform apply`.
 
 ---
 
 ## 0. Prerequisites
 
 - Terraform ≥ 1.x installed locally.
-- An AWS CLI profile with permissions to create EC2 / EIP / security group / IAM (SSM role).
+- An AWS CLI profile with permissions to create EC2 / EIP / security group / IAM (SSM, S3, ECR).
 - Git access to `https://github.com/anumcait/fullstack-erp.git` (branch `dev`).
-- The two canonical backups committed in the repo (do not delete):
-  - `pg_backup/hrdb.backup`  (HR + ERP tables, latest payslips)
-  - `pg_backup/erpdb.backup` (separate ERP DB)
+- Database backups uploaded/accessible in S3:
+  - `hrdb.backup`  (HR + ERP tables, latest payslips)
+  - `erpdb.backup` (separate ERP DB)
 - `terraform/` folder with `main.tf`, `variables.tf`, `outputs.tf`, `user-data.sh`.
 - **Run `deploy.sh` from Git Bash / WSL** (NOT raw PowerShell). The script passes JSON to
   the AWS CLI; PowerShell strips the quotes and the calls fail. Git Bash preserves them.
 
 > Deploy uses **`docker-compose.demo.yaml`** (nginx-only public port, `DB_HOST=db`,
-> restores from `./pg_backup`). The original `docker-compose.yaml` is for local dev only —
-> do NOT use it for deploy.
+> pulls images from AWS ECR, and restores from S3 backups downloaded to `./pg_backup`).
+> The original `docker-compose.yaml` is for local dev only — do NOT use it for deploy.
 
 ---
 
@@ -75,58 +75,41 @@ sudo journalctl -u erp-demo.service -f
 
 ---
 
-## 1b. Apply local code changes to the running instance (no full rebuild)
+## 1b. Apply local code changes to the running instance (no full rebuild on EC2)
 
-Once the instance is up, you can edit locally, commit, and push the changes to the
-cloud **without** a `terraform destroy`/`apply` (which would rebuild the 9.77 GB python
-agent image from scratch and take ~25 min). `deploy.sh update` pushes your local commits
-to GitHub `dev`, then on the instance runs `git pull` + `docker compose build` (only the
-images whose code changed are rebuilt; the agent image is cached and skipped unless you
-touch its `requirements.txt`/code) + `systemctl restart erp-demo`.
+Once the instance is up, you can edit locally and push updates. `deploy.sh update` compiles/builds Docker images locally on your machine, tags and pushes them to AWS ECR, and then commands the EC2 host via SSM to pull these new images and run them.
 
 ```bash
-# from the repo root, in Git Bash
+# from the repo root, in Git Bash/WSL
 ./deploy.sh update      # or: ./deploy.sh apply
 ```
 
 What it does, end to end:
-1. Commits any uncommitted local changes (message: `chore: local changes for cloud apply`)
-   and `git push -u origin dev`.
-2. SSM into the instance and, in `/opt/erp-app`:
-   - `git pull origin dev`
-   - `DOCKER_BUILDKIT=0 docker compose -f docker-compose.demo.yaml build` (rebuilds changed services)
-   - `systemctl restart erp-demo` (the service's `ExecStartPre` does `compose down`, then `up`)
-3. Prints the app URL — run `./deploy.sh status` (or `./deploy.sh diag`) to confirm.
+1. Commits local changes (message: `chore: local changes for cloud apply`) and pushes codebase configurations to Git.
+2. Authenticates local Docker to ECR, builds the services locally (`backend`, `agent`, `frontend`), and pushes them to AWS ECR.
+3. SSM into the EC2 instance and runs:
+   - `git pull` (to get latest configurations and Compose files).
+   - ECR authentication and `docker compose pull`.
+   - `systemctl restart erp-demo` (restarts the containers using the pulled ECR images).
+4. Synchronizes and restores databases from S3 backups.
 
 Notes:
-- **DB data is preserved** across updates: `systemctl restart` does `compose down` *without*
-  `-v`, so the `hr_db_data` volume (and the restored `hrdb`/`erpdb`) stays intact.
-- Frontend/backend-only changes rebuild in a few minutes. Only editing the **agent**'s
-  `requirements.txt` or code triggers a large agent-image rebuild (the pip layer is cached,
-  so even that is much faster than the first boot).
-- To update the **data** (not code), use the `backup` step (section 3) and then either
-  redeploy or shell in and `compose down -v && up -d` after `git pull`.
+- **No container build is executed on the EC2 instance** anymore, resulting in extremely fast deployments and low CPU overhead.
+- **DB data is preserved** across updates unless you perform a database drop/restore.
 
 ---
 
 ## 2. How data is restored on every deploy
 
-- `docker-compose.demo.yaml` mounts `./pg_backup` and `init-scripts/init-db.sh`
-  into the `db` container's `/docker-entrypoint-initdb.d/01-init-db.sh`.
-- On first DB start, `init-db.sh`:
-  1. Waits for Postgres (`pg_isready`).
-  2. **hrdb**: if `Users` table is empty → `pg_restore` `hrdb.backup`.
-  3. **erpdb**: creates the DB if missing; if it has 0 tables → `pg_restore` `erpdb.backup`.
-- Because the DB volume (`hr_db_data`) is an unnamed/anonymous volume recreated on
-  `docker compose down -v`, a *fresh* instance always restores from the committed backups.
-- A running instance that is only **stopped** (not destroyed) keeps its EBS data.
+- Database backups are stored and retrieved from the created S3 bucket (`erp-db-backups-...`).
+- During EC2 instance initialization (in `user-data.sh`) or on update, backups are downloaded from the S3 bucket to `/opt/erp-app/pg_backup/`.
+- `docker-compose.demo.yaml` mounts `/opt/erp-app/pg_backup` into the database container, where `init-scripts/init-db.sh` restores them if the database is detected to be empty.
 
 ---
 
 ## 3. Update the demo data (push newer backup)
 
-Data lives in the **user's local** docker-compose (`docker-compose.yaml` mounts
-`./pg_restore:/pg_backup`, writable). To ship newer data to the demo:
+Data lives in the **user's local** docker-compose (`docker-compose.yaml` mounts `./pg_restore:/pg_backup`, writable). To ship newer data to the demo:
 
 1. On your local machine (db running via `docker-compose.yaml`):
    ```bash
@@ -135,22 +118,18 @@ Data lives in the **user's local** docker-compose (`docker-compose.yaml` mounts
    docker cp hr_postgres:/pg_backup/hrdb.backup ./pg_restore/hrdb.backup
    docker cp hr_postgres:/pg_backup/erpdb.backup ./pg_restore/erpdb.backup
    ```
-2. Move into the repo's tracked folder and commit:
+2. Trigger backup synchronization to S3:
    ```bash
    cp pg_restore/hrdb.backup pg_backup/hrdb.backup
    cp pg_restore/erpdb.backup pg_backup/erpdb.backup
-   git add pg_backup/
-   git commit -m "Update demo DB backups"
-   git push origin dev
+   ./deploy.sh backup
    ```
-3. Redeploy so the new backup is used:
+   (This dumps files locally inside `pg_backup/` and uploads them to your AWS S3 backup bucket).
+3. Update the running deployment:
    ```bash
-   cd terraform
-   terraform destroy -auto-approve
-   terraform apply -auto-approve
+   ./deploy.sh update
    ```
-   (or shell into the instance and `docker compose -f docker-compose.demo.yaml down -v && up -d`
-   after `git pull`, to force a fresh restore from the new `pg_backup/`.)
+   (This updates the running instance and forces a restore of the new database backups from S3.)
 
 ---
 
@@ -162,8 +141,7 @@ terraform destroy -auto-approve
 ```
 
 This removes the EC2 instance, EIP, security group, and IAM role/profile. **No compute
-cost continues.** The latest data is safe because it lives in the committed `pg_backup/`
-backups, not on the destroyed instance.
+cost continues.** The latest data is safe because it lives in S3, not on the destroyed instance.
 
 ### Pause without destroying — `stop` / `start` (recommended for cost-saving)
 

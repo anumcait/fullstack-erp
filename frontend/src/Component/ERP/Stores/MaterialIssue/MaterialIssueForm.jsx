@@ -22,6 +22,7 @@ export default function MaterialIssueForm() {
   const location = useLocation();
   const { showToast } = useToast();
   const isView = location.pathname.includes('/view/');
+  const isEdit = location.pathname.includes('/edit/');
   const isAdd = !id || location.pathname.includes('/add');
 
   const [loading, setLoading] = useState(false);
@@ -91,22 +92,29 @@ export default function MaterialIssueForm() {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(API, { ...form, items: items.map(({ tempId, max_qty, ...it }) => it) });
-      showToast('Material issued successfully', 'success');
+      const payload = { ...form, items: items.map(({ tempId, max_qty, ...it }) => it) };
+      if (isEdit) {
+        await axios.put(`${API}/${id}`, payload);
+        showToast('Material issue updated', 'success');
+      } else {
+        await axios.post(API, payload);
+        showToast('Material issued successfully', 'success');
+      }
       navigate('/stores/material-issues');
-    } catch { showToast('Failed to create issue', 'error'); }
+    } catch { showToast('Failed to save issue', 'error'); }
     finally { setLoading(false); }
   };
 
   if (loading && !isAdd) return <LinearProgress />;
   const readOnly = isView;
+  const canEdit = isAdd || isEdit;
 
   return (
     <Box sx={{ p: 3 }}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
         <IconButton onClick={() => navigate('/stores/material-issues')}><ArrowBackIcon /></IconButton>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'var(--heading-color)' }}>
-          {isView ? 'View' : 'New'} Material Issue
+          {isView ? 'View' : isEdit ? 'Edit' : 'New'} Material Issue
         </Typography>
       </Box>
 
@@ -123,7 +131,7 @@ export default function MaterialIssueForm() {
               </Grid>
               <Grid item xs={6} md={3}>
                 <TextField label="From MR" select size="small" fullWidth value={form.req_id}
-                  onChange={(e) => handleMrSelect(Number(e.target.value))} disabled={readOnly || !isAdd}>
+                  onChange={(e) => handleMrSelect(Number(e.target.value))} disabled={readOnly}>
                   <MenuItem value=""><em>Select Approved MR</em></MenuItem>
                   {mrList.map((mr) => (
                     <MenuItem key={mr.id} value={mr.id}>{mr.req_no} - {mr.department} ({mr.requested_by})</MenuItem>
@@ -195,9 +203,11 @@ export default function MaterialIssueForm() {
           </CardContent>
         </Card>
 
-        {isAdd && items.length > 0 && (
+        {(isAdd || isEdit) && (
           <Box mt={3} display="flex" gap={2}>
-            <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={loading}>Issue Materials</Button>
+            <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={loading}>
+              {loading ? 'Saving...' : isEdit ? 'Update Issue' : 'Issue Materials'}
+            </Button>
             <Button variant="outlined" onClick={() => navigate('/stores/material-issues')}>Cancel</Button>
           </Box>
         )}

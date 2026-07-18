@@ -216,6 +216,7 @@ function App() {
                     <Route path="/stores/material-issues" element={<MaterialIssueList />} />
                     <Route path="/stores/material-issues/add" element={<MaterialIssueForm />} />
                     <Route path="/stores/material-issues/view/:id" element={<MaterialIssueForm />} />
+                    <Route path="/stores/material-issues/edit/:id" element={<MaterialIssueForm />} />
                     <Route path="/inventory/ledger" element={<StockLedger />} />
                     <Route path="/stores/day-wise-stock" element={<DayWiseStock />} />
                     <Route path="/stores/stock-audit" element={<StockAuditList />} />
@@ -229,6 +230,7 @@ function App() {
                     <Route path="/stores/material-returns" element={<MaterialReturnList />} />
                     <Route path="/stores/material-returns/add" element={<MaterialReturnForm />} />
                     <Route path="/stores/material-returns/view/:id" element={<MaterialReturnForm />} />
+                    <Route path="/stores/material-returns/edit/:id" element={<MaterialReturnForm />} />
 
                     {/* Delivery Challan */}
                     <Route path="/stores/delivery-challans" element={<DeliveryChallanList />} />

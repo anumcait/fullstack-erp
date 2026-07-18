@@ -2,6 +2,7 @@ jenkins_data/
 jenkins_data.rar
 pgdata-new/
 .github/
+!.github/workflows/*
 
 # Environment files (secrets)
 .env
@@ -21,6 +22,7 @@ backend/oracle_dump/
 *.dmp
 # Local-only dump dir (mount source for ./pg_restore:/pg_backup); not for git
 pg_restore/
+pg_backup/
 
 # Build output
 frontend/dist/

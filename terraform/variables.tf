@@ -57,3 +57,34 @@ variable "instance_state" {
     error_message = "instance_state must be 'running' or 'stopped'."
   }
 }
+
+variable "ami_id" {
+  description = "Custom AMI ID with Docker pre-installed. If not set, defaults to Ubuntu 22.04."
+  type        = string
+  default     = null
+}
+
+variable "hostinger_api_token" {
+  description = "Hostinger API Token. If provided, enables automatic updates to Hostinger DNS."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "hostinger_zone" {
+  description = "Hostinger DNS Zone (e.g., example.com)"
+  type        = string
+  default     = ""
+}
+
+variable "hostinger_subdomain" {
+  description = "Subdomain name to create/update (e.g., erp or @ for root)"
+  type        = string
+  default     = ""
+}
+
+variable "hostinger_ttl" {
+  description = "TTL for Hostinger DNS record"
+  type        = number
+  default     = 14400
+}

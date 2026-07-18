@@ -76,6 +76,58 @@ exports.create = async (req, res) => {
   }
 };
 
+exports.update = async (req, res) => {
+  try {
+    const doc = await MaterialReturn.findByPk(req.params.id, {
+      include: [{ model: MaterialReturnItem, as: 'items' }],
+    });
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (doc.status !== 'Draft') return res.status(400).json({ error: 'Only draft returns can be edited' });
+
+    let { items, ...header } = req.body;
+
+    // Reverse old stock adjustments
+    if (doc.return_type === 'To Store' && doc.items) {
+      for (const it of doc.items) {
+        if (it.item_id) {
+          const item = await ItemMaster.findByPk(it.item_id);
+          if (item) {
+            await item.update({ current_stock: Math.max(0, parseFloat(item.current_stock || 0) - parseFloat(it.quantity || 0)) });
+          }
+        }
+      }
+    }
+
+    await doc.update(header);
+
+    if (items) {
+      await MaterialReturnItem.destroy({ where: { return_id: doc.id } });
+      const rows = items.map((it) => ({ ...it, return_id: doc.id }));
+      await MaterialReturnItem.bulkCreate(rows);
+
+      // Apply new stock adjustments
+      if (header.return_type === 'To Store') {
+        for (const it of items) {
+          if (it.item_id) {
+            const item = await ItemMaster.findByPk(it.item_id);
+            if (item) {
+              await item.update({ current_stock: parseFloat(item.current_stock || 0) + parseFloat(it.quantity || 0) });
+            }
+          }
+        }
+      }
+    }
+
+    const result = await MaterialReturn.findByPk(doc.id, {
+      include: [{ model: MaterialReturnItem, as: 'items' }],
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error updating material return:', err);
+    res.status(500).json({ error: 'Failed to update' });
+  }
+};
+
 exports.delete = async (req, res) => {
   try {
     const doc = await MaterialReturn.findByPk(req.params.id);

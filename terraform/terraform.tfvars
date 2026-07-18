@@ -19,3 +19,9 @@ ssh_cidr = ["0.0.0.0/0"]
 
 # Keep running; set "stopped" to halt compute while preserving EBS data.
 instance_state = "running"
+
+# Hostinger DNS Automation Configuration
+hostinger_api_token = "UtjqflK7e6JfDotkJ0PcBymQhW0faWdLlEHs9lN5fa2e6955"
+hostinger_zone      = "anushaengg.com"
+hostinger_subdomain = "erp"
+hostinger_ttl       = 14400

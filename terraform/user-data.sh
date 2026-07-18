@@ -4,13 +4,31 @@ set -euo pipefail
 
 echo "==> Installing git and prerequisites"
 apt-get update -y
-apt-get install -y git curl ca-certificates gnupg
+apt-get install -y git curl ca-certificates gnupg unzip
 
-echo "==> Installing Docker (engine + compose plugin) via official script"
-curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-sh /tmp/get-docker.sh
-apt-get install -y docker-compose-plugin docker-buildx-plugin
+# Install AWS CLI (if not present) to pull database backups from S3 and manage ECR logins
+if ! command -v aws >/dev/null 2>&1; then
+  echo "==> Installing AWS CLI"
+  apt-get install -y awscli || true
+fi
+
+echo "==> Installing Docker (engine + compose plugin) via official script if missing"
+if ! command -v docker >/dev/null 2>&1; then
+  curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+  sh /tmp/get-docker.sh
+  apt-get install -y docker-compose-plugin docker-buildx-plugin
+else
+  echo "✅ Docker is already installed."
+fi
+
+# Ensure docker-compose plugin is present
+if ! docker compose version >/dev/null 2>&1; then
+  echo "==> Installing Docker compose plugin"
+  apt-get install -y docker-compose-plugin || true
+fi
+
 systemctl enable --now docker
+
 # Wait for the Docker daemon to be ready before any compose command.
 for i in $(seq 1 30); do
   if docker info >/dev/null 2>&1; then echo "✅ Docker daemon ready."; break; fi
@@ -54,7 +72,7 @@ if [ "$CLONED" -ne 1 ] || [ ! -d "$REPO_DIR/.git" ]; then
 fi
 echo "✅ Repository cloned to $REPO_DIR"
 
-echo "==> Writing systemd unit"
+echo "==> Writing systemd unit (pulls images from ECR, builds only on first push)"
 cat > /etc/systemd/system/erp-demo.service <<UNIT
 [Unit]
 Description=ERP Demo Stack
@@ -64,11 +82,8 @@ After=docker.service
 [Service]
 Type=simple
 WorkingDirectory=$REPO_DIR
-# Force the legacy Docker builder. The default buildx builder can hang
-# (0% CPU, no progress) while exporting the very large agent image
-# (torch + CUDA + chromadb + langchain); the legacy builder exports
-# straight to the image store and is reliable for huge images.
-Environment=DOCKER_BUILDKIT=0
+Environment=ECR_REGISTRY=${ecr_registry}
+ExecStartPre=/bin/bash -c "/usr/bin/aws ecr get-login-password --region ${aws_region} | /usr/bin/docker login --username AWS --password-stdin ${ecr_registry}"
 ExecStartPre=/usr/bin/docker compose -f ${compose_file} down --remove-orphans
 ExecStart=/usr/bin/docker compose -f ${compose_file} up --remove-orphans
 ExecStop=/usr/bin/docker compose -f ${compose_file} down --remove-orphans
