@@ -1,0 +1,1 @@
+systemctl status erp-demo --no-pager

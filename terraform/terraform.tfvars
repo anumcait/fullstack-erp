@@ -27,4 +27,4 @@ ami_id = "ami-09f3f0acf030a6270"
 hostinger_api_token = "UtjqflK7e6JfDotkJ0PcBymQhW0faWdLlEHs9lN5fa2e6955"
 hostinger_zone      = "anushaengg.com"
 hostinger_subdomain = "erp"
-hostinger_ttl       = 14400
+hostinger_ttl       = 300

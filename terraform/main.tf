@@ -148,7 +148,7 @@ locals {
   ami_id = var.ami_id != null && var.ami_id != "" ? var.ami_id : (
     local.has_custom_ami ? data.aws_ami_ids.erp_demo_custom.ids[0] : data.aws_ami.ubuntu.id
   )
-  app_url = "http://${aws_eip.this.public_ip}"
+  app_url = "http://${aws_instance.this.public_ip}"
 }
 
 # ────────────── EC2 instance ──────────────
@@ -179,19 +179,6 @@ resource "aws_instance" "this" {
   }
 }
 
-# ────────────── Elastic IP (stable address across stop/start) ──────────────
-resource "aws_eip" "this" {
-  domain = "vpc"
-  tags = {
-    Name = "erp-demo-eip"
-  }
-}
-
-resource "aws_eip_association" "this" {
-  allocation_id = aws_eip.this.id
-  instance_id   = aws_instance.this.id
-}
-
 # ────────────── Start / Stop (keeps data, no destroy) ──────────────
 resource "aws_ec2_instance_state" "this" {
   instance_id = aws_instance.this.id
@@ -206,12 +193,12 @@ resource "null_resource" "hostinger_dns" {
   triggers = {
     zone        = var.hostinger_zone
     name        = var.hostinger_subdomain
-    instance_id = aws_instance.this.id
+    public_dns  = aws_instance.this.public_dns
     token       = var.hostinger_api_token
     ttl         = tostring(var.hostinger_ttl)
   }
 
-  depends_on = [aws_eip_association.this]
+  depends_on = [aws_instance.this]
 
   provisioner "local-exec" {
     interpreter = ["powershell.exe", "-Command"]
@@ -219,11 +206,8 @@ resource "null_resource" "hostinger_dns" {
 $token='${self.triggers.token}'
 $zone='${self.triggers.zone}'
 $name='${self.triggers.name}'
-$instanceId='${self.triggers.instance_id}'
+$dns='${self.triggers.public_dns}'
 $ttl=${self.triggers.ttl}
-Start-Sleep -Seconds 10
-$dns=(aws ec2 describe-instances --instance-ids $instanceId --region us-east-1 --query "Reservations[0].Instances[0].PublicDnsName" --output text)
-Write-Host "Resolved DNS: $dns"
 foreach ($type in @("A","CNAME")) {
   $deleteBody="{`"filters`":[{`"name`":`"$name`",`"type`":`"$type`"}]}"
   try { Invoke-RestMethod -Uri "https://developers.hostinger.com/api/dns/v1/zones/$zone" -Method DELETE -ContentType "application/json" -Headers @{Authorization="Bearer $token"} -Body $deleteBody -ErrorAction Stop | Out-Null } catch {}

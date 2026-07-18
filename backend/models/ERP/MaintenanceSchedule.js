@@ -19,5 +19,10 @@ module.exports = (sequelize) => {
     underscored: true,
   });
 
+  MaintenanceSchedule.associate = (models) => {
+    MaintenanceSchedule.belongsTo(models.MaintenanceMachine, { foreignKey: 'machine_id', as: 'machine' });
+    MaintenanceSchedule.belongsTo(models.MaintenanceAsset, { foreignKey: 'asset_id', as: 'asset' });
+  };
+
   return MaintenanceSchedule;
 };

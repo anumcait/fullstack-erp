@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Typography, TextField, Button, Grid, LinearProgress } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
-import { useToast } from '../../../../context/ToastContext';
+import { useToast } from '../../../context/ToastContext';
 
 const SubcontractSettings = () => {
   const { showToast } = useToast();

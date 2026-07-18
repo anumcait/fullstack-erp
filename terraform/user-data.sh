@@ -30,9 +30,18 @@ fi
 
 # Build images (errors don't kill script, systemd retries)
 echo "==> Building images"
-docker build -t erp-backend:latest "$REPO_DIR/backend" || echo "Backend build failed"
-docker build -t erp-frontend:latest "$REPO_DIR/frontend" || echo "Frontend build failed"
-docker build -t erp-agent:latest "$REPO_DIR/agent_python" || echo "Agent build failed"
+LAST_COMMIT=$(git -C "$REPO_DIR" rev-parse HEAD)
+BUILT_COMMIT=""
+[ -f /opt/.last-built-commit ] && BUILT_COMMIT=$(cat /opt/.last-built-commit)
+if [ "$LAST_COMMIT" != "$BUILT_COMMIT" ]; then
+  echo "Code changed ($BUILT_COMMIT -> $LAST_COMMIT), rebuilding..."
+  docker build --no-cache -t erp-backend:latest "$REPO_DIR/backend" || echo "Backend build failed"
+  docker build --no-cache -t erp-frontend:latest "$REPO_DIR/frontend" || echo "Frontend build failed"
+  docker build --no-cache -t erp-agent:latest "$REPO_DIR/agent_python" || echo "Agent build failed"
+  echo "$LAST_COMMIT" > /opt/.last-built-commit
+else
+  echo "Code unchanged since last build, skipping"
+fi
 
 # Write systemd unit and start
 echo "==> Starting stack"
