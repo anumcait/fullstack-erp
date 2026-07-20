@@ -14,6 +14,8 @@ module.exports = (sequelize) => {
   }, {
     tableName: 't_subcontract_receipt',
     timestamps: true,
+    createdAt: 'created_date',
+    updatedAt: 'updated_at',
     underscored: true,
   });
 

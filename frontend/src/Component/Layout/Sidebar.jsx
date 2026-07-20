@@ -22,6 +22,7 @@ import {
   FiRefreshCw,
   FiDollarSign,
   FiActivity,
+  FiBarChart,
   FiShoppingCart,
   FiBox,
   FiTool,
@@ -329,7 +330,7 @@ const Sidebar = () => {
           <>
             {hasPermission('HR_DASHBOARD') && (
               <li className="sidebar-menu-item">
-                <SideNavLink to="/dashboard" label="Dashboard" icon={FiHome} exact />
+                <SideNavLink to="/hr" label="HR Workspace" icon={FiUsers} exact />
               </li>
             )}
 

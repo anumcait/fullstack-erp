@@ -21,7 +21,12 @@ module.exports = (sequelize) => {
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
   }, {
     tableName: 'm_customer_master',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   CustomerMaster.associate = (models) => {

@@ -14,7 +14,12 @@ module.exports = (sequelize) => {
     notes: { type: DataTypes.TEXT, allowNull: true },
   }, {
     tableName: 'chart_of_accounts',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   ChartOfAccount.associate = (models) => {

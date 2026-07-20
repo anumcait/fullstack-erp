@@ -15,7 +15,12 @@ module.exports = (sequelize) => {
     status: { type: DataTypes.STRING(30), defaultValue: 'Generated' },
   }, {
     tableName: 't_planning_mrp',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
     underscored: true,
   });
 

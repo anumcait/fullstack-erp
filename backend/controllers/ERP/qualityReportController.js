@@ -24,7 +24,7 @@ exports.ncSummary = async (req, res) => {
   try {
     const { from, to } = req.query;
     const where = {};
-    if (from && to) where.createdAt = { [Op.between]: [new Date(from), new Date(to + 'T23:59:59')] };
+    if (from && to) where.created_date = { [Op.between]: [new Date(from), new Date(to + 'T23:59:59')] };
 
     const byStatus = await NonConformance.findAll({
       where,

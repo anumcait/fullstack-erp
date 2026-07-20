@@ -2,6 +2,37 @@ const bcrypt = require('bcryptjs');
 const db = require('./models');
 require('dotenv').config();
 
+// Full permission catalog (mirrors frontend/src/constants/permissions.js).
+// ADMIN users receive all of these; scoped employees receive a subset.
+const ALL_PERMISSIONS = [
+  'MOD_HR', 'HR_DASHBOARD', 'HR_EMP_MASTER', 'HR_ADD_EMP', 'HR_PHOTO', 'HR_PROFILE_APPROVE',
+  'HR_SHIFT_MASTER', 'HR_HOLIDAY_MASTER', 'HR_LEAVE_MASTER', 'HR_ATT_ENTRY', 'HR_ATT_MOD',
+  'HR_SHIFT_SCHED', 'HR_MUSTER', 'HR_OT_APP', 'HR_ADVANCE', 'HR_PAYROLL_PROC', 'HR_ESI_LEAVE',
+  'HR_LEAVE_APP', 'HR_LEAVE_APPROVE', 'HR_ONDUTY', 'HR_ONDUTY_APPROVE', 'HR_TOUR', 'HR_TOUR_APPROVE',
+  'HR_SHIFT_CHG', 'HR_SHIFT_CHG_APPROVE', 'HR_WOFF_CHG', 'HR_REPORTS', 'HR_SETTINGS',
+  'MOD_ACCOUNTS', 'ACC_DASHBOARD', 'ACC_INV_SALES', 'ACC_INV_PURCH', 'ACC_INV_DEBIT', 'ACC_INV_CREDIT',
+  'ACC_VOUCH_PAY', 'ACC_VOUCH_REC', 'ACC_VOUCH_JOUR', 'ACC_VOUCH_CONTRA', 'ACC_REPORTS', 'ACC_SETTINGS',
+  'MOD_STORES', 'STORES_DASHBOARD', 'STORES_ITEM_MASTER', 'STORES_STOCK_LEDGER', 'STORES_PHYSICAL',
+  'STORES_GATE', 'STORES_GRN', 'STORES_ISSUE', 'STORES_RETURN', 'STORES_REPORTS',
+  'MOD_PURCHASE', 'PUR_DASHBOARD', 'PUR_REQ', 'PUR_PR_NEW', 'PUR_PR_AUTH', 'PUR_PR_SANCTION',
+  'PUR_PR_STATUS', 'PUR_LOI', 'PUR_PR_SHORTCLOSE', 'PUR_RFQ', 'PUR_ORDERS', 'PUR_VENDORS',
+  'PUR_PRICES', 'PUR_RATING', 'PUR_REPORTS',
+  'MOD_PRODUCTION', 'PROD_DASHBOARD', 'PROD_ORDERS', 'PROD_DAILY', 'PROD_MACHINES', 'PROD_DOWNTIME', 'PROD_REPORTS', 'PROD_SETTINGS',
+  'MOD_PLANNING', 'PLAN_DASHBOARD', 'PLAN_SCHEDULE', 'PLAN_MRP', 'PLAN_CAPACITY', 'PLAN_REPORTS', 'PLAN_SETTINGS',
+  'MOD_ENGINEERING', 'ENG_DASHBOARD', 'ENG_ITEMS', 'ENG_BOM', 'ENG_BOM_DIFF', 'ENG_ROUTING', 'ENG_WORK_CENTERS', 'ENG_REPORTS',
+  'MOD_MARKETING', 'MARK_DASHBOARD', 'MARK_LEADS', 'MARK_QUOTES', 'MARK_ORDERS', 'MARK_CUSTOMERS', 'MARK_REPORTS', 'MARK_SETTINGS',
+  'MOD_QUALITY', 'QUAL_DASHBOARD', 'QUAL_INCOMING', 'QUAL_PROCESS', 'QUAL_FINAL', 'QUAL_REPORTS', 'QUAL_SETTINGS',
+  'MOD_MAINTENANCE', 'MAINT_DASHBOARD', 'MAINT_MACHINES', 'MAINT_ASSETS', 'MAINT_SCHEDULE', 'MAINT_REPORTS', 'MAINT_SETTINGS',
+  'MOD_SUBCONTRACT', 'SUB_DASHBOARD', 'SUB_ORDERS', 'SUB_ISSUE', 'SUB_RECEIPT', 'SUB_REPORTS', 'SUB_SETTINGS',
+];
+
+// A realistic "Stores + Subcontract clerk" scope to demo employee-wise access.
+const STORES_CLERK_PERMISSIONS = [
+  'MOD_STORES', 'STORES_DASHBOARD', 'STORES_ITEM_MASTER', 'STORES_STOCK_LEDGER',
+  'STORES_GATE', 'STORES_GRN', 'STORES_ISSUE', 'STORES_RETURN', 'STORES_REPORTS',
+  'MOD_SUBCONTRACT', 'SUB_DASHBOARD', 'SUB_ORDERS', 'SUB_ISSUE', 'SUB_RECEIPT', 'SUB_REPORTS',
+];
+
 const employeesData = [
     // 🔹 Active Employees
     {
@@ -479,6 +510,7 @@ const seedAll = async () => {
                 empid: emp.empid,
                 ename: emp.ename,
                 role: 'ADMIN',
+                permissions: ALL_PERMISSIONS,
                 is_active: emp.is_active,
                 created_by: '1001'
             });
@@ -523,6 +555,34 @@ const seedAll = async () => {
         }
 
         console.log('✅ Seeding Complete!');
+
+        // ── Demo scoped employee (shows employee-wise permission limits) ──
+        const demoEmpId = 2001;
+        const existing = await db.EmployeeMaster.findOne({ where: { empid: demoEmpId } });
+        if (!existing) {
+            await db.EmployeeMaster.create({
+                empid: demoEmpId, company_id: 1, unit_id: 1, div_id: 4, dept_id: 4, sec_id: 1,
+                designation_id: 1, divname: 'Stores', deptname: 'Stores', secname: 'Section 1',
+                gender: 'M', marital_status: 'Married', ename: 'DEMO STORES CLERK', fname: 'Clerk',
+                dob: new Date('1995-01-01'), bgroup: 'O+', mother_tongue: 'Telugu',
+                lang_known: 'Telugu, English', cadd_city: 'Hyderabad', cadd_state: 'Telangana',
+                is_active: true, created_by: '1001',
+            });
+            await db.EmpOfficial.create({ empid: demoEmpId, doj: new Date('2020-01-01'), emp_status: 'A', bankacno: '0000000000', bankname: 'HDFC', ifsccode: 'HDFC0000081' });
+            await db.EmpSalary.create({ empid: demoEmpId, basic: 18000, hra: 6000, total: 24000, created_by: '1001' });
+        }
+        const salt2 = await bcrypt.genSalt(10);
+        const hash2 = await bcrypt.hash('AUCTOR', salt2);
+        await db.User.findOrCreate({
+            where: { username: 'EMP001' },
+            defaults: {
+                username: 'EMP001', password_hash: hash2, empid: demoEmpId,
+                ename: 'DEMO STORES CLERK', role: 'USER', permissions: STORES_CLERK_PERMISSIONS,
+                is_active: true, created_by: '1001',
+            },
+        });
+        console.log('✅ Demo employee (EMP001 / AUCTOR) seeded with Stores+Subcontract scope.');
+
         process.exit(0);
     } catch (error) {
         console.error('❌ Seeding Error:', error);

@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress,
-  IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions
+  IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
+  MenuItem, Select, FormControl, InputLabel
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import AddIcon from "@mui/icons-material/Add";
@@ -14,8 +15,10 @@ import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { formatDate } from "../../../utils/format";
+import { useSubcontractLookups } from "./lookups";
 
 const API = "/api/erp/subcontract/receipts";
+const STATUSES = ["Draft", "Received", "Completed"];
 const STATUS_COLORS = { Draft: "default", Received: "info", Completed: "success" };
 
 export default function ReceiptList() {
@@ -24,17 +27,23 @@ export default function ReceiptList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [vendor, setVendor] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const { vendors } = useSubcontractLookups();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = search ? { search } : {};
+      const params = {};
+      if (search) params.search = search;
+      if (status) params.status = status;
+      if (vendor) params.vendor = vendor;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast("Failed to load receipts", "error"); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [search, status, vendor]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -71,6 +80,20 @@ export default function ReceiptList() {
           <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
             <TextField size="small" placeholder="Search by receipt no or vendor..." value={search} onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }} sx={{ minWidth: 300 }} />
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Status</InputLabel>
+              <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+                <MenuItem value="">All</MenuItem>
+                {STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Sub-Contractor</InputLabel>
+              <Select label="Sub-Contractor" value={vendor} onChange={(e) => setVendor(e.target.value)}>
+                <MenuItem value="">All</MenuItem>
+                {vendors.map((v) => <MenuItem key={v.id} value={v.supplier_name}>{v.supplier_name}</MenuItem>)}
+              </Select>
+            </FormControl>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/subcontract/receipt/add")}>New Receipt</Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
           </Box>

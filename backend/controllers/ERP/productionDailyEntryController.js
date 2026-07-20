@@ -9,7 +9,7 @@ exports.list = async (req, res) => {
     if (req.query.machine_id) where.machine_id = req.query.machine_id;
     if (req.query.shift) where.shift = req.query.shift;
     if (req.query.status) where.status = req.query.status;
-    const rows = await ProductionDailyEntry.findAll({ where, order: [['entry_date', 'DESC'], ['createdAt', 'DESC']] });
+    const rows = await ProductionDailyEntry.findAll({ where, order: [['entry_date', 'DESC'], ['created_date', 'DESC']] });
     res.json(rows);
   } catch (err) { console.error('prodDaily.list', err); res.status(500).json({ error: 'Failed' }); }
 };

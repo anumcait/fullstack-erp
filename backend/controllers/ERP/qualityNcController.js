@@ -9,7 +9,7 @@ exports.list = async (req, res) => {
     const rows = await NonConformance.findAll({
       where,
       include: [{ model: QualityInspection, as: 'inspection', attributes: ['id', 'inspection_no', 'inspection_type'] }],
-      order: [['createdAt', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(rows);
   } catch (err) { console.error('nc.list', err); res.status(500).json({ error: 'Failed to fetch NCs' }); }

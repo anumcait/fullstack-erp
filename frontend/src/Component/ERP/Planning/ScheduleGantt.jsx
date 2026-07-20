@@ -10,6 +10,16 @@ const HOUR_HEIGHT = 48;
 const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
 const COLORS = { Planned: "#1976d2", InProgress: "#f57c00", Completed: "#2e7d32", Cancelled: "#9e9e9e" };
 const STATUSES = ["Planned", "InProgress", "Completed", "Cancelled"];
+const SHIFT_SEGMENTS = {
+  Day: [[6, 14]],
+  Evening: [[14, 22]],
+  Night: [[22, 24], [0, 6]],
+};
+const SHIFT_LABEL = {
+  Day: "06:00 - 14:00",
+  Evening: "14:00 - 22:00",
+  Night: "22:00 - 06:00 (next day)",
+};
 
 export default function ScheduleGantt({ dateFilter, machineFilter }) {
   const { showToast } = useToast();
@@ -53,13 +63,13 @@ export default function ScheduleGantt({ dateFilter, machineFilter }) {
     return days;
   }, [startDate, endDate]);
 
-  const getScheduleStyle = (sched) => {
-    if (!sched.start_time || !sched.end_time) return null;
-    const st = sched.start_time.split(":").map(Number);
-    const et = sched.end_time.split(":").map(Number);
-    const top = (st[0] + st[1] / 60) * HOUR_HEIGHT;
-    const height = Math.max(((et[0] + et[1] / 60) - (st[0] + st[1] / 60)) * HOUR_HEIGHT, 20);
-    return { top: `${top}px`, height: `${height}px` };
+  const getScheduleSegments = (sched) => {
+    const segs = SHIFT_SEGMENTS[sched.shift];
+    if (!segs) return [];
+    return segs.map(([sh, eh]) => ({
+      top: `${sh * HOUR_HEIGHT}px`,
+      height: `${Math.max((eh - sh) * HOUR_HEIGHT, 20)}px`,
+    }));
   };
 
   const getDayIndex = (dateStr) => {
@@ -187,12 +197,11 @@ export default function ScheduleGantt({ dateFilter, machineFilter }) {
                         }}
                       >
                         {dayScheds.map((sched) => {
-                          const style = getScheduleStyle(sched);
-                          if (!style) return null;
+                          const segments = getScheduleSegments(sched);
                           const schedConflicts = getConflictsForSchedule(sched.id);
-                          return (
+                          return segments.map((style, idx) => (
                             <Tooltip
-                              key={sched.id}
+                              key={`${sched.id}-${idx}`}
                               title={
                                 <Box>
                                   <Typography variant="body2" fontWeight={700}>{sched.schedule_no}</Typography>
@@ -200,9 +209,9 @@ export default function ScheduleGantt({ dateFilter, machineFilter }) {
                                   <br />
                                   <Typography variant="caption">Product: {sched.order?.product_name || "-"}</Typography>
                                   <br />
-                                  <Typography variant="caption">Time: {sched.start_time?.slice(0, 5)} - {sched.end_time?.slice(0, 5)}</Typography>
+                                  <Typography variant="caption">Shift: {sched.shift} ({SHIFT_LABEL[sched.shift]})</Typography>
                                   <br />
-                                  <Typography variant="caption">Shift: {sched.shift} | Qty: {sched.planned_qty}</Typography>
+                                  <Typography variant="caption">Qty: {sched.planned_qty}</Typography>
                                   {schedConflicts.length > 0 && (
                                     <>
                                       <br />
@@ -234,7 +243,7 @@ export default function ScheduleGantt({ dateFilter, machineFilter }) {
                                 </Typography>
                               </Box>
                             </Tooltip>
-                          );
+                          ));
                         })}
                       </Box>
                     );

@@ -8,7 +8,12 @@ module.exports = (sequelize) => {
     category: { type: DataTypes.STRING(100) },
   }, {
     tableName: 'm_planning_settings',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
     underscored: true,
   });
 

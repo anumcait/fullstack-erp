@@ -21,7 +21,12 @@ module.exports = (sequelize) => {
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
   }, {
     tableName: 'm_production_machine',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   return ProductionMachine;

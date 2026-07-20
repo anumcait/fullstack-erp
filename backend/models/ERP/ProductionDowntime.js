@@ -18,7 +18,12 @@ module.exports = (sequelize) => {
     status: { type: DataTypes.ENUM('Open', 'Resolved', 'Closed'), defaultValue: 'Open' },
   }, {
     tableName: 't_production_downtime',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   return ProductionDowntime;

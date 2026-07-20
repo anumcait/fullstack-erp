@@ -9,6 +9,8 @@ const settingsController = require('../../controllers/ERP/subcontractSettingsCon
 
 router.get('/dashboard', dashboardController.stats);
 
+router.get('/next-numbers', orderController.nextNumbers);
+
 router.get('/orders', orderController.list);
 router.get('/orders/:id', orderController.get);
 router.post('/orders', orderController.create);

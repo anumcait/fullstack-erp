@@ -11,7 +11,7 @@ exports.list = async (req, res) => {
     if (req.query.from && req.query.to) {
       where.downtime_date = { [Op.between]: [req.query.from, req.query.to] };
     }
-    const rows = await ProductionDowntime.findAll({ where, order: [['downtime_date', 'DESC'], ['createdAt', 'DESC']] });
+    const rows = await ProductionDowntime.findAll({ where, order: [['downtime_date', 'DESC'], ['created_date', 'DESC']] });
     res.json(rows);
   } catch (err) { console.error('prodDowntime.list', err); res.status(500).json({ error: 'Failed' }); }
 };

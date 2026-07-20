@@ -38,6 +38,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true
         },
+        logo_url: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
         // Add other settings fields as needed
         payroll_pt_rate: {
             type: DataTypes.DECIMAL(10, 2),

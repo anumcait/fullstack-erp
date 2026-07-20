@@ -13,7 +13,12 @@ module.exports = (sequelize) => {
     total_price: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },
   }, {
     tableName: 't_quotation_items',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   QuotationItem.associate = (models) => {

@@ -23,7 +23,12 @@ module.exports = (sequelize) => {
     recorded_by: { type: DataTypes.STRING(100) },
   }, {
     tableName: 't_production_daily_entry',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   return ProductionDailyEntry;

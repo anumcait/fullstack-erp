@@ -36,7 +36,7 @@ const UserAccess = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('/api/users');
+      const response = await axios.get('/api/users', { withCredentials: true });
       setUsers(response.data);
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -78,7 +78,7 @@ const UserAccess = () => {
       await axios.put(`/api/users/${selectedUser}/permissions`, {
         permissions: userPermissions,
         role: userRole
-      });
+      }, { withCredentials: true });
       showToast('User access and role updated successfully', 'success');
       // Update local state for users
       setUsers(prev => prev.map(u => u.id === selectedUser ? { ...u, permissions: userPermissions, role: userRole } : u));

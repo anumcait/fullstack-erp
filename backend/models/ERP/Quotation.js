@@ -22,7 +22,12 @@ module.exports = (sequelize) => {
     created_by: { type: DataTypes.INTEGER },
   }, {
     tableName: 't_quotations',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   Quotation.associate = (models) => {

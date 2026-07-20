@@ -18,7 +18,12 @@ module.exports = (sequelize) => {
     remarks: { type: DataTypes.TEXT },
   }, {
     tableName: 't_non_conformance',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   NonConformance.associate = (models) => {

@@ -21,7 +21,7 @@ exports.stats = async (req, res) => {
     });
 
     const recentInspections = await QualityInspection.findAll({
-      order: [['createdAt', 'DESC']], limit: 10,
+      order: [['created_date', 'DESC']], limit: 10,
     });
 
     const passRate = totalInspections > 0 ? ((passed / totalInspections) * 100).toFixed(1) : 0;

@@ -11,7 +11,7 @@ exports.getNotifications = async (req, res) => {
         try {
             dbNotifs = await Notification.findAll({
                 where: { empid },
-                order: [['createdAt', 'DESC']],
+                order: [['created_date', 'DESC']],
                 limit: 20,
                 raw: true
             });

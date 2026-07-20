@@ -16,7 +16,7 @@ exports.list = async (req, res) => {
         { model: VoucherType, as: 'voucherType', attributes: ['id', 'code', 'name'] },
         { model: VoucherItem, as: 'items', include: [{ model: ChartOfAccount, as: 'account', attributes: ['id', 'account_code', 'account_name'] }] },
       ],
-      order: [['date', 'DESC'], ['createdAt', 'DESC']],
+      order: [['date', 'DESC'], ['created_date', 'DESC']],
     });
     res.json(rows);
   } catch (err) {

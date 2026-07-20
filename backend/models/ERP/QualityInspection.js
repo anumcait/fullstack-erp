@@ -25,7 +25,12 @@ module.exports = (sequelize) => {
     created_by: { type: DataTypes.INTEGER },
   }, {
     tableName: 't_quality_inspection',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   QualityInspection.associate = (models) => {

@@ -8,7 +8,12 @@ module.exports = (sequelize) => {
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
   }, {
     tableName: 'voucher_types',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   VoucherType.associate = (models) => {

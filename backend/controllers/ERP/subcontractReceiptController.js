@@ -12,13 +12,14 @@ exports.list = async (req, res) => {
       ];
     }
     if (req.query.status) where.status = req.query.status;
+    if (req.query.vendor) where.vendor_name = { [Op.iLike]: `%${req.query.vendor}%` };
     const rows = await SubcontractReceipt.findAll({
       where,
       include: [
         { model: SubcontractReceiptItem, as: 'items' },
         { model: SubcontractOrder, as: 'order', attributes: ['order_no'] },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(rows);
   } catch (err) { console.error('subReceipt.list', err); res.status(500).json({ error: 'Failed' }); }

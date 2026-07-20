@@ -10,7 +10,7 @@ exports.list = async (req, res) => {
     const rows = await Lead.findAll({
       where,
       include: [{ model: CustomerMaster, as: 'customer', attributes: ['id', 'customer_code', 'customer_name'] }],
-      order: [['createdAt', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(rows);
   } catch (err) { console.error('lead.list', err); res.status(500).json({ error: 'Failed to fetch leads' }); }

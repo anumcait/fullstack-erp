@@ -4,7 +4,7 @@ const { PlanningSchedule, PlanningMRP, PlanningCapacity } = db;
 
 const SCHED_ATTRS = [
   'id', 'schedule_no', 'order_id', 'machine_id', 'scheduled_date',
-  'shift', 'planned_qty', 'status', 'start_time', 'end_time',
+  'shift', 'planned_qty', 'status',
 ];
 
 exports.stats = async (req, res) => {

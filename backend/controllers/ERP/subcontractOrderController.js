@@ -1,6 +1,6 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
-const { SubcontractOrder, SubcontractOrderItem } = db;
+const { SubcontractOrder, SubcontractOrderItem, SubcontractIssue, SubcontractReceipt } = db;
 const { sequelize } = db;
 
 exports.list = async (req, res) => {
@@ -13,10 +13,11 @@ exports.list = async (req, res) => {
       ];
     }
     if (req.query.status) where.status = req.query.status;
+    if (req.query.vendor) where.vendor_name = { [Op.iLike]: `%${req.query.vendor}%` };
     const rows = await SubcontractOrder.findAll({
       where,
       include: [{ model: SubcontractOrderItem, as: 'items' }],
-      order: [['createdAt', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(rows);
   } catch (err) { console.error('subOrder.list', err); res.status(500).json({ error: 'Failed' }); }
@@ -74,4 +75,19 @@ exports.remove = async (req, res) => {
     await SubcontractOrder.destroy({ where: { id: req.params.id } });
     res.json({ message: 'Deleted' });
   } catch (err) { console.error('subOrder.remove', err); res.status(500).json({ error: 'Failed' }); }
+};
+
+// Suggest next document numbers so the UI can pre-fill them (no manual entry).
+exports.nextNumbers = async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+    const [o, i, r] = await Promise.all([
+      SubcontractOrder.count(), SubcontractIssue.count(), SubcontractReceipt.count(),
+    ]);
+    res.json({
+      order_no: `JWO-${year}-${String(o + 1).padStart(4, '0')}`,
+      issue_no: `SUB-ISS-${year}-${String(i + 1).padStart(4, '0')}`,
+      receipt_no: `SUB-REC-${year}-${String(r + 1).padStart(4, '0')}`,
+    });
+  } catch (err) { console.error('subOrder.nextNumbers', err); res.status(500).json({ error: 'Failed' }); }
 };

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 import DashBoard from "./Component/HR/DashBoard/DashBoard";
+import ERPLanding from "./Component/ERP/ERPLanding";
 import LoginForm from "./Component/LoginForm/LoginForm";
 import ChangePasswordForm from "./Component/ChangePasswordForm/ChangePasswordForm";
 import EmployeeReportForm from "./Component/HR/Employee/EmployeeMasterReport";
@@ -178,10 +179,6 @@ function App() {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Skip redirect if it's a login request or already on the login page
-        const isLoginRequest = error.config?.url?.includes('/api/auth/login');
-        const isAtLoginPath = window.location.pathname === '/';
-
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           const isLoginRequest = error.config?.url?.includes('/api/auth/login');
           const isAtLoginPath = window.location.pathname === '/';
@@ -210,12 +207,20 @@ function App() {
               <Router>
                 <Routes>
                   <Route path="/" element={<LoginForm />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <ERPLanding />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route element={
                     <ProtectedRoute>
                       <MainLayout />
                     </ProtectedRoute>
                   }>
-                    <Route path="/dashboard" element={<DashBoard />} />
+                    <Route path="/hr" element={<DashBoard />} />
                     <Route path="/accounts" element={<AccountsDashboard />} />
                     <Route path="/accounts/coa" element={<ChartOfAccounts />} />
                     <Route path="/accounts/budgets" element={<BudgetPage />} />

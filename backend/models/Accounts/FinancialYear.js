@@ -10,7 +10,12 @@ module.exports = (sequelize) => {
     is_closed: { type: DataTypes.BOOLEAN, defaultValue: false },
   }, {
     tableName: 'financial_years',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   FinancialYear.associate = (models) => {

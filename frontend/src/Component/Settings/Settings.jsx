@@ -243,15 +243,28 @@ const Settings = () => {
                 ) : (
                   <Box sx={{ fontSize: "1.2rem", lineHeight: 1 }}>🖼️</Box>
                 )}
-                <Button
-                  size="small"
-                  variant="outlined"
-                  component="label"
-                  sx={{ fontSize: "0.65rem", py: 0.3, px: 1, minWidth: 0, whiteSpace: "nowrap" }}
-                >
-                  Upload
-                  <input type="file" hidden accept="image/*" />
-                </Button>
+                 <Button
+                   size="small"
+                   variant="outlined"
+                   component="label"
+                   sx={{ fontSize: "0.65rem", py: 0.3, px: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                 >
+                   Upload
+                   <input
+                     type="file"
+                     hidden
+                     accept="image/*"
+                     onChange={(e) => {
+                       const file = e.target.files?.[0];
+                       if (!file) return;
+                       const reader = new FileReader();
+                       reader.onload = () => {
+                         setCompanySettings({ ...companySettings, logo_url: reader.result });
+                       };
+                       reader.readAsDataURL(file);
+                     }}
+                   />
+                 </Button>
               </Box>
 
             </Box>

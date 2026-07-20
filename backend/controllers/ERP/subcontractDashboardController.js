@@ -15,7 +15,7 @@ exports.stats = async (req, res) => {
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
     const thisMonthOrders = await SubcontractOrder.count({
-      where: { createdAt: { [Op.gte]: monthStart } },
+      where: { created_date: { [Op.gte]: monthStart } },
     });
 
     res.json({

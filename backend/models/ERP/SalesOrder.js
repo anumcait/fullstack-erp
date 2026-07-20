@@ -22,7 +22,12 @@ module.exports = (sequelize) => {
     created_by: { type: DataTypes.INTEGER },
   }, {
     tableName: 't_sales_orders',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   SalesOrder.associate = (models) => {

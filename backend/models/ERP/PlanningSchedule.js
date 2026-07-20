@@ -7,16 +7,18 @@ module.exports = (sequelize) => {
     order_id: { type: DataTypes.INTEGER },
     machine_id: { type: DataTypes.INTEGER },
     scheduled_date: { type: DataTypes.DATEONLY },
-    start_time: { type: DataTypes.TIME },
-    end_time: { type: DataTypes.TIME },
-    duration_hours: { type: DataTypes.DECIMAL(6, 2) },
     shift: { type: DataTypes.STRING(20) },
     planned_qty: { type: DataTypes.DECIMAL(12, 2) },
     status: { type: DataTypes.ENUM('Planned', 'InProgress', 'Completed', 'Cancelled'), defaultValue: 'Planned' },
     notes: { type: DataTypes.TEXT },
   }, {
     tableName: 't_planning_schedule',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
     underscored: true,
   });
 

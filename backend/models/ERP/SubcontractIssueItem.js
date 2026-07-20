@@ -13,6 +13,8 @@ module.exports = (sequelize) => {
   }, {
     tableName: 't_subcontract_issue_item',
     timestamps: true,
+    createdAt: 'created_date',
+    updatedAt: 'updated_at',
     underscored: true,
   });
 

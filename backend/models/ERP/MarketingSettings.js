@@ -7,7 +7,12 @@ module.exports = (sequelize) => {
     value: { type: DataTypes.TEXT },
   }, {
     tableName: 'm_marketing_settings',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   return MarketingSettings;

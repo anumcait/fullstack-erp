@@ -25,9 +25,9 @@ exports.vendorSummary = async (req, res) => {
 exports.monthlyTrend = async (req, res) => {
   try {
     const trend = await SubcontractOrder.findAll({
-      attributes: [[fn('to_char', col('createdAt'), 'YYYY-MM'), 'month'], [fn('COUNT', col('id')), 'count']],
-      group: [fn('to_char', col('createdAt'), 'YYYY-MM')],
-      order: [[fn('to_char', col('createdAt'), 'YYYY-MM'), 'ASC']],
+      attributes: [[fn('to_char', col('created_date'), 'YYYY-MM'), 'month'], [fn('COUNT', col('id')), 'count']],
+      group: [fn('to_char', col('created_date'), 'YYYY-MM')],
+      order: [[fn('to_char', col('created_date'), 'YYYY-MM'), 'ASC']],
       limit: 12,
     });
     res.json(trend);

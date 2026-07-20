@@ -18,7 +18,12 @@ module.exports = (sequelize) => {
     approved_at: { type: DataTypes.DATE, allowNull: true },
   }, {
     tableName: 'vouchers',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   Voucher.associate = (models) => {

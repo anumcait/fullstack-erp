@@ -8,6 +8,8 @@ import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import CountedTextArea from "../../../Common/CountedTextArea";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import PrintIcon from "@mui/icons-material/PictureAsPdf";
+import { downloadPoPdf } from "./poPdf";
 
 const API = "/api/erp/purchase/orders";
 const SUPPLIER_API = "/api/erp/purchase/suppliers";
@@ -21,6 +23,19 @@ export default function POForm() {
   const isEdit = Boolean(id) && !isView;
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [printing, setPrinting] = useState(false);
+
+  const handlePrint = async () => {
+    if (!id) return;
+    setPrinting(true);
+    try {
+      await downloadPoPdf(id);
+    } catch {
+      showToast("Failed to generate PDF", "error");
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -102,9 +117,16 @@ export default function POForm() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: "var(--heading-color)" }}>
-        {isView ? "Purchase Order Details" : isEdit ? "Edit Purchase Order" : "New Purchase Order"}
-      </Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: "bold", color: "var(--heading-color)" }}>
+          {isView ? "Purchase Order Details" : isEdit ? "Edit Purchase Order" : "New Purchase Order"}
+        </Typography>
+        {isView && (
+          <Button variant="contained" color="secondary" startIcon={<PrintIcon />} onClick={handlePrint} disabled={printing}>
+            {printing ? "Generating..." : "Print / Download PDF"}
+          </Button>
+        )}
+      </Box>
       <form onSubmit={handleSubmit}>
         <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", mb: 3 }}>
           <CardContent>

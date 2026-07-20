@@ -2,6 +2,8 @@ const db = require('../../models/ERP');
 const { Op, Sequelize } = require('sequelize');
 const { PlanningSchedule, ProductionMachine, ProductionOrder } = db;
 
+const SHIFT_ORDER = ['Day', 'Evening', 'Night'];
+
 exports.list = async (req, res) => {
   try {
     const where = {};
@@ -24,7 +26,7 @@ exports.list = async (req, res) => {
     const rows = await PlanningSchedule.findAll({
       where,
       include,
-      order: [['scheduled_date', 'ASC'], ['start_time', 'ASC']],
+      order: [['scheduled_date', 'ASC'], ['shift', 'ASC']],
     });
     res.json(rows);
   } catch (err) { console.error('planSched.list', err); res.status(500).json({ error: 'Failed' }); }
@@ -49,13 +51,6 @@ exports.create = async (req, res) => {
     const year = new Date().getFullYear();
     const schedNo = req.body.schedule_no || `SCH-${year}-${String(count + 1).padStart(4, '0')}`;
 
-    if (req.body.start_time && req.body.end_time) {
-      const start = req.body.start_time.split(':');
-      const end = req.body.end_time.split(':');
-      const hours = (parseInt(end[0]) + parseInt(end[1]) / 60) - (parseInt(start[0]) + parseInt(start[1]) / 60);
-      req.body.duration_hours = Math.max(0, hours);
-    }
-
     const row = await PlanningSchedule.create({ ...req.body, schedule_no: schedNo });
 
     const created = await PlanningSchedule.findByPk(row.id, {
@@ -72,13 +67,6 @@ exports.update = async (req, res) => {
   try {
     const row = await PlanningSchedule.findByPk(req.params.id);
     if (!row) return res.status(404).json({ error: 'Not found' });
-
-    if (req.body.start_time && req.body.end_time) {
-      const start = req.body.start_time.split(':');
-      const end = req.body.end_time.split(':');
-      const hours = (parseInt(end[0]) + parseInt(end[1]) / 60) - (parseInt(start[0]) + parseInt(start[1]) / 60);
-      req.body.duration_hours = Math.max(0, hours);
-    }
 
     await row.update(req.body);
     const updated = await PlanningSchedule.findByPk(row.id, {
@@ -118,7 +106,7 @@ exports.gantt = async (req, res) => {
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
         { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
       ],
-      order: [['scheduled_date', 'ASC'], ['start_time', 'ASC']],
+      order: [['scheduled_date', 'ASC'], ['shift', 'ASC']],
     });
 
     const ganttData = machines.map((m) => ({
@@ -135,28 +123,18 @@ exports.reschedule = async (req, res) => {
     const row = await PlanningSchedule.findByPk(req.params.id);
     if (!row) return res.status(404).json({ error: 'Not found' });
 
-    const { scheduled_date, start_time, end_time, machine_id, shift } = req.body;
+    const { scheduled_date, machine_id, shift } = req.body;
     const updateData = {};
     if (scheduled_date) updateData.scheduled_date = scheduled_date;
-    if (start_time) updateData.start_time = start_time;
-    if (end_time) updateData.end_time = end_time;
     if (machine_id) updateData.machine_id = machine_id;
     if (shift) updateData.shift = shift;
-
-    if (updateData.start_time && updateData.end_time) {
-      const start = updateData.start_time.split(':');
-      const end = updateData.end_time.split(':');
-      const hours = (parseInt(end[0]) + parseInt(end[1]) / 60) - (parseInt(start[0]) + parseInt(start[1]) / 60);
-      updateData.duration_hours = Math.max(0, hours);
-    }
 
     await row.update(updateData);
 
     const conflicts = await exports._checkConflicts(row.id, {
       machine_id: row.machine_id,
       scheduled_date: row.scheduled_date,
-      start_time: row.start_time,
-      end_time: row.end_time,
+      shift: row.shift,
     });
 
     const updated = await PlanningSchedule.findByPk(row.id, {
@@ -170,17 +148,14 @@ exports.reschedule = async (req, res) => {
   } catch (err) { console.error('planSched.reschedule', err); res.status(500).json({ error: 'Failed' }); }
 };
 
-exports._checkConflicts = async (excludeId, { machine_id, scheduled_date, start_time, end_time }) => {
-  if (!machine_id || !scheduled_date || !start_time || !end_time) return [];
+exports._checkConflicts = async (excludeId, { machine_id, scheduled_date, shift }) => {
+  if (!machine_id || !scheduled_date || !shift) return [];
 
   const where = {
     machine_id,
     scheduled_date,
+    shift,
     status: { [Op.notIn]: ['Cancelled', 'Completed'] },
-    [Op.or]: [
-      { start_time: { [Op.lt]: end_time }, end_time: { [Op.gt]: start_time } },
-      { start_time: null, end_time: null },
-    ],
   };
   if (excludeId) where.id = { [Op.ne]: excludeId };
 
@@ -197,8 +172,8 @@ exports._checkConflicts = async (excludeId, { machine_id, scheduled_date, start_
 
 exports.checkConflicts = async (req, res) => {
   try {
-    const { machine_id, scheduled_date, start_time, end_time, exclude_id } = req.query;
-    const conflicts = await exports._checkConflicts(exclude_id, { machine_id, scheduled_date, start_time, end_time });
+    const { machine_id, scheduled_date, shift, exclude_id } = req.query;
+    const conflicts = await exports._checkConflicts(exclude_id, { machine_id, scheduled_date, shift });
     res.json(conflicts);
   } catch (err) { console.error('planSched.checkConflicts', err); res.status(500).json({ error: 'Failed' }); }
 };
@@ -216,7 +191,7 @@ exports.autoSchedule = async (req, res) => {
       include: [
         { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
       ],
-      order: [['createdAt', 'ASC']],
+      order: [['created_date', 'ASC']],
     });
 
     const machines = await ProductionMachine.findAll({
@@ -272,25 +247,18 @@ exports.autoSchedule = async (req, res) => {
       }
 
       if (assignedMachine && assignedDate) {
-        const shiftOrder = ['Day', 'Evening', 'Night'];
         const existingScheds = await PlanningSchedule.findAll({
           where: { machine_id: assignedMachine.id, scheduled_date: assignedDate, status: { [Op.notIn]: ['Cancelled'] } },
-          order: [['start_time', 'ASC']],
+          order: [['shift', 'ASC']],
         });
 
-        const shiftIndex = existingScheds.length < 3 ? existingScheds.length : 0;
-        const shift = shiftOrder[shiftIndex] || 'Day';
-
-        const timeSlots = { Day: ['06:00', '14:00'], Evening: ['14:00', '22:00'], Night: ['22:00', '06:00'] };
-        const [st, et] = timeSlots[shift];
+        const usedShifts = new Set(existingScheds.map((s) => s.shift));
+        const shift = SHIFT_ORDER.find((s) => !usedShifts.has(s)) || 'Day';
 
         await sched.update({
           machine_id: assignedMachine.id,
           scheduled_date: assignedDate,
           shift,
-          start_time: st,
-          end_time: et,
-          duration_hours: 8,
         });
 
         assigned.push({
@@ -327,7 +295,7 @@ exports.calendar = async (req, res) => {
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
         { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name'] },
       ],
-      order: [['scheduled_date', 'ASC'], ['start_time', 'ASC']],
+      order: [['scheduled_date', 'ASC'], ['shift', 'ASC']],
     });
 
     const grouped = {};

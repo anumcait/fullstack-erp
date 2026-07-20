@@ -10,7 +10,7 @@ exports.list = async (req, res) => {
     const rows = await QualityInspection.findAll({
       where,
       include: [{ model: QualityInspectionItem, as: 'items' }],
-      order: [['createdAt', 'DESC']],
+      order: [['created_date', 'DESC']],
     });
     res.json(rows);
   } catch (err) { console.error('qual.list', err); res.status(500).json({ error: 'Failed to fetch inspections' }); }

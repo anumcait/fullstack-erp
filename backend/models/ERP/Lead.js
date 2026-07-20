@@ -20,7 +20,12 @@ module.exports = (sequelize) => {
     lost_reason: { type: DataTypes.TEXT },
   }, {
     tableName: 't_leads',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   Lead.associate = (models) => {

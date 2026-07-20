@@ -13,7 +13,12 @@ module.exports = (sequelize) => {
     cost_center_id: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     tableName: 'voucher_items',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   VoucherItem.associate = (models) => {

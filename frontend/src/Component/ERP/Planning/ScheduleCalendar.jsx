@@ -141,8 +141,7 @@ export default function ScheduleCalendar() {
             <Grid container spacing={2}>
               {["Planned", "InProgress", "Completed", "Cancelled"].map((status) => {
                 const count = schedules.filter((s) => s.status === status).length;
-                const totalHours = schedules.filter((s) => s.status === status)
-                  .reduce((acc, s) => acc + parseFloat(s.duration_hours || 0), 0);
+                const totalHours = count * 8;
                 return (
                   <Grid item xs={6} sm={3} key={status}>
                     <Box sx={{ textAlign: "center", p: 2, bgcolor: "#f8f9fa", borderRadius: 2 }}>

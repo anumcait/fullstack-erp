@@ -25,20 +25,20 @@ exports.updateCompanySettings = async (req, res) => {
     try {
         const {
             company_name, address, phone, email, website,
-            gstin, pf_number, esi_number, payroll_pt_rate, payroll_ot_multiplier
+            gstin, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier
         } = req.body;
 
         let settings = await CompanySettings.findOne();
         if (settings) {
             await settings.update({
                 company_name, address, phone, email, website,
-                gstin, pf_number, esi_number, payroll_pt_rate, payroll_ot_multiplier,
+                gstin, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier,
                 c_last_update: new Date()
             });
         } else {
             settings = await CompanySettings.create({
                 company_name, address, phone, email, website,
-                gstin, pf_number, esi_number, payroll_pt_rate, payroll_ot_multiplier,
+                gstin, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier,
                 c_last_update: new Date()
             });
         }

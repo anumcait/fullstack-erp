@@ -8,11 +8,17 @@ module.exports = (sequelize) => {
     item_code: { type: DataTypes.STRING(50) },
     item_name: { type: DataTypes.STRING(200), allowNull: false },
     quantity: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+    accepted_qty: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
     uom: { type: DataTypes.STRING(20) },
     notes: { type: DataTypes.TEXT },
   }, {
     tableName: 't_subcontract_receipt_item',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
     underscored: true,
   });
 

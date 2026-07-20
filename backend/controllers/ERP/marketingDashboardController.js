@@ -16,7 +16,7 @@ exports.stats = async (req, res) => {
     const revenue = await SalesOrder.sum('total_amount', { where: { status: { [Op.not]: 'Cancelled' } } });
     const recentLeads = await Lead.findAll({
       include: [{ model: CustomerMaster, as: 'customer', attributes: ['id', 'customer_name'] }],
-      order: [['createdAt', 'DESC']], limit: 10,
+      order: [['created_date', 'DESC']], limit: 10,
     });
     const recentQuotes = await Quotation.findAll({
       include: [{ model: CustomerMaster, as: 'customer', attributes: ['id', 'customer_name'] }],

@@ -15,7 +15,12 @@ module.exports = (sequelize) => {
     notes: { type: DataTypes.TEXT },
   }, {
     tableName: 'm_maintenance_asset',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
     underscored: true,
   });
 

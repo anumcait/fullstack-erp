@@ -19,7 +19,12 @@ module.exports = (sequelize) => {
     dec: { type: DataTypes.DECIMAL(16, 2), defaultValue: 0 },
   }, {
     tableName: 'budgets',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   Budget.associate = (models) => {

@@ -12,7 +12,12 @@ module.exports = (sequelize) => {
     remarks: { type: DataTypes.TEXT },
   }, {
     tableName: 't_quality_inspection_items',
+
     timestamps: true,
+
+    createdAt: 'created_date',
+
+    updatedAt: 'updated_at',
   });
 
   QualityInspectionItem.associate = (models) => {

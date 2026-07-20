@@ -88,11 +88,8 @@ export default function ScheduleList() {
       valueGetter: (p) => p?.machine_code,
     },
     { field: "scheduled_date", headerName: "Date", width: 120, renderCell: (p) => formatDate(p.value) },
-    { field: "start_time", headerName: "Start", width: 80, renderCell: (p) => p.value ? p.value.slice(0, 5) : "-" },
-    { field: "end_time", headerName: "End", width: 80, renderCell: (p) => p.value ? p.value.slice(0, 5) : "-" },
     { field: "shift", headerName: "Shift", width: 90 },
     { field: "planned_qty", headerName: "Planned Qty", width: 100 },
-    { field: "duration_hours", headerName: "Hours", width: 70, renderCell: (p) => p.value ? Number(p.value).toFixed(1) : "-" },
     { field: "status", headerName: "Status", width: 110, renderCell: (p) => getStatusChip(p.value) },
     {
       field: "actions", headerName: "Actions", width: 140, sortable: false,

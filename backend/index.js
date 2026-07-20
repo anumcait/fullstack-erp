@@ -132,6 +132,8 @@ BEGIN
     EXCEPTION WHEN others THEN END;
   END LOOP;
 END $$;`,
+        // ── Subcontract receipt item: accepted quantity ──
+        `ALTER TABLE IF EXISTS t_subcontract_receipt_item ADD COLUMN IF NOT EXISTS accepted_qty DECIMAL(12,2)`,
         // ── PR form new columns (Apex-style) ──
         `ALTER TABLE IF EXISTS t_purchase_requisition ADD COLUMN IF NOT EXISTS sub_department VARCHAR(100)`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS cost_center VARCHAR(50)`,
@@ -143,6 +145,9 @@ END $$;`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS mat_code VARCHAR(50)`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS mat_desc VARCHAR(200)`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS est_cost DECIMAL(14,2)`,
+        // ── Company settings: logo ──
+        `ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS logo_url TEXT`,
+        `UPDATE m_company_settings SET logo_url = '/logo.png' WHERE logo_url IS NULL OR logo_url = ''`,
         // ── Cost Center master table ──
         `CREATE TABLE IF NOT EXISTS m_cost_center (
           id SERIAL PRIMARY KEY,

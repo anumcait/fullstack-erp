@@ -1,28 +1,24 @@
-// src/pages/Dashboard/DashboardTabs.jsx
 import React, { useState, useEffect } from "react";
+import {
+  Box, Typography,
+} from "@mui/material";
 import HRDashboard from "./HRDashboard";
 import EmployeeDashboard from "./EmployeeDashboard";
 import ManagerDashboard from "./ManagerDashboard";
 import { FaUserTie, FaUsersCog, FaUser } from "react-icons/fa";
+import PageHeader from "../../Common/PageHeader";
 
 export default function DashboardTabs() {
-  const [activeTab, setActiveTab] = useState(null); // null = loading
+  const [activeTab, setActiveTab] = useState(null);
   const [role, setRole] = useState("EMPLOYEE");
 
   useEffect(() => {
-    // Try localStorage first (set during login)
     let storedRole = localStorage.getItem("userRole");
-
-    if (!storedRole) {
-      // Fallback: try sessionStorage
-      storedRole = sessionStorage.getItem("userRole");
-    }
-
-    const userRole = storedRole ? storedRole.trim().toUpperCase() : "EMPLOYEE";
-    setRole(userRole);
-
-    if (userRole === "HR") setActiveTab("HR");
-    else if (userRole === "MANAGER") setActiveTab("Manager");
+    if (!storedRole) storedRole = sessionStorage.getItem("userRole");
+    const r = storedRole ? storedRole.trim().toUpperCase() : "EMPLOYEE";
+    setRole(r);
+    if (r === "HR") setActiveTab("HR");
+    else if (r === "MANAGER") setActiveTab("Manager");
     else setActiveTab("Employee");
   }, []);
 
@@ -34,27 +30,20 @@ export default function DashboardTabs() {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "Employee":
-        return <EmployeeDashboard />;
-      case "Manager":
-        return <ManagerDashboard />;
-      case "HR":
-        return <HRDashboard />;
-      default:
-        return <EmployeeDashboard />;
+      case "Employee": return <EmployeeDashboard />;
+      case "Manager": return <ManagerDashboard />;
+      case "HR": return <HRDashboard />;
+      default: return <EmployeeDashboard />;
     }
   };
 
-  // Determine accessible tabs per role
   const canAccess = (tabName) => {
     const tab = tabName.toUpperCase();
     if (role === "HR") return tab === "HR" || tab === "EMPLOYEE";
     if (role === "MANAGER") return tab === "MANAGER" || tab === "EMPLOYEE";
-    if (role === "EMPLOYEE") return tab === "EMPLOYEE";
     return tab === "EMPLOYEE";
   };
 
-  // Show loader until role is resolved to avoid blank flash
   if (activeTab === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -65,12 +54,12 @@ export default function DashboardTabs() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      {/* Tabs */}
+      <PageHeader title="HR Workspace" subtitle="Your personal HR dashboard — attendance, leaves, payslips & more" />
+
       <div className="flex flex-wrap justify-center gap-3 mb-6">
         {tabs.map((tab) => {
           const isAccessible = canAccess(tab.name);
           const isActive = activeTab === tab.name;
-
           return (
             <button
               key={tab.name}
@@ -91,7 +80,6 @@ export default function DashboardTabs() {
         })}
       </div>
 
-      {/* Dashboard Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg transition-all duration-300 animate-fadeIn">
         {renderTabContent()}
       </div>

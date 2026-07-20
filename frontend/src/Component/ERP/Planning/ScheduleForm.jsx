@@ -11,7 +11,6 @@ const MACHINE_API = "/api/erp/production/machines";
 const ORDER_API = "/api/erp/production/orders";
 const SHIFTS = ["Day", "Evening", "Night"];
 const STATUSES = ["Planned", "InProgress", "Completed", "Cancelled"];
-const SHIFT_TIMES = { Day: ["06:00", "14:00"], Evening: ["14:00", "22:00"], Night: ["22:00", "06:00"] };
 
 export default function ScheduleForm() {
   const { id } = useParams();
@@ -28,7 +27,6 @@ export default function ScheduleForm() {
   const [conflicts, setConflicts] = useState([]);
   const [form, setForm] = useState({
     schedule_no: "", order_id: "", machine_id: "", scheduled_date: "", shift: "Day",
-    start_time: "", end_time: "", duration_hours: "",
     planned_qty: "", status: "Planned", notes: "",
   });
 
@@ -56,9 +54,6 @@ export default function ScheduleForm() {
           machine_id: data.machine_id || "",
           scheduled_date: data.scheduled_date ? data.scheduled_date.split("T")[0] : "",
           shift: data.shift || "Day",
-          start_time: data.start_time ? data.start_time.slice(0, 5) : "",
-          end_time: data.end_time ? data.end_time.slice(0, 5) : "",
-          duration_hours: data.duration_hours || "",
           planned_qty: data.planned_qty || "",
           status: data.status || "Planned",
           notes: data.notes || "",
@@ -69,38 +64,18 @@ export default function ScheduleForm() {
 
   const hc = (f) => (e) => {
     const val = e.target.value;
-    setForm((p) => {
-      const next = { ...p, [f]: val };
+    setForm((p) => ({ ...p, [f]: val }));
 
-      if (f === "shift" && !p.start_time && !p.end_time) {
-        const times = SHIFT_TIMES[val];
-        if (times) {
-          next.start_time = times[0];
-          next.end_time = times[1];
-        }
-      }
-
-      if ((f === "start_time" || f === "end_time" || (f === "shift" && next.start_time && next.end_time)) && next.start_time && next.end_time) {
-        const st = next.start_time.split(":").map(Number);
-        const et = next.end_time.split(":").map(Number);
-        let hours = (et[0] + et[1] / 60) - (st[0] + st[1] / 60);
-        if (hours < 0) hours += 24;
-        next.duration_hours = Math.max(0, hours).toFixed(1);
-      }
-
-      return next;
-    });
-
-    if ((f === "machine_id" || f === "scheduled_date" || f === "start_time" || f === "end_time") && e.target.value) {
+    if ((f === "machine_id" || f === "scheduled_date" || f === "shift") && e.target.value) {
       checkConflicts({ ...form, [f]: e.target.value });
     }
   };
 
   const checkConflicts = async (checkForm) => {
-    const { machine_id, scheduled_date, start_time, end_time } = checkForm;
-    if (!machine_id || !scheduled_date || !start_time || !end_time) return;
+    const { machine_id, scheduled_date, shift } = checkForm;
+    if (!machine_id || !scheduled_date || !shift) return;
     try {
-      const params = { machine_id, scheduled_date, start_time, end_time };
+      const params = { machine_id, scheduled_date, shift };
       if (id) params.exclude_id = id;
       const { data } = await axios.get(`${API}/conflicts`, { params });
       setConflicts(data || []);
@@ -112,8 +87,6 @@ export default function ScheduleForm() {
     setSaving(true);
     try {
       const payload = { ...form };
-      if (payload.start_time) payload.start_time += ":00";
-      if (payload.end_time) payload.end_time += ":00";
 
       if (id && !isView) {
         await axios.put(`${API}/${id}`, payload);
@@ -138,11 +111,11 @@ export default function ScheduleForm() {
       {conflicts.length > 0 && (
         <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setConflicts([])}>
           <Typography variant="body2" fontWeight={600}>Scheduling Conflict Detected</Typography>
-          {conflicts.map((c) => (
-            <Typography key={c.id} variant="caption" display="block">
-              • {c.schedule_no} — {c.start_time?.slice(0, 5)} to {c.end_time?.slice(0, 5)} on {c.machine?.machine_code}
-            </Typography>
-          ))}
+           {conflicts.map((c) => (
+             <Typography key={c.id} variant="caption" display="block">
+               • {c.schedule_no} — {c.shift} shift on {c.scheduled_date} ({c.machine?.machine_code})
+             </Typography>
+           ))}
         </Alert>
       )}
 
@@ -185,18 +158,6 @@ export default function ScheduleForm() {
                       onChange={hc("shift")} disabled={isView}>
                       {SHIFTS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                     </TextField>
-                  </Grid>
-                  <Grid item xs={2}>
-                    <TextField label="Start Time" type="time" size="small" fullWidth value={form.start_time}
-                      onChange={hc("start_time")} disabled={isView} InputLabelProps={{ shrink: true }} />
-                  </Grid>
-                  <Grid item xs={2}>
-                    <TextField label="End Time" type="time" size="small" fullWidth value={form.end_time}
-                      onChange={hc("end_time")} disabled={isView} InputLabelProps={{ shrink: true }} />
-                  </Grid>
-                  <Grid item xs={2}>
-                    <TextField label="Duration (hrs)" size="small" fullWidth value={form.duration_hours}
-                      InputProps={{ readOnly: true }} disabled />
                   </Grid>
                   <Grid item xs={3}>
                     <TextField label="Planned Qty" type="number" size="small" fullWidth value={form.planned_qty}
