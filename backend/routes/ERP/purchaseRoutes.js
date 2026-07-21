@@ -10,6 +10,7 @@ const vendorRatingController = require('../../controllers/ERP/vendorRatingContro
 const purchaseSettingsController = require('../../controllers/ERP/purchaseSettingsController');
 const purchaseReportController = require('../../controllers/ERP/purchaseReportController');
 const approvalController = require('../../controllers/ERP/approvalController');
+const prSanctionController = require('../../controllers/ERP/prSanctionController');
 
 // ── Dashboard ──
 router.get('/dashboard', purchaseController.getDashboardStats);
@@ -34,6 +35,8 @@ router.get('/reports/item-information', purchaseReportController.getItemInformat
 router.get('/reports/party-master', purchaseReportController.getPartyMaster);
 router.get('/reports/supplier-rating', purchaseReportController.getSupplierRatingReport);
 router.get('/reports/daily', purchaseReportController.getDailyReport);
+router.get('/reports/po-matrix', purchaseReportController.getPOMatrix);
+router.get('/reports/po-matrix-detail', purchaseReportController.getPOMatrixDetail);
 router.get('/reports/pending-by-party', purchaseReportController.getPendingMaterialByParty);
 router.get('/reports/pr-amendment', purchaseReportController.getPRAmendmentDetails);
 
@@ -43,6 +46,7 @@ router.get('/orders/:id', poController.getPurchaseOrder);
 router.post('/orders', poController.createPurchaseOrder);
 router.put('/orders/:id', poController.updatePurchaseOrder);
 router.put('/orders/:id/approve', poController.approvePurchaseOrder);
+router.post('/orders/:id/recalculate', poController.recalculatePO);
 router.delete('/orders/:id', poController.deletePurchaseOrder);
 
 // ── Purchase Requisitions (Indents) ──
@@ -53,6 +57,10 @@ router.post('/requisitions', requisitionController.createRequisition);
 router.put('/requisitions/:id', requisitionController.updateRequisition);
 router.put('/requisitions/:id/approve', requisitionController.approveRequisition);
 router.delete('/requisitions/:id', requisitionController.deleteRequisition);
+
+// ── PR Sanction (post-approval, per-item + vendor) ──
+router.get('/sanctions', prSanctionController.getSanctions);
+router.post('/sanctions', prSanctionController.createSanctions);
 
 // ── RFQ / Enquiry ──
 router.get('/rfq', rfqController.getRFQs);

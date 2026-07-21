@@ -37,6 +37,20 @@ exports.getList = async (req, res) => {
   }
 };
 
+exports.getByParty = async (req, res) => {
+  try {
+    const rows = await db.DeliveryChallan.findAll({
+      where: { party_id: req.params.partyId },
+      include: [{ model: db.DeliveryChallanItem, as: 'items' }],
+      order: [['dc_date', 'DESC']],
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching DCs by party:', err);
+    res.status(500).json({ error: 'Failed to fetch' });
+  }
+};
+
 exports.getOne = async (req, res) => {
   try {
     const dc = await db.DeliveryChallan.findByPk(req.params.id, {

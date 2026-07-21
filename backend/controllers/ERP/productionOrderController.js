@@ -1,5 +1,6 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
+const { getNextSequence } = require('../../utils/docNumber');
 
 const ProductionOrder = db.ProductionOrder;
 const ProductionOrderItem = db.ProductionOrderItem;
@@ -87,6 +88,7 @@ exports.getList = async (req, res) => {
       where[Op.or] = [
         { order_no: { [Op.iLike]: `%${search}%` } },
         { product_name: { [Op.iLike]: `%${search}%` } },
+        { party_name: { [Op.iLike]: `%${search}%` } },
       ];
     }
     const data = await ProductionOrder.findAll({
@@ -116,51 +118,67 @@ exports.getOne = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { bom_id, planned_quantity, ...rest } = req.body;
+    const { bom_id, planned_quantity, items: bodyItems, ...rest } = req.body;
 
-    const bom = await BOM.findByPk(bom_id);
-    if (!bom) return res.status(400).json({ error: 'BOM not found' });
-    if (bom.status !== 'Active') return res.status(400).json({ error: 'BOM must be Active' });
+    const { orderNo } = await getNextSequence('t_production_order', 'JO');
 
-    const count = await ProductionOrder.count();
-    const orderNo = `PO-${String(count + 1).padStart(4, '0')}`;
+    let bom = null;
+    if (bom_id) {
+      bom = await BOM.findByPk(bom_id);
+      if (!bom) return res.status(400).json({ error: 'BOM not found' });
+      if (bom.status !== 'Active') return res.status(400).json({ error: 'BOM must be Active' });
+    }
 
     const doc = await ProductionOrder.create({
       order_no: orderNo,
-      bom_id,
-      product_item_id: bom.product_item_id,
-      product_code: bom.product_code,
-      product_name: bom.product_name,
-      planned_quantity,
+      bom_id: bom_id || null,
+      product_item_id: bom?.product_item_id || null,
+      product_code: bom?.product_code || rest.product_code || '',
+      product_name: bom?.product_name || rest.product_name || '',
+      planned_quantity: planned_quantity || 1,
       produced_quantity: 0,
       status: 'Planning',
       order_type: rest.order_type || 'Job Order',
       ...rest,
     });
 
-    const materials = await explodeBOMRecursive(bom_id, Number(planned_quantity));
-    const grouped = {};
-    for (const m of materials) {
-      const key = m.item_id || m.item_code;
-      if (grouped[key]) {
-        grouped[key].required_quantity += m.required_quantity;
-      } else {
-        grouped[key] = { ...m };
+    let orderItems = [];
+    if (Array.isArray(bodyItems) && bodyItems.length > 0) {
+      orderItems = bodyItems.map((it) => ({
+        order_id: doc.id,
+        item_id: it.item_id || null,
+        item_code: it.item_code || '',
+        item_name: it.item_name || '',
+        required_quantity: Number(it.quantity || it.required_quantity || 0),
+        issued_quantity: 0,
+        unit_id: it.unit_id || null,
+        remarks: it.remarks || '',
+      }));
+    } else if (bom) {
+      const materials = await explodeBOMRecursive(bom_id, Number(planned_quantity || 1));
+      const grouped = {};
+      for (const m of materials) {
+        const key = m.item_id || m.item_code;
+        if (grouped[key]) {
+          grouped[key].required_quantity += m.required_quantity;
+        } else {
+          grouped[key] = { ...m };
+        }
       }
+      orderItems = Object.values(grouped).map((m) => ({
+        order_id: doc.id,
+        item_id: m.item_id,
+        item_code: m.item_code || '',
+        item_name: m.item_name || '',
+        required_quantity: m.required_quantity || 0,
+        issued_quantity: 0,
+        unit_id: m.unit_id,
+        color: m.color || null,
+        remarks: [m.remarks, m.source].filter(Boolean).join(' | '),
+      }));
     }
 
-    const items = Object.values(grouped).map((m) => ({
-      order_id: doc.id,
-      item_id: m.item_id,
-      item_code: m.item_code || '',
-      item_name: m.item_name || '',
-      required_quantity: m.required_quantity || 0,
-      issued_quantity: 0,
-      unit_id: m.unit_id,
-      color: m.color || null,
-      remarks: [m.remarks, m.source].filter(Boolean).join(' | '),
-    }));
-    await ProductionOrderItem.bulkCreate(items);
+    if (orderItems.length > 0) await ProductionOrderItem.bulkCreate(orderItems);
 
     const result = await ProductionOrder.findByPk(doc.id, {
       include: [{ model: ProductionOrderItem, as: 'items' }],
@@ -169,6 +187,53 @@ exports.create = async (req, res) => {
   } catch (err) {
     console.error('Error creating production order:', err);
     res.status(500).json({ error: 'Failed to create' });
+  }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const doc = await ProductionOrder.findByPk(req.params.id, {
+      include: [{ model: ProductionOrderItem, as: 'items' }],
+    });
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+
+    const { items: bodyItems, ...rest } = req.body;
+
+    await doc.update({
+      party_id: rest.party_id || null,
+      party_name: rest.party_name || '',
+      department: rest.department || '',
+      req_date: rest.req_date || null,
+      jo_date: rest.jo_date || null,
+      payment_terms: rest.payment_terms || '',
+      delivery_terms: rest.delivery_terms || '',
+      currency: rest.currency || 'INR',
+      notes: rest.notes || '',
+      remarks: rest.remarks || '',
+    });
+
+    if (Array.isArray(bodyItems) && bodyItems.length > 0) {
+      await ProductionOrderItem.destroy({ where: { order_id: doc.id } });
+      const orderItems = bodyItems.map((it) => ({
+        order_id: doc.id,
+        item_id: it.item_id || null,
+        item_code: it.item_code || '',
+        item_name: it.item_name || '',
+        required_quantity: Number(it.quantity || it.required_quantity || 0),
+        issued_quantity: 0,
+        unit_id: it.unit_id || null,
+        remarks: it.remarks || '',
+      }));
+      await ProductionOrderItem.bulkCreate(orderItems);
+    }
+
+    const result = await ProductionOrder.findByPk(doc.id, {
+      include: [{ model: ProductionOrderItem, as: 'items' }],
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error updating production order:', err);
+    res.status(500).json({ error: 'Failed to update' });
   }
 };
 

@@ -96,6 +96,7 @@ const Sidebar = () => {
   const [openSubmenu, setOpenSubmenu] = useState(() => {
     return localStorage.getItem('sidebarSubmenu') || "";
   });
+  const [openChild, setOpenChild] = useState("");
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem('sidebarCollapsed') === 'true';
   });
@@ -120,8 +121,15 @@ const Sidebar = () => {
   useEffect(() => {
     const active = Object.keys(SUBMENUS).find((k) => isSubmenuActive(k));
     if (active) setOpenSubmenu((prev) => (prev === active ? prev : active));
+    const base = path.split("?")[0];
+    const inPur = base.startsWith("/purchase/requisitions");
+    if (inPur && (base === "/purchase/requisitions/add" || location.search.includes("status=Draft"))) {
+      setOpenChild("prDraft");
+    } else {
+      setOpenChild("");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path]);
+  }, [path, location.search]);
 
   const handleLogout = async () => {
     try {
@@ -161,7 +169,10 @@ const Sidebar = () => {
   };
 
   const isSubmenuActive = (key) =>
-    (SUBMENUS[key] || []).some((p) => path === p || path.startsWith(p + "/"));
+    (SUBMENUS[key] || []).some((p) => {
+      const base = path.split("?")[0];
+      return base === p || base.startsWith(p + "/");
+    });
 
   let activeModule = "HR";
 
@@ -556,21 +567,56 @@ const Sidebar = () => {
               </li>
             )}
             {(hasPermission('PUR_PR_NEW') || hasPermission('PUR_PR_AUTH') || hasPermission('PUR_PR_SANCTION') || hasPermission('PUR_PR_STATUS') || hasPermission('PUR_LOI') || hasPermission('PUR_PR_SHORTCLOSE')) && (
-              <li className={`sidebar-menu-item ${openSubmenu === "purPR" ? "open" : ""} ${isSubmenuActive("purPR") ? "sidebar-active-parent" : ""}`}>
-                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("purPR")}>
-                  <FiFilePlus />
-                  {!collapsed && (
-                    <>
-                      <span>Purchase Requisition</span>
-                      <span className="expand-icon">{openSubmenu === "purPR" ? <FiChevronDown /> : <FiChevronRight />}</span>
-                    </>
-                  )}
+              <li className={`sidebar-menu-item ${openSubmenu === "purPR" ? "open" : ""} ${isActive("/purchase/requisitions", true) ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link">
+                  <NavLink
+                    to="/purchase/requisitions"
+                    onClick={(e) => handleNavClick("/purchase/requisitions", e)}
+                    className={`sidebar-parent-nav ${isActive("/purchase/requisitions", true) ? "sidebar-active" : ""}`}
+                    style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}
+                  >
+                    <FiFilePlus />
+                    {!collapsed && <span>Purchase Requisition</span>}
+                  </NavLink>
+                  <span className="expand-icon" onClick={(e) => { e.stopPropagation(); toggleSubmenu("purPR"); }}>{openSubmenu === "purPR" ? <FiChevronDown /> : <FiChevronRight />}</span>
                 </div>
                 {openSubmenu === "purPR" && (
                   <ul className="sidebar-submenu">
-                    {hasPermission('PUR_PR_AUTH') && <SubItem to="/purchase/requisitions" label="New PR" icon={FiPlusCircle} />}
+                    {hasPermission('PUR_PR_NEW') && (
+                      <li className={`sidebar-menu-item ${openChild === "prDraft" ? "open" : ""}`}>
+                        <NavLink
+                          to="/purchase/requisitions?status=Draft"
+                          onClick={(e) => handleNavClick("/purchase/requisitions?status=Draft", e)}
+                          className={`sidebar-menu-link ${isActive("/purchase/requisitions?status=Draft") ? "sidebar-active" : ""}`}
+                          style={{ justifyContent: "space-between", textDecoration: "none" }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <FiPlusCircle size={collapsed ? 20 : 16} />
+                            {!collapsed && <span>Draft PRs</span>}
+                          </div>
+                          {!collapsed && (
+                            <span
+                              className="expand-icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setOpenChild(openChild === "prDraft" ? "" : "prDraft");
+                              }}
+                              style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+                            >
+                              {openChild === "prDraft" ? <FiChevronDown /> : <FiChevronRight />}
+                            </span>
+                          )}
+                        </NavLink>
+                        {openChild === "prDraft" && (
+                          <ul className="sidebar-submenu">
+                            <SubItem to="/purchase/requisitions/add" label="New PR" icon={FiFilePlus} />
+                          </ul>
+                        )}
+                      </li>
+                    )}
                     {hasPermission('PUR_PR_AUTH') && <SubItem to="/purchase/requisitions?status=Pending" label="PR Authorization" icon={FiCheckSquare} />}
-                    {hasPermission('PUR_PR_SANCTION') && <SubItem to="/purchase/approvals?stage=sanction" label="PR Sanction" icon={FiCheckCircle} />}
+                    {hasPermission('PUR_PR_SANCTION') && <SubItem to="/purchase/requisitions/sanction" label="PR Sanction" icon={FiCheckCircle} />}
                     {hasPermission('PUR_LOI') && <SubItem to="/purchase/requisitions?type=loi" label="Letter Of Indent" icon={FiFileText} />}
                     {hasPermission('PUR_PR_SHORTCLOSE') && <SubItem to="/purchase/requisitions?status=Closed" label="PR Shortclose" icon={FiXCircle} />}
                   </ul>

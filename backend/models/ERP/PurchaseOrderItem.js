@@ -21,6 +21,14 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(50),
         allowNull: true,
       },
+      hs_code: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
+      pr_no: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
       item_name: {
         type: DataTypes.STRING(200),
         allowNull: false,
@@ -56,6 +64,74 @@ module.exports = (sequelize) => {
       total: {
         type: DataTypes.DECIMAL(14, 2),
         defaultValue: 0,
+      },
+      act_wt: {
+        type: DataTypes.DECIMAL(12, 3),
+        defaultValue: 0,
+      },
+      off_wt: {
+        type: DataTypes.DECIMAL(12, 3),
+        defaultValue: 0,
+      },
+      disc_percent: {
+        type: DataTypes.DECIMAL(5, 2),
+        defaultValue: 0,
+      },
+      disc_inr: {
+        type: DataTypes.DECIMAL(14, 2),
+        defaultValue: 0,
+      },
+      after_disc: {
+        type: DataTypes.DECIMAL(14, 2),
+        defaultValue: 0,
+      },
+      pf_percent: {
+        type: DataTypes.DECIMAL(5, 2),
+        defaultValue: 0,
+      },
+      pf_inr: {
+        type: DataTypes.DECIMAL(14, 2),
+        defaultValue: 0,
+      },
+      taxable_value: {
+        type: DataTypes.DECIMAL(14, 2),
+        defaultValue: 0,
+      },
+      sgst_rate: {
+        type: DataTypes.DECIMAL(5, 2),
+        defaultValue: 0,
+      },
+      sgst_inr: {
+        type: DataTypes.DECIMAL(14, 2),
+        defaultValue: 0,
+      },
+      cgst_rate: {
+        type: DataTypes.DECIMAL(5, 2),
+        defaultValue: 0,
+      },
+      cgst_inr: {
+        type: DataTypes.DECIMAL(14, 2),
+        defaultValue: 0,
+      },
+      igst_rate: {
+        type: DataTypes.DECIMAL(5, 2),
+        defaultValue: 0,
+      },
+      igst_inr: {
+        type: DataTypes.DECIMAL(14, 2),
+        defaultValue: 0,
+      },
+      total_value: {
+        type: DataTypes.DECIMAL(14, 2),
+        defaultValue: 0,
+      },
+      req_date: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+      },
+      remarks: {
+        type: DataTypes.TEXT,
+        allowNull: true,
       },
       delivery_date: {
         type: DataTypes.DATEONLY,

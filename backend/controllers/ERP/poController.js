@@ -50,6 +50,50 @@ exports.getPurchaseOrder = async (req, res) => {
   }
 };
 
+function recalcPO(header, items) {
+  const computedItems = (items || []).map((it) => {
+    const qty = parseFloat(it.quantity) || 0;
+    const rate = parseFloat(it.rate) || 0;
+    const amount = qty * rate;
+    const discPercent = parseFloat(it.disc_percent) || 0;
+    const discInr = parseFloat(it.disc_inr) || (amount * discPercent) / 100;
+    const afterDisc = amount - discInr;
+    const pfPercent = parseFloat(it.pf_percent) || 0;
+    const pfInr = (afterDisc * pfPercent) / 100;
+    const taxable = afterDisc + pfInr;
+    const sgstRate = parseFloat(it.sgst_rate) || 0;
+    const cgstRate = parseFloat(it.cgst_rate) || 0;
+    const igstRate = parseFloat(it.igst_rate) || 0;
+    const sgstInr = (taxable * sgstRate) / 100;
+    const cgstInr = (taxable * cgstRate) / 100;
+    const igstInr = (taxable * igstRate) / 100;
+    const totalValue = taxable + sgstInr + cgstInr + igstInr;
+    return { ...it, amount, disc_percent: discPercent, disc_inr: discInr, after_disc: afterDisc,
+             pf_inr: pfInr, taxable_value: taxable, sgst_inr: sgstInr, cgst_inr: cgstInr,
+             igst_inr: igstInr, total_value: totalValue };
+  });
+  const subtotal = computedItems.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+  const discAmt = computedItems.reduce((s, i) => s + (parseFloat(i.disc_inr) || 0), 0);
+  const pfAmt = computedItems.reduce((s, i) => s + (parseFloat(i.pf_inr) || 0), 0);
+  const sgstAmt = computedItems.reduce((s, i) => s + (parseFloat(i.sgst_inr) || 0), 0);
+  const cgstAmt = computedItems.reduce((s, i) => s + (parseFloat(i.cgst_inr) || 0), 0);
+  const igstAmt = computedItems.reduce((s, i) => s + (parseFloat(i.igst_inr) || 0), 0);
+  return {
+    header: {
+      ...header,
+      subtotal: subtotal.toFixed(2),
+      discount_amount: discAmt.toFixed(2),
+      pf_amount: pfAmt.toFixed(2),
+      sgst_amount: sgstAmt.toFixed(2),
+      cgst_amount: cgstAmt.toFixed(2),
+      igst_amount: igstAmt.toFixed(2),
+      tax_amount: (sgstAmt + cgstAmt + igstAmt).toFixed(2),
+      grand_total: computedItems.reduce((s, i) => s + (parseFloat(i.total_value) || 0), 0).toFixed(2),
+    },
+    items: computedItems,
+  };
+}
+
 exports.createPurchaseOrder = async (req, res) => {
   try {
     let { items, ...header } = req.body;
@@ -69,9 +113,10 @@ exports.createPurchaseOrder = async (req, res) => {
     const existing = await PurchaseOrder.findOne({ where: { po_no: header.po_no } });
     if (existing) return res.status(409).json({ error: `PO '${header.po_no}' already exists` });
 
-    const order = await PurchaseOrder.create(header);
-    if (items && items.length > 0) {
-      const itemRows = items.map((it) => ({ ...it, po_id: order.id }));
+    const { header: recalcHeader, items: recalcItems } = recalcPO(header, items);
+    const order = await PurchaseOrder.create(recalcHeader);
+    if (recalcItems.length > 0) {
+      const itemRows = recalcItems.map((it) => ({ ...it, po_id: order.id }));
       await PurchaseOrderItem.bulkCreate(itemRows);
     }
     const result = await PurchaseOrder.findByPk(order.id, {
@@ -94,14 +139,12 @@ exports.updatePurchaseOrder = async (req, res) => {
     if (!order) return res.status(404).json({ error: 'Purchase order not found' });
 
     const { items, ...header } = req.body;
-    if (order.status !== 'Draft' && header.status === 'Draft') {
-      // allow status change only if not already processed
-    }
-    await order.update(header);
+    const { header: recalcHeader, items: recalcItems } = recalcPO(header, items);
+    await order.update(recalcHeader);
 
-    if (items) {
+    if (recalcItems.length) {
       await PurchaseOrderItem.destroy({ where: { po_id: id } });
-      const itemRows = items.map((it) => ({ ...it, po_id: id }));
+      const itemRows = recalcItems.map((it) => ({ ...it, po_id: id }));
       await PurchaseOrderItem.bulkCreate(itemRows);
     }
 
@@ -135,6 +178,53 @@ exports.approvePurchaseOrder = async (req, res) => {
   } catch (err) {
     console.error('Error approving PO:', err);
     res.status(500).json({ error: 'Failed to approve purchase order' });
+  }
+};
+
+exports.recalculatePO = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await PurchaseOrder.findByPk(id);
+    if (!order) return res.status(404).json({ error: 'Purchase order not found' });
+
+    const items = await PurchaseOrderItem.findAll({ where: { po_id: id }, raw: true });
+    const { header: recalcHeader, items: recalcItems } = recalcPO(order.toJSON(), items);
+    await order.update({
+      subtotal: recalcHeader.subtotal,
+      discount_amount: recalcHeader.discount_amount,
+      pf_amount: recalcHeader.pf_amount,
+      sgst_amount: recalcHeader.sgst_amount,
+      cgst_amount: recalcHeader.cgst_amount,
+      igst_amount: recalcHeader.igst_amount,
+      tax_amount: recalcHeader.tax_amount,
+      grand_total: recalcHeader.grand_total,
+    });
+
+    for (const item of recalcItems) {
+      await PurchaseOrderItem.update(
+        {
+          amount: item.amount,
+          disc_percent: item.disc_percent,
+          disc_inr: item.disc_inr,
+          after_disc: item.after_disc,
+          pf_inr: item.pf_inr,
+          taxable_value: item.taxable_value,
+          sgst_inr: item.sgst_inr,
+          cgst_inr: item.cgst_inr,
+          igst_inr: item.igst_inr,
+          total_value: item.total_value,
+        },
+        { where: { id: item.id } }
+      );
+    }
+
+    const updated = await PurchaseOrder.findByPk(order.id, {
+      include: [{ model: PurchaseOrderItem, as: 'items' }],
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error('Error recalculating PO:', err);
+    res.status(500).json({ error: 'Failed to recalculate PO' });
   }
 };
 

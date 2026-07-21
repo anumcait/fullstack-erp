@@ -64,6 +64,7 @@ const DataTable = ({ title, columns, rows, loading, emptyMessage = 'No records f
   }, [rows, filters, orderBy, order]);
 
   const paged = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  if (!columns) return null;
   const exportCols = columns.map((c) => ({ field: c.field, header: c.header, type: c.type }));
 
   return (

@@ -15,8 +15,12 @@ module.exports = (sequelize) => {
         unique: true,
       },
       po_date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATE,
         allowNull: false,
+      },
+      req_date: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
       },
       supplier_id: {
         type: DataTypes.INTEGER,

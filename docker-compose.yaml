@@ -138,6 +138,7 @@ services:
       - "5173:5173"
     networks: [hr-network]
     restart: always
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
 
   nginx:
     image: nginx:latest

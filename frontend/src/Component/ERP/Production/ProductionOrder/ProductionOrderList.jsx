@@ -57,7 +57,7 @@ export default function ProductionOrderList() {
       field: 'actions', headerName: 'Actions', width: 200, sortable: false,
       renderCell: (p) => (
         <>
-          <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/production/orders/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/purchase/job-orders/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
           {p.row.status === 'Planning' && (
             <Tooltip title="Release"><IconButton size="small" color="success" onClick={() => handleStatusChange(p.row.id, 'Released')}><Chip label="Release" size="small" color="success" variant="outlined" sx={{ height: 24 }} /></IconButton></Tooltip>
           )}
@@ -77,7 +77,7 @@ export default function ProductionOrderList() {
           <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
             <TextField size="small" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'gray' }} /> }} sx={{ minWidth: 300 }} />
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/production/orders/add')}>New Order</Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/purchase/job-orders/add')}>New Job Order</Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}

@@ -16,7 +16,7 @@ import StatusChip from '../../Common/StatusChip';
 import { formatDate } from '../../../utils/format';
 
 const QUICK_LINKS = [
-  { label: 'New Order', to: '/production/orders/add', icon: FiPlus },
+  { label: 'New Job Order', to: '/purchase/job-orders/add', icon: FiPlus },
   { label: 'Daily Entry', to: '/production/daily-entry/add', icon: FiClock },
   { label: 'Downtime', to: '/production/downtime/add', icon: FiAlertTriangle },
   { label: 'Machines', to: '/production/machines', icon: FiCpu },
@@ -104,9 +104,9 @@ const ProductionDashboard = () => {
           );
         })}
         <Button size="small" variant="contained" startIcon={<FiPlus size={13} />}
-          onClick={() => navigate('/production/orders/add')}
+          onClick={() => navigate('/purchase/job-orders/add')}
           sx={{ textTransform: 'none', borderRadius: 1.5, py: 0.5, fontSize: '0.78rem', ml: 'auto' }}>
-          New Order
+          New Job Order
         </Button>
       </Stack>
 
@@ -232,7 +232,7 @@ const ProductionDashboard = () => {
                   </TableHead>
                   <TableBody>
                     {stats.recentOrders.map((o) => (
-                      <TableRow key={o.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/production/orders/view/${o.id}`)}>
+                      <TableRow key={o.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/purchase/job-orders/view/${o.id}`)}>
                         <TableCell sx={{ py: 0.4, fontSize: '0.78rem', fontWeight: 600 }}>{o.order_no}</TableCell>
                         <TableCell sx={{ py: 0.4, fontSize: '0.78rem' }}>{o.product_name || '—'}</TableCell>
                         <TableCell align="right" sx={{ py: 0.4, fontSize: '0.78rem' }}>{Number(o.produced_quantity || 0).toLocaleString()} / {Number(o.planned_quantity || 0).toLocaleString()}</TableCell>

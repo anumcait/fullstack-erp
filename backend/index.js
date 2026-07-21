@@ -118,6 +118,8 @@ async function startServer(retries = MAX_RETRIES) {
         `CREATE INDEX IF NOT EXISTS idx_pr_amendment_req ON t_pr_amendment (requisition_id)`,
         // ── Production/Job Order type classification (idempotent) ──
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS order_type VARCHAR(20) NOT NULL DEFAULT 'Job Order'`,
+        `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS party_id INTEGER`,
+        `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS party_name VARCHAR(200)`,
         // ── Rename created_at -> created_date (DATE) across all ERP tables ──
         `DO $$
 DECLARE r RECORD;
@@ -134,6 +136,29 @@ BEGIN
 END $$;`,
         // ── Subcontract receipt item: accepted quantity ──
         `ALTER TABLE IF EXISTS t_subcontract_receipt_item ADD COLUMN IF NOT EXISTS accepted_qty DECIMAL(12,2)`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS hs_code VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS pr_no VARCHAR(50)`,
+        // ── PO line-item invoice columns (weights, discount, PF, tax split) ──
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS act_wt NUMERIC(12,3) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS off_wt NUMERIC(12,3) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS disc_percent NUMERIC(5,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS disc_inr NUMERIC(14,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS after_disc NUMERIC(14,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS pf_percent NUMERIC(5,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS pf_inr NUMERIC(14,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS taxable_value NUMERIC(14,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS sgst_rate NUMERIC(5,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS sgst_inr NUMERIC(14,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS cgst_rate NUMERIC(5,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS cgst_inr NUMERIC(14,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS igst_rate NUMERIC(5,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS igst_inr NUMERIC(14,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS total_value NUMERIC(14,2) NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS req_date DATE`,
+        `ALTER TABLE IF EXISTS t_purchase_order_item ADD COLUMN IF NOT EXISTS remarks TEXT`,
+        // ── PO date now stores time (TIMESTAMP) ──
+        `ALTER TABLE IF EXISTS t_purchase_order ALTER COLUMN po_date TYPE TIMESTAMP USING po_date::TIMESTAMP`,
+        `ALTER TABLE IF EXISTS t_purchase_order ADD COLUMN IF NOT EXISTS req_date DATE`,
         // ── PR form new columns (Apex-style) ──
         `ALTER TABLE IF EXISTS t_purchase_requisition ADD COLUMN IF NOT EXISTS sub_department VARCHAR(100)`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS cost_center VARCHAR(50)`,
@@ -148,6 +173,22 @@ END $$;`,
         // ── Company settings: logo ──
         `ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS logo_url TEXT`,
         `UPDATE m_company_settings SET logo_url = '/logo.png' WHERE logo_url IS NULL OR logo_url = ''`,
+        // ── Sequence counters (row-level locking for concurrent-safe auto-numbering) ──
+        `CREATE TABLE IF NOT EXISTS t_sequence_counters (
+          id SERIAL PRIMARY KEY,
+          prefix VARCHAR(20) NOT NULL,
+          financial_year VARCHAR(20) NOT NULL,
+          last_number INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW(),
+          UNIQUE(prefix, financial_year)
+        )`,
+        `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS req_date DATE`,
+        `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS jo_date DATE`,
+        `ALTER TABLE IF EXISTS t_production_order ALTER COLUMN bom_id DROP NOT NULL`,
+        `ALTER TABLE IF EXISTS t_production_order ALTER COLUMN product_item_id DROP NOT NULL`,
+        `ALTER TABLE IF EXISTS t_production_order ALTER COLUMN product_code DROP NOT NULL`,
+        `ALTER TABLE IF EXISTS t_production_order ALTER COLUMN product_name DROP NOT NULL`,
         // ── Cost Center master table ──
         `CREATE TABLE IF NOT EXISTS m_cost_center (
           id SERIAL PRIMARY KEY,

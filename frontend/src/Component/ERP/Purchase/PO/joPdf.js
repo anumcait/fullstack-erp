@@ -29,9 +29,7 @@ function loadImage(url) {
         canvas.height = img.naturalHeight;
         canvas.getContext("2d").drawImage(img, 0, 0);
         resolve({ dataUrl: canvas.toDataURL("image/png"), w: img.naturalWidth, h: img.naturalHeight });
-      } catch {
-        resolve(null);
-      }
+      } catch { resolve(null); }
     };
     img.onerror = () => resolve(null);
     img.src = full;
@@ -68,18 +66,17 @@ function currencyToWord(code) {
     case "EUR": return "Euros";
     case "GBP": return "Pounds";
     case "AED": return "Dirhams";
-    case "SGD": return "Singapore Dollars";
     default: return "Rupees";
   }
 }
 
-export async function downloadPoPdf(id) {
-  const [poRes, compRes, unitRes] = await Promise.all([
-    axios.get(`/api/erp/purchase/orders/${id}`),
+export async function downloadJoPdf(id) {
+  const [joRes, compRes, unitRes] = await Promise.all([
+    axios.get(`/api/erp/production/orders/${id}`),
     axios.get(`/api/settings/company`).catch(() => ({ data: {} })),
     axios.get(`/api/erp/stores/units`).catch(() => ({ data: [] })),
   ]);
-  const po = poRes.data || {};
+  const jo = joRes.data || {};
   const cs = compRes.data || {};
   const unitMap = {};
   (unitRes.data || []).forEach((u) => { unitMap[u.id] = u.short_name || u.name || u.code || String(u.id); });
@@ -92,42 +89,36 @@ export async function downloadPoPdf(id) {
   const contentW = pageW - borderMargin * 2;
   const companyName = cs.company_name || "EQIC DIES & MOULDS ENGINEERS PVT. LTD.";
 
-  // Helper to draw border & static texts on each page pageNo
   const drawPageDecorations = (data) => {
     const pageNo = data.pageNumber;
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(1);
     doc.rect(borderMargin, borderMargin, pageW - borderMargin * 2, pageH - borderMargin * 2);
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(0, 0, 0);
     doc.text(`Page ${pageNo}`, pageW / 2 - 15, pageH - 30);
     doc.text(`of ${doc.internal.getNumberOfPages() || 1}`, pageW / 2 + 15, pageH - 30);
-
     if (pageNo > 1) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.text(`PO Ref: ${clean(po.po_no)}`, borderMargin + 10, borderMargin + 15);
-      doc.text(`Date: ${fmtDateTime(po.po_date)}`, pageW - borderMargin - 100, borderMargin + 15);
+      doc.text(`JO Ref: ${clean(jo.order_no)}`, borderMargin + 10, borderMargin + 15);
+      doc.text(`Date: ${fmtDateTime(jo.jo_date)}`, pageW - borderMargin - 100, borderMargin + 15);
       doc.line(borderMargin, borderMargin + 22, pageW - borderMargin, borderMargin + 22);
     }
   };
 
-  // 1. TOP HEADER (Form Control Info)
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(0, 0, 0);
-  doc.text("Purch./F02/Rev.04/Aug'17", pageW - borderMargin - 120, borderMargin + 15);
+  doc.text("Prod./F02/Rev.00/Jul'26", pageW - borderMargin - 120, borderMargin + 15);
 
-  // 2. COMPANY HEADER INFO
   let y = borderMargin + 25;
   let logoW = 0;
   if (logo) {
     const maxH = 40;
     const ratio = logo.w / logo.h;
-    let w = maxH * ratio;
-    let h = maxH;
+    let w = maxH * ratio, h = maxH;
     if (w > 120) { w = 120; h = w / ratio; }
     logoW = w;
     doc.addImage(logo.dataUrl, "PNG", borderMargin + 10, y, w, h);
@@ -138,7 +129,6 @@ export async function downloadPoPdf(id) {
   const nameX = borderMargin + 10 + (logo ? logoW + 15 : 0);
   doc.text(companyName, nameX, y + 16);
 
-  // Registered Office & Billing Address side by side
   y += 45;
   doc.line(borderMargin, y - 5, pageW - borderMargin, y - 5);
   doc.setFont("helvetica", "bold");
@@ -147,10 +137,7 @@ export async function downloadPoPdf(id) {
   doc.text("Billing Address :", borderMargin + 300, y);
 
   doc.setFont("helvetica", "normal");
-  const regLines = cs.address ? cs.address.split("\n") : [
-    "Plot No.9 & 10B, IV Phase Extn., IDA,",
-    "Jeedimetla, Hyderabad,Telangana- 500055,India.",
-  ];
+  const regLines = cs.address ? cs.address.split("\n") : ["Plot No.9 & 10B, IV Phase Extn., IDA,", "Jeedimetla, Hyderabad,Telangana- 500055,India."];
   let ry = y + 10;
   regLines.forEach((l) => { doc.text(l, borderMargin + 10, ry); ry += 9; });
   if (cs.phone || cs.email) {
@@ -163,10 +150,7 @@ export async function downloadPoPdf(id) {
 
   let by = y + 10;
   doc.setFont("helvetica", "normal");
-  const billingLines = [
-    "Works:Plot No.9 & 10B,IV Phase Extn., IDA Jeedimetla,",
-    "Hyderabad, Telangana-500 055.",
-  ];
+  const billingLines = ["Works:Plot No.9 & 10B,IV Phase Extn., IDA Jeedimetla,", "Hyderabad, Telangana-500 055."];
   billingLines.forEach((l) => { doc.text(l, borderMargin + 300, by); by += 9; });
   doc.setFont("helvetica", "bold");
   doc.text(`Ph.No.: ${cs.phone || "040-44567999"}`, borderMargin + 300, by); by += 9;
@@ -175,60 +159,35 @@ export async function downloadPoPdf(id) {
   y = Math.max(ry, by) + 12;
   doc.line(borderMargin, y, pageW - borderMargin, y);
 
-  // 3. TITLE
   y += 18;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  const isDraft = po.status === "Draft";
-  doc.text(`PURCHASE ORDER${isDraft ? " (Draft Copy)" : ""}`, pageW / 2 - 80, y);
+  doc.text("JOB ORDER", pageW / 2 - 45, y);
 
   y += 10;
   doc.line(borderMargin, y, pageW - borderMargin, y);
 
-  // 4. VENDOR & META BOX
   y += 12;
-  // Vendor section (left)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text("To", borderMargin + 10, y);
+  doc.text("Party", borderMargin + 10, y);
 
-  const s = po.supplier || {};
   y += 15;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.text(clean(s.supplier_name), borderMargin + 10, y);
+  doc.text(clean(jo.party_name), borderMargin + 10, y);
 
   y += 12;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
 
-  const vendorLines = [];
-  if (s.address_line1) vendorLines.push(s.address_line1);
-  if (s.address_line2) vendorLines.push(s.address_line2);
-  const cityLine = [s.city, s.state, s.pincode].filter(Boolean).join(", ");
-  if (cityLine) vendorLines.push(cityLine);
-
-  let vy = y;
-  vendorLines.forEach((l) => { doc.text(l, borderMargin + 10, vy); vy += 10; });
-  doc.setFont("helvetica", "bold");
-  doc.text("GSTIN: ", borderMargin + 10, vy);
-  doc.setFont("helvetica", "normal");
-  doc.text(clean(s.gstin || po.supplier_gstin), borderMargin + 48, vy); vy += 10;
-  doc.setFont("helvetica", "bold");
-  doc.text(`Cont. Per: ${s.contact_person || "-"} Ph : ${s.phone || "-"}`, borderMargin + 10, vy); vy += 10;
-  doc.text(`Fax No: - Email: ${s.email || "-"}`, borderMargin + 10, vy); vy += 10;
-
-  // Metadata block (right)
   let my = y - 15;
   const metaFields = [
-    ["PO NO / Dated", `${clean(po.po_no)} / ${fmtDateTime(po.po_date)}`],
-    ["Unit", clean(po.unit)],
-    ["Department", po.department || "-"],
-    ["Reference", po.requisition_id ? `PR#${po.requisition_id}` : "-"],
-    ["Dated", fmtDateTime(po.po_date)],
-    ["Vendor Code", clean(s.supplier_code)],
+    ["JO NO / Dated", `${clean(jo.order_no)} / ${fmtDateTime(jo.jo_date)}`],
+    ["Department", jo.department || "-"],
+    ["Req Date", jo.req_date || "-"],
+    ["Status", jo.status || "-"],
   ];
-
   metaFields.forEach(([lbl, val]) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
@@ -239,48 +198,31 @@ export async function downloadPoPdf(id) {
     my += 14;
   });
 
-  y = Math.max(vy, my) + 10;
+  y = Math.max(y + 30, my) + 10;
   doc.line(borderMargin, y, pageW - borderMargin, y);
 
-  // 5. INTRO PARAGRAPH
   y += 15;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text("With reference to your quotation and subsequent discussions had with your representative we are glad to place an order for supply of the", borderMargin + 10, y);
-  y += 10;
-  doc.text("following goods in accordance with our requirements & subject terms and conditions mentioned", borderMargin + 10, y);
+  doc.text("Please find below the details of the Job Order placed for the following items:", borderMargin + 10, y);
 
   y += 15;
 
-  // 6. ITEMS TABLE
-  const items = po.items || [];
-  // Columns: Sl#, HS Code, Item Code, Description/Specification of material, PR#, UOM, Qty, Unit Price, Discount %, Discount (Rs), Amount
+  const items = jo.items || [];
   const body = items.map((it, i) => {
-    const rate = Number(it.rate) || 0;
-    const qty = Number(it.quantity) || 0;
-    const discountPercent = Number(po.discount_percent) || 0;
-
-    // Distribute discount for print if no item level discount exists in db
-    const discAmt = (rate * qty * discountPercent) / 100;
-    const netAmt = (rate * qty) - discAmt;
-
+    const qty = Number(it.required_quantity || it.quantity || 0);
     return [
       String(i + 1),
-      clean(it.hs_code),
       clean(it.item_code),
       clean(it.item_name),
-      clean(it.pr_no || po.id),
       clean(unitMap[it.unit_id] || it.uom || "NOS"),
       fmt(qty, 2),
-      fmt(rate, 2),
-      fmt(discountPercent, 1),
-      fmt(discAmt, 2),
-      fmt(netAmt, 2),
+      clean(it.remarks || "-"),
     ];
   });
 
   autoTable(doc, {
-    head: [["Sl #", "HS Code", "Item Code", "Description / Specification of material", "PR #", "UOM", "Qty", "Unit Price", "Discount %", "Discount Rs", "Amount"]],
+    head: [["Sl #", "Item Code", "Description", "UOM", "Qty", "Remarks"]],
     body,
     startY: y,
     margin: { left: borderMargin, right: borderMargin },
@@ -289,36 +231,17 @@ export async function downloadPoPdf(id) {
     alternateRowStyles: { fillColor: [255, 255, 255] },
     columnStyles: {
       0: { halign: "center", cellWidth: 25 },
-      1: { halign: "center", cellWidth: 45 },
-      2: { halign: "center", cellWidth: 50 },
-      3: { halign: "left", cellWidth: 155 },
-      4: { halign: "center", cellWidth: 35 },
-      5: { halign: "center", cellWidth: 30 },
-      6: { halign: "right", cellWidth: 30 },
-      7: { halign: "right", cellWidth: 50 },
-      8: { halign: "right", cellWidth: 40 },
-      9: { halign: "right", cellWidth: 45 },
-      10: { halign: "right", cellWidth: 50 },
+      1: { halign: "center", cellWidth: 80 },
+      2: { halign: "left", cellWidth: 220 },
+      3: { halign: "center", cellWidth: 40 },
+      4: { halign: "right", cellWidth: 50 },
+      5: { halign: "left", cellWidth: 120 },
     },
   });
 
-  // 7. Recompute totals from item lines (external tool saves may leave 0s)
-  const grossSubtotal = items.reduce(
-    (acc, it) => acc + (Number(it.rate) || 0) * (Number(it.quantity) || 0),
-    0
-  );
-  const discountPercent = Number(po.discount_percent) || 0;
-  const headerDisc = Number(po.discount_amount) || 0;
-  const discAmt = headerDisc > 0 ? headerDisc : (grossSubtotal * discountPercent) / 100;
-  const taxable = grossSubtotal - discAmt;
-  const headerTax = Number(po.tax_amount) || 0;
-  const tax = headerTax > 0 ? headerTax : taxable * 0.18;
-  const grandTotal = taxable + tax;
-
-  // 8. Totals / terms / signature — flow after the table; page-break if no room
   let ty = doc.lastAutoTable.finalY + 12;
   const bottomLimit = pageH - borderMargin - 10;
-  const flowEstimate = 300;
+  const flowEstimate = 200;
   if (ty + flowEstimate > bottomLimit) {
     doc.addPage();
     ty = borderMargin + 30;
@@ -327,104 +250,60 @@ export async function downloadPoPdf(id) {
   doc.setLineWidth(0.5);
   doc.setDrawColor(0, 0, 0);
 
-  const totals = [
-    ["Total :", fmt(taxable, 2)],
-    ["IGST 18 % :", fmt(tax, 2)],
-    ["Total PO Value :", fmt(grandTotal, 2)],
-  ];
-
+  const totalQty = items.reduce((s, it) => s + (Number(it.required_quantity || it.quantity || 0)), 0);
   doc.setFontSize(9);
-  totals.forEach(([lbl, val], idx) => {
-    const isBold = idx === 2;
-    doc.setFont("helvetica", isBold ? "bold" : "normal");
-    doc.text(lbl, borderMargin + 320, ty);
-    doc.text(val, pageW - borderMargin - 15, ty, { align: "right" });
-    ty += 14;
-  });
+  doc.setFont("helvetica", "bold");
+  doc.text("Total Quantity :", borderMargin + 320, ty);
+  doc.text(fmt(totalQty, 2), pageW - borderMargin - 15, ty, { align: "right" });
+  ty += 14;
 
-  // Amount In Words (currency aware)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text("In Words : ", borderMargin + 10, ty);
-  doc.setFont("helvetica", "normal");
-  const wordsText = `${currencyToWord(po.currency)} ${numberToWords(grandTotal)}`;
-  const wordsSplit = doc.splitTextToSize(wordsText, contentW - 90);
-  doc.text(wordsSplit, borderMargin + 75, ty);
-  ty += Math.max(wordsSplit.length * 11, 14);
+  doc.text(`Total Items : ${items.length}`, borderMargin + 10, ty);
+  ty += 14;
   doc.line(borderMargin, ty, pageW - borderMargin, ty);
 
-  // 9. Quality & Other Specifications
   ty += 12;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.text("Quality & Other Specifications", borderMargin + 10, ty);
+  doc.text("Specifications / Notes", borderMargin + 10, ty);
   ty += 10;
   doc.setFont("helvetica", "normal");
-  const specText = clean(po.notes);
-  const specSplit = doc.splitTextToSize(specText, contentW - 20);
-  doc.text(specSplit, borderMargin + 10, ty);
-  ty += Math.max(specSplit.length * 10, 15);
+  const notesText = clean(jo.notes || jo.remarks || "-");
+  const notesSplit = doc.splitTextToSize(notesText, contentW - 20);
+  doc.text(notesSplit, borderMargin + 10, ty);
+
+  ty += Math.max(notesSplit.length * 10, 15);
   doc.line(borderMargin, ty, pageW - borderMargin, ty);
 
-  // 10. TERMS & CONDITIONS GRID (Side-By-Side Layout)
   ty += 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.text("Delivery Schedule", borderMargin + 10, ty);
-  doc.text("Dispatch To", borderMargin + 300, ty);
   doc.text(":", borderMargin + 110, ty);
-  doc.text(":", borderMargin + 380, ty);
   doc.setFont("helvetica", "normal");
-  doc.text(clean(po.delivery_terms || "Within 10 Days"), borderMargin + 120, ty);
-  doc.text("AT OUR WORKS", borderMargin + 390, ty);
+  doc.text(clean(jo.delivery_terms || "As Per Schedule"), borderMargin + 120, ty);
 
   ty += 14;
   doc.setFont("helvetica", "bold");
   doc.text("Payment Term", borderMargin + 10, ty);
-  doc.text("Insurance", borderMargin + 300, ty);
   doc.text(":", borderMargin + 110, ty);
-  doc.text(":", borderMargin + 380, ty);
   doc.setFont("helvetica", "normal");
-  doc.text(clean(po.payment_terms || "100% ADVANCE AGAINST PROFORMA INVOICE"), borderMargin + 120, ty);
-  doc.text("INCLUDED", borderMargin + 390, ty);
-
-  ty += 14;
-  doc.setFont("helvetica", "bold");
-  doc.text("Freight", borderMargin + 10, ty);
-  doc.text("Inspection", borderMargin + 300, ty);
-  doc.text(":", borderMargin + 110, ty);
-  doc.text(":", borderMargin + 380, ty);
-  doc.setFont("helvetica", "normal");
-  doc.text("NIL", borderMargin + 120, ty);
-  doc.text("AT YOUR END", borderMargin + 390, ty);
-
-  ty += 14;
-  doc.setFont("helvetica", "bold");
-  doc.text("Freight Forwarder", borderMargin + 10, ty);
-  doc.text("Way Bill No", borderMargin + 300, ty);
-  doc.text(":", borderMargin + 110, ty);
-  doc.text(":", borderMargin + 380, ty);
-  doc.setFont("helvetica", "normal");
-  doc.text("NIL", borderMargin + 120, ty);
-  doc.text("-", borderMargin + 390, ty);
+  doc.text(clean(jo.payment_terms || "As Agreed"), borderMargin + 120, ty);
 
   ty += 14;
   doc.line(borderMargin, ty, pageW - borderMargin, ty);
 
-  // 11. BOTTOM INSTRUCTIONS
   ty += 12;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.text("Please quote supplier code,our order No. and part No. on all Challans & Bills. You are requested send your order acceptance", borderMargin + 10, ty);
+  doc.text("Please quote our order No. on all Challans & Bills.", borderMargin + 10, ty);
   ty += 9;
-  doc.text("by return mail & to comply with the terms and conditions mentioned overleaf.", borderMargin + 10, ty);
-  ty += 9;
-  doc.text("-GST amount will be debited to your account in case of loss of ITC due to non filing of GST returns", borderMargin + 10, ty);
+  doc.text("Job Order acceptance to be sent by return mail.", borderMargin + 10, ty);
 
   ty += 14;
   doc.line(borderMargin, ty, pageW - borderMargin, ty);
 
-  // 12. SIGNATURES & STAMP (bottom of the last page)
   const signY = pageH - borderMargin - 50;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -433,23 +312,11 @@ export async function downloadPoPdf(id) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.text(`GSTIN/PAN: ${cs.gstin || "36AAACE4477G1ZM"}`, borderMargin + 10, signY + 35);
-  doc.text("Manager(Materials)", borderMargin + 300, signY + 35);
-  doc.text("Director", pageW - borderMargin - 80, signY + 35);
+  doc.text("Authorised Signatory", borderMargin + 300, signY + 35);
 
-  // Draw borders/page numbers on all pages
   const totalPages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    if (isDraft) {
-      doc.saveGraphicsState();
-      try { doc.setGState(new doc.GState({ opacity: 0.18 })); } catch { /* fallback */ }
-      doc.setTextColor(160, 160, 160);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(64);
-      doc.text("DRAFT COPY", pageW / 2, pageH / 2, { align: "center", angle: 45 });
-      doc.setTextColor(0, 0, 0);
-      doc.restoreGraphicsState();
-    }
     drawPageDecorations({ pageNumber: i });
   }
 

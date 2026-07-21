@@ -85,7 +85,7 @@ import MaterialIssueList from "./Component/ERP/Stores/MaterialIssue/MaterialIssu
 import MaterialIssueForm from "./Component/ERP/Stores/MaterialIssue/MaterialIssueForm.jsx";
 import ProductionDashboard from "./Component/ERP/Production/ProductionDashboard.jsx";
 import ProductionOrderList from "./Component/ERP/Production/ProductionOrder/ProductionOrderList.jsx";
-import ProductionOrderForm from "./Component/ERP/Production/ProductionOrder/ProductionOrderForm.jsx";
+import JobOrderForm from "./Component/ERP/Production/ProductionOrder/JobOrderForm.jsx";
 import MachineList from "./Component/ERP/Production/MachineList.jsx";
 import MachineForm from "./Component/ERP/Production/MachineForm.jsx";
 import DailyEntryList from "./Component/ERP/Production/DailyEntryList.jsx";
@@ -139,6 +139,7 @@ import DailyReports from "./Component/ERP/Purchase/DailyReports.jsx";
 import JobOrderList from "./Component/ERP/Purchase/JobOrderList.jsx";
 import PRAmendment from "./Component/ERP/Purchase/PRAmendment.jsx";
 import PRPrintView from "./Component/ERP/Purchase/Requisition/PRPrintView.jsx";
+import PRSanction from "./Component/ERP/Purchase/PRSanction.jsx";
 import PurchaseSettings from "./Component/ERP/Purchase/PurchaseSettings.jsx";
 import StoresReports from "./Component/ERP/Stores/StoresReports.jsx";
 import StoresSettings from "./Component/ERP/Stores/StoresSettings.jsx";
@@ -260,6 +261,7 @@ function App() {
                     <Route path="/purchase/requisitions/view/:id" element={<RequisitionForm />} />
                     <Route path="/purchase/requisitions/edit/:id" element={<RequisitionForm />} />
                     <Route path="/purchase/requisitions/print/:id" element={<PRPrintView />} />
+                    <Route path="/purchase/requisitions/sanction" element={<PRSanction />} />
                     <Route path="/purchase/orders" element={<POList />} />
                     <Route path="/purchase/orders/add" element={<POForm />} />
                     <Route path="/purchase/orders/view/:id" element={<POForm />} />
@@ -327,8 +329,6 @@ function App() {
                     <Route path="/stores/invoices/edit/:id" element={<BillingForm />} />
                     <Route path="/production" element={<ProductionDashboard />} />
                     <Route path="/production/orders" element={<ProductionOrderList />} />
-                    <Route path="/production/orders/add" element={<ProductionOrderForm />} />
-                    <Route path="/production/orders/view/:id" element={<ProductionOrderForm />} />
                     <Route path="/production/machines" element={<MachineList />} />
                     <Route path="/production/machines/add" element={<MachineForm />} />
                     <Route path="/production/machines/view/:id" element={<MachineForm />} />
@@ -427,6 +427,9 @@ function App() {
                     <Route path="/purchase/reports" element={<PurchaseReports />} />
                     <Route path="/purchase/daily-reports" element={<DailyReports />} />
                     <Route path="/purchase/job-orders" element={<JobOrderList />} />
+                    <Route path="/purchase/job-orders/add" element={<JobOrderForm />} />
+                    <Route path="/purchase/job-orders/view/:id" element={<JobOrderForm />} />
+                    <Route path="/purchase/job-orders/edit/:id" element={<JobOrderForm />} />
                     <Route path="/purchase/pr-amendment" element={<PRAmendment />} />
                     <Route path="/stores/reports" element={<StoresReports />} />
                     <Route path="/production/reports" element={<ProductionReports />} />

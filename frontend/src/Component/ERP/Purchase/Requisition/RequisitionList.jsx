@@ -366,14 +366,16 @@ export default function RequisitionList() {
       <Typography variant="h4" sx={{ mb: { xs: 1.5, sm: 2, md: 3 }, fontWeight: "bold", color: "var(--heading-color)", fontSize: { xs: "1.2rem", sm: "1.3rem", md: "1.5rem" } }}>{title}</Typography>
 
       {statusFilter ? (
-        <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
-          <CardContent>
-            {filterBar}
-            <PRTable rows={rows} expandedId={expandedId} setExpandedId={setExpandedId}
-              onApproveClick={(r) => setApproveTarget(r)} onRejectClick={(r) => { setRejectTarget(r); setRejectRemarks(""); }}
-              onTrackClick={handleTrack} navigate={navigate} loading={loading} />
-          </CardContent>
-        </Card>
+        <>
+          <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
+            <CardContent>
+              {filterBar}
+              <PRTable rows={rows} expandedId={expandedId} setExpandedId={setExpandedId}
+                onApproveClick={(r) => setApproveTarget(r)} onRejectClick={(r) => { setRejectTarget(r); setRejectRemarks(""); }}
+                onTrackClick={handleTrack} navigate={navigate} loading={loading} />
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <>
           <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", mb: 3 }}>

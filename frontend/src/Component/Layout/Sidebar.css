@@ -146,8 +146,9 @@
 .sidebar-submenu .sidebar-active {
   background-color: var(--sidebar-active-bg) !important;
   color: var(--primary-main, #0077cc) !important;
+  font-weight: 700;
   border-right: none;
-  border-left: 2px solid var(--primary-main, #0077cc);
+  border-left: 3px solid var(--primary-main, #0077cc);
 }
 
 .sidebar-menu-item.open>.sidebar-menu-link {

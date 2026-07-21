@@ -124,6 +124,7 @@ router.delete('/material-returns/:id', materialReturnController.delete);
 
 // ── Delivery Challan ──
 router.get('/delivery-challans', deliveryChallanController.getList);
+router.get('/delivery-challans/by-party/:partyId', deliveryChallanController.getByParty);
 router.get('/delivery-challans/:id', deliveryChallanController.getOne);
 router.post('/delivery-challans', deliveryChallanController.create);
 router.put('/delivery-challans/:id', deliveryChallanController.update);

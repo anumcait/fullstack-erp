@@ -23,6 +23,7 @@ const Header = () => {
   const [userName, setUserName] = useState('Guest');
   const [userRole, setUserRole] = useState('');
   const [currentDate, setCurrentDate] = useState('');
+  const [currentTime, setCurrentTime] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userPhoto, setUserPhoto] = useState(null);
@@ -58,7 +59,11 @@ const Header = () => {
       weekday: 'long', year: 'numeric', month: 'short', day: 'numeric',
     });
     setCurrentDate(formattedDate);
+    setCurrentTime(today.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
 
+    const clock = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 1000);
     const fetchUserPhoto = async () => {
       const empId = localStorage.getItem('empId');
       if (!empId) return;
@@ -90,7 +95,7 @@ const Header = () => {
 
     // Refresh notifications every 2 minutes
     const interval = setInterval(fetchNotifications, 120000);
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); clearInterval(clock); };
   }, []);
 
   const handleLogout = () => {
@@ -382,14 +387,15 @@ const Header = () => {
       permission: 'MOD_PURCHASE',
       isMega: true,
       columns: [
-        {
-          title: 'Procurement',
-          items: [
-            { label: 'Purchase Requisitions', path: '/purchase/requisitions' },
-            { label: 'Enquiry / RFQ', path: '/purchase/rfq' },
-            { label: 'Purchase Orders', path: '/purchase/orders' }
-          ]
-        },
+            {
+              title: 'Procurement',
+              items: [
+                { label: 'Purchase Requisitions', path: '/purchase/requisitions' },
+                { label: 'PR Sanction', path: '/purchase/requisitions/sanction' },
+                { label: 'Enquiry / RFQ', path: '/purchase/rfq' },
+                { label: 'Purchase Orders', path: '/purchase/orders' }
+              ]
+            },
         {
           title: 'Vendor Mgmt',
           items: [
@@ -491,7 +497,7 @@ const Header = () => {
             )}
             <div style={{ marginLeft: 8, display: 'flex', flexDirection: 'column' }}>
               <span className="user-name">{userName}</span>
-              <span className="date-display">{currentDate}</span>
+              <span className="date-display">{currentDate} &nbsp;|&nbsp; <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currentTime}</span></span>
             </div>
           </div>
 

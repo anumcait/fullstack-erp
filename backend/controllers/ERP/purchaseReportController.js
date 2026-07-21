@@ -441,6 +441,98 @@ exports.getSupplierRatingReport = async (req, res) => {
   }
 };
 
+// ── PO Daily Matrix (supplier × date pivot) ──────────────────────────
+exports.getPOMatrix = async (req, res) => {
+  try {
+    const { from, to, supplier_id } = req.query;
+    const clauses = ["po.status NOT IN ('Draft', 'Cancelled')"];
+    const replacements = {};
+    const addRange = (field) => {
+      if (from) { clauses.push(`${field} >= :from`); replacements.from = from; }
+      if (to) { clauses.push(`${field} <= :to`); replacements.to = to; }
+    };
+    addRange('po.po_date');
+    if (supplier_id) { clauses.push('po.supplier_id = :sid'); replacements.sid = supplier_id; }
+    const where = `WHERE ${clauses.join(' AND ')}`;
+
+    const sql = `
+      SELECT s.id AS supplier_id, s.supplier_name, po.po_date, COALESCE(SUM(po.grand_total), 0) AS amount
+      FROM t_purchase_order po
+      JOIN m_party_master s ON s.id = po.supplier_id
+      ${where}
+      GROUP BY s.id, s.supplier_name, po.po_date
+      ORDER BY s.supplier_name, po.po_date
+    `;
+    const rows = await db.sequelize.query(sql, {
+      replacements,
+      type: Sequelize.QueryTypes.SELECT,
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error PO matrix:', err);
+    res.status(500).json({ error: 'Failed to fetch PO matrix' });
+  }
+};
+
+exports.getPOMatrixDetail = async (req, res) => {
+  try {
+    const { supplier_id, date } = req.query;
+    if (!supplier_id || !date) return res.status(400).json({ error: 'supplier_id and date required' });
+
+    const poSql = `
+      SELECT po.id, po.po_no, po.po_date, s.supplier_name, po.status,
+             po.grand_total, po.currency, po.subtotal, po.discount_percent,
+             po.discount_amount, po.tax_amount, po.payment_terms, po.delivery_terms,
+             po.notes, po.req_date, po.created_date
+      FROM t_purchase_order po
+      JOIN m_party_master s ON s.id = po.supplier_id
+      WHERE po.supplier_id = :supplier_id
+        AND po.po_date::date = :date::date
+      ORDER BY po.po_no
+    `;
+    const pos = await db.sequelize.query(poSql, {
+      replacements: { supplier_id: Number(supplier_id), date: date.trim() },
+      type: Sequelize.QueryTypes.SELECT,
+    });
+
+    const poIds = pos.map((p) => p.id);
+    let items = [];
+    if (poIds.length > 0) {
+      const itemSql = `
+        SELECT poi.po_id, poi.item_code, poi.item_name, poi.quantity AS qty, poi.rate,
+               poi.disc_percent, poi.disc_inr AS discount_amount,
+               poi.gst_rate, poi.gst_amount AS item_tax,
+               poi.sgst_rate, poi.sgst_inr,
+               poi.cgst_rate, poi.cgst_inr,
+               poi.igst_rate, poi.igst_inr,
+               poi.after_disc, poi.total_value
+        FROM t_purchase_order_item poi
+        WHERE poi.po_id IN (${poIds.join(',')})
+        ORDER BY poi.id
+      `;
+      items = await db.sequelize.query(itemSql, {
+        type: Sequelize.QueryTypes.SELECT,
+      });
+    }
+
+    const itemsByPo = {};
+    items.forEach((it) => {
+      if (!itemsByPo[it.po_id]) itemsByPo[it.po_id] = [];
+      itemsByPo[it.po_id].push(it);
+    });
+
+    const result = pos.map((po) => ({
+      ...po,
+      items: itemsByPo[po.id] || [],
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error PO matrix detail:', err);
+    res.status(500).json({ error: 'Failed to fetch PO details' });
+  }
+};
+
 // ── Pending Material by Party (open PO line items still to be received) ─
 exports.getPendingMaterialByParty = async (req, res) => {
   try {
