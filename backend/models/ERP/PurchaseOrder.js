@@ -70,6 +70,86 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+      old_po_no: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
+      old_po_year: {
+        type: DataTypes.STRING(10),
+        allowNull: true,
+      },
+      subject: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
+      reference: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
+      qtn_no: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
+      ref_date: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+      },
+      qca_req: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      any_other_terms: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      delivery_period: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
+      desp_to: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      insurance: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
+      rem1: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
+      rem2: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
+      rem3: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
+      inspection: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
+      freight: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
+      freight_forward: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
+      currency_val: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
+      req_yn: {
+        type: DataTypes.STRING(10),
+        allowNull: true,
+      },
+      ven_code: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
       approved_by: {
         type: DataTypes.STRING(100),
         allowNull: true,

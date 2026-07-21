@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress, Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
+import { Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress, Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Grid, Stack } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import AddIcon from "@mui/icons-material/Add";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -12,6 +12,7 @@ import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { downloadPoPdf } from "./poPdf";
+import { formatCurrency, formatDateTime } from '../../../../utils/format';
 
 const API = "/api/erp/purchase/orders";
 
@@ -23,7 +24,7 @@ export default function POList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [confirm, setConfirm] = useState({ open: false, id: null });
+  const [confirm, setConfirm] = useState({ open: false, data: null });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -63,12 +64,12 @@ export default function POList() {
       showToast(`Cannot approve: ${errors[0]}`, "error");
       return;
     }
-    setConfirm({ open: true, id });
+    setConfirm({ open: true, data: po });
   };
 
   const confirmApprove = async () => {
-    const id = confirm.id;
-    setConfirm({ open: false, id: null });
+    const id = confirm.data.id;
+    setConfirm({ open: false, data: null });
     try {
       await axios.put(`${API}/${id}/approve`, { status: "Approved" });
       showToast("PO approved", "success");
@@ -173,15 +174,154 @@ export default function POList() {
           </div>
         </CardContent>
       </Card>
-      <Dialog open={confirm.open} onClose={() => setConfirm({ open: false, id: null })}>
-        <DialogTitle>Approve Purchase Order?</DialogTitle>
+      <Dialog open={confirm.open} onClose={() => setConfirm({ open: false, data: null })} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>Approve Purchase Order?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to approve this purchase order? Approved POs are locked from further editing.
-          </DialogContentText>
+          {confirm.data && (
+            <Stack spacing={2} sx={{ pt: 0.5 }}>
+              <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main' }}>{confirm.data.po_no}</Typography>
+                  <Chip label={confirm.data.status} size="small" color="warning" />
+                </Stack>
+                <Grid container spacing={2} sx={{ mb: 1 }}>
+                  <Grid item xs={4}>
+                    <Typography variant="caption" color="text.secondary">Supplier</Typography>
+                    <Typography variant="body2" fontWeight={600}>{confirm.data.supplier?.supplier_name || '—'}</Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">PO Date</Typography>
+                    <Typography variant="body2" fontWeight={600}>{formatDateTime(confirm.data.po_date)}</Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Currency</Typography>
+                    <Typography variant="body2" fontWeight={600}>{confirm.data.currency || 'INR'}</Typography>
+                  </Grid>
+                  <Grid item xs={2}>
+                    <Typography variant="caption" color="text.secondary">Items</Typography>
+                    <Typography variant="body2" fontWeight={600}>{(confirm.data.items || []).length}</Typography>
+                  </Grid>
+                </Grid>
+                {(confirm.data.payment_terms || confirm.data.delivery_terms || confirm.data.subject || confirm.data.delivery_period || confirm.data.desp_to || confirm.data.insurance || confirm.data.inspection || confirm.data.freight || confirm.data.freight_forward || confirm.data.req_yn || confirm.data.ven_code || confirm.data.rem1 || confirm.data.rem2 || confirm.data.rem3 || confirm.data.any_other_terms) && (
+                  <Box sx={{ mb: 1, p: 1.5, bgcolor: '#fafafa', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>Terms & Conditions</Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, '& > *': { flex: '1 1 30%', minWidth: 180 } }}>
+                      {confirm.data.payment_terms && <Box><Typography variant="caption" color="text.secondary">Payment Terms</Typography><Typography variant="body2">{confirm.data.payment_terms}</Typography></Box>}
+                      {confirm.data.desp_to && <Box><Typography variant="caption" color="text.secondary">Desp To</Typography><Typography variant="body2">{confirm.data.desp_to}</Typography></Box>}
+                      {confirm.data.insurance && <Box><Typography variant="caption" color="text.secondary">Insurance</Typography><Typography variant="body2">{confirm.data.insurance}</Typography></Box>}
+                      {confirm.data.subject && <Box><Typography variant="caption" color="text.secondary">Subject</Typography><Typography variant="body2">{confirm.data.subject}</Typography></Box>}
+                      {confirm.data.reference && <Box><Typography variant="caption" color="text.secondary">Reference</Typography><Typography variant="body2">{confirm.data.reference}</Typography></Box>}
+                      {confirm.data.ref_date && <Box><Typography variant="caption" color="text.secondary">Ref. Date</Typography><Typography variant="body2">{confirm.data.ref_date}</Typography></Box>}
+                      {confirm.data.delivery_period && <Box><Typography variant="caption" color="text.secondary">Delivery Period</Typography><Typography variant="body2">{confirm.data.delivery_period}</Typography></Box>}
+                      {confirm.data.inspection && <Box><Typography variant="caption" color="text.secondary">Inspection</Typography><Typography variant="body2">{confirm.data.inspection}</Typography></Box>}
+                      {confirm.data.freight && <Box><Typography variant="caption" color="text.secondary">Freight</Typography><Typography variant="body2">{confirm.data.freight}</Typography></Box>}
+                      {confirm.data.freight_forward && <Box><Typography variant="caption" color="text.secondary">Freight Forward</Typography><Typography variant="body2">{confirm.data.freight_forward}</Typography></Box>}
+                      {confirm.data.currency_val && <Box><Typography variant="caption" color="text.secondary">Currency Val</Typography><Typography variant="body2">{confirm.data.currency_val}</Typography></Box>}
+                      {confirm.data.req_yn && <Box><Typography variant="caption" color="text.secondary">Req(Y/N)</Typography><Typography variant="body2">{confirm.data.req_yn}</Typography></Box>}
+                      {confirm.data.ven_code && <Box><Typography variant="caption" color="text.secondary">Ven Code</Typography><Typography variant="body2">{confirm.data.ven_code}</Typography></Box>}
+                      {confirm.data.rem1 && <Box><Typography variant="caption" color="text.secondary">Rem1</Typography><Typography variant="body2">{confirm.data.rem1}</Typography></Box>}
+                      {confirm.data.rem2 && <Box><Typography variant="caption" color="text.secondary">Rem2</Typography><Typography variant="body2">{confirm.data.rem2}</Typography></Box>}
+                      {confirm.data.rem3 && <Box><Typography variant="caption" color="text.secondary">Rem3</Typography><Typography variant="body2">{confirm.data.rem3}</Typography></Box>}
+                      {confirm.data.delivery_terms && <Box><Typography variant="caption" color="text.secondary">Delivery Terms</Typography><Typography variant="body2">{confirm.data.delivery_terms}</Typography></Box>}
+                      {confirm.data.any_other_terms && <Box><Typography variant="caption" color="text.secondary">Any Other Terms</Typography><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{confirm.data.any_other_terms}</Typography></Box>}
+                      {confirm.data.qca_req && <Box><Typography variant="caption" color="text.secondary">QCA Req</Typography><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{confirm.data.qca_req}</Typography></Box>}
+                      {confirm.data.notes && <Box><Typography variant="caption" color="text.secondary">Notes</Typography><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{confirm.data.notes}</Typography></Box>}
+                    </Box>
+                  </Box>
+                )}
+                {confirm.data.items && confirm.data.items.length > 0 && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 0.5 }}>Items</Typography>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>Item</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>Qty</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>Rate</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>Disc%</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>PF%</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>SGST</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>CGST</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>IGST</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {confirm.data.items.map((it, idx) => (
+                          <tr key={idx}>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9' }}>
+                              <Typography variant="body2" fontWeight={600}>{it.item_code}</Typography>
+                              <Typography variant="caption" color="text.secondary">{it.item_name}</Typography>
+                            </td>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>{Number(it.quantity || it.qty).toLocaleString('en-IN')}</td>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>{formatCurrency(it.rate)}</td>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>{it.disc_percent ? `${it.disc_percent}% / ${formatCurrency(it.disc_inr || it.discount_amount)}` : '—'}</td>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>{Number(it.pf_percent || 0) > 0 ? `${it.pf_percent}% / ${formatCurrency(it.pf_inr)}` : '—'}</td>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>{Number(it.sgst_inr || 0) > 0 ? `${it.sgst_rate}% / ${formatCurrency(it.sgst_inr)}` : '—'}</td>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>{Number(it.cgst_inr || 0) > 0 ? `${it.cgst_rate}% / ${formatCurrency(it.cgst_inr)}` : '—'}</td>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>{Number(it.igst_inr || 0) > 0 ? `${it.igst_rate}% / ${formatCurrency(it.igst_inr)}` : '—'}</td>
+                            <td style={{ padding: '4px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(it.total_value || it.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </Box>
+                )}
+                {confirm.data.items && confirm.data.items.length > 0 && confirm.data.subtotal > 0 && (() => {
+                  const taxSum = confirm.data.items.reduce((acc, it) => ({
+                    sgst: acc.sgst + Number(it.sgst_inr || 0),
+                    cgst: acc.cgst + Number(it.cgst_inr || 0),
+                    igst: acc.igst + Number(it.igst_inr || 0),
+                  }), { sgst: 0, cgst: 0, igst: 0 });
+                  return (
+                    <Stack direction="row" justifyContent="flex-end" spacing={3} sx={{ pr: 1 }}>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Subtotal</Typography>
+                        <Typography variant="body2" textAlign="right">{formatCurrency(confirm.data.subtotal)}</Typography>
+                      </Box>
+                      {confirm.data.discount_amount > 0 && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Discount</Typography>
+                          <Typography variant="body2" textAlign="right" color="error">-{formatCurrency(confirm.data.discount_amount)}</Typography>
+                        </Box>
+                      )}
+                      {taxSum.sgst > 0 && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">SGST</Typography>
+                          <Typography variant="body2" textAlign="right">{formatCurrency(taxSum.sgst)}</Typography>
+                        </Box>
+                      )}
+                      {taxSum.cgst > 0 && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">CGST</Typography>
+                          <Typography variant="body2" textAlign="right">{formatCurrency(taxSum.cgst)}</Typography>
+                        </Box>
+                      )}
+                      {taxSum.igst > 0 && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">IGST</Typography>
+                          <Typography variant="body2" textAlign="right">{formatCurrency(taxSum.igst)}</Typography>
+                        </Box>
+                      )}
+                      {(taxSum.sgst > 0 || taxSum.cgst > 0 || taxSum.igst > 0) && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>Total Tax</Typography>
+                          <Typography variant="body2" textAlign="right" fontWeight={600}>{formatCurrency(taxSum.sgst + taxSum.cgst + taxSum.igst)}</Typography>
+                        </Box>
+                      )}
+                      <Box>
+                        <Typography variant="caption" color="primary.main" fontWeight={600}>Grand Total</Typography>
+                        <Typography variant="body2" textAlign="right" fontWeight={700} color="primary.main">{formatCurrency(confirm.data.grand_total, confirm.data.currency)}</Typography>
+                      </Box>
+                    </Stack>
+                  );
+                })()}
+              </Paper>
+            </Stack>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirm({ open: false, id: null })}>Cancel</Button>
+          <Button onClick={() => setConfirm({ open: false, data: null })}>Cancel</Button>
           <Button onClick={confirmApprove} variant="contained" color="success">Approve</Button>
         </DialogActions>
       </Dialog>

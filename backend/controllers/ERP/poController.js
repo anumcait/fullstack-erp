@@ -244,3 +244,24 @@ exports.deletePurchaseOrder = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete purchase order' });
   }
 };
+
+// ── Fetch terms & conditions from an old PO by PO number ──────────────
+exports.getPOTermsByPoNo = async (req, res) => {
+  try {
+    const { po_no } = req.params;
+    const order = await PurchaseOrder.findOne({
+      where: { po_no },
+      attributes: [
+        'old_po_no', 'old_po_year', 'subject', 'reference', 'qtn_no', 'ref_date',
+        'qca_req', 'any_other_terms', 'delivery_period', 'payment_terms', 'delivery_terms',
+        'desp_to', 'insurance', 'rem1', 'rem2', 'rem3', 'inspection', 'freight',
+        'freight_forward', 'currency_val', 'req_yn', 'ven_code', 'notes',
+      ],
+    });
+    if (!order) return res.status(404).json({ error: 'Purchase order not found' });
+    res.json(order);
+  } catch (err) {
+    console.error('Error fetching PO terms:', err);
+    res.status(500).json({ error: 'Failed to fetch PO terms' });
+  }
+};

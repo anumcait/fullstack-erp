@@ -36,12 +36,15 @@ router.get('/reports/party-master', purchaseReportController.getPartyMaster);
 router.get('/reports/supplier-rating', purchaseReportController.getSupplierRatingReport);
 router.get('/reports/daily', purchaseReportController.getDailyReport);
 router.get('/reports/po-matrix', purchaseReportController.getPOMatrix);
+router.get('/reports/po-matrix-month', purchaseReportController.getPOMatrixMonth);
+router.get('/reports/po-matrix-year', purchaseReportController.getPOMatrixYear);
 router.get('/reports/po-matrix-detail', purchaseReportController.getPOMatrixDetail);
 router.get('/reports/pending-by-party', purchaseReportController.getPendingMaterialByParty);
 router.get('/reports/pr-amendment', purchaseReportController.getPRAmendmentDetails);
 
 // ── Purchase Orders ──
 router.get('/orders', poController.getPurchaseOrders);
+router.get('/orders/terms/:po_no', poController.getPOTermsByPoNo);
 router.get('/orders/:id', poController.getPurchaseOrder);
 router.post('/orders', poController.createPurchaseOrder);
 router.put('/orders/:id', poController.updatePurchaseOrder);

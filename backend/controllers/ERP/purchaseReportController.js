@@ -476,8 +476,19 @@ exports.getPOMatrix = async (req, res) => {
 
 exports.getPOMatrixDetail = async (req, res) => {
   try {
-    const { supplier_id, date } = req.query;
-    if (!supplier_id || !date) return res.status(400).json({ error: 'supplier_id and date required' });
+    const { supplier_id, date, from, to } = req.query;
+    if (!supplier_id) return res.status(400).json({ error: 'supplier_id required' });
+
+    let dateClause = '';
+    const replacements = { supplier_id: Number(supplier_id) };
+    if (date) {
+      dateClause = 'AND po.po_date::date = :date';
+      replacements.date = date.trim();
+    } else if (from && to) {
+      dateClause = 'AND po.po_date::date BETWEEN :from AND :to';
+      replacements.from = from;
+      replacements.to = to;
+    }
 
     const poSql = `
       SELECT po.id, po.po_no, po.po_date, s.supplier_name, po.status,
@@ -486,25 +497,24 @@ exports.getPOMatrixDetail = async (req, res) => {
              po.notes, po.req_date, po.created_date
       FROM t_purchase_order po
       JOIN m_party_master s ON s.id = po.supplier_id
-      WHERE po.supplier_id = :supplier_id
-        AND po.po_date::date = :date::date
+      WHERE po.supplier_id = :supplier_id ${dateClause}
       ORDER BY po.po_no
     `;
     const pos = await db.sequelize.query(poSql, {
-      replacements: { supplier_id: Number(supplier_id), date: date.trim() },
+      replacements,
       type: Sequelize.QueryTypes.SELECT,
     });
-
     const poIds = pos.map((p) => p.id);
     let items = [];
     if (poIds.length > 0) {
       const itemSql = `
-        SELECT poi.po_id, poi.item_code, poi.item_name, poi.quantity AS qty, poi.rate,
+         SELECT poi.po_id, poi.item_code, poi.item_name, poi.quantity AS qty, poi.rate,
                poi.disc_percent, poi.disc_inr AS discount_amount,
                poi.gst_rate, poi.gst_amount AS item_tax,
                poi.sgst_rate, poi.sgst_inr,
                poi.cgst_rate, poi.cgst_inr,
                poi.igst_rate, poi.igst_inr,
+               poi.pf_percent, poi.pf_inr,
                poi.after_disc, poi.total_value
         FROM t_purchase_order_item poi
         WHERE poi.po_id IN (${poIds.join(',')})
@@ -521,15 +531,89 @@ exports.getPOMatrixDetail = async (req, res) => {
       itemsByPo[it.po_id].push(it);
     });
 
-    const result = pos.map((po) => ({
-      ...po,
-      items: itemsByPo[po.id] || [],
-    }));
+    const result = pos.map((po) => {
+      const poItems = itemsByPo[po.id] || [];
+      const taxBreakdown = poItems.reduce(
+        (acc, it) => ({
+          total_sgst: acc.total_sgst + Number(it.sgst_inr || 0),
+          total_cgst: acc.total_cgst + Number(it.cgst_inr || 0),
+          total_igst: acc.total_igst + Number(it.igst_inr || 0),
+        }),
+        { total_sgst: 0, total_cgst: 0, total_igst: 0 }
+      );
+      return {
+        ...po,
+        items: poItems,
+        ...taxBreakdown,
+      };
+    });
 
     res.json(result);
   } catch (err) {
     console.error('Error PO matrix detail:', err);
     res.status(500).json({ error: 'Failed to fetch PO details' });
+  }
+};
+
+exports.getPOMatrixMonth = async (req, res) => {
+  try {
+    const { from, to, supplier_id } = req.query;
+    const clauses = ["po.status NOT IN ('Draft', 'Cancelled')"];
+    const replacements = {};
+    if (from) { clauses.push('po.po_date >= :from'); replacements.from = from; }
+    if (to) { clauses.push('po.po_date <= :to'); replacements.to = to; }
+    if (supplier_id) { clauses.push('po.supplier_id = :sid'); replacements.sid = supplier_id; }
+    const where = `WHERE ${clauses.join(' AND ')}`;
+
+    const sql = `
+      SELECT s.id AS supplier_id, s.supplier_name,
+             TO_CHAR(po.po_date, 'YYYY-MM') AS month,
+             COALESCE(SUM(po.grand_total), 0) AS amount
+      FROM t_purchase_order po
+      JOIN m_party_master s ON s.id = po.supplier_id
+      ${where}
+      GROUP BY s.id, s.supplier_name, month
+      ORDER BY s.supplier_name, month
+    `;
+    const rows = await db.sequelize.query(sql, {
+      replacements,
+      type: Sequelize.QueryTypes.SELECT,
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error PO monthly matrix:', err);
+    res.status(500).json({ error: 'Failed to fetch PO monthly matrix' });
+  }
+};
+
+exports.getPOMatrixYear = async (req, res) => {
+  try {
+    const { from, to, supplier_id } = req.query;
+    const clauses = ["po.status NOT IN ('Draft', 'Cancelled')"];
+    const replacements = {};
+    if (from) { clauses.push('po.po_date >= :from'); replacements.from = from; }
+    if (to) { clauses.push('po.po_date <= :to'); replacements.to = to; }
+    if (supplier_id) { clauses.push('po.supplier_id = :sid'); replacements.sid = supplier_id; }
+    const where = `WHERE ${clauses.join(' AND ')}`;
+
+    const sql = `
+      SELECT s.id AS supplier_id, s.supplier_name,
+             TO_CHAR(po.po_date, 'YYYY') AS year,
+             COALESCE(SUM(po.grand_total), 0) AS amount
+      FROM t_purchase_order po
+      JOIN m_party_master s ON s.id = po.supplier_id
+      ${where}
+      GROUP BY s.id, s.supplier_name, year
+      ORDER BY s.supplier_name, year
+    `;
+    const rows = await db.sequelize.query(sql, {
+      replacements,
+      type: Sequelize.QueryTypes.SELECT,
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error PO yearly matrix:', err);
+    res.status(500).json({ error: 'Failed to fetch PO yearly matrix' });
   }
 };
 
