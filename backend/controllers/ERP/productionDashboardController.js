@@ -1,17 +1,17 @@
 const db = require('../../models/ERP');
 const { Op, Sequelize } = require('sequelize');
-const { ProductionOrder, ProductionDailyEntry, ProductionDowntime, ProductionMachine } = db;
+const { JobOrder, ProductionDailyEntry, ProductionDowntime, ProductionMachine } = db;
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 const ORDER_ATTRS = ['id', 'order_no', 'product_code', 'product_name', 'planned_quantity', 'produced_quantity', 'status', 'department'];
 
 exports.stats = async (req, res) => {
   try {
-    const totalOrders = await ProductionOrder.count();
-    const activeOrders = await ProductionOrder.count({ where: { status: { [Op.notIn]: ['Completed', 'Cancelled'] } } });
-    const completedOrders = await ProductionOrder.count({ where: { status: 'Completed' } });
+    const totalOrders = await JobOrder.count();
+    const activeOrders = await JobOrder.count({ where: { status: { [Op.notIn]: ['Completed', 'Cancelled'] } } });
+    const completedOrders = await JobOrder.count({ where: { status: 'Completed' } });
 
-    const orderAgg = await ProductionOrder.findAll({
+    const orderAgg = await JobOrder.findAll({
       attributes: [
         [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('planned_quantity')), 0), 'planned'],
         [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('produced_quantity')), 0), 'produced'],
@@ -40,12 +40,12 @@ exports.stats = async (req, res) => {
     const totalDowntime = await ProductionDowntime.sum('duration_minutes') || 0;
     const openDowntime = await ProductionDowntime.count({ where: { status: 'Open' } });
 
-    const ordersByStatus = await ProductionOrder.findAll({
+    const ordersByStatus = await JobOrder.findAll({
       attributes: ['status', [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']],
       group: ['status'],
     });
 
-    const recentOrders = await ProductionOrder.findAll({
+    const recentOrders = await JobOrder.findAll({
       attributes: ORDER_ATTRS,
       order: [['id', 'DESC']],
       limit: 8,

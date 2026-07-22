@@ -21,14 +21,14 @@ export default function PurchaseSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    pr_prefix: 'PR', po_prefix: 'PO', rfq_prefix: 'RFQ', grn_prefix: 'GRR',
+    pr_prefix: 'PR', po_prefix: 'PO', rfq_prefix: 'RFQ',
     fin_year_format: 'FY-{YYYY}-{YY}',
     default_payment_terms: '30 Days', default_delivery_terms: 'Ex Works',
     default_currency: 'INR', default_gst_rate: 18,
     req_approval_required: true, po_approval_required: true,
     req_approval_limit: 0, po_approval_limit: 0,
     auto_generate_pr: false, auto_generate_po: false,
-    auto_generate_rfq: false, auto_generate_grn: false,
+    auto_generate_rfq: false,
   });
 
   useEffect(() => {
@@ -37,7 +37,6 @@ export default function PurchaseSettings() {
         pr_prefix: data.pr_prefix || 'PR',
         po_prefix: data.po_prefix || 'PO',
         rfq_prefix: data.rfq_prefix || 'RFQ',
-        grn_prefix: data.grn_prefix || 'GRR',
         fin_year_format: data.fin_year_format || 'FY-{YYYY}-{YY}',
         default_payment_terms: data.default_payment_terms || '30 Days',
         default_delivery_terms: data.default_delivery_terms || 'Ex Works',
@@ -50,7 +49,6 @@ export default function PurchaseSettings() {
         auto_generate_pr: data.auto_generate_pr ?? false,
         auto_generate_po: data.auto_generate_po ?? false,
         auto_generate_rfq: data.auto_generate_rfq ?? false,
-        auto_generate_grn: data.auto_generate_grn ?? false,
       });
     }).catch(() => showToast('Failed to load settings', 'error'))
     .finally(() => setLoading(false));
@@ -104,9 +102,6 @@ export default function PurchaseSettings() {
                   <Grid item xs={6}>
                     <TextField label="RFQ Prefix" size="small" fullWidth value={form.rfq_prefix} onChange={handleChange('rfq_prefix')} />
                   </Grid>
-                  <Grid item xs={6}>
-                    <TextField label="GRR Prefix" size="small" fullWidth value={form.grn_prefix} onChange={handleChange('grn_prefix')} />
-                  </Grid>
                   <Grid item xs={12}>
                     <TextField label="Financial Year Format" size="small" fullWidth value={form.fin_year_format} onChange={handleChange('fin_year_format')}
                       helperText='Use {YYYY} and {YY} placeholders. E.g. "FY-{YYYY}-{YY}" → "FY-2026-27"' />
@@ -119,9 +114,6 @@ export default function PurchaseSettings() {
                   </Grid>
                   <Grid item xs={6}>
                     <FormControlLabel control={<Switch checked={form.auto_generate_rfq} onChange={handleChange('auto_generate_rfq')} />} label="Auto-generate RFQ #" />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <FormControlLabel control={<Switch checked={form.auto_generate_grn} onChange={handleChange('auto_generate_grn')} />} label="Auto-generate GRR #" />
                   </Grid>
                 </Grid>
               </CardContent>

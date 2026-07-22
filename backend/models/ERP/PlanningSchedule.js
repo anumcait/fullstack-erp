@@ -24,7 +24,7 @@ module.exports = (sequelize) => {
 
   PlanningSchedule.associate = (models) => {
     PlanningSchedule.belongsTo(models.ProductionMachine, { foreignKey: 'machine_id', as: 'machine' });
-    PlanningSchedule.belongsTo(models.ProductionOrder, { foreignKey: 'order_id', as: 'order' });
+    PlanningSchedule.belongsTo(models.JobOrder, { foreignKey: 'order_id', as: 'order' });
   };
 
   return PlanningSchedule;

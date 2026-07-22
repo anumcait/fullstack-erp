@@ -1,6 +1,6 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
-const { ProductionDailyEntry, ProductionMachine, ProductionOrder } = db;
+const { ProductionDailyEntry, ProductionMachine } = db;
 
 exports.list = async (req, res) => {
   try {

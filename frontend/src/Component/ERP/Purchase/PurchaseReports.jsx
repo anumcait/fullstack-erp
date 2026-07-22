@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Box, Stack, TextField, MenuItem, Button, FormControlLabel, Switch, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Collapse, useTheme, Paper, Grid, Chip } from '@mui/material';
-import { FiFileText, FiBarChart2, FiTruck, FiTrendingUp, FiClock, FiList, FiPackage, FiStar, FiBox, FiUsers, FiShield, FiGrid, FiFilter, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiFileText, FiBarChart2, FiTruck, FiTrendingUp, FiPackage, FiStar, FiBox, FiUsers, FiShield, FiGrid, FiFilter, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import axios from 'axios';
 import PageHeader from '../../Common/PageHeader';
 import DataTable from '../../Common/DataTable';
@@ -13,10 +13,6 @@ const REPORTS = [
   { key: 'vendor', label: 'Vendor Spend Analysis', icon: FiBarChart2 },
   { key: 'trend', label: 'Monthly Purchase Trend', icon: FiTrendingUp },
   { key: 'grn', label: 'GRN Summary', icon: FiTruck },
-  { key: 'pending-prs', label: 'Pending PRs', icon: FiClock },
-  { key: 'pending-pos', label: 'Pending POs', icon: FiClock },
-  { key: 'received', label: 'Received Material', icon: FiTruck },
-  { key: 'pr-details', label: 'PR Details', icon: FiList },
   { key: 'rm-inspection', label: 'RM Inspection', icon: FiShield },
   { key: 'supp-summary', label: 'Supplier Summary', icon: FiBarChart2 },
   { key: 'rm-purchase', label: 'RM Purchase', icon: FiPackage },
@@ -32,10 +28,6 @@ const urlFor = (tab) => ({
   vendor: '/api/erp/purchase/reports/vendor-spend',
   grn: '/api/erp/purchase/reports/grn-summary',
   trend: '/api/erp/purchase/reports/monthly-trend',
-  'pending-prs': '/api/erp/purchase/reports/pending-prs',
-  'pending-pos': '/api/erp/purchase/reports/pending-pos',
-  received: '/api/erp/purchase/reports/received-material',
-  'pr-details': '/api/erp/purchase/reports/pr-details',
   'rm-inspection': '/api/erp/purchase/reports/raw-material-inspection',
   'supp-summary': '/api/erp/purchase/reports/supplier-summary',
   'rm-purchase': '/api/erp/purchase/reports/raw-material-purchase',
@@ -49,10 +41,6 @@ const titleFor = {
   vendor: 'Vendor Spend Analysis',
   grn: 'Goods Receipt Summary',
   trend: 'Monthly Purchase Trend',
-  'pending-prs': 'Pending Purchase Requisitions',
-  'pending-pos': 'Pending Purchase Orders',
-  received: 'Received Material Report',
-  'pr-details': 'Purchase Requisition Details',
   'rm-inspection': 'Raw Material Inspection Report',
   'supp-summary': 'Supplier Summary',
   'rm-purchase': 'Raw Material Purchase Report',
@@ -143,41 +131,6 @@ export default function PurchaseReports() {
       { field: 'month', header: 'Month' },
       { field: 'po_count', header: 'PO Count', align: 'right', numeric: true },
       { field: 'po_value', header: 'PO Value', align: 'right', numeric: true, render: (r) => formatCurrency(r.po_value) },
-    ],
-    'pending-prs': [
-      { field: 'req_no', header: 'PR No' },
-      { field: 'req_date', header: 'Date', render: (r) => formatDate(r.req_date) },
-      { field: 'department', header: 'Department' },
-      { field: 'priority', header: 'Priority' },
-      { field: 'status', header: 'Status' },
-      { field: 'lines', header: 'Items', align: 'right', numeric: true, render: (r) => (r.items ? r.items.length : 0) },
-    ],
-    'pending-pos': [
-      { field: 'po_no', header: 'PO No' },
-      { field: 'po_date', header: 'PO Date', render: (r) => formatDate(r.po_date) },
-      { field: 'supplier_name', header: 'Vendor' },
-      { field: 'status', header: 'Status' },
-      { field: 'payment_terms', header: 'Terms' },
-      { field: 'grand_total', header: 'Value', align: 'right', numeric: true, render: (r) => formatCurrency(r.grand_total) },
-    ],
-    received: [
-      { field: 'grn_no', header: 'GRN No' },
-      { field: 'grn_date', header: 'Date', render: (r) => formatDate(r.grn_date) },
-      { field: 'supplier_name', header: 'Vendor' },
-      { field: 'item_name', header: 'Item' },
-      { field: 'accepted_qty', header: 'Accepted', align: 'right', numeric: true, render: (r) => formatNumber(r.accepted_qty) },
-      { field: 'rejected_qty', header: 'Rejected', align: 'right', numeric: true, render: (r) => formatNumber(r.rejected_qty) },
-      { field: 'rate', header: 'Rate', align: 'right', numeric: true, render: (r) => formatNumber(r.rate) },
-      { field: 'amount', header: 'Amount', align: 'right', numeric: true, render: (r) => formatCurrency(r.amount) },
-      { field: 'invoice_no', header: 'Invoice' },
-    ],
-    'pr-details': [
-      { field: 'req_no', header: 'PR No' },
-      { field: 'req_date', header: 'Date', render: (r) => formatDate(r.req_date) },
-      { field: 'department', header: 'Department' },
-      { field: 'priority', header: 'Priority' },
-      { field: 'status', header: 'Status' },
-      { field: 'lines', header: 'Items', align: 'right', numeric: true, render: (r) => (r.items ? r.items.length : 0) },
     ],
     'rm-inspection': [
       { field: 'grn_no', header: 'GRN No' },

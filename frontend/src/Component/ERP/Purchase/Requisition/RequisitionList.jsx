@@ -14,6 +14,7 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { formatDate } from '../../../../utils/format';
 
 const API = "/api/erp/purchase/requisitions";
 
@@ -51,7 +52,7 @@ function ItemsTable({ items, reqNo }) {
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.item_name || "—"}</TableCell>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.uom || "—"}</TableCell>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.quantity ?? "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.expected_date ? it.expected_date.split("T")[0] : "—"}</TableCell>
+                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.expected_date ? formatDate(it.expected_date) : "—"}</TableCell>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.purpose || "—"}</TableCell>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.kg ?? "—"}</TableCell>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.mat_code || "—"}</TableCell>
@@ -99,7 +100,7 @@ function PRTable({ rows, expandedId, setExpandedId, onApproveClick, onRejectClic
               <TableRow hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#f8fafc", transition: "background 0.1s", "&:hover": { bgcolor: "#eef2ff" }, "& td": { fontSize: "0.9rem", py: 0.75, borderBottom: "1px solid #f1f5f9" } }}>
                 <TableCell sx={{ color: "#94a3b8" }}>{idx + 1}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{row.req_no}</TableCell>
-                <TableCell>{row.req_date ? row.req_date.split("T")[0] : ""}</TableCell>
+                <TableCell>{row.req_date ? formatDate(row.req_date) : ""}</TableCell>
                 <TableCell>{row.department}</TableCell>
                 <TableCell>{row.requested_by}</TableCell>
                 <TableCell>{row.indent_type}</TableCell>
@@ -164,7 +165,7 @@ function ApproveDialog({ row, open, onClose, onConfirm }) {
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5, mb: 2 }}>
           <Box><Typography variant="caption" color="text.secondary">Req No</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{row.req_no}</Typography></Box>
-          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.req_date ? row.req_date.split("T")[0] : "—"}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.req_date ? formatDate(row.req_date) : "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Department</Typography><Typography variant="body2">{row.department || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Requested By</Typography><Typography variant="body2">{row.requested_by || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Indent Type</Typography><Typography variant="body2">{row.indent_type || "—"}</Typography></Box>
@@ -282,6 +283,9 @@ export default function RequisitionList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); const m = new Date(d); m.setMonth(m.getMonth() - 1); return m.toISOString().split("T")[0]; });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
+  const [year, setYear] = useState(String(new Date().getFullYear()));
   const [expandedId, setExpandedId] = useState(null);
   const [approveTarget, setApproveTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
@@ -302,11 +306,14 @@ export default function RequisitionList() {
       const params = {};
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+      if (year) params.year = year;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast("Failed to load requisitions", "error"); }
     finally { setLoading(false); }
-  }, [search, statusFilter]);
+  }, [search, statusFilter, dateFrom, dateTo, year]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -352,6 +359,14 @@ export default function RequisitionList() {
     <Box sx={{ display: "flex", gap: { xs: 1, sm: 2 }, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
       <TextField size="small" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
         InputProps={{ startAdornment: <SearchIcon sx={{ mr: 0.5, color: "gray" }} /> }} sx={{ minWidth: { xs: 180, sm: 260, md: 300 }, flex: { xs: "1 1 100%", sm: "0 1 auto" } }} />
+      <TextField size="small" type="date" label="Date From" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+        InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
+      <TextField size="small" type="date" label="Date To" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+        InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
+      <TextField size="small" placeholder="Year" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))} sx={{ width: 100 }} />
+      {(dateFrom || dateTo) && (
+        <Button size="small" variant="text" onClick={() => { const d = new Date(); const ma = new Date(d); ma.setMonth(ma.getMonth() - 1); setDateFrom(ma.toISOString().split("T")[0]); setDateTo(d.toISOString().split("T")[0]); }}>Reset</Button>
+      )}
       <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => navigate("/purchase/requisitions/add")} sx={{ whiteSpace: "nowrap", fontSize: { xs: "0.78rem", sm: "0.82rem" } }}>New Requisition</Button>
       <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={fetchData} sx={{ whiteSpace: "nowrap", fontSize: { xs: "0.78rem", sm: "0.82rem" } }}>Refresh</Button>
       {!statusFilter && <Button size="small" variant="text" onClick={() => navigate("/purchase/requisitions?status=Draft")} sx={{ fontSize: { xs: "0.75rem", sm: "0.82rem" } }}>Drafts</Button>}

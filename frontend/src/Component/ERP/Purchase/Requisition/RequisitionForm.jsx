@@ -129,15 +129,13 @@ export default function RequisitionForm() {
         const arr = data || [];
         let nextNum = 1;
         arr.forEach((r) => {
-          const match = r.req_no?.match(/^PR-(\d+)$/);
+          const match = r.req_no?.match(/^(\d+)$/);
           if (match) {
             const num = parseInt(match[1], 10);
             if (num >= nextNum) nextNum = num + 1;
           }
         });
-        const now = new Date();
-        const ts = `${now.getHours()}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
-        setHeader((p) => ({ ...p, req_no: `PR-${nextNum}-${ts}` }));
+        setHeader((p) => ({ ...p, req_no: String(nextNum) }));
       }).catch(() => {});
     }
   }, [id]);

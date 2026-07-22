@@ -41,6 +41,9 @@ router.get('/reports/po-matrix-year', purchaseReportController.getPOMatrixYear);
 router.get('/reports/po-matrix-detail', purchaseReportController.getPOMatrixDetail);
 router.get('/reports/pending-by-party', purchaseReportController.getPendingMaterialByParty);
 router.get('/reports/pr-amendment', purchaseReportController.getPRAmendmentDetails);
+router.get('/reports/overdue-items', purchaseReportController.getOverdueItems);
+router.get('/reports/overdue-pr-items', purchaseReportController.getOverduePRItems);
+router.get('/reports/delayed-pos', purchaseReportController.getDelayedPOs);
 
 // ── Purchase Orders ──
 router.get('/orders', poController.getPurchaseOrders);

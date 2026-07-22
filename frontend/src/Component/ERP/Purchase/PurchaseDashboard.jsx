@@ -35,7 +35,7 @@ const KPI_CONFIG = [
   { key: 'pending_pos', label: 'Pending POs', icon: FiClock, color: '#f59e0b', valueKey: 'pending_po_value', to: '/purchase/orders' },
   { key: 'approved_pos', label: 'Approved POs', icon: FiCheckCircle, color: '#10b981', valueKey: 'approved_po_value', to: '/purchase/orders' },
   { key: 'po_this_month', label: 'PO This Month', icon: FiTrendingUp, color: '#0ea5e9', to: '/purchase/orders' },
-  { key: 'grn_today', label: 'GRN Today', icon: FiTruck, color: '#22c55e', valueKey: 'grn_value_this_month', to: '/stores/grr' },
+
   { key: 'active_vendors', label: 'Active Vendors', icon: FiUsers, color: '#a855f7', to: '/purchase/vendors' },
   { key: 'total_rfq', label: 'Total RFQs', icon: FiMail, color: '#64748b', to: '/purchase/rfq' },
   { key: 'pr_this_month', label: 'PR This Month', icon: FiFileText, color: '#14b8a6', to: '/purchase/requisitions' },
@@ -99,10 +99,10 @@ const PurchaseDashboard = () => {
   const { showToast } = useToast();
   const [date, setDate] = useState(today());
   const [stats, setStats] = useState(null);
-  const [daily, setDaily] = useState({ summary: {}, prs: [], pos: [], grns: [] });
+  const [daily, setDaily] = useState({ summary: {}, prs: [], pos: [] });
   const [party, setParty] = useState([]);
   const [trend, setTrend] = useState([]);
-  const [activity, setActivity] = useState({ purchase_orders: [], grns: [], requisitions: [] });
+  const [activity, setActivity] = useState({ purchase_orders: [], requisitions: [] });
   const [loading, setLoading] = useState(true);
   const [snapTab, setSnapTab] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -112,17 +112,17 @@ const PurchaseDashboard = () => {
     setLoading(true);
     Promise.all([
       axios.get('/api/erp/purchase/dashboard').catch(() => ({ data: null })),
-      axios.get('/api/erp/purchase/reports/daily', { params: { date } }).catch(() => ({ data: { summary: {}, prs: [], pos: [], grns: [] } })),
+      axios.get('/api/erp/purchase/reports/daily', { params: { date } }).catch(() => ({ data: { summary: {}, prs: [], pos: [] } })),
       axios.get('/api/erp/purchase/reports/pending-by-party').catch(() => ({ data: [] })),
       axios.get('/api/erp/purchase/reports/monthly-trend').catch(() => ({ data: [] })),
-      axios.get('/api/erp/purchase/recent-activity').catch(() => ({ data: { purchase_orders: [], grns: [], requisitions: [] } })),
+      axios.get('/api/erp/purchase/recent-activity').catch(() => ({ data: { purchase_orders: [], requisitions: [] } })),
       axios.get('/api/erp/purchase/requisitions', { params: { status: 'Pending' } }).catch(() => ({ data: [] })),
     ]).then(([s, d, p, t, a, pa]) => {
       setStats(s.data);
-      setDaily(d.data || { summary: {}, prs: [], pos: [], grns: [] });
+      setDaily(d.data || { summary: {}, prs: [], pos: [] });
       setParty(p.data || []);
       setTrend(t.data || []);
-      setActivity(a.data || { purchase_orders: [], grns: [], requisitions: [] });
+      setActivity(a.data || { purchase_orders: [], requisitions: [] });
       setPendingApprovals(pa.data || []);
     }).finally(() => setLoading(false));
   };
@@ -159,22 +159,14 @@ const PurchaseDashboard = () => {
       { field: 'payment_terms', header: 'Terms' },
       { field: 'grand_total', header: 'Value', align: 'right', render: (r) => formatCurrency(r.grand_total, r.currency) },
     ],
-    [
-      { field: 'grn_no', header: 'GRN No' },
-      { field: 'supplier_name', header: 'Vendor' },
-      { field: 'ir_type', header: 'Type' },
-      { field: 'qa_status', header: 'QA' },
-      { field: 'value', header: 'Value', align: 'right', render: (r) => formatCurrency(r.value) },
-    ],
   ];
-  const snapRows = [daily.prs || [], daily.pos || [], daily.grns || []];
+  const snapRows = [daily.prs || [], daily.pos || []];
   const snapTitles = [
     `PRs — ${formatDate(date)}`,
     `POs — ${formatDate(date)}`,
-    `GRNs — ${formatDate(date)}`,
   ];
 
-  const allActivity = [...activity.purchase_orders, ...activity.grns, ...activity.requisitions].slice(0, 12);
+  const allActivity = [...activity.purchase_orders, ...activity.requisitions].slice(0, 12);
 
   return (
     <Box sx={{ p: { xs: 1.5, md: 2 } }}>
@@ -255,7 +247,6 @@ const PurchaseDashboard = () => {
           {[
             { label: 'PO Value This Month', value: stats ? formatCompactCurrency(stats.approved_po_value) : null, sub: `${stats?.po_this_month ?? '—'} orders`, accent: 'primary.main' },
             { label: 'Pending PO Value', value: stats ? formatCompactCurrency(stats.pending_po_value) : null, sub: `${stats?.pending_pos ?? '—'} pending`, accent: '#ed6c02' },
-            { label: 'GRN Value (Month)', value: stats ? formatCompactCurrency(stats.grn_value_this_month) : null, sub: `${stats?.grn_today ?? '—'} today`, accent: '#2e7d32' },
             { label: 'Active Vendors', value: stats?.active_vendors ?? null, sub: 'Registered suppliers', accent: 'secondary.main' },
           ].map((item, i, arr) => (
             <Box
@@ -325,7 +316,7 @@ const PurchaseDashboard = () => {
             ) : (
               <List dense disablePadding sx={{ overflowY: 'auto', maxHeight: 320 }}>
                 {allActivity.map((r, idx) => {
-                  const label = r.po_no || r.grn_no || r.req_no || `#${idx}`;
+                  const label = r.po_no || r.req_no || `#${idx}`;
                   const sub = r.supplier_name || r.department || '—';
                   const init = (r.supplier_name || label).charAt(0).toUpperCase();
                   return (
@@ -384,7 +375,6 @@ const PurchaseDashboard = () => {
               >
                 <Tab label={`PRs (${s.pr_count || 0})`} />
                 <Tab label={`POs (${s.po_count || 0})`} />
-                <Tab label={`GRNs (${s.grn_count || 0})`} />
               </Tabs>
             </Box>
             <Box sx={{ p: 1.5 }}>

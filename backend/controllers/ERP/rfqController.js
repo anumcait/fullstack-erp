@@ -10,9 +10,19 @@ const PurchaseSettings = db.PurchaseSettings;
 
 exports.getRFQs = async (req, res) => {
   try {
-    const { search, status } = req.query;
+    const { search, status, date_from, date_to, year } = req.query;
     const where = {};
     if (status) where.status = status;
+    if (date_from || date_to || year) {
+      const dateWhere = {};
+      if (date_from) dateWhere[Op.gte] = date_from;
+      if (date_to) dateWhere[Op.lte] = date_to;
+      if (year) {
+        dateWhere[Op.gte] = `${year}-01-01`;
+        dateWhere[Op.lte] = `${year}-12-31`;
+      }
+      where.rfq_date = dateWhere;
+    }
     if (search) {
       where[Op.or] = [
         { rfq_no: { [Op.iLike]: `%${search}%` } },

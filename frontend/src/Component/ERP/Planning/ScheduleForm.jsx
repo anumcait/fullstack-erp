@@ -8,7 +8,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const API = "/api/erp/planning/schedules";
 const MACHINE_API = "/api/erp/production/machines";
-const ORDER_API = "/api/erp/production/orders";
+const ORDER_API = "/api/erp/production/job-orders";
 const SHIFTS = ["Day", "Evening", "Night"];
 const STATUSES = ["Planned", "InProgress", "Completed", "Cancelled"];
 
@@ -132,7 +132,7 @@ export default function ScheduleForm() {
                       onChange={hc("schedule_no")} disabled={isView} />
                   </Grid>
                   <Grid item xs={4}>
-                    <TextField select label="Production Order" size="small" fullWidth value={form.order_id}
+                    <TextField select label="Job Order" size="small" fullWidth value={form.order_id}
                       onChange={hc("order_id")} disabled={isView}>
                       <MenuItem value="">-- Select Order --</MenuItem>
                       {orders.map((o) => (

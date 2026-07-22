@@ -7,12 +7,14 @@ import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import BlockIcon from "@mui/icons-material/Block";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { downloadPoPdf } from "./poPdf";
-import { formatCurrency, formatDateTime } from '../../../../utils/format';
+import { formatCurrency, formatDate, formatDateTime } from '../../../../utils/format';
 
 const API = "/api/erp/purchase/orders";
 
@@ -24,7 +26,10 @@ export default function POList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [confirm, setConfirm] = useState({ open: false, data: null });
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); const m = new Date(d); m.setMonth(m.getMonth() - 1); return m.toISOString().split("T")[0]; });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
+  const [year, setYear] = useState(() => String(new Date().getFullYear()));
+  const [confirm, setConfirm] = useState({ open: false, data: null, action: 'approve' });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -32,11 +37,14 @@ export default function POList() {
       const params = {};
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+      if (year) params.year = year;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast("Failed to load POs", "error"); }
     finally { setLoading(false); }
-  }, [search, statusFilter]);
+  }, [search, statusFilter, dateFrom, dateTo, year]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -64,17 +72,29 @@ export default function POList() {
       showToast(`Cannot approve: ${errors[0]}`, "error");
       return;
     }
-    setConfirm({ open: true, data: po });
+    setConfirm({ open: true, data: po, action: 'approve' });
   };
 
-  const confirmApprove = async () => {
+  const handleCancelClick = (id) => {
+    const po = rows.find((r) => r.id === id);
+    setConfirm({ open: true, data: po, action: 'cancel' });
+  };
+
+  const handleRejectClick = (id) => {
+    const po = rows.find((r) => r.id === id);
+    setConfirm({ open: true, data: po, action: 'reject' });
+  };
+
+  const confirmAction = async () => {
     const id = confirm.data.id;
+    const action = confirm.action;
     setConfirm({ open: false, data: null });
+    const statusMap = { approve: 'Approved', cancel: 'Cancelled', reject: 'Rejected' };
     try {
-      await axios.put(`${API}/${id}/approve`, { status: "Approved" });
-      showToast("PO approved", "success");
+      await axios.put(`${API}/${id}/approve`, { status: statusMap[action] });
+      showToast(`PO ${statusMap[action].toLowerCase()}`, "success");
       fetchData();
-    } catch { showToast("Failed to approve", "error"); }
+    } catch { showToast("Failed to update status", "error"); }
   };
 
   const handleViewPdf = async (id) => {
@@ -98,7 +118,7 @@ export default function POList() {
 
   const columns = [
     { field: "po_no", headerName: "PO #", width: 140 },
-    { field: "po_date", headerName: "Date", width: 110, valueGetter: (v) => v ? v.split("T")[0] : "" },
+    { field: "po_date", headerName: "Date", width: 160, valueGetter: (v) => v ? formatDateTime(v) : "" },
     { field: "supplier", headerName: "Supplier", width: 200, valueGetter: (v) => v?.supplier_name || "" },
     { field: "status", headerName: "Status", width: 120, renderCell: (p) => (
       <Chip label={p.value} size="small" color={p.value === "Approved" ? "success" : p.value === "Draft" ? "default" : p.value === "Cancelled" ? "error" : "warning"} />
@@ -128,6 +148,16 @@ export default function POList() {
               <IconButton size="small" color="success" onClick={(e) => { e.stopPropagation(); handleApproveClick(p.row.id); }}><CheckCircleIcon fontSize="small" /></IconButton>
             </Tooltip>
           )}
+          {p.row.status === "Draft" && (
+            <Tooltip title="Reject">
+              <IconButton size="small" color="warning" onClick={(e) => { e.stopPropagation(); handleRejectClick(p.row.id); }}><BlockIcon fontSize="small" /></IconButton>
+            </Tooltip>
+          )}
+          {(p.row.status === "Draft" || p.row.status === "Approved") && (
+            <Tooltip title="Cancel">
+              <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleCancelClick(p.row.id); }}><CancelIcon fontSize="small" /></IconButton>
+            </Tooltip>
+          )}
         </Box>
       ),
     },
@@ -151,6 +181,16 @@ export default function POList() {
           <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
             <TextField size="small" placeholder="Search PO # or supplier..." value={search} onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }} sx={{ minWidth: 300 }} />
+            <TextField size="small" type="date" label="Date From" value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); if (dateTo && e.target.value && new Date(dateTo) - new Date(e.target.value) > 31*24*60*60*1000) setDateTo(""); }}
+              InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
+            <TextField size="small" type="date" label="Date To" value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); if (dateFrom && e.target.value && new Date(e.target.value) - new Date(dateFrom) > 31*24*60*60*1000) setDateFrom(""); }}
+              InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
+            <TextField size="small" placeholder="Year (e.g. 2026)" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))} sx={{ width: 140 }} />
+            {(dateFrom || dateTo) && (
+              <Button size="small" variant="text" onClick={() => { const d = new Date(); const ma = new Date(d); ma.setMonth(ma.getMonth() - 1); setDateFrom(ma.toISOString().split("T")[0]); setDateTo(d.toISOString().split("T")[0]); }}>Reset</Button>
+            )}
             <Box sx={{ flex: 1 }} />
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               {statusChips.map((c) => (
@@ -175,7 +215,9 @@ export default function POList() {
         </CardContent>
       </Card>
       <Dialog open={confirm.open} onClose={() => setConfirm({ open: false, data: null })} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>Approve Purchase Order?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>
+          {confirm.action === 'approve' ? 'Approve' : confirm.action === 'reject' ? 'Reject' : 'Cancel'} Purchase Order?
+        </DialogTitle>
         <DialogContent>
           {confirm.data && (
             <Stack spacing={2} sx={{ pt: 0.5 }}>
@@ -285,6 +327,12 @@ export default function POList() {
                           <Typography variant="body2" textAlign="right" color="error">-{formatCurrency(confirm.data.discount_amount)}</Typography>
                         </Box>
                       )}
+                      {Number(confirm.data.pf_amount || 0) > 0 && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">PF</Typography>
+                          <Typography variant="body2" textAlign="right">{formatCurrency(confirm.data.pf_amount)}</Typography>
+                        </Box>
+                      )}
                       {taxSum.sgst > 0 && (
                         <Box>
                           <Typography variant="caption" color="text.secondary">SGST</Typography>
@@ -321,8 +369,11 @@ export default function POList() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirm({ open: false, data: null })}>Cancel</Button>
-          <Button onClick={confirmApprove} variant="contained" color="success">Approve</Button>
+          <Button onClick={() => setConfirm({ open: false, data: null })}>Close</Button>
+          <Button onClick={confirmAction} variant="contained"
+            color={confirm.action === 'approve' ? 'success' : confirm.action === 'reject' ? 'warning' : 'error'}>
+            {confirm.action === 'approve' ? 'Approve' : confirm.action === 'reject' ? 'Reject' : 'Cancel PO'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

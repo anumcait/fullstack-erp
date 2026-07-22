@@ -33,11 +33,21 @@ async function postGRNCost(grnId) {
 
 exports.getGRNs = async (req, res) => {
   try {
-    const { search, status, po_id, supplier_id } = req.query;
+    const { search, status, po_id, supplier_id, date_from, date_to, year } = req.query;
     const where = {};
     if (status) where.status = status;
     if (po_id) where.po_id = po_id;
     if (supplier_id) where.supplier_id = supplier_id;
+    if (date_from || date_to || year) {
+      const dateWhere = {};
+      if (date_from) dateWhere[Op.gte] = date_from;
+      if (date_to) dateWhere[Op.lte] = date_to;
+      if (year) {
+        dateWhere[Op.gte] = `${year}-01-01`;
+        dateWhere[Op.lte] = `${year}-12-31`;
+      }
+      where.grn_date = dateWhere;
+    }
     if (search) {
       where[Op.or] = [
         { grn_no: { [Op.iLike]: `%${search}%` } },

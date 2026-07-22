@@ -53,10 +53,20 @@ function diffSummary(oldV, newV) {
 
 exports.getRequisitions = async (req, res) => {
   try {
-    const { search, status, department } = req.query;
+    const { search, status, department, date_from, date_to, year } = req.query;
     const where = {};
     if (status) where.status = status;
     if (department) where.department = { [Op.iLike]: `%${department}%` };
+    if (date_from || date_to || year) {
+      const dateWhere = {};
+      if (date_from) dateWhere[Op.gte] = date_from;
+      if (date_to) dateWhere[Op.lte] = date_to;
+      if (year) {
+        dateWhere[Op.gte] = `${year}-01-01`;
+        dateWhere[Op.lte] = `${year}-12-31`;
+      }
+      where.req_date = dateWhere;
+    }
     if (search) {
       where[Op.or] = [
         { req_no: { [Op.iLike]: `%${search}%` } },
@@ -200,7 +210,7 @@ exports.approveRequisition = async (req, res) => {
       });
       let maxSeq = 0;
       allApproved.forEach((r) => {
-        const match = r.req_no?.match(/^PR-(\d+)$/);
+        const match = r.req_no?.match(/^(\d+)$/);
         if (match) {
           const num = parseInt(match[1], 10);
           if (num > maxSeq) maxSeq = num;
@@ -212,7 +222,7 @@ exports.approveRequisition = async (req, res) => {
         attributes: ['req_no'],
       });
       allNonDraft.forEach((r) => {
-        const match = r.req_no?.match(/^PR-(\d+)$/);
+        const match = r.req_no?.match(/^(\d+)$/);
         if (match) {
           const num = parseInt(match[1], 10);
           if (num > maxSeq) maxSeq = num;
@@ -220,7 +230,7 @@ exports.approveRequisition = async (req, res) => {
       });
       await requisition.update({
         status: 'Pending',
-        req_no: `PR-${maxSeq + 1}`,
+        req_no: String(maxSeq + 1),
       });
       const result = await PurchaseRequisition.findByPk(id, {
         include: [{ model: PurchaseRequisitionItem, as: 'items' }],

@@ -41,7 +41,7 @@ exports.stats = async (req, res) => {
       attributes: SCHED_ATTRS,
       include: [
         { model: db.ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
-        { model: db.ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name'] },
+        { model: db.JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name'] },
       ],
       order: [['scheduled_date', 'DESC'], ['id', 'DESC']],
       limit: 8,

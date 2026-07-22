@@ -50,7 +50,7 @@ exports.create = async (req, res) => {
     let { items, ...header } = req.body;
     if (!header.req_no) {
       const seq = await MaterialRequisition.count() + 1;
-      header.req_no = `MR-${String(seq).padStart(4, '0')}`;
+      header.req_no = String(seq);
     }
     const doc = await MaterialRequisition.create(header);
     if (items && items.length > 0) {

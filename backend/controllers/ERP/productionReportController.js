@@ -1,10 +1,10 @@
 const db = require('../../models/ERP');
 const { Op, fn, col } = require('sequelize');
-const { ProductionOrder, ProductionDailyEntry, ProductionDowntime, ProductionMachine } = db;
+const { JobOrder, ProductionDailyEntry, ProductionDowntime, ProductionMachine } = db;
 
 exports.orderStatus = async (req, res) => {
   try {
-    const data = await ProductionOrder.findAll({
+    const data = await JobOrder.findAll({
       attributes: ['status', [fn('COUNT', col('id')), 'count']],
       group: ['status'], raw: true,
     });

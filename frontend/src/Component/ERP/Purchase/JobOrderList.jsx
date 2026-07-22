@@ -12,8 +12,9 @@ import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { downloadJoPdf } from "./PO/joPdf";
+import { formatDate } from '../../../utils/format';
 
-const API = "/api/erp/production/orders";
+const API = "/api/erp/production/job-orders";
 
 export default function JobOrderList() {
   const { showToast } = useToast();
@@ -23,6 +24,9 @@ export default function JobOrderList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); const m = new Date(d); m.setMonth(m.getMonth() - 1); return m.toISOString().split("T")[0]; });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
+  const [year, setYear] = useState(() => String(new Date().getFullYear()));
   const [confirm, setConfirm] = useState({ open: false, id: null });
 
   const fetchData = useCallback(async () => {
@@ -31,11 +35,14 @@ export default function JobOrderList() {
       const params = { order_type: "Job Order" };
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+      if (year) params.year = year;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast("Failed to load Job Orders", "error"); }
     finally { setLoading(false); }
-  }, [search, statusFilter]);
+  }, [search, statusFilter, dateFrom, dateTo, year]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -76,10 +83,10 @@ export default function JobOrderList() {
 
   const columns = [
     { field: "order_no", headerName: "Job Order #", width: 150 },
-    { field: "jo_date", headerName: "JO Date", width: 110, valueGetter: (v) => v || "" },
+    { field: "jo_date", headerName: "JO Date", width: 120, valueGetter: (v) => v ? formatDate(v) : "" },
     { field: "party_name", headerName: "Party", width: 200 },
     { field: "department", headerName: "Department", width: 130 },
-    { field: "req_date", headerName: "Req Date", width: 110, valueGetter: (v) => v || "" },
+    { field: "req_date", headerName: "Req Date", width: 120, valueGetter: (v) => v ? formatDate(v) : "" },
     {
       field: "status", headerName: "Status", width: 130,
       renderCell: (p) => (
@@ -145,6 +152,18 @@ export default function JobOrderList() {
               onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }}
               sx={{ minWidth: 300 }} />
+            <TextField size="small" type="date" label="Date From" value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); if (dateTo && e.target.value && new Date(dateTo) - new Date(e.target.value) > 31*24*60*60*1000) setDateTo(""); }}
+              InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
+            <TextField size="small" type="date" label="Date To" value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); if (dateFrom && e.target.value && new Date(e.target.value) - new Date(dateFrom) > 31*24*60*60*1000) setDateFrom(""); }}
+              InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
+            <TextField size="small" label="Year" type="number" value={year}
+              onChange={(e) => setYear(e.target.value)}
+              InputLabelProps={{ shrink: true }} sx={{ width: 100 }} inputProps={{ min: 2020, max: 2099 }} />
+            {(dateFrom || dateTo) && (
+              <Button size="small" variant="text" onClick={() => { const d = new Date(); const ma = new Date(d); ma.setMonth(ma.getMonth() - 1); setDateFrom(ma.toISOString().split("T")[0]); setDateTo(d.toISOString().split("T")[0]); }}>Reset</Button>
+            )}
             <Box sx={{ flex: 1 }} />
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               {statusChips.map((c) => (

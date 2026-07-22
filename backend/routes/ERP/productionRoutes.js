@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const productionOrderController = require('../../controllers/ERP/productionOrderController');
+const jobOrderController = require('../../controllers/ERP/jobOrderController');
 const machineController = require('../../controllers/ERP/productionMachineController');
 const dailyEntryController = require('../../controllers/ERP/productionDailyEntryController');
 const downtimeController = require('../../controllers/ERP/productionDowntimeController');
@@ -10,13 +10,13 @@ const settingsController = require('../../controllers/ERP/productionSettingsCont
 
 router.get('/dashboard', dashboardController.stats);
 
-router.get('/orders', productionOrderController.getList);
-router.get('/orders/:id', productionOrderController.getOne);
-router.post('/orders', productionOrderController.create);
-router.put('/orders/:id', productionOrderController.update);
-router.put('/orders/:id/status', productionOrderController.updateStatus);
-router.post('/orders/:id/issue-material', productionOrderController.issueMaterial);
-router.delete('/orders/:id', productionOrderController.delete);
+router.get('/job-orders', jobOrderController.getList);
+router.get('/job-orders/:id', jobOrderController.getOne);
+router.post('/job-orders', jobOrderController.create);
+router.put('/job-orders/:id', jobOrderController.update);
+router.put('/job-orders/:id/status', jobOrderController.updateStatus);
+router.post('/job-orders/:id/issue-material', jobOrderController.issueMaterial);
+router.delete('/job-orders/:id', jobOrderController.delete);
 
 router.get('/machines', machineController.list);
 router.get('/machines/:id', machineController.get);

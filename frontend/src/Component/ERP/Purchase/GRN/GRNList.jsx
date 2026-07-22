@@ -9,6 +9,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from '../../../../utils/format';
 
 const API = "/api/erp/stores/grn";
 
@@ -18,27 +19,34 @@ export default function GRNList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); const m = new Date(d); m.setMonth(m.getMonth() - 1); return m.toISOString().split("T")[0]; });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
+  const [year, setYear] = useState(String(new Date().getFullYear()));
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = search ? { search } : {};
+      const params = {};
+      if (search) params.search = search;
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+      if (year) params.year = year;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast("Failed to load GRRs", "error"); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [search, dateFrom, dateTo, year]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const columns = [
     { field: "grn_no", headerName: "GRR #", width: 130 },
     { field: "ir_type", headerName: "IR Type", width: 130, valueGetter: (v) => v || "GRR" },
-    { field: "grn_date", headerName: "Date", width: 110, valueGetter: (v) => v ? v.split("T")[0] : "" },
+    { field: "grn_date", headerName: "Date", width: 120, valueGetter: (v) => v ? formatDate(v) : "" },
     { field: "purchaseOrder", headerName: "PO #", width: 130, valueGetter: (v) => v?.po_no || "" },
     { field: "supplier", headerName: "Supplier", width: 200, valueGetter: (v) => v?.supplier_name || "" },
     { field: "invoice_no", headerName: "Invoice #", width: 130 },
-    { field: "invoice_date", headerName: "Inv Date", width: 110, valueGetter: (v) => v ? v.split("T")[0] : "" },
+    { field: "invoice_date", headerName: "Inv Date", width: 120, valueGetter: (v) => v ? formatDate(v) : "" },
     { field: "status", headerName: "Status", width: 110, renderCell: (p) => {
       const c = p.value === "Received" ? "success" : p.value === "Draft" ? "default" : "warning";
       return <Chip label={p.value} size="small" color={c} />;
@@ -73,6 +81,14 @@ export default function GRNList() {
           <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
             <TextField size="small" placeholder="Search GRR..." value={search} onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }} sx={{ minWidth: 300 }} />
+            <TextField size="small" type="date" label="Date From" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+              InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
+            <TextField size="small" type="date" label="Date To" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+              InputLabelProps={{ shrink: true }} sx={{ width: 160 }} />
+            <TextField size="small" placeholder="Year" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))} sx={{ width: 100 }} />
+            {(dateFrom || dateTo) && (
+              <Button size="small" variant="text" onClick={() => { const d = new Date(); const ma = new Date(d); ma.setMonth(ma.getMonth() - 1); setDateFrom(ma.toISOString().split("T")[0]); setDateTo(d.toISOString().split("T")[0]); }}>Reset</Button>
+            )}
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/stores/grr/add")}>New GRR</Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
           </Box>

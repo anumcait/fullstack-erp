@@ -18,7 +18,7 @@ import CountedTextArea from "../../../Common/CountedTextArea";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { downloadJoPdf } from "../../Purchase/PO/joPdf";
 
-const API = "/api/erp/production/orders";
+const API = "/api/erp/production/job-orders";
 const SUPPLIER_API = "/api/erp/purchase/suppliers";
 
 const PAYMENT_TERMS = ["Immediate", "7 Days", "15 Days", "30 Days", "45 Days", "60 Days", "90 Days"];
@@ -151,6 +151,10 @@ export default function JobOrderForm() {
     order_no: "", jo_date: new Date().toISOString().slice(0, 10), req_date: new Date().toISOString().slice(0, 10),
     party_id: "", party_name: "", department: "", payment_terms: "", delivery_terms: "", currency: "INR",
     subtotal: 0, discount_percent: 0, discount_amount: 0, tax_amount: 0, grand_total: 0, notes: "",
+    subject: "", reference: "", qtn_no: "", ref_date: "",
+    old_jo_no: "", jo_year: "",
+    insurance: "", inspection: "", freight: "", freight_forward: "",
+    delivery_period: "", desp_to: "", any_other_terms: "",
   });
   const [items, setItems] = useState([]);
   const [tab, setTab] = useState(0);
@@ -172,6 +176,13 @@ export default function JobOrderForm() {
           subtotal: Number(data.subtotal) || 0, discount_percent: Number(data.discount_percent) || 0,
           discount_amount: Number(data.discount_amount) || 0, tax_amount: Number(data.tax_amount) || 0,
           grand_total: Number(data.grand_total) || 0, notes: data.notes || "",
+          subject: data.subject || "", reference: data.reference || "", qtn_no: data.qtn_no || "",
+          ref_date: data.ref_date ? data.ref_date.split("T")[0] : "",
+          old_jo_no: data.old_jo_no || "", jo_year: data.jo_year || "",
+          insurance: data.insurance || "", inspection: data.inspection || "",
+          freight: data.freight || "", freight_forward: data.freight_forward || "",
+          delivery_period: data.delivery_period || "", desp_to: data.desp_to || "",
+          any_other_terms: data.any_other_terms || "",
         });
         if (data.party_id) loadDCForParty(data.party_id);
         if (data.items && data.items.length) setItems(data.items.map((it) => ({
@@ -621,20 +632,70 @@ export default function JobOrderForm() {
           <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", mb: 3 }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, color: "var(--heading-color)", fontWeight: 600 }}>Terms & Conditions</Typography>
-              <Grid container spacing={2} alignItems="end">
-                <Grid item xs={12} sm={6} sx={{ width: 200, flex: "0 0 auto" }}>
-                  <TextField label="Payment Terms" select size="small" fullWidth value={header.payment_terms} sx={fsx}
-                    onChange={(e) => setHeader({ ...header, payment_terms: e.target.value })} disabled={isView}>
-                    <MenuItem value="">-- Select --</MenuItem>
-                    {PAYMENT_TERMS.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-                  </TextField>
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <TextField label="Subject" size="small" fullWidth value={header.subject} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, subject: e.target.value })} disabled={isView} />
                 </Grid>
-                <Grid item xs={12} sm={6} sx={{ width: 340, flex: "0 0 auto" }}>
+                <Grid item xs={4}>
+                  <TextField label="Reference" size="small" fullWidth value={header.reference} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, reference: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Ref. Date" type="date" size="small" fullWidth value={header.ref_date} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, ref_date: e.target.value })}
+                    InputLabelProps={{ shrink: true }} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Quotation No" size="small" fullWidth value={header.qtn_no} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, qtn_no: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={2}>
+                  <TextField label="Old JO No" size="small" fullWidth value={header.old_jo_no} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, old_jo_no: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={2}>
+                  <TextField label="JO Year" size="small" fullWidth value={header.jo_year} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, jo_year: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField label="Delivery Period" size="small" fullWidth value={header.delivery_period} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, delivery_period: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Payment Terms" size="small" fullWidth value={header.payment_terms} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, payment_terms: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Desp To" size="small" fullWidth value={header.desp_to} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, desp_to: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
                   <TextField label="Delivery Terms" size="small" fullWidth value={header.delivery_terms} sx={fsx}
                     onChange={(e) => setHeader({ ...header, delivery_terms: e.target.value })} disabled={isView} />
                 </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Insurance" size="small" fullWidth value={header.insurance} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, insurance: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Inspection" size="small" fullWidth value={header.inspection} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, inspection: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Freight" size="small" fullWidth value={header.freight} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, freight: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Freight Forward" size="small" fullWidth value={header.freight_forward} sx={fsx}
+                    onChange={(e) => setHeader({ ...header, freight_forward: e.target.value })} disabled={isView} />
+                </Grid>
                 <Grid item xs={12}>
-                  <CountedTextArea label="Notes" size="small" fullWidth rows={3} value={header.notes}
+                  <CountedTextArea label="Any Other Terms" size="small" fullWidth rows={2} value={header.any_other_terms}
+                    onChange={(e) => setHeader({ ...header, any_other_terms: e.target.value })} disabled={isView} />
+                </Grid>
+                <Grid item xs={12}>
+                  <CountedTextArea label="Notes" size="small" fullWidth rows={2} value={header.notes}
                     onChange={(e) => setHeader({ ...header, notes: e.target.value })} disabled={isView} />
                 </Grid>
               </Grid>

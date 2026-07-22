@@ -80,9 +80,7 @@ export default function GRNForm() {
 
   useEffect(() => {
     if (!id) {
-      const now = new Date();
-      const ts = `${now.getHours()}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
-      setHeader((p) => ({ ...p, grn_no: `GRR-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${ts}` }));
+      setHeader((p) => ({ ...p, grn_no: '' }));
     }
   }, [id]);
 

@@ -619,6 +619,7 @@ const Sidebar = () => {
                     {hasPermission('PUR_PR_SANCTION') && <SubItem to="/purchase/requisitions/sanction" label="PR Sanction" icon={FiCheckCircle} />}
                     {hasPermission('PUR_LOI') && <SubItem to="/purchase/requisitions?type=loi" label="Letter Of Indent" icon={FiFileText} />}
                     {hasPermission('PUR_PR_SHORTCLOSE') && <SubItem to="/purchase/requisitions?status=Closed" label="PR Shortclose" icon={FiXCircle} />}
+                    {hasPermission('PUR_REQ') && <SubItem to="/purchase/pr-amendment" label="PR Amendment" icon={FiClipboard} />}
                   </ul>
                 )}
               </li>
@@ -651,11 +652,6 @@ const Sidebar = () => {
             {hasPermission('PUR_DASHBOARD') && (
               <li className="sidebar-menu-item">
                 <SideNavLink to="/purchase/daily-reports" label="Daily Reports" icon={FiCalendar} exact />
-              </li>
-            )}
-            {hasPermission('PUR_REQ') && (
-              <li className="sidebar-menu-item">
-                <SideNavLink to="/purchase/pr-amendment" label="PR Amendment" icon={FiClipboard} exact />
               </li>
             )}
           </>

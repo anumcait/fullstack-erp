@@ -72,7 +72,7 @@ function currencyToWord(code) {
 
 export async function downloadJoPdf(id) {
   const [joRes, compRes, unitRes] = await Promise.all([
-    axios.get(`/api/erp/production/orders/${id}`),
+    axios.get(`/api/erp/production/job-orders/${id}`),
     axios.get(`/api/settings/company`).catch(() => ({ data: {} })),
     axios.get(`/api/erp/stores/units`).catch(() => ({ data: [] })),
   ]);

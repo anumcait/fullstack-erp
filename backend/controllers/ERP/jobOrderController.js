@@ -2,8 +2,8 @@ const db = require('../../models/ERP');
 const { Op } = require('sequelize');
 const { getNextSequence } = require('../../utils/docNumber');
 
-const ProductionOrder = db.ProductionOrder;
-const ProductionOrderItem = db.ProductionOrderItem;
+const JobOrder = db.JobOrder;
+const JobOrderItem = db.JobOrderItem;
 const BOM = db.BOM;
 const BOMItem = db.BOMItem;
 const ItemMaster = db.ItemMaster;
@@ -75,14 +75,19 @@ function calculateMaterialRow(item, calculatedQty) {
 
 exports.getList = async (req, res) => {
   try {
-    const { search, status, order_type, from, to } = req.query;
+    const { search, status, order_type, date_from, date_to, year } = req.query;
     const where = {};
     if (status) where.status = status;
     if (order_type) where.order_type = order_type;
-    if (from || to) {
-      where.created_date = {};
-      if (from) where.created_date[Op.gte] = from;
-      if (to) where.created_date[Op.lte] = to;
+    if (date_from || date_to || year) {
+      const dateWhere = {};
+      if (date_from) dateWhere[Op.gte] = date_from;
+      if (date_to) dateWhere[Op.lte] = date_to;
+      if (year) {
+        dateWhere[Op.gte] = `${year}-01-01`;
+        dateWhere[Op.lte] = `${year}-12-31`;
+      }
+      where.jo_date = dateWhere;
     }
     if (search) {
       where[Op.or] = [
@@ -91,9 +96,9 @@ exports.getList = async (req, res) => {
         { party_name: { [Op.iLike]: `%${search}%` } },
       ];
     }
-    const data = await ProductionOrder.findAll({
+    const data = await JobOrder.findAll({
       where,
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+      include: [{ model: JobOrderItem, as: 'items' }],
       order: [['created_date', 'DESC']],
     });
     res.json(data);
@@ -105,8 +110,8 @@ exports.getList = async (req, res) => {
 
 exports.getOne = async (req, res) => {
   try {
-    const doc = await ProductionOrder.findByPk(req.params.id, {
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+    const doc = await JobOrder.findByPk(req.params.id, {
+      include: [{ model: JobOrderItem, as: 'items' }],
     });
     if (!doc) return res.status(404).json({ error: 'Not found' });
     res.json(doc);
@@ -129,7 +134,7 @@ exports.create = async (req, res) => {
       if (bom.status !== 'Active') return res.status(400).json({ error: 'BOM must be Active' });
     }
 
-    const doc = await ProductionOrder.create({
+    const doc = await JobOrder.create({
       order_no: orderNo,
       bom_id: bom_id || null,
       product_item_id: bom?.product_item_id || null,
@@ -178,10 +183,10 @@ exports.create = async (req, res) => {
       }));
     }
 
-    if (orderItems.length > 0) await ProductionOrderItem.bulkCreate(orderItems);
+    if (orderItems.length > 0) await JobOrderItem.bulkCreate(orderItems);
 
-    const result = await ProductionOrder.findByPk(doc.id, {
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+    const result = await JobOrder.findByPk(doc.id, {
+      include: [{ model: JobOrderItem, as: 'items' }],
     });
     res.status(201).json(result);
   } catch (err) {
@@ -192,8 +197,8 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const doc = await ProductionOrder.findByPk(req.params.id, {
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+    const doc = await JobOrder.findByPk(req.params.id, {
+      include: [{ model: JobOrderItem, as: 'items' }],
     });
     if (!doc) return res.status(404).json({ error: 'Not found' });
 
@@ -210,10 +215,23 @@ exports.update = async (req, res) => {
       currency: rest.currency || 'INR',
       notes: rest.notes || '',
       remarks: rest.remarks || '',
+      subject: rest.subject || '',
+      reference: rest.reference || '',
+      qtn_no: rest.qtn_no || '',
+      ref_date: rest.ref_date || null,
+      insurance: rest.insurance || '',
+      inspection: rest.inspection || '',
+      freight: rest.freight || '',
+      freight_forward: rest.freight_forward || '',
+      old_jo_no: rest.old_jo_no || '',
+      jo_year: rest.jo_year || '',
+      delivery_period: rest.delivery_period || '',
+      desp_to: rest.desp_to || '',
+      any_other_terms: rest.any_other_terms || '',
     });
 
     if (Array.isArray(bodyItems) && bodyItems.length > 0) {
-      await ProductionOrderItem.destroy({ where: { order_id: doc.id } });
+      await JobOrderItem.destroy({ where: { order_id: doc.id } });
       const orderItems = bodyItems.map((it) => ({
         order_id: doc.id,
         item_id: it.item_id || null,
@@ -224,11 +242,11 @@ exports.update = async (req, res) => {
         unit_id: it.unit_id || null,
         remarks: it.remarks || '',
       }));
-      await ProductionOrderItem.bulkCreate(orderItems);
+      await JobOrderItem.bulkCreate(orderItems);
     }
 
-    const result = await ProductionOrder.findByPk(doc.id, {
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+    const result = await JobOrder.findByPk(doc.id, {
+      include: [{ model: JobOrderItem, as: 'items' }],
     });
     res.json(result);
   } catch (err) {
@@ -239,8 +257,8 @@ exports.update = async (req, res) => {
 
 exports.updateStatus = async (req, res) => {
   try {
-    const doc = await ProductionOrder.findByPk(req.params.id, {
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+    const doc = await JobOrder.findByPk(req.params.id, {
+      include: [{ model: JobOrderItem, as: 'items' }],
     });
     if (!doc) return res.status(404).json({ error: 'Not found' });
 
@@ -259,8 +277,8 @@ exports.updateStatus = async (req, res) => {
       await doc.update({ status, ...(produced_quantity ? { produced_quantity } : {}) });
     }
 
-    const result = await ProductionOrder.findByPk(doc.id, {
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+    const result = await JobOrder.findByPk(doc.id, {
+      include: [{ model: JobOrderItem, as: 'items' }],
     });
     res.json(result);
   } catch (err) {
@@ -271,8 +289,8 @@ exports.updateStatus = async (req, res) => {
 
 exports.issueMaterial = async (req, res) => {
   try {
-    const doc = await ProductionOrder.findByPk(req.params.id, {
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+    const doc = await JobOrder.findByPk(req.params.id, {
+      include: [{ model: JobOrderItem, as: 'items' }],
     });
     if (!doc) return res.status(404).json({ error: 'Not found' });
 
@@ -291,8 +309,8 @@ exports.issueMaterial = async (req, res) => {
       }
     }
 
-    const result = await ProductionOrder.findByPk(doc.id, {
-      include: [{ model: ProductionOrderItem, as: 'items' }],
+    const result = await JobOrder.findByPk(doc.id, {
+      include: [{ model: JobOrderItem, as: 'items' }],
     });
     res.json(result);
   } catch (err) {
@@ -303,9 +321,9 @@ exports.issueMaterial = async (req, res) => {
 
 exports.delete = async (req, res) => {
   try {
-    const doc = await ProductionOrder.findByPk(req.params.id);
+    const doc = await JobOrder.findByPk(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Not found' });
-    await ProductionOrderItem.destroy({ where: { order_id: doc.id } });
+    await JobOrderItem.destroy({ where: { order_id: doc.id } });
     await doc.destroy();
     res.json({ message: 'Deleted' });
   } catch (err) {

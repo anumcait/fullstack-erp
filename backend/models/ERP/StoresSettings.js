@@ -13,6 +13,8 @@ module.exports = (sequelize) => {
       batch_tracking_enabled: { type: DataTypes.BOOLEAN, defaultValue: false },
       auto_generate_mr: { type: DataTypes.BOOLEAN, defaultValue: false },
       auto_generate_mi: { type: DataTypes.BOOLEAN, defaultValue: false },
+      grn_prefix: { type: DataTypes.STRING(10), defaultValue: 'GRR' },
+      auto_generate_grn: { type: DataTypes.BOOLEAN, defaultValue: false },
       negative_stock_allowed: { type: DataTypes.BOOLEAN, defaultValue: false },
       low_stock_alert: { type: DataTypes.BOOLEAN, defaultValue: true },
       created_date: { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },

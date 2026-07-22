@@ -2,10 +2,13 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   Box, Card, CardContent, Typography, TextField, Button, Grid, MenuItem, IconButton,
   LinearProgress, Tabs, Tab,
-  Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Tooltip, Chip, Stack
+  Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Tooltip, Chip, Stack,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import BlockIcon from "@mui/icons-material/Block";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -221,6 +224,19 @@ export default function POForm() {
     }
   };
 
+  const [confirmAction, setConfirmAction] = useState({ open: false, action: '' });
+
+  const handleStatusAction = async (action) => {
+    if (!id) return;
+    try {
+      const statusMap = { approve: 'Approved', reject: 'Rejected', cancel: 'Cancelled' };
+      await axios.put(`${API}/${id}/approve`, { status: statusMap[action] });
+      showToast(`PO ${statusMap[action].toLowerCase()}`, "success");
+      setConfirmAction({ open: false, action: '' });
+      navigate("/purchase/orders");
+    } catch { showToast("Failed to update status", "error"); }
+  };
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
@@ -228,11 +244,11 @@ export default function POForm() {
   const [addedSanctionIds, setAddedSanctionIds] = useState([]);
   const [shuttleChecked, setShuttleChecked] = useState([]);
   const [header, setHeader] = useState({
-    po_no: "", po_date: "", req_date: "",
+    po_no: "", po_date: "", req_date: "", status: "",
     supplier_id: "", payment_terms: "", delivery_terms: "", currency: "INR",
     subtotal: 0, discount_percent: 0, discount_amount: 0, tax_amount: 0, grand_total: 0, notes: "",
     requisition_id: "",
-    old_po_no: "", old_po_year: "", subject: "", reference: "",
+    old_po_no: "", old_po_year: "", subject: "", reference: "", qtn_no: "",
     ref_date: "", qca_req: "", any_other_terms: "", delivery_period: "",
     desp_to: "", insurance: "", rem1: "", rem2: "", rem3: "",
     inspection: "", freight: "", freight_forward: "", currency_val: "", req_yn: "", ven_code: "",
@@ -250,7 +266,7 @@ export default function POForm() {
       setLoading(true);
       axios.get(`${API}/${id}`).then(({ data }) => {
         setHeader({
-          po_no: data.po_no || "", po_date: data.po_date ? data.po_date : "",
+          po_no: data.po_no || "", po_date: data.po_date ? data.po_date : "", status: data.status || "",
           req_date: data.req_date ? data.req_date.split("T")[0] : "",
           supplier_id: data.supplier_id || "", payment_terms: data.payment_terms || "",
           delivery_terms: data.delivery_terms || "", currency: data.currency || "INR",
@@ -259,7 +275,7 @@ export default function POForm() {
           grand_total: Number(data.grand_total) || 0, notes: data.notes || "",
           requisition_id: data.requisition_id || "",
           old_po_no: data.old_po_no || "", old_po_year: data.old_po_year || "",
-          subject: data.subject || "", reference: data.reference || "",
+          subject: data.subject || "", reference: data.reference || "", qtn_no: data.qtn_no || "",
           ref_date: data.ref_date ? data.ref_date.split("T")[0] : "", qca_req: data.qca_req || "",
           any_other_terms: data.any_other_terms || "", delivery_period: data.delivery_period || "",
           desp_to: data.desp_to || "", insurance: data.insurance || "",
@@ -649,10 +665,16 @@ export default function POForm() {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1600 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, gap: 2, flexWrap: "wrap" }}>
-        <Typography variant="h4" sx={{ fontWeight: "bold", color: "var(--heading-color)" }}>
-          {isView ? "Purchase Order Details" : isEdit ? "Edit Purchase Order" : "New Purchase Order"}
-        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, gap: 2, flexWrap: "wrap" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="h4" sx={{ fontWeight: "bold", color: "var(--heading-color)" }}>
+            {isView ? "Purchase Order Details" : isEdit ? "Edit Purchase Order" : "New Purchase Order"}
+          </Typography>
+          {header.status && (
+            <Chip label={header.status} size="small"
+              color={header.status === "Approved" ? "success" : header.status === "Draft" ? "default" : header.status === "Cancelled" ? "error" : "warning"} />
+          )}
+        </Box>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
           {isView ? (
             <>
@@ -660,6 +682,18 @@ export default function POForm() {
               <Button variant="contained" color="secondary" startIcon={<PrintIcon />} onClick={handlePrint} disabled={printing}>
                 {printing ? "Generating..." : "View PO PDF"}
               </Button>
+              {header.status === "Draft" && (
+                <>
+                  <Button variant="contained" color="success" startIcon={<CheckCircleIcon />}
+                    onClick={() => setConfirmAction({ open: true, action: 'approve' })}>Approve</Button>
+                  <Button variant="contained" color="warning" startIcon={<BlockIcon />}
+                    onClick={() => setConfirmAction({ open: true, action: 'reject' })}>Reject</Button>
+                </>
+              )}
+              {(header.status === "Draft" || header.status === "Approved") && (
+                <Button variant="contained" color="error" startIcon={<CancelIcon />}
+                  onClick={() => setConfirmAction({ open: true, action: 'cancel' })}>Cancel PO</Button>
+              )}
             </>
           ) : (
             <>
@@ -873,6 +907,7 @@ export default function POForm() {
                         subject: data.subject || "",
                         reference: data.reference || "",
                         ref_date: data.ref_date ? data.ref_date.split("T")[0] : "",
+                        qtn_no: data.qtn_no || "",
                         qca_req: data.qca_req || "",
                         any_other_terms: data.any_other_terms || "",
                         delivery_period: data.delivery_period || "",
@@ -913,6 +948,10 @@ export default function POForm() {
                   <TextField label="Ref. Date" type="date" size="small" fullWidth value={header.ref_date}
                     onChange={(e) => setHeader({ ...header, ref_date: e.target.value })}
                     InputLabelProps={{ shrink: true }} disabled={isView} />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField label="Quotation No" size="small" fullWidth value={header.qtn_no}
+                    onChange={(e) => setHeader({ ...header, qtn_no: e.target.value })} disabled={isView} />
                 </Grid>
 
                 <Grid item xs={12}>
@@ -1008,7 +1047,31 @@ export default function POForm() {
             </CardContent>
           </Card>
         )}
+
       </form>
+
+      {/* ── Status Action Confirmation Dialog ── */}
+      <Dialog open={confirmAction.open} onClose={() => setConfirmAction({ open: false, action: '' })} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>
+          {confirmAction.action === 'approve' ? 'Approve' : confirmAction.action === 'reject' ? 'Reject' : 'Cancel'} PO?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {confirmAction.action === 'approve'
+              ? 'This will mark the PO as Approved and lock further edits.'
+              : confirmAction.action === 'reject'
+                ? 'This will mark the PO as Rejected.'
+                : 'This will cancel the purchase order.'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmAction({ open: false, action: '' })}>Close</Button>
+          <Button onClick={() => handleStatusAction(confirmAction.action)} variant="contained"
+            color={confirmAction.action === 'approve' ? 'success' : confirmAction.action === 'reject' ? 'warning' : 'error'}>
+            {confirmAction.action === 'approve' ? 'Approve' : confirmAction.action === 'reject' ? 'Reject' : 'Cancel PO'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

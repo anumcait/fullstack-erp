@@ -1,6 +1,6 @@
 const db = require('../../models/ERP');
 const { Op, Sequelize } = require('sequelize');
-const { PlanningSchedule, ProductionMachine, ProductionOrder } = db;
+const { PlanningSchedule, ProductionMachine, JobOrder } = db;
 
 const SHIFT_ORDER = ['Day', 'Evening', 'Night'];
 
@@ -19,7 +19,7 @@ exports.list = async (req, res) => {
     if (req.query.include !== 'false') {
       include.push(
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
-        { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] }
+        { model: JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] }
       );
     }
 
@@ -37,7 +37,7 @@ exports.get = async (req, res) => {
     const row = await PlanningSchedule.findByPk(req.params.id, {
       include: [
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
-        { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
+        { model: JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
       ],
     });
     if (!row) return res.status(404).json({ error: 'Not found' });
@@ -56,7 +56,7 @@ exports.create = async (req, res) => {
     const created = await PlanningSchedule.findByPk(row.id, {
       include: [
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
-        { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
+        { model: JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
       ],
     });
     res.status(201).json(created);
@@ -72,7 +72,7 @@ exports.update = async (req, res) => {
     const updated = await PlanningSchedule.findByPk(row.id, {
       include: [
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
-        { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
+        { model: JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
       ],
     });
     res.json(updated);
@@ -104,7 +104,7 @@ exports.gantt = async (req, res) => {
       where,
       include: [
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
-        { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
+        { model: JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
       ],
       order: [['scheduled_date', 'ASC'], ['shift', 'ASC']],
     });
@@ -140,7 +140,7 @@ exports.reschedule = async (req, res) => {
     const updated = await PlanningSchedule.findByPk(row.id, {
       include: [
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
-        { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
+        { model: JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
       ],
     });
 
@@ -163,7 +163,7 @@ exports._checkConflicts = async (excludeId, { machine_id, scheduled_date, shift 
     where,
     include: [
       { model: ProductionMachine, as: 'machine', attributes: ['machine_code', 'machine_name'] },
-      { model: ProductionOrder, as: 'order', attributes: ['order_no', 'product_name'] },
+      { model: JobOrder, as: 'order', attributes: ['order_no', 'product_name'] },
     ],
   });
 
@@ -189,7 +189,7 @@ exports.autoSchedule = async (req, res) => {
         ...(machine_ids ? { machine_id: machine_ids } : {}),
       },
       include: [
-        { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
+        { model: JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name', 'planned_quantity'] },
       ],
       order: [['created_date', 'ASC']],
     });
@@ -293,7 +293,7 @@ exports.calendar = async (req, res) => {
       },
       include: [
         { model: ProductionMachine, as: 'machine', attributes: ['id', 'machine_code', 'machine_name'] },
-        { model: ProductionOrder, as: 'order', attributes: ['id', 'order_no', 'product_name'] },
+        { model: JobOrder, as: 'order', attributes: ['id', 'order_no', 'product_name'] },
       ],
       order: [['scheduled_date', 'ASC'], ['shift', 'ASC']],
     });

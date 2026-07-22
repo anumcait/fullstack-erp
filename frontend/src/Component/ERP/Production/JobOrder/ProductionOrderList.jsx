@@ -9,7 +9,7 @@ import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 
-const API = '/api/erp/production/orders';
+const API = '/api/erp/production/job-orders';
 
 const statusColors = {
   Planning: 'info', Released: 'primary', 'In Progress': 'warning',

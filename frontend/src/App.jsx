@@ -84,8 +84,8 @@ import MaterialRequisitionForm from "./Component/ERP/Stores/MaterialRequisition/
 import MaterialIssueList from "./Component/ERP/Stores/MaterialIssue/MaterialIssueList.jsx";
 import MaterialIssueForm from "./Component/ERP/Stores/MaterialIssue/MaterialIssueForm.jsx";
 import ProductionDashboard from "./Component/ERP/Production/ProductionDashboard.jsx";
-import ProductionOrderList from "./Component/ERP/Production/ProductionOrder/ProductionOrderList.jsx";
-import JobOrderForm from "./Component/ERP/Production/ProductionOrder/JobOrderForm.jsx";
+import ProductionOrderList from "./Component/ERP/Production/JobOrder/ProductionOrderList.jsx";
+import JobOrderForm from "./Component/ERP/Production/JobOrder/JobOrderForm.jsx";
 import MachineList from "./Component/ERP/Production/MachineList.jsx";
 import MachineForm from "./Component/ERP/Production/MachineForm.jsx";
 import DailyEntryList from "./Component/ERP/Production/DailyEntryList.jsx";

@@ -9,10 +9,20 @@ const PurchaseSettings = db.PurchaseSettings;
 
 exports.getPurchaseOrders = async (req, res) => {
   try {
-    const { search, status, supplier_id } = req.query;
+    const { search, status, supplier_id, date_from, date_to, year } = req.query;
     const where = {};
     if (status) where.status = status;
     if (supplier_id) where.supplier_id = supplier_id;
+    if (date_from || date_to || year) {
+      const dateWhere = {};
+      if (date_from) dateWhere[Op.gte] = date_from;
+      if (date_to) dateWhere[Op.lte] = date_to;
+      if (year) {
+        dateWhere[Op.gte] = `${year}-01-01`;
+        dateWhere[Op.lte] = `${year}-12-31`;
+      }
+      where.po_date = dateWhere;
+    }
     if (search) {
       where[Op.or] = [
         { po_no: { [Op.iLike]: `%${search}%` } },

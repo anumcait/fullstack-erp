@@ -203,14 +203,31 @@ exports.getRecentActivity = async (req, res) => {
   }
 };
 
-// ── Pending Purchase Requisitions (Indents) ──────────────────────────
+// ── Pending Purchase Requisitions (Approved, total received < total required) ──
 exports.getPendingPRs = async (req, res) => {
   try {
-    const rows = await PR.findAll({
-      where: { status: 'Pending' },
-      order: [['req_date', 'DESC']],
-      include: [{ model: db.PurchaseRequisitionItem, as: 'items' }],
-    });
+    const rows = await db.sequelize.query(`
+      SELECT pr.* FROM t_purchase_requisition pr
+      WHERE pr.status = 'Approved'
+      AND COALESCE((
+        SELECT SUM(poi.received_quantity)
+        FROM t_purchase_order po
+        JOIN t_purchase_order_item poi ON poi.po_id = po.id
+        WHERE po.requisition_id = pr.id
+      ), 0) < (
+        SELECT COALESCE(SUM(pri.quantity), 0)
+        FROM t_purchase_requisition_item pri
+        WHERE pri.requisition_id = pr.id
+      )
+      ORDER BY pr.req_date DESC
+    `, { type: Sequelize.QueryTypes.SELECT });
+    const ids = rows.map(r => r.id);
+    if (ids.length) {
+      const items = await db.PurchaseRequisitionItem.findAll({ where: { requisition_id: ids } });
+      const grouped = {};
+      items.forEach(it => { if (!grouped[it.requisition_id]) grouped[it.requisition_id] = []; grouped[it.requisition_id].push(it); });
+      rows.forEach(r => r.items = grouped[r.id] || []);
+    }
     res.json(rows);
   } catch (err) {
     console.error('Error pending PRs:', err);
@@ -218,14 +235,22 @@ exports.getPendingPRs = async (req, res) => {
   }
 };
 
-// ── Pending Purchase Orders ──────────────────────────────────────────
+// ── Pending Purchase Orders (Approved, material not yet received) ─────
 exports.getPendingPOs = async (req, res) => {
   try {
-    const rows = await PO.findAll({
-      where: { status: { [Op.in]: ['Draft', 'Pending'] } },
-      order: [['po_date', 'DESC']],
-      include: [{ model: Supplier, as: 'supplier', attributes: ['supplier_code', 'supplier_name'] }],
-    });
+    const clauses = ['po.status = :status'];
+    const replacements = { status: 'Approved' };
+    clauses.push(`EXISTS (
+      SELECT 1 FROM t_purchase_order_item poi WHERE poi.po_id = po.id AND poi.received_quantity < poi.quantity
+    )`);
+    const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
+    const rows = await db.sequelize.query(`
+      SELECT po.*, s.supplier_code, s.supplier_name
+      FROM t_purchase_order po
+      LEFT JOIN m_party_master s ON s.id = po.supplier_id
+      ${where}
+      ORDER BY po.po_date DESC
+    `, { replacements, type: Sequelize.QueryTypes.SELECT });
     res.json(rows);
   } catch (err) {
     console.error('Error pending POs:', err);
@@ -652,56 +677,80 @@ exports.getPendingMaterialByParty = async (req, res) => {
 // ── Daily Reports (PR / PO / GRN activity for a single date) ──────────
 exports.getDailyReport = async (req, res) => {
   try {
-    const day = req.query.date || new Date().toISOString().slice(0, 10);
-    const rep = { date: day };
+    const { from, to } = req.query;
+    const rep = {};
+    const prWhere = from && to ? 'pr.created_date BETWEEN :from AND :to' : 'DATE(pr.created_date) = :day';
+    const poWhere = from && to ? 'po.created_date BETWEEN :from AND :to' : 'DATE(po.created_date) = :day';
+    const replacements = from && to ? { from, to } : { day: req.query.date || new Date().toISOString().slice(0, 10) };
 
     const prSql = `
-      SELECT pr.id, pr.req_no, pr.requested_by, pr.department, pr.status, pr.priority,
+      SELECT pr.id, pr.req_no, pr.requested_by, pr.department, pr.status, pr.priority, pr.req_date,
              COUNT(pri.id) AS items
       FROM t_purchase_requisition pr
       LEFT JOIN t_purchase_requisition_item pri ON pri.requisition_id = pr.id
-      WHERE DATE(pr.created_date) = :day
-      GROUP BY pr.id, pr.req_no, pr.requested_by, pr.department, pr.status, pr.priority
+      WHERE ${prWhere}
+      GROUP BY pr.id, pr.req_no, pr.requested_by, pr.department, pr.status, pr.priority, pr.req_date
       ORDER BY pr.req_no
     `;
     const poSql = `
       SELECT po.id, po.po_no, s.supplier_name, po.status, po.grand_total, po.currency, po.payment_terms
       FROM t_purchase_order po
       LEFT JOIN m_party_master s ON s.id = po.supplier_id
-      WHERE DATE(po.created_date) = :day
+      WHERE ${poWhere}
       ORDER BY po.po_no
     `;
-    const grnSql = `
-      SELECT g.id, g.grn_no, s.supplier_name, g.ir_type, g.qa_status, g.approval_status,
-             COALESCE(SUM(gi.amount), 0) AS value
-      FROM t_ir g
-      LEFT JOIN m_party_master s ON s.id = g.supplier_id
-      LEFT JOIN t_ir_item gi ON gi.grn_id = g.id
-      WHERE DATE(g.created_date) = :day
-      GROUP BY g.id, s.supplier_name, g.ir_type, g.qa_status, g.approval_status
-      ORDER BY g.grn_no
-    `;
 
-    const [prs, pos, grns] = await Promise.all([
-      db.sequelize.query(prSql, { replacements: { day }, type: Sequelize.QueryTypes.SELECT }),
-      db.sequelize.query(poSql, { replacements: { day }, type: Sequelize.QueryTypes.SELECT }),
-      db.sequelize.query(grnSql, { replacements: { day }, type: Sequelize.QueryTypes.SELECT }),
+    const [prs, pos] = await Promise.all([
+      db.sequelize.query(prSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
+      db.sequelize.query(poSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
     ]);
 
     rep.prs = prs;
     rep.pos = pos;
-    rep.grns = grns;
     rep.summary = {
       pr_count: prs.length,
       po_count: pos.length,
       po_value: pos.reduce((a, p) => a + Number(p.grand_total || 0), 0),
-      grn_count: grns.length,
-      grn_value: grns.reduce((a, g) => a + Number(g.value || 0), 0),
     };
     res.json(rep);
   } catch (err) {
     console.error('Error daily report:', err);
     res.status(500).json({ error: 'Failed to fetch daily report' });
+  }
+};
+
+// ── Overdue Items (PR + PO expected/delivery date passed, not fulfilled) ──
+exports.getOverdueItems = async (req, res) => {
+  try {
+    const prSql = `
+      SELECT 'PR' AS source, pri.id AS item_id, pri.item_code, pri.item_name, pri.quantity,
+             pri.expected_date AS due_date,
+             pr.id AS doc_id, pr.req_no AS doc_no, pr.department
+      FROM t_purchase_requisition_item pri
+      JOIN t_purchase_requisition pr ON pr.id = pri.requisition_id
+      WHERE pri.expected_date IS NOT NULL AND pri.expected_date < CURRENT_DATE
+        AND pr.status NOT IN ('Cancelled', 'Closed')
+    `;
+    const poSql = `
+      SELECT 'PO' AS source, poi.id AS item_id, poi.item_code, poi.item_name, poi.quantity,
+             poi.delivery_date AS due_date,
+             po.id AS doc_id, po.po_no AS doc_no, s.supplier_name AS department
+      FROM t_purchase_order_item poi
+      JOIN t_purchase_order po ON po.id = poi.po_id
+      LEFT JOIN m_party_master s ON s.id = po.supplier_id
+      WHERE poi.delivery_date IS NOT NULL AND poi.delivery_date < CURRENT_DATE
+        AND poi.received_quantity < poi.quantity
+        AND po.status = 'Approved'
+    `;
+    const [prRows, poRows] = await Promise.all([
+      db.sequelize.query(prSql, { type: Sequelize.QueryTypes.SELECT }),
+      db.sequelize.query(poSql, { type: Sequelize.QueryTypes.SELECT }),
+    ]);
+    const rows = [...prRows, ...poRows].sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+    res.json(rows);
+  } catch (err) {
+    console.error('Error overdue items:', err);
+    res.status(500).json({ error: 'Failed to fetch overdue items' });
   }
 };
 
@@ -729,5 +778,51 @@ exports.getPRAmendmentDetails = async (req, res) => {
   } catch (err) {
     console.error('Error PR amendment details:', err);
     res.status(500).json({ error: 'Failed to fetch PR amendment details' });
+  }
+};
+
+// ── Overdue PR Items (expected_date passed or today) ──
+exports.getOverduePRItems = async (req, res) => {
+  try {
+    const sql = `
+      SELECT pri.id, pri.item_code, pri.item_name, pri.quantity, pri.expected_date,
+             pr.id AS req_id, pr.req_no, pr.department, pr.req_date
+      FROM t_purchase_requisition_item pri
+      JOIN t_purchase_requisition pr ON pr.id = pri.requisition_id
+      WHERE pri.expected_date IS NOT NULL AND pri.expected_date <= CURRENT_DATE
+        AND pr.status NOT IN ('Cancelled', 'Closed')
+      ORDER BY pri.expected_date
+    `;
+    const rows = await db.sequelize.query(sql, { type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error overdue PR items:', err);
+    res.status(500).json({ error: 'Failed to fetch overdue PR items' });
+  }
+};
+
+// ── Delayed POs (PO items with delivery_date passed, not fully received) ──
+exports.getDelayedPOs = async (req, res) => {
+  try {
+    const sql = `
+      SELECT poi.id, poi.item_code, poi.item_name, poi.quantity, poi.received_quantity,
+             poi.delivery_date,
+             po.id AS po_id, po.po_no, po.po_date, po.status,
+             s.supplier_name,
+             (CURRENT_DATE - poi.delivery_date) AS delay_days
+      FROM t_purchase_order_item poi
+      JOIN t_purchase_order po ON po.id = poi.po_id
+      LEFT JOIN m_party_master s ON s.id = po.supplier_id
+      WHERE poi.delivery_date IS NOT NULL
+        AND poi.delivery_date <= CURRENT_DATE
+        AND poi.received_quantity < poi.quantity
+        AND po.status = 'Approved'
+      ORDER BY poi.delivery_date
+    `;
+    const rows = await db.sequelize.query(sql, { type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error delayed POs:', err);
+    res.status(500).json({ error: 'Failed to fetch delayed POs' });
   }
 };

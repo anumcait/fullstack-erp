@@ -8,7 +8,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const API = "/api/erp/production/daily-entry";
 const MACHINE_API = "/api/erp/production/machines";
-const ORDER_API = "/api/erp/production/orders";
+const ORDER_API = "/api/erp/production/job-orders";
 const SHIFTS = ["General", "A", "B", "C"];
 const STATUSES = ["Pending", "Completed", "Approved"];
 

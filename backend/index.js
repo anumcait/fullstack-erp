@@ -116,7 +116,7 @@ async function startServer(retries = MAX_RETRIES) {
           new_value JSONB
         )`,
         `CREATE INDEX IF NOT EXISTS idx_pr_amendment_req ON t_pr_amendment (requisition_id)`,
-        // ── Production/Job Order type classification (idempotent) ──
+        // ── Job Order type classification (idempotent) ──
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS order_type VARCHAR(20) NOT NULL DEFAULT 'Job Order'`,
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS party_id INTEGER`,
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS party_name VARCHAR(200)`,
@@ -198,6 +198,12 @@ END $$;`,
           created_date DATE DEFAULT CURRENT_DATE,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
+        // ── Stores Settings: GRR prefix & auto-generate ──
+        `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS grn_prefix VARCHAR(10) NOT NULL DEFAULT 'GRR'`,
+        `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS auto_generate_grn BOOLEAN NOT NULL DEFAULT FALSE`,
+        // ── Job Order: old JO number and year reference ──
+        `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS old_jo_no VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS jo_year VARCHAR(10)`,
       ];
       for (const sql of erpMigrations) {
         try { await erpDb.sequelize.query(sql); } catch (_) { /* ignore */ }

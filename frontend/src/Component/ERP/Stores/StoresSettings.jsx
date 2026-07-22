@@ -17,10 +17,10 @@ export default function StoresSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    mr_prefix: 'MR', mi_prefix: 'MI',
+    mr_prefix: 'MR', mi_prefix: 'MI', grn_prefix: 'GRR',
     default_warehouse: 'Main Store', valuation_method: 'FIFO',
     bin_location_required: true, batch_tracking_enabled: false,
-    auto_generate_mr: false, auto_generate_mi: false,
+    auto_generate_mr: false, auto_generate_mi: false, auto_generate_grn: false,
     negative_stock_allowed: false, low_stock_alert: true,
   });
 
@@ -60,6 +60,9 @@ export default function StoresSettings() {
             <Grid item xs={6} md={3}>
               <TextField label="MI Prefix" size="small" fullWidth value={form.mi_prefix} onChange={handleChange('mi_prefix')} />
             </Grid>
+            <Grid item xs={6} md={3}>
+              <TextField label="GRR Prefix" size="small" fullWidth value={form.grn_prefix} onChange={handleChange('grn_prefix')} />
+            </Grid>
           </Grid>
         </CardContent>
       </Card>
@@ -97,6 +100,9 @@ export default function StoresSettings() {
             </Grid>
             <Grid item xs={6} md={3}>
               <FormControlLabel control={<Switch checked={form.auto_generate_mi} onChange={handleSwitch('auto_generate_mi')} />} label="Auto-generate MI" />
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <FormControlLabel control={<Switch checked={form.auto_generate_grn} onChange={handleSwitch('auto_generate_grn')} />} label="Auto-generate GRR #" />
             </Grid>
             <Grid item xs={6} md={3}>
               <FormControlLabel control={<Switch checked={form.negative_stock_allowed} onChange={handleSwitch('negative_stock_allowed')} />} label="Allow Negative Stock" />
