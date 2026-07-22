@@ -44,6 +44,7 @@ router.get('/reports/pr-amendment', purchaseReportController.getPRAmendmentDetai
 router.get('/reports/overdue-items', purchaseReportController.getOverdueItems);
 router.get('/reports/overdue-pr-items', purchaseReportController.getOverduePRItems);
 router.get('/reports/delayed-pos', purchaseReportController.getDelayedPOs);
+router.get('/reports/delayed-jos', purchaseReportController.getDelayedJOs);
 
 // ── Purchase Orders ──
 router.get('/orders', poController.getPurchaseOrders);
@@ -63,6 +64,10 @@ router.post('/requisitions', requisitionController.createRequisition);
 router.put('/requisitions/:id', requisitionController.updateRequisition);
 router.put('/requisitions/:id/approve', requisitionController.approveRequisition);
 router.delete('/requisitions/:id', requisitionController.deleteRequisition);
+
+// ── PR Amendment (explicit creation via separate form) ──
+const prAmendmentController = require('../../controllers/ERP/prAmendmentController');
+router.post('/requisitions/:id/amendments', prAmendmentController.createAmendment);
 
 // ── PR Sanction (post-approval, per-item + vendor) ──
 router.get('/sanctions', prSanctionController.getSanctions);

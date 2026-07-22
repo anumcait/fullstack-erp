@@ -681,32 +681,45 @@ exports.getDailyReport = async (req, res) => {
     const rep = {};
     const prWhere = from && to ? 'pr.created_date BETWEEN :from AND :to' : 'DATE(pr.created_date) = :day';
     const poWhere = from && to ? 'po.created_date BETWEEN :from AND :to' : 'DATE(po.created_date) = :day';
+    const joWhere = from && to ? 'jo.jo_date BETWEEN :from AND :to' : 'jo.jo_date = :day::DATE';
     const replacements = from && to ? { from, to } : { day: req.query.date || new Date().toISOString().slice(0, 10) };
 
     const prSql = `
-      SELECT pr.id, pr.req_no, pr.requested_by, pr.department, pr.status, pr.priority, pr.req_date,
-             COUNT(pri.id) AS items
+      SELECT pr.id AS req_id, pr.req_no, pr.requested_by, pr.department, pr.sub_department, pr.status, pr.priority, pr.req_date,
+             pri.id AS item_id, pri.item_code, pri.item_name, pri.mat_code, pri.quantity, pri.uom, pri.cost_center, pri.expected_date, pri.remarks
       FROM t_purchase_requisition pr
-      LEFT JOIN t_purchase_requisition_item pri ON pri.requisition_id = pr.id
+      JOIN t_purchase_requisition_item pri ON pri.requisition_id = pr.id
       WHERE ${prWhere}
-      GROUP BY pr.id, pr.req_no, pr.requested_by, pr.department, pr.status, pr.priority, pr.req_date
-      ORDER BY pr.req_no
+      ORDER BY pr.req_no, pri.id
     `;
     const poSql = `
-      SELECT po.id, po.po_no, s.supplier_name, po.status, po.grand_total, po.currency, po.payment_terms
+      SELECT po.id AS po_id, po.po_no, po.po_date, s.supplier_name, po.status, po.grand_total, po.currency, po.payment_terms,
+             poi.id AS item_id, poi.item_code, poi.item_name, poi.quantity, poi.received_quantity, poi.rate, poi.delivery_date, poi.remarks, poi.hs_code
       FROM t_purchase_order po
       LEFT JOIN m_party_master s ON s.id = po.supplier_id
+      LEFT JOIN t_purchase_order_item poi ON poi.po_id = po.id
       WHERE ${poWhere}
-      ORDER BY po.po_no
+      ORDER BY po.po_no, poi.id
+    `;
+    const joSql = `
+      SELECT jo.id AS jo_id, jo.order_no, jo.jo_date, jo.party_name, jo.product_code, jo.product_name,
+             jo.planned_quantity, jo.produced_quantity, jo.status, jo.order_type, jo.department,
+             joi.id AS item_id, joi.item_code, joi.item_name, joi.required_quantity, joi.issued_quantity, joi.remarks
+      FROM t_production_order jo
+      LEFT JOIN t_production_order_item joi ON joi.order_id = jo.id
+      WHERE ${joWhere}
+      ORDER BY jo.order_no, joi.id
     `;
 
-    const [prs, pos] = await Promise.all([
+    const [prs, pos, jos] = await Promise.all([
       db.sequelize.query(prSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
       db.sequelize.query(poSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
+      db.sequelize.query(joSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
     ]);
 
     rep.prs = prs;
     rep.pos = pos;
+    rep.jos = jos;
     rep.summary = {
       pr_count: prs.length,
       po_count: pos.length,
@@ -766,8 +779,9 @@ exports.getPRAmendmentDetails = async (req, res) => {
     const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
 
     const sql = `
-      SELECT a.id, a.requisition_id, a.amended_by, a.amendment_date, a.change_summary,
-             pr.req_no, pr.department, pr.status
+      SELECT a.id AS amd_id, a.requisition_id, a.amended_by, a.amendment_date, a.change_summary,
+             a.old_value, a.new_value,
+             pr.req_no, pr.req_date, pr.department, pr.sub_department, pr.requested_by, pr.indent_type, pr.priority, pr.status
       FROM t_pr_amendment a
       LEFT JOIN t_purchase_requisition pr ON pr.id = a.requisition_id
       ${where}
@@ -786,7 +800,8 @@ exports.getOverduePRItems = async (req, res) => {
   try {
     const sql = `
       SELECT pri.id, pri.item_code, pri.item_name, pri.quantity, pri.expected_date,
-             pr.id AS req_id, pr.req_no, pr.department, pr.req_date
+             pr.id AS req_id, pr.req_no, pr.department, pr.req_date,
+             pr.requested_by, pr.priority, pr.status
       FROM t_purchase_requisition_item pri
       JOIN t_purchase_requisition pr ON pr.id = pri.requisition_id
       WHERE pri.expected_date IS NOT NULL AND pri.expected_date <= CURRENT_DATE
@@ -824,5 +839,28 @@ exports.getDelayedPOs = async (req, res) => {
   } catch (err) {
     console.error('Error delayed POs:', err);
     res.status(500).json({ error: 'Failed to fetch delayed POs' });
+  }
+};
+
+// ── Delayed Job Orders (end_date / req_date passed, not completed) ──
+exports.getDelayedJOs = async (req, res) => {
+  try {
+    const sql = `
+      SELECT jo.id, jo.order_no, jo.jo_date, jo.req_date, jo.end_date, jo.product_code, jo.product_name,
+             jo.party_name, jo.planned_quantity, jo.produced_quantity, jo.status, jo.department,
+             (CURRENT_DATE - COALESCE(jo.end_date, jo.req_date, jo.jo_date)) AS delay_days
+      FROM t_production_order jo
+      WHERE (
+        (jo.end_date IS NOT NULL AND jo.end_date <= CURRENT_DATE)
+        OR (jo.req_date IS NOT NULL AND jo.req_date <= CURRENT_DATE)
+      )
+        AND jo.status NOT IN ('Completed', 'Cancelled')
+      ORDER BY COALESCE(jo.end_date, jo.req_date, jo.jo_date)
+    `;
+    const rows = await db.sequelize.query(sql, { type: Sequelize.QueryTypes.SELECT });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error delayed JOs:', err);
+    res.status(500).json({ error: 'Failed to fetch delayed JOs' });
   }
 };

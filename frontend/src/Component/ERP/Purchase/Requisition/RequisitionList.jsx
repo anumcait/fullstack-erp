@@ -15,6 +15,7 @@ import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatDate } from '../../../../utils/format';
+import GppMaybeIcon from '@mui/icons-material/GppMaybe';
 
 const API = "/api/erp/purchase/requisitions";
 
@@ -51,12 +52,12 @@ function ItemsTable({ items, reqNo }) {
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.item_code || "—"}</TableCell>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.item_name || "—"}</TableCell>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.uom || "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.quantity ?? "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.expected_date ? formatDate(it.expected_date) : "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.purpose || "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.kg ?? "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.mat_code || "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.est_cost ? `₹${it.est_cost}` : "—"}</TableCell>
+                <TableCell sx={{ fontSize: "0.82rem", py: 0.4 }}>{it.quantity != null ? parseFloat(it.quantity) : "—"}</TableCell>
+
+
+
+                <TableCell sx={{ fontSize: "0.82rem", py: 0.35 }}>{it.quantity != null ? parseFloat(it.quantity) : "—"}</TableCell>
+                <TableCell sx={{ fontSize: "0.82rem", py: 0.35 }}>{it.est_cost ? `₹${parseFloat(it.est_cost)}` : "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -66,7 +67,7 @@ function ItemsTable({ items, reqNo }) {
   );
 }
 
-function PRTable({ rows, expandedId, setExpandedId, onApproveClick, onRejectClick, onTrackClick, navigate, loading }) {
+function PRTable({ rows, expandedId, setExpandedId, onApproveClick, onRejectClick, onTrackClick, onAmendClick, navigate, loading, canAmendPr }) {
   const tableHeaders = [
     { label: "S.No", width: 52 },
     { label: "Req #", width: 130 },
@@ -100,7 +101,7 @@ function PRTable({ rows, expandedId, setExpandedId, onApproveClick, onRejectClic
               <TableRow hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#f8fafc", transition: "background 0.1s", "&:hover": { bgcolor: "#eef2ff" }, "& td": { fontSize: "0.9rem", py: 0.75, borderBottom: "1px solid #f1f5f9" } }}>
                 <TableCell sx={{ color: "#94a3b8" }}>{idx + 1}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{row.req_no}</TableCell>
-                <TableCell>{row.req_date ? formatDate(row.req_date) : ""}</TableCell>
+                <TableCell>{row.req_date ? row.req_date.split("T")[0] : ""}</TableCell>
                 <TableCell>{row.department}</TableCell>
                 <TableCell>{row.requested_by}</TableCell>
                 <TableCell>{row.indent_type}</TableCell>
@@ -131,6 +132,9 @@ function PRTable({ rows, expandedId, setExpandedId, onApproveClick, onRejectClic
                         <Tooltip title="Approve"><IconButton size="small" color="success" onClick={() => onApproveClick(row)}><CheckCircleIcon fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="Reject"><IconButton size="small" color="error" onClick={() => onRejectClick(row)}><CancelIcon fontSize="small" /></IconButton></Tooltip>
                       </>
+                    )}
+                    {row.status === "Approved" && canAmendPr && (
+                      <Tooltip title="Amend PR"><IconButton size="small" color="warning" onClick={() => onAmendClick(row)}><EditIcon fontSize="small" /></IconButton></Tooltip>
                     )}
                   </Box>
                 </TableCell>
@@ -165,7 +169,7 @@ function ApproveDialog({ row, open, onClose, onConfirm }) {
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5, mb: 2 }}>
           <Box><Typography variant="caption" color="text.secondary">Req No</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{row.req_no}</Typography></Box>
-          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.req_date ? formatDate(row.req_date) : "—"}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.req_date ? row.req_date.split("T")[0] : "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Department</Typography><Typography variant="body2">{row.department || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Requested By</Typography><Typography variant="body2">{row.requested_by || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Indent Type</Typography><Typography variant="body2">{row.indent_type || "—"}</Typography></Box>
@@ -189,8 +193,8 @@ function ApproveDialog({ row, open, onClose, onConfirm }) {
               <TableRow key={i}>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.35 }}>{i + 1}</TableCell>
                 <TableCell sx={{ fontSize: "0.82rem", py: 0.35 }}>{it.item_name || it.item_code || "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.35 }}>{it.quantity ?? "—"}</TableCell>
-                <TableCell sx={{ fontSize: "0.82rem", py: 0.35 }}>{it.est_cost ? `₹${it.est_cost}` : "—"}</TableCell>
+                <TableCell sx={{ fontSize: "0.82rem", py: 0.35 }}>{it.quantity != null ? parseFloat(it.quantity) : "—"}</TableCell>
+                <TableCell sx={{ fontSize: "0.82rem", py: 0.35 }}>{it.est_cost ? `₹${parseFloat(it.est_cost)}` : "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -235,6 +239,46 @@ function RejectDialog({ row, open, onClose, remarks, onRemarksChange, onConfirm 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" onClick={onClose}>Cancel</Button>
         <Button variant="contained" color="error" onClick={onConfirm} disabled={!remarks.trim()} startIcon={<CancelIcon />}>Reject</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+function AmendConfirmDialog({ row, open, onClose, onConfirm }) {
+  if (!row) return null;
+  const totalEstCost = row.items?.reduce((s, i) => s + (Number(i.est_cost) || 0), 0) || 0;
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: "warning.main", fontWeight: 700 }}>
+        <GppMaybeIcon /> Confirm PR Amendment
+      </DialogTitle>
+      <Divider />
+      <DialogContent sx={{ pt: 2 }}>
+        <Typography variant="body2" sx={{ mb: 2, color: "text.secondary" }}>
+          You are about to amend an <strong>approved</strong> Purchase Requisition. This will create a tracked amendment record. Please verify:
+        </Typography>
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5, mb: 2 }}>
+          <Box><Typography variant="caption" color="text.secondary">Req No</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{row.req_no}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.req_date ? formatDate(row.req_date) : "—"}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Department</Typography><Typography variant="body2">{row.department || "—"}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Requested By</Typography><Typography variant="body2">{row.requested_by || "—"}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Indent Type</Typography><Typography variant="body2">{row.indent_type || "—"}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Priority</Typography><Typography variant="body2">{row.priority || "—"}</Typography></Box>
+        </Box>
+        <Divider sx={{ mb: 1.5 }} />
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+          Items ({row.items?.length || 0}) — Total Est. Cost: <strong>₹{totalEstCost.toLocaleString()}</strong>
+        </Typography>
+        <Typography variant="body2" color="warning.dark" sx={{ mt: 1, fontStyle: "italic", fontSize: "0.82rem" }}>
+          A Before/After comparison PDF will be generated after saving your changes.
+        </Typography>
+      </DialogContent>
+      <Divider />
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button variant="outlined" onClick={onClose}>Cancel</Button>
+        <Button variant="contained" color="warning" onClick={onConfirm} startIcon={<EditIcon />}>
+          Proceed to Amend
+        </Button>
       </DialogActions>
     </Dialog>
   );
@@ -293,6 +337,11 @@ export default function RequisitionList() {
   const [trackTarget, setTrackTarget] = useState(null);
   const [amendments, setAmendments] = useState([]);
   const [trackLoading, setTrackLoading] = useState(false);
+  const [amendConfirm, setAmendConfirm] = useState(null);
+
+  const userRole = localStorage.getItem('userRole');
+  const userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+  const canAmendPr = userRole === 'ADMIN' || userPermissions.includes('PUR_PR_AMEND');
 
   const statusFilter = searchParams.get("status") || "";
   const title = statusFilter === "Draft" ? "PR Draft"
@@ -387,7 +436,8 @@ export default function RequisitionList() {
               {filterBar}
               <PRTable rows={rows} expandedId={expandedId} setExpandedId={setExpandedId}
                 onApproveClick={(r) => setApproveTarget(r)} onRejectClick={(r) => { setRejectTarget(r); setRejectRemarks(""); }}
-                onTrackClick={handleTrack} navigate={navigate} loading={loading} />
+                onTrackClick={handleTrack} onAmendClick={(r) => setAmendConfirm(r)}
+                navigate={navigate} loading={loading} canAmendPr={canAmendPr} />
             </CardContent>
           </Card>
         </>
@@ -401,7 +451,8 @@ export default function RequisitionList() {
               </Typography>
               <PRTable rows={draftRows} expandedId={expandedId} setExpandedId={setExpandedId}
                 onApproveClick={(r) => setApproveTarget(r)} onRejectClick={(r) => { setRejectTarget(r); setRejectRemarks(""); }}
-                onTrackClick={handleTrack} navigate={navigate} loading={loading} />
+                onTrackClick={handleTrack} onAmendClick={(r) => setAmendConfirm(r)}
+                navigate={navigate} loading={loading} canAmendPr={canAmendPr} />
             </CardContent>
           </Card>
 
@@ -416,7 +467,8 @@ export default function RequisitionList() {
                 </Box>
                 <PRTable rows={pendingRows} expandedId={expandedId} setExpandedId={setExpandedId}
                   onApproveClick={(r) => setApproveTarget(r)} onRejectClick={(r) => { setRejectTarget(r); setRejectRemarks(""); }}
-                  onTrackClick={handleTrack} navigate={navigate} loading={loading} />
+                  onTrackClick={handleTrack} onAmendClick={(r) => setAmendConfirm(r)}
+                  navigate={navigate} loading={loading} canAmendPr={canAmendPr} />
               </CardContent>
             </Card>
           )}
@@ -431,7 +483,8 @@ export default function RequisitionList() {
               </Box>
               <PRTable rows={completedRows} expandedId={expandedId} setExpandedId={setExpandedId}
                 onApproveClick={(r) => setApproveTarget(r)} onRejectClick={(r) => { setRejectTarget(r); setRejectRemarks(""); }}
-                onTrackClick={handleTrack} navigate={navigate} loading={loading} />
+                onTrackClick={handleTrack} onAmendClick={(r) => setAmendConfirm(r)}
+                navigate={navigate} loading={loading} canAmendPr={canAmendPr} />
             </CardContent>
           </Card>
         </>
@@ -447,6 +500,10 @@ export default function RequisitionList() {
 
       <TrackDialog open={Boolean(trackTarget)} onClose={() => setTrackTarget(null)}
         amendments={amendments} loading={trackLoading} />
+
+      <AmendConfirmDialog row={amendConfirm} open={Boolean(amendConfirm)}
+        onClose={() => setAmendConfirm(null)}
+        onConfirm={() => { const r = amendConfirm; setAmendConfirm(null); if (r) navigate(`/purchase/requisitions/edit/${r.id}?mode=amend`); }} />
     </Box>
   );
 }

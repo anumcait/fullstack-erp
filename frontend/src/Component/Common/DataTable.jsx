@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import {
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TableSortLabel, TablePagination, TextField, Select, MenuItem, Box, Typography,
-  useTheme, Checkbox, ListItemText,
+  TableSortLabel, TablePagination, TextField, Box, Typography,
+  useTheme, InputAdornment, Select, MenuItem, Checkbox, ListItemText,
 } from '@mui/material';
+import { FiSearch } from 'react-icons/fi';
 import ExportButtons from './ExportButtons';
 
 function getDistinct(rows, field) {
@@ -22,12 +23,14 @@ const DataTable = ({ title, columns, rows, loading, emptyMessage = 'No records f
   const [orderBy, setOrderBy] = useState(null);
   const [order, setOrder] = useState('asc');
   const [filters, setFilters] = useState({});
+  const [search, setSearch] = useState('');
+  const [filterSearch, setFilterSearch] = useState({});
 
   const distinctValues = useMemo(() => {
     if (!columns || !rows) return {};
     const map = {};
     columns.forEach((col) => {
-      if (!col.numeric && col.field !== 'actions') {
+      if (col.field !== 'actions') {
         map[col.field] = getDistinct(rows, col.field);
       }
     });
@@ -46,6 +49,11 @@ const DataTable = ({ title, columns, rows, loading, emptyMessage = 'No records f
 
   const filtered = useMemo(() => {
     let data = [...rows];
+    if (search) {
+      const q = search.toLowerCase();
+      const searchable = columns.filter((c) => c.field !== 'actions');
+      data = data.filter((r) => searchable.some((c) => String(r[c.field] ?? '').toLowerCase().includes(q)));
+    }
     Object.entries(filters).forEach(([field, val]) => {
       if (!val || (Array.isArray(val) && val.length === 0)) return;
       if (Array.isArray(val)) {
@@ -73,8 +81,12 @@ const DataTable = ({ title, columns, rows, loading, emptyMessage = 'No records f
 
   return (
     <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-      <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{title}</Typography>
+      <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mr: 'auto' }}>{title}</Typography>
+        <TextField size="small" placeholder="Search…" value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><FiSearch size={16} /></InputAdornment> }}
+          sx={{ '& .MuiInputBase-root': { fontSize: 13, borderRadius: 2 }, width: 240 }} />
         <ExportButtons title={title} columns={exportCols} rows={filtered} />
       </Box>
       <TableContainer sx={{ maxHeight: 'calc(100vh - 280px)' }}>
@@ -83,33 +95,38 @@ const DataTable = ({ title, columns, rows, loading, emptyMessage = 'No records f
             <TableRow>
               {columns.map((col) => {
                 const distinct = distinctValues[col.field] || [];
-                const isSelect = distinct.length > 0 && distinct.length <= 50 && col.field !== 'actions';
                 return (
-                  <TableCell key={col.field} sx={{ fontWeight: 700, bgcolor: 'grey.50', whiteSpace: 'nowrap' }} align={col.align || 'left'}>
-                    <TableSortLabel active={orderBy === col.field} direction={orderBy === col.field ? order : 'asc'} onClick={() => handleSort(col.field)}>
-                      {col.header}
-                    </TableSortLabel>
-                    <Box sx={{ mt: 0.5 }}>
-                      {isSelect ? (
-                        <Select multiple size="small" displayEmpty
-                          value={filters[col.field] || []}
-                          onChange={(e) => handleFilter(col.field, e.target.value)}
-                          renderValue={(selected) => selected.length === 0 ? 'Filter' : selected.length === 1 ? selected[0] : `${selected.length} selected`}
-                          sx={{ fontSize: 12, width: 130, '& .MuiSelect-select': { py: 0.5 } }}>
-                          {distinct.map((v) => (
-                            <MenuItem key={v} value={v} dense>
-                              <Checkbox checked={(filters[col.field] || []).includes(v)} size="small" />
-                              <ListItemText primary={v} />
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      ) : col.field !== 'actions' ? (
-                        <TextField size="small" placeholder="Filter" value={filters[col.field] || ''}
-                          onChange={(e) => handleFilter(col.field, e.target.value)}
-                          sx={{ '& .MuiInputBase-root': { fontSize: 12, bgcolor: '#fff' }, width: 130 }} />
-                      ) : null}
-                    </Box>
-                  </TableCell>
+                <TableCell key={col.field} align="center" sx={{ fontWeight: 700, bgcolor: 'grey.50', whiteSpace: 'nowrap' }}>
+                  <TableSortLabel active={orderBy === col.field} direction={orderBy === col.field ? order : 'asc'} onClick={() => handleSort(col.field)}>
+                    {col.header}
+                  </TableSortLabel>
+                  {col.field !== 'actions' && (
+                    <Select multiple size="small" displayEmpty
+                      value={filters[col.field] || []}
+                      onChange={(e) => handleFilter(col.field, e.target.value)}
+                      onOpen={() => setFilterSearch((f) => ({ ...f, [col.field]: '' }))}
+                      renderValue={(selected) => selected.length === 0 ? 'Filter' : selected.length === 1 ? selected[0] : `${selected.length} selected`}
+                      MenuProps={{ autoFocus: false }}
+                      sx={{ mt: 0.5, fontSize: 12, width: 140, display: 'block', '& .MuiSelect-select': { py: 0.5 } }}>
+                      <Box sx={{ px: 1, pt: 0.5, pb: 1 }}>
+                        <TextField size="small" placeholder="Search…" autoFocus
+                          value={filterSearch[col.field] || ''}
+                          onChange={(e) => setFilterSearch((f) => ({ ...f, [col.field]: e.target.value }))}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{ '& .MuiInputBase-root': { fontSize: 12 } }} />
+                      </Box>
+                      {(filterSearch[col.field]
+                        ? distinct.filter((v) => v.toLowerCase().includes(filterSearch[col.field].toLowerCase()))
+                        : distinct
+                      ).map((v) => (
+                        <MenuItem key={v} value={v} dense>
+                          <Checkbox checked={(filters[col.field] || []).includes(v)} size="small" />
+                          <ListItemText primary={v} />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                </TableCell>
                 );
               })}
             </TableRow>

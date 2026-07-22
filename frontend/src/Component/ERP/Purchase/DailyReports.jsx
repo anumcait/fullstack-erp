@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Stack, TextField, Button, Paper, Typography, Tabs, Tab, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import { FiCalendar, FiFileText, FiShoppingBag, FiClock, FiTruck, FiAlertOctagon, FiFilter, FiX, FiEye } from 'react-icons/fi';
+import { FiCalendar, FiFileText, FiShoppingBag, FiClock, FiTruck, FiSettings, FiAlertOctagon, FiFilter, FiX } from 'react-icons/fi';
 import axios from 'axios';
 import PageHeader from '../../Common/PageHeader';
 import DataTable from '../../Common/DataTable';
@@ -18,16 +18,23 @@ const TABS = [
   { key: 'pending-prs', label: 'Pending PRs', icon: FiClock, color: '#f59e0b' },
   { key: 'pending-pos', label: 'Pending POs', icon: FiClock, color: '#dc2626' },
   { key: 'received', label: 'Received Material', icon: FiTruck, color: '#059669' },
+  { key: 'jos', label: 'Job Orders', icon: FiSettings, color: '#0891b2' },
 ];
 
 const COLUMNS = {
   pos: [
     { field: 'po_no', header: 'PO No' },
-    { field: 'po_date', header: 'Date', render: (r) => formatDate(r.po_date) },
+    { field: 'po_date', header: 'PO Date', render: (r) => r.po_date ? formatDateTime(r.po_date) : '-' },
     { field: 'supplier_name', header: 'Vendor' },
-    { field: 'status', header: 'Status' },
+    { field: 'item_code', header: 'Item Code' },
+    { field: 'item_name', header: 'Description' },
+    { field: 'quantity', header: 'Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.quantity) },
+    { field: 'rate', header: 'Rate', align: 'right', numeric: true, render: (r) => formatNumber(r.rate) },
+    { field: 'item_value', header: 'Item Value', align: 'right', numeric: true, render: (r) => formatCurrency((Number(r.quantity) || 0) * (Number(r.rate) || 0)) },
+    { field: 'received_quantity', header: 'Received', align: 'right', numeric: true, render: (r) => formatNumber(r.received_quantity) },
+    { field: 'delivery_date', header: 'Delivery', render: (r) => r.delivery_date ? formatDate(r.delivery_date) : '-' },
     { field: 'payment_terms', header: 'Terms' },
-    { field: 'grand_total', header: 'Value', align: 'right', numeric: true, render: (r) => formatCurrency(r.grand_total, r.currency) },
+    { field: 'status', header: 'Status' },
   ],
   'pending-prs': [
     { field: 'req_no', header: 'PR No' },
@@ -45,6 +52,23 @@ const COLUMNS = {
     { field: 'status', header: 'Status' },
     { field: 'payment_terms', header: 'Terms' },
     { field: 'grand_total', header: 'Value', align: 'right', numeric: true, render: (r) => formatCurrency(r.grand_total) },
+  ],
+  jos: [
+    { field: 'order_no', header: 'JO No' },
+    { field: 'jo_date', header: 'JO Date', render: (r) => r.jo_date ? formatDate(r.jo_date) : '-' },
+    { field: 'party_name', header: 'Party' },
+    { field: 'product_code', header: 'Product Code' },
+    { field: 'product_name', header: 'Product' },
+    { field: 'planned_quantity', header: 'Plan Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.planned_quantity) },
+    { field: 'produced_quantity', header: 'Produced', align: 'right', numeric: true, render: (r) => formatNumber(r.produced_quantity) },
+    { field: 'department', header: 'Dept' },
+    { field: 'order_type', header: 'Type' },
+    { field: 'status', header: 'Status' },
+    { field: 'item_code', header: 'Item Code' },
+    { field: 'item_name', header: 'Description' },
+    { field: 'required_quantity', header: 'Req Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.required_quantity) },
+    { field: 'issued_quantity', header: 'Issued', align: 'right', numeric: true, render: (r) => formatNumber(r.issued_quantity) },
+    { field: 'remarks', header: 'Remarks' },
   ],
   received: [
     { field: 'grn_no', header: 'GRN No' },
@@ -65,12 +89,16 @@ const TITLES = {
   'pending-prs': 'Pending Purchase Requisitions',
   'pending-pos': 'Pending Purchase Orders',
   received: 'Received Material',
+  jos: 'Job Orders',
 };
 
 const overduePrCols = [
   { field: 'req_no', header: 'PR No' },
-  { field: 'req_date', header: 'Req Date', render: (r) => r.req_date ? formatDate(r.req_date) : '-' },
+  { field: 'req_date', header: 'PR Date', render: (r) => r.req_date ? formatDateTime(r.req_date) : '-' },
+  { field: 'requested_by', header: 'Requested By' },
   { field: 'department', header: 'Dept' },
+  { field: 'priority', header: 'Priority' },
+  { field: 'status', header: 'Status' },
   { field: 'item_code', header: 'Item Code' },
   { field: 'item_name', header: 'Item Name' },
   { field: 'quantity', header: 'Req Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.quantity) },
@@ -89,6 +117,19 @@ const delayedPoCols = [
   { field: 'delay_days', header: 'Delay (Days)', align: 'right', numeric: true, render: (r) => r.delay_days != null ? r.delay_days : '-' },
 ];
 
+const delayedJoCols = [
+  { field: 'order_no', header: 'JO No' },
+  { field: 'party_name', header: 'Party' },
+  { field: 'product_code', header: 'Product Code' },
+  { field: 'product_name', header: 'Product' },
+  { field: 'planned_quantity', header: 'Plan Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.planned_quantity) },
+  { field: 'produced_quantity', header: 'Produced', align: 'right', numeric: true, render: (r) => formatNumber(r.produced_quantity) },
+  { field: 'jo_date', header: 'JO Date', render: (r) => r.jo_date ? formatDate(r.jo_date) : '-' },
+  { field: 'end_date', header: 'End Date', render: (r) => r.end_date ? formatDate(r.end_date) : '-' },
+  { field: 'delay_days', header: 'Delay (Days)', align: 'right', numeric: true, render: (r) => r.delay_days != null ? r.delay_days : '-' },
+  { field: 'status', header: 'Status' },
+];
+
 export default function DailyReports() {
   const [dateFrom, setDateFrom] = useState(yesterday());
   const [dateTo, setDateTo] = useState(yesterday());
@@ -99,14 +140,12 @@ export default function DailyReports() {
   const [pendingPos, setPendingPos] = useState([]);
   const [received, setReceived] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailPr, setDetailPr] = useState(null);
-  const [detailItems, setDetailItems] = useState([]);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [overduePrs, setOverduePrs] = useState([]);
   const [delayedPos, setDelayedPos] = useState([]);
+  const [delayedJos, setDelayedJos] = useState([]);
   const [overduePrOpen, setOverduePrOpen] = useState(false);
   const [delayedPoOpen, setDelayedPoOpen] = useState(false);
+  const [delayedJoOpen, setDelayedJoOpen] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -118,40 +157,36 @@ export default function DailyReports() {
       axios.get('/api/erp/purchase/reports/received-material', { params: dateParams }).catch(() => ({ data: [] })),
       axios.get('/api/erp/purchase/reports/overdue-pr-items').catch(() => ({ data: [] })),
       axios.get('/api/erp/purchase/reports/delayed-pos').catch(() => ({ data: [] })),
-    ]).then(([d, pprs, ppos, rec, ovpr, dpo]) => {
-      setData(d.data || { summary: {}, prs: [], pos: [] });
+      axios.get('/api/erp/purchase/reports/delayed-jos').catch(() => ({ data: [] })),
+    ]).then(([d, pprs, ppos, rec, ovpr, dpo, djo]) => {
+      setData(d.data || { summary: {}, prs: [], pos: [], jos: [] });
       setPendingPrs(pprs.data || []);
       setPendingPos(ppos.data || []);
       setReceived(rec.data || []);
       setOverduePrs(ovpr.data || []);
       setDelayedPos(dpo.data || []);
+      setDelayedJos(djo.data || []);
     }).finally(() => setLoading(false));
   }, [dateFrom, dateTo, year]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const openDetail = async (pr) => {
-    setDetailPr(pr);
-    setDetailLoading(true);
-    setDetailOpen(true);
-    try {
-      const { data } = await axios.get('/api/erp/purchase/reports/pr-details', { params: { id: pr.id } });
-      setDetailItems(data?.[0]?.items || []);
-    } catch { setDetailItems([]); }
-    finally { setDetailLoading(false); }
-  };
-
   const prsColumns = [
     { field: 'req_no', header: 'PR No' },
-    { field: 'req_date', header: 'Date', render: (r) => formatDate(r.req_date) },
+    { field: 'req_date', header: 'PR Date', render: (r) => formatDateTime(r.req_date) },
+    { field: 'item_code', header: 'Item Code' },
+    { field: 'mat_code', header: 'Mat. Code' },
+    { field: 'item_name', header: 'Description' },
+    { field: 'uom', header: 'UOM' },
+    { field: 'quantity', header: 'Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.quantity) },
+    { field: 'cost_center', header: 'Cost Center' },
+    { field: 'expected_date', header: 'Expected', render: (r) => r.expected_date ? formatDate(r.expected_date) : '-' },
+    { field: 'remarks', header: 'Remarks' },
     { field: 'requested_by', header: 'Requested By' },
     { field: 'department', header: 'Dept' },
+    { field: 'sub_department', header: 'Sub Dept' },
     { field: 'priority', header: 'Priority' },
     { field: 'status', header: 'Status' },
-    { field: 'actions', header: '', render: (r) => (
-      <Button size="small" variant="outlined" startIcon={<FiEye />} onClick={() => openDetail(r)}
-        sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Details</Button>
-    )},
   ];
 
   const activeTab = TABS.find((t) => t.key === tab);
@@ -162,6 +197,7 @@ export default function DailyReports() {
     'pending-prs': pendingPrs,
     'pending-pos': pendingPos,
     received: received,
+    jos: data.jos || [],
   };
 
   const resetDate = () => {
@@ -169,16 +205,6 @@ export default function DailyReports() {
     setDateFrom(y);
     setDateTo(y);
   };
-
-  const itemCols = [
-    { field: '#', header: '#', render: (r, idx) => idx + 1 },
-    { field: 'item_code', header: 'Code' },
-    { field: 'item_name', header: 'Item Name' },
-    { field: 'quantity', header: 'Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.quantity) },
-    { field: 'uom', header: 'UOM' },
-    { field: 'expected_date', header: 'Expected Date', render: (r) => r.expected_date ? formatDate(r.expected_date) : '-' },
-    { field: 'remarks', header: 'Remarks' },
-  ];
 
   const renderTable = (cols, rows, emptyMsg) => (
     <TableContainer sx={{ maxHeight: 400 }}>
@@ -209,7 +235,7 @@ export default function DailyReports() {
 
   const Ribbon = ({ count, label, color, bgcolor, icon: Icon, onClick }) => (
     <Paper onClick={count > 0 ? onClick : undefined}
-      sx={{ p: 1.5, mb: 1.5, borderRadius: 2, border: `1px solid ${color}${count > 0 ? '' : '40'}`, bgcolor: count > 0 ? bgcolor : '#f8fafc', cursor: count > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 1.5, opacity: count > 0 ? 1 : 0.55 }}>
+      sx={{ p: 1.5, borderRadius: 2, width: '100%', border: `1px solid ${color}${count > 0 ? '' : '40'}`, bgcolor: count > 0 ? bgcolor : '#f8fafc', cursor: count > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 1.5, opacity: count > 0 ? 1 : 0.55 }}>
       <Icon size={20} color={count > 0 ? color : '#94a3b8'} />
       <Typography variant="body2" sx={{ fontWeight: 600, color: count > 0 ? color : '#94a3b8', flex: 1 }}>
         {count} {label}
@@ -239,8 +265,11 @@ export default function DailyReports() {
         </Stack>
       </Paper>
 
-      <Ribbon count={overduePrs.length} label="Overdue PR item(s) — expected date passed" color="#e11d48" bgcolor="#fff1f2" icon={FiAlertOctagon} onClick={() => setOverduePrOpen(true)} />
-      <Ribbon count={delayedPos.length} label="Delayed PO(s) — issued after PR date" color="#9333ea" bgcolor="#faf5ff" icon={FiAlertOctagon} onClick={() => setDelayedPoOpen(true)} />
+      <Stack direction="row" spacing={1.5} sx={{ mb: 2 }}>
+        <Box sx={{ flex: 1, display: 'flex' }}><Ribbon count={overduePrs.length} label="Overdue PR item(s) — expected date passed" color="#e11d48" bgcolor="#fff1f2" icon={FiAlertOctagon} onClick={() => setOverduePrOpen(true)} /></Box>
+        <Box sx={{ flex: 1, display: 'flex' }}><Ribbon count={delayedPos.length} label="Delayed PO(s) — issued after PR date" color="#9333ea" bgcolor="#faf5ff" icon={FiAlertOctagon} onClick={() => setDelayedPoOpen(true)} /></Box>
+        <Box sx={{ flex: 1, display: 'flex' }}><Ribbon count={delayedJos.length} label="Delayed JO(s) — past end/req date" color="#0891b2" bgcolor="#ecfeff" icon={FiSettings} onClick={() => setDelayedJoOpen(true)} /></Box>
+      </Stack>
 
       <Paper sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
         <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#fafbfc' }}>
@@ -302,26 +331,20 @@ export default function DailyReports() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>
-          PR {detailPr?.req_no} — Items
+      <Dialog open={delayedJoOpen} onClose={() => setDelayedJoOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', color: '#0891b2' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FiSettings size={20} /> Delayed Job Orders ({delayedJos.length})
+          </Box>
         </DialogTitle>
         <DialogContent>
-          {detailPr && (
-            <Box sx={{ mb: 2, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              <Typography variant="body2"><strong>Dept:</strong> {detailPr.department || '-'}</Typography>
-              <Typography variant="body2"><strong>Date:</strong> {detailPr.req_date ? formatDate(detailPr.req_date) : '-'}</Typography>
-              <Typography variant="body2"><strong>Priority:</strong> {detailPr.priority || '-'}</Typography>
-              <Typography variant="body2"><strong>Status:</strong> {detailPr.status || '-'}</Typography>
-              <Typography variant="body2"><strong>Requested By:</strong> {detailPr.requested_by || '-'}</Typography>
-            </Box>
-          )}
-          {renderTable(itemCols, detailItems, 'No items')}
+          {renderTable(delayedJoCols, delayedJos, 'No delayed JOs')}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailOpen(false)} variant="contained" sx={{ textTransform: 'none' }}>Close</Button>
+          <Button onClick={() => setDelayedJoOpen(false)} variant="contained" sx={{ textTransform: 'none' }}>Close</Button>
         </DialogActions>
       </Dialog>
+
     </Box>
   );
 }

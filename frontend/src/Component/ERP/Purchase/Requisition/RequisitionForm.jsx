@@ -13,7 +13,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import ItemSelectDialog from "../../Stores/ItemMaster/ItemSelectDialog";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 
 
 const API = "/api/erp/purchase/requisitions";
@@ -46,8 +46,10 @@ const emptyItem = () => ({
 export default function RequisitionForm() {
   const { id } = useParams();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isView = location.pathname.includes("/view/");
   const isEdit = Boolean(id) && !isView;
+  const isAmend = isEdit && searchParams.get("mode") === "amend";
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -93,6 +95,7 @@ export default function RequisitionForm() {
     indent_type: "Regular", priority: "Normal", notes: "",
   });
   const [items, setItems] = useState([emptyItem()]);
+  const [amendedBy, setAmendedBy] = useState(localStorage.getItem('empName') || localStorage.getItem('userName') || '');
 
 
   const [costCenters, setCostCenters] = useState([]);
@@ -243,6 +246,7 @@ export default function RequisitionForm() {
     try {
       const payload = {
         ...header,
+        amended_by: isAmend ? (amendedBy || localStorage.getItem('empName') || localStorage.getItem('userName') || 'System') : undefined,
         status: isEdit ? header.status : "Draft",
         req_date: isEdit ? header.req_date : nowLocal(),
         items: items.map((i) => ({
@@ -255,7 +259,8 @@ export default function RequisitionForm() {
       };
       if (isEdit) { await axios.put(`${API}/${id}`, payload); showToast("Updated", "success"); }
       else { await axios.post(API, payload); showToast("Created", "success"); }
-      navigate("/purchase/requisitions");
+      if (isAmend) { navigate(`/purchase/requisitions/amend-compare/${id}`); }
+      else { navigate("/purchase/requisitions"); }
     } catch (err) { showToast(err.response?.data?.error || "Failed to save", "error"); }
     finally { setSaving(false); }
   };
@@ -282,13 +287,13 @@ export default function RequisitionForm() {
       {/* ── Title + Action Bar ── */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: "bold", color: "var(--heading-color)" }}>
-          {isView ? "Requisition Details" : isEdit ? "Edit Requisition" : "New Purchase Requisition"}
+          {isView ? "Requisition Details" : isAmend ? `Amending PR #${header.req_no}` : isEdit ? "Edit Requisition" : "New Purchase Requisition"}
         </Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           {!isView && (
-            <Button variant="contained" color="primary" size="medium" onClick={handleSubmit}
+            <Button variant="contained" color={isAmend ? "warning" : "primary"} size="medium" onClick={handleSubmit}
               startIcon={<SaveIcon />} disabled={saving}>
-              {saving ? "Saving..." : "Save as Draft"}
+              {saving ? "Saving..." : isAmend ? "Save Amendment" : "Save as Draft"}
             </Button>
           )}
           <Button variant="outlined" color="secondary" size="medium" startIcon={<CancelIcon />}
@@ -328,6 +333,13 @@ export default function RequisitionForm() {
                 {employees.map((emp) => <MenuItem key={emp.empid || emp.id} value={emp.ename}>{emp.ename} - {emp.empid}</MenuItem>)}
               </TextField>
             </Grid>
+            {isAmend && (
+              <Grid item xs={6} sm={3} sx={{ width: 170, flex: "0 0 auto" }}>
+                <TextField label="Amended By" size="small" fullWidth value={amendedBy}
+                  onChange={(e) => setAmendedBy(e.target.value)} InputLabelProps={{ shrink: true }} sx={fsx}
+                  helperText="Who is making this amendment" />
+              </Grid>
+            )}
             <Grid item xs={6} sm={3} sx={{ width: 140, flex: "0 0 auto" }}>
               <TextField label="Indent Type" size="small" fullWidth select value={header.indent_type || "Regular"}
                 onChange={handleChange("indent_type")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx}>

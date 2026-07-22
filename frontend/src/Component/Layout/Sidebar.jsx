@@ -620,6 +620,7 @@ const Sidebar = () => {
                     {hasPermission('PUR_LOI') && <SubItem to="/purchase/requisitions?type=loi" label="Letter Of Indent" icon={FiFileText} />}
                     {hasPermission('PUR_PR_SHORTCLOSE') && <SubItem to="/purchase/requisitions?status=Closed" label="PR Shortclose" icon={FiXCircle} />}
                     {hasPermission('PUR_REQ') && <SubItem to="/purchase/pr-amendment" label="PR Amendment" icon={FiClipboard} />}
+
                   </ul>
                 )}
               </li>

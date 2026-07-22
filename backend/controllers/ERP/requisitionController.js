@@ -153,6 +153,7 @@ exports.updateRequisition = async (req, res) => {
     if (!requisition) return res.status(404).json({ error: 'Requisition not found' });
 
     const { items, ...header } = req.body;
+    const originalStatus = requisition.status;
 
     const oldValue = {
       header: sanitize(requisition.toJSON()),
@@ -162,9 +163,29 @@ exports.updateRequisition = async (req, res) => {
     await requisition.update(header);
 
     if (items) {
-      await PurchaseRequisitionItem.destroy({ where: { requisition_id: id } });
-      const itemRows = items.map((it) => ({ ...it, requisition_id: id }));
-      await PurchaseRequisitionItem.bulkCreate(itemRows);
+      const oldItems = requisition.items || [];
+      const PurchaseRequisitionSanction = db.PurchaseRequisitionSanction;
+      const dateFields = ['expected_date'];
+
+      for (let i = 0; i < items.length; i++) {
+        const incoming = { ...items[i], requisition_id: id, quantity: parseFloat(items[i].quantity) || 0 };
+        dateFields.forEach((f) => { if (incoming[f] === '' || incoming[f] === undefined) incoming[f] = null; });
+        if (i < oldItems.length) {
+          await PurchaseRequisitionItem.update(incoming, { where: { id: oldItems[i].id } });
+        } else {
+          await PurchaseRequisitionItem.create(incoming);
+        }
+      }
+
+      if (oldItems.length > items.length) {
+        const removeIds = oldItems.slice(items.length).map((o) => o.id);
+        const sanctionedIds = await PurchaseRequisitionSanction.findAll({
+          where: { pr_item_id: { [Op.in]: removeIds } },
+          attributes: ['pr_item_id'],
+        });
+        const safeIds = removeIds.filter((rid) => !sanctionedIds.some((s) => s.pr_item_id === rid));
+        if (safeIds.length) await PurchaseRequisitionItem.destroy({ where: { id: { [Op.in]: safeIds } } });
+      }
     }
 
     const newValue = {
@@ -172,7 +193,7 @@ exports.updateRequisition = async (req, res) => {
       items: items ? items.map((it) => sanitize(it)) : oldValue.items,
     };
     const summary = diffSummary(oldValue, newValue);
-    if (summary.length) {
+    if (summary.length && originalStatus === 'Approved') {
       await PRAmendment.create({
         requisition_id: id,
         amended_by: req.body.amended_by || req.session?.user?.name || 'System',

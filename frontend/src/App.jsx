@@ -139,6 +139,7 @@ import DailyReports from "./Component/ERP/Purchase/DailyReports.jsx";
 import JobOrderList from "./Component/ERP/Purchase/JobOrderList.jsx";
 import PRAmendment from "./Component/ERP/Purchase/PRAmendment.jsx";
 import PRPrintView from "./Component/ERP/Purchase/Requisition/PRPrintView.jsx";
+import PRAmendmentCompare from "./Component/ERP/Purchase/Requisition/PRAmendmentCompare.jsx";
 import PRSanction from "./Component/ERP/Purchase/PRSanction.jsx";
 import PurchaseSettings from "./Component/ERP/Purchase/PurchaseSettings.jsx";
 import StoresReports from "./Component/ERP/Stores/StoresReports.jsx";
@@ -431,6 +432,8 @@ function App() {
                     <Route path="/purchase/job-orders/view/:id" element={<JobOrderForm />} />
                     <Route path="/purchase/job-orders/edit/:id" element={<JobOrderForm />} />
                     <Route path="/purchase/pr-amendment" element={<PRAmendment />} />
+                    <Route path="/purchase/requisitions/amend-compare/:id" element={<PRAmendmentCompare />} />
+
                     <Route path="/stores/reports" element={<StoresReports />} />
                     <Route path="/production/reports" element={<ProductionReports />} />
                     <Route path="/planning/reports" element={<PlanningReports />} />
