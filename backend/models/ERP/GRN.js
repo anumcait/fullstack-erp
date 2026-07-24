@@ -20,7 +20,11 @@ module.exports = (sequelize) => {
       },
       po_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
+      },
+      pr_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
       },
       supplier_id: {
         type: DataTypes.INTEGER,
@@ -65,6 +69,10 @@ module.exports = (sequelize) => {
         defaultValue: 'GRR',
         validate: { isIn: [['GRR', 'Jobwork', 'Resharpening', 'Loan', 'Maintenance']] },
       },
+      dept_cd: { type: DataTypes.STRING(50), allowNull: true },
+      year: { type: DataTypes.STRING(4), allowNull: true },
+      received_by: { type: DataTypes.STRING(100), allowNull: true },
+      cost_posted: { type: DataTypes.BOOLEAN, defaultValue: false },
       notes: {
         type: DataTypes.TEXT,
         allowNull: true,
@@ -88,6 +96,7 @@ module.exports = (sequelize) => {
   GRN.associate = (models) => {
     GRN.hasMany(models.GRNItem, { foreignKey: 'grn_id', as: 'items' });
     GRN.belongsTo(models.PurchaseOrder, { foreignKey: 'po_id', as: 'purchaseOrder' });
+    GRN.belongsTo(models.PurchaseRequisition, { foreignKey: 'pr_id', as: 'purchaseRequisition' });
     GRN.belongsTo(models.SupplierMaster, { foreignKey: 'supplier_id', as: 'supplier' });
   };
 

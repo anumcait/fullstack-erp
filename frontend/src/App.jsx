@@ -72,6 +72,7 @@ import PriceList from "./Component/ERP/Purchase/PriceList/PriceList.jsx";
 import PriceForm from "./Component/ERP/Purchase/PriceList/PriceForm.jsx";
 import GRNList from "./Component/ERP/Purchase/GRN/GRNList.jsx";
 import GRNForm from "./Component/ERP/Purchase/GRN/GRNForm.jsx";
+import GRRPrintView from "./Component/ERP/Purchase/GRN/GRRPrintView.jsx";
 import PurchaseApprovals from "./Component/ERP/Purchase/PurchaseApprovals.jsx";
 import StoresApprovals from "./Component/ERP/Stores/StoresApprovals.jsx";
 import VendorRatingList from "./Component/ERP/Purchase/VendorRating/VendorRatingList.jsx";
@@ -294,6 +295,7 @@ function App() {
                     <Route path="/stores/grr/add" element={<GRNForm />} />
                     <Route path="/stores/grr/view/:id" element={<GRNForm />} />
                     <Route path="/stores/grr/edit/:id" element={<GRNForm />} />
+                    <Route path="/stores/grr/print/:id" element={<GRRPrintView />} />
                     <Route path="/stores/material-requisitions" element={<MaterialRequisitionList />} />
                     <Route path="/stores/material-requisitions/add" element={<MaterialRequisitionForm />} />
                     <Route path="/stores/material-requisitions/view/:id" element={<MaterialRequisitionForm />} />

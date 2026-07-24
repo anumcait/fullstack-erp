@@ -14,6 +14,7 @@ const deliveryChallanController = require('../../controllers/ERP/deliveryChallan
 const billingController = require('../../controllers/ERP/billingController');
 const storesSettingsController = require('../../controllers/ERP/storesSettingsController');
 const storesReportController = require('../../controllers/ERP/storesReportController');
+const grrReportController = require('../../controllers/ERP/grrReportController');
 const approvalController = require('../../controllers/ERP/approvalController');
 
 // ── Dashboard ──
@@ -72,13 +73,20 @@ router.post('/items', itemController.createItem);
 router.put('/items/:id', itemController.updateItem);
 router.delete('/items/:id', itemController.deleteItem);
 
-// ── GRN (Goods Receipt Note) ──
+// ── GRN (Goods Receipt Note / GRR) ──
 router.get('/grn', grnController.getGRNs);
 router.get('/grn/:id', grnController.getGRN);
 router.post('/grn', grnController.createGRN);
 router.put('/grn/:id', grnController.updateGRN);
 router.put('/grn/:id/approve', grnController.approveGRN);
 router.delete('/grn/:id', grnController.deleteGRN);
+
+// ── GRR Reports ──
+router.get('/reports/grr-register', grrReportController.getGRRRegister);
+router.get('/reports/grr-pending', grrReportController.getPendingGRRs);
+router.get('/reports/grr-summary', grrReportController.getGRRSummaryBySupplier);
+router.get('/reports/grr-item-details', grrReportController.getGRRItemDetails);
+router.get('/reports/grr-qa', grrReportController.getGRRQASummary);
 
 // ── Material Requisition ──
 router.get('/material-requisitions', materialRequisitionController.getList);

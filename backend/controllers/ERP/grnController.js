@@ -6,6 +6,7 @@ const GRN = db.GRN;
 const GRNItem = db.GRNItem;
 const PurchaseOrder = db.PurchaseOrder;
 const PurchaseOrderItem = db.PurchaseOrderItem;
+const PurchaseRequisition = db.PurchaseRequisition;
 const SupplierMaster = db.SupplierMaster;
 const PurchaseSettings = db.PurchaseSettings;
 const ItemMaster = db.ItemMaster;
@@ -59,6 +60,7 @@ exports.getGRNs = async (req, res) => {
       include: [
         { model: GRNItem, as: 'items' },
         { model: PurchaseOrder, as: 'purchaseOrder', attributes: ['id', 'po_no', 'po_date'] },
+        { model: PurchaseRequisition, as: 'purchaseRequisition', attributes: ['id', 'req_no', 'req_date'] },
         { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
       ],
       order: [['created_date', 'DESC']],
@@ -76,6 +78,7 @@ exports.getGRN = async (req, res) => {
       include: [
         { model: GRNItem, as: 'items' },
         { model: PurchaseOrder, as: 'purchaseOrder' },
+        { model: PurchaseRequisition, as: 'purchaseRequisition' },
         { model: SupplierMaster, as: 'supplier' },
       ],
     });
@@ -99,8 +102,6 @@ exports.createGRN = async (req, res) => {
         return res.status(400).json({ error: 'GRN number is required. Enable auto-generation in Settings.' });
       }
     }
-
-    if (!header.po_id) return res.status(400).json({ error: 'PO reference is required' });
 
     const existing = await GRN.findOne({ where: { grn_no: header.grn_no } });
     if (existing) return res.status(409).json({ error: `GRN '${header.grn_no}' already exists` });
@@ -133,6 +134,7 @@ exports.createGRN = async (req, res) => {
       include: [
         { model: GRNItem, as: 'items' },
         { model: PurchaseOrder, as: 'purchaseOrder', attributes: ['id', 'po_no'] },
+        { model: PurchaseRequisition, as: 'purchaseRequisition', attributes: ['id', 'req_no'] },
         { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
       ],
     });
@@ -196,6 +198,7 @@ exports.updateGRN = async (req, res) => {
       include: [
         { model: GRNItem, as: 'items' },
         { model: PurchaseOrder, as: 'purchaseOrder' },
+        { model: PurchaseRequisition, as: 'purchaseRequisition' },
         { model: SupplierMaster, as: 'supplier' },
       ],
     });
