@@ -6,7 +6,7 @@ module.exports = (sequelize) => {
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       req_no: { type: DataTypes.STRING(30), allowNull: false, unique: true },
-      req_date: { type: DataTypes.DATEONLY, allowNull: false },
+      req_date: { type: DataTypes.DATE, allowNull: false },
       department: { type: DataTypes.STRING(100), allowNull: true },
       requested_by: { type: DataTypes.STRING(100), allowNull: true },
       status: {

@@ -82,6 +82,7 @@ import AddSupplier from "./Component/ERP/Purchase/VendorMaster/AddSupplier.jsx";
 import StoresDashboard from "./Component/ERP/Stores/StoresDashboard.jsx";
 import MaterialRequisitionList from "./Component/ERP/Stores/MaterialRequisition/MaterialRequisitionList.jsx";
 import MaterialRequisitionForm from "./Component/ERP/Stores/MaterialRequisition/MaterialRequisitionForm.jsx";
+import MRPrintView from "./Component/ERP/Stores/MaterialRequisition/MRPrintView.jsx";
 import MaterialIssueList from "./Component/ERP/Stores/MaterialIssue/MaterialIssueList.jsx";
 import MaterialIssueForm from "./Component/ERP/Stores/MaterialIssue/MaterialIssueForm.jsx";
 import ProductionDashboard from "./Component/ERP/Production/ProductionDashboard.jsx";
@@ -154,6 +155,7 @@ import DeliveryChallanList from "./Component/ERP/Stores/DeliveryChallan/Delivery
 import DeliveryChallanForm from "./Component/ERP/Stores/DeliveryChallan/DeliveryChallanForm.jsx";
 import BillingList from "./Component/ERP/Stores/Billing/BillingList.jsx";
 import BillingForm from "./Component/ERP/Stores/Billing/BillingForm.jsx";
+import GRRBilling from "./Component/ERP/Stores/Billing/GRRBilling.jsx";
 import GateEntryForm from "./Component/ERP/Stores/GateEntry/GateEntryForm.jsx";
 import MaterialReturnList from "./Component/ERP/Stores/MaterialReturn/MaterialReturnList.jsx";
 import MaterialReturnForm from "./Component/ERP/Stores/MaterialReturn/MaterialReturnForm.jsx";
@@ -300,6 +302,7 @@ function App() {
                     <Route path="/stores/material-requisitions/add" element={<MaterialRequisitionForm />} />
                     <Route path="/stores/material-requisitions/view/:id" element={<MaterialRequisitionForm />} />
                     <Route path="/stores/material-requisitions/edit/:id" element={<MaterialRequisitionForm />} />
+                    <Route path="/stores/material-requisitions/print/:id" element={<MRPrintView />} />
                     <Route path="/stores/material-issues" element={<MaterialIssueList />} />
                     <Route path="/stores/material-issues/add" element={<MaterialIssueForm />} />
                     <Route path="/stores/material-issues/view/:id" element={<MaterialIssueForm />} />
@@ -330,6 +333,7 @@ function App() {
                     <Route path="/stores/invoices/add" element={<BillingForm />} />
                     <Route path="/stores/invoices/view/:id" element={<BillingForm />} />
                     <Route path="/stores/invoices/edit/:id" element={<BillingForm />} />
+                    <Route path="/stores/grr-billing" element={<GRRBilling />} />
                     <Route path="/production" element={<ProductionDashboard />} />
                     <Route path="/production/orders" element={<ProductionOrderList />} />
                     <Route path="/production/machines" element={<MachineList />} />

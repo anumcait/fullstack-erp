@@ -73,7 +73,7 @@ const SUBMENUS = {
   hrReports: ["/hr/reports", "/pf-accounting"],
   storeMaster: ["/stores/item-master", "/stores/uom", "/stores/item-groups", "/stores/item-types"],
   storeInv: ["/inventory/ledger", "/stores/day-wise-stock", "/stores/stock-audit"],
-  storeTrans: ["/stores/gate-entry", "/stores/grr", "/stores/material-issues", "/stores/material-requisitions", "/stores/material-returns", "/stores/delivery-challans", "/stores/invoices"],
+  storeTrans: ["/stores/gate-entry", "/stores/grr", "/stores/grr-billing", "/stores/material-issues", "/stores/material-requisitions", "/stores/material-returns", "/stores/delivery-challans", "/stores/invoices"],
   purPR: ["/purchase/requisitions"],
   purProc: ["/purchase/rfq", "/purchase/orders"],
   purVend: ["/purchase/vendors", "/purchase/prices", "/purchase/rating"],
@@ -544,7 +544,7 @@ const Sidebar = () => {
                 </div>
                 {openSubmenu === "storeTrans" && (
                   <ul className="sidebar-submenu">
-                    {hasPermission('STORES_GATE') && <SubItem to="/stores/gate-entry" label="Gate Entry" icon={FiLogOut} />}
+                    {/* {hasPermission('STORES_GATE') && <SubItem to="/stores/gate-entry" label="Gate Entry" icon={FiLogOut} />} */}
                     {hasPermission('STORES_GRN') && <SubItem to="/stores/grr" label="GRR" icon={FiFileText} />}
                     {hasPermission('STORES_ISSUE') && <SubItem to="/stores/material-issues" label="Material Issue" icon={FiShare} />}
                     {hasPermission('STORES_MR') && <SubItem to="/stores/material-requisitions" label="Material Requisition" icon={FiFilePlus} />}

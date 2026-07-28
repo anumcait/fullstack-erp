@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
         unique: true,
       },
       grn_date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATE,
         allowNull: false,
       },
       po_id: {

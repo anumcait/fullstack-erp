@@ -1,11 +1,26 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
+const { generateDocNumber } = require('../../utils/docNumber');
 
+const sequelize = db.sequelize;
 const MaterialIssue = db.MaterialIssue;
 const MaterialIssueItem = db.MaterialIssueItem;
 const MaterialRequisition = db.MaterialRequisition;
 const MaterialRequisitionItem = db.MaterialRequisitionItem;
 const ItemMaster = db.ItemMaster;
+const PurchaseRequisition = db.PurchaseRequisition;
+const PurchaseRequisitionItem = db.PurchaseRequisitionItem;
+const PurchaseSettings = db.PurchaseSettings;
+
+exports.getNextNumber = async (req, res) => {
+  try {
+    const seq = await MaterialIssue.count() + 1;
+    res.json({ issue_no: String(seq), sequence: seq });
+  } catch (err) {
+    console.error('Error getting next issue number:', err);
+    res.status(500).json({ error: 'Failed to get next issue number' });
+  }
+};
 
 exports.getList = async (req, res) => {
   try {
@@ -53,7 +68,7 @@ exports.create = async (req, res) => {
     let { items, ...header } = req.body;
     if (!header.issue_no) {
       const seq = await MaterialIssue.count() + 1;
-      header.issue_no = `MIS-${String(seq).padStart(4, '0')}`;
+      header.issue_no = String(seq);
     }
     const doc = await MaterialIssue.create(header);
     if (items && items.length > 0) {
@@ -163,6 +178,176 @@ exports.update = async (req, res) => {
   } catch (err) {
     console.error('Error updating material issue:', err);
     res.status(500).json({ error: 'Failed to update' });
+  }
+};
+
+exports.convertToPR = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const doc = await MaterialIssue.findByPk(req.params.id, {
+      include: [{ model: MaterialIssueItem, as: 'items' }],
+    });
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+
+    const issueItems = doc.items || [];
+    if (issueItems.length === 0) {
+      return res.status(400).json({ error: 'No items in this issue' });
+    }
+
+    const itemIds = issueItems.map((it) => it.item_id).filter(Boolean);
+    const stockMap = {};
+    if (itemIds.length > 0) {
+      const stockItems = await ItemMaster.findAll({ where: { id: itemIds } });
+      stockItems.forEach((it) => { stockMap[it.id] = Number(it.current_stock || 0); });
+    }
+
+    const itemsToPurchase = issueItems.filter((it) => {
+      const available = stockMap[it.item_id] || 0;
+      const issued = Number(it.quantity || 0);
+      return issued > available;
+    });
+
+    if (itemsToPurchase.length === 0) {
+      return res.status(400).json({ error: 'All items have sufficient stock. No purchase needed.' });
+    }
+
+    const settings = await PurchaseSettings.findByPk(1);
+    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_prefix', 'req_no', settings || {});
+
+    const docRef = doc.issue_no || `MI#${doc.id}`;
+    const pr = await PurchaseRequisition.create({
+      req_no: prNo,
+      req_date: new Date(),
+      status: 'Pending',
+      department: doc.department || null,
+      remarks: `Auto-converted from Material Issue #${docRef} (insufficient stock)`,
+    }, { transaction: t });
+
+    const prItems = itemsToPurchase.map((it) => {
+      const available = stockMap[it.item_id] || 0;
+      const issued = Number(it.quantity || 0);
+      const toPurchase = issued - available;
+      return {
+        requisition_id: pr.id,
+        item_id: it.item_id,
+        item_code: it.item_code,
+        item_name: it.item_name,
+        quantity: toPurchase,
+        unit_id: it.unit_id,
+        remarks: `From Issue #${docRef} (stock: ${available}, need: ${toPurchase})`,
+      };
+    });
+    await PurchaseRequisitionItem.bulkCreate(prItems, { transaction: t });
+
+    await t.commit();
+
+    const skippedCount = issueItems.length - itemsToPurchase.length;
+    let message = `PR #${prNo} created for ${itemsToPurchase.length} item(s)`;
+    if (skippedCount > 0) message += `. ${skippedCount} item(s) had sufficient stock and were skipped.`;
+
+    res.status(201).json({ pr_id: pr.id, pr_no: prNo, message, skippedCount });
+  } catch (err) {
+    await t.rollback();
+    console.error('Error converting issue to PR:', err);
+    res.status(500).json({ error: 'Failed to convert to PR' });
+  }
+};
+
+exports.prPreview = async (req, res) => {
+  try {
+    const doc = await MaterialIssue.findByPk(req.params.id, {
+      include: [{ model: MaterialIssueItem, as: 'items' }],
+    });
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+
+    const issueItems = doc.items || [];
+    if (issueItems.length === 0) {
+      return res.status(400).json({ error: 'No items in this issue' });
+    }
+
+    const itemIds = issueItems.map((it) => it.item_id).filter(Boolean);
+    const stockMap = {};
+    if (itemIds.length > 0) {
+      const stockItems = await ItemMaster.findAll({ where: { id: itemIds } });
+      stockItems.forEach((it) => { stockMap[it.id] = Number(it.current_stock || 0); });
+    }
+
+    const previewItems = issueItems
+      .filter((it) => {
+        const available = stockMap[it.item_id] || 0;
+        const issued = Number(it.quantity || 0);
+        return issued > available;
+      })
+      .map((it) => {
+        const available = stockMap[it.item_id] || 0;
+        const issued = Number(it.quantity || 0);
+        return {
+          source_item_id: it.id,
+          item_id: it.item_id,
+          item_code: it.item_code,
+          item_name: it.item_name,
+          unit_id: it.unit_id,
+          uom: 'NOS',
+          requested: issued,
+          available: available,
+          suggested_qty: issued - available,
+          quantity: issued - available,
+        };
+      });
+
+    res.json({
+      doc_no: doc.issue_no,
+      doc_date: doc.issue_date,
+      doc_department: doc.department,
+      items: previewItems,
+      allSufficient: previewItems.length === 0,
+    });
+  } catch (err) {
+    console.error('Error preparing issue PR preview:', err);
+    res.status(500).json({ error: 'Failed to prepare preview' });
+  }
+};
+
+exports.createPRFromIssue = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const doc = await MaterialIssue.findByPk(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+
+    let { items, remarks } = req.body;
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: 'No items provided for PR' });
+    }
+
+    const settings = await PurchaseSettings.findByPk(1);
+    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_prefix', 'req_no', settings || {});
+
+    const docRef = doc.issue_no || `MI#${doc.id}`;
+    const pr = await PurchaseRequisition.create({
+      req_no: prNo,
+      req_date: new Date(),
+      status: 'Pending',
+      department: doc.department,
+      remarks: remarks || `Converted from Material Issue #${docRef}`,
+    }, { transaction: t });
+
+    const prItems = items.map((it) => ({
+      requisition_id: pr.id,
+      item_id: it.item_id,
+      item_code: it.item_code,
+      item_name: it.item_name,
+      quantity: it.quantity,
+      unit_id: it.unit_id || null,
+      remarks: it.remarks || `From Issue #${docRef}`,
+    }));
+    await PurchaseRequisitionItem.bulkCreate(prItems, { transaction: t });
+
+    await t.commit();
+    res.status(201).json({ pr_id: pr.id, pr_no: prNo, message: `PR #${prNo} created for ${items.length} item(s)` });
+  } catch (err) {
+    await t.rollback();
+    console.error('Error creating PR from issue:', err);
+    res.status(500).json({ error: 'Failed to create PR' });
   }
 };
 

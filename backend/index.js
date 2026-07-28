@@ -25,6 +25,7 @@ async function startServer(retries = MAX_RETRIES) {
   const app = require('./app');
   const db = require('./models');
   const erpDb = require('./models/ERP');
+  const accountsDb = require('./models/Accounts');
 
   while (retries > 0) {
     try {
@@ -32,7 +33,7 @@ async function startServer(retries = MAX_RETRIES) {
       await db.sequelize.authenticate();
       console.log(`✅ Connected to ${ENV} database (HR)`);
 
-      await erpDb.sequelize.authenticate();
+      await erpDb.sequelize.authenticate({ logging: console.log });
       console.log(`✅ Connected to ${ENV} database (ERP)`);
 
       const FORCE_SYNC = process.env.DB_SYNC_FORCE === 'true';
@@ -172,7 +173,7 @@ END $$;`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS est_cost DECIMAL(14,2)`,
         // ── Company settings: logo ──
         `ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS logo_url TEXT`,
-        `UPDATE m_company_settings SET logo_url = '/logo.png' WHERE logo_url IS NULL OR logo_url = ''`,
+        `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'm_company_settings' AND table_schema = 'public') THEN UPDATE m_company_settings SET logo_url = '/logo.png' WHERE logo_url IS NULL OR logo_url = ''; END IF; END $$;`,
         // ── Sequence counters (row-level locking for concurrent-safe auto-numbering) ──
         `CREATE TABLE IF NOT EXISTS t_sequence_counters (
           id SERIAL PRIMARY KEY,
@@ -201,6 +202,8 @@ END $$;`,
         // ── Stores Settings: GRR prefix & auto-generate ──
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS grn_prefix VARCHAR(10) NOT NULL DEFAULT 'GRR'`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS auto_generate_grn BOOLEAN NOT NULL DEFAULT FALSE`,
+        // ── Material Issue: issue_date stores time (TIMESTAMP) ──
+        `ALTER TABLE IF EXISTS t_material_issue ALTER COLUMN issue_date TYPE timestamptz USING issue_date::timestamptz`,
         // ── Job Order: old JO number and year reference ──
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS old_jo_no VARCHAR(50)`,
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS jo_year VARCHAR(10)`,
@@ -237,6 +240,9 @@ END $$;`,
 
       await erpDb.sequelize.sync(syncOptions);
       console.log('✅ ERP database synced.');
+
+      await accountsDb.sequelize.sync(syncOptions);
+      console.log('✅ Accounts database synced.');
 
       // 6. One-time data fix: drop obsolete Category/Model/SKU tree rows and normalize to PRODnnnn + new product_code
       try {

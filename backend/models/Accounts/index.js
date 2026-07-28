@@ -8,11 +8,7 @@ const db = {};
 
 fs.readdirSync(__dirname).forEach((file) => {
   const fullPath = path.join(__dirname, file);
-  if (fs.statSync(fullPath).isDirectory()) {
-    if (file !== 'node_modules' && !file.startsWith('.')) {
-      // Recursively load from subdirectories if needed
-    }
-  } else if (file !== basename && file.endsWith('.js') && !file.startsWith('.')) {
+  if (file !== basename && file.endsWith('.js') && !file.startsWith('.')) {
     const model = require(fullPath)(sequelize, Sequelize.DataTypes);
     db[model.name] = model;
   }

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import {
   Box, Card, CardContent, Typography, TextField, Button, Grid, MenuItem,
   IconButton, LinearProgress, Table, TableHead, TableRow, TableCell, TableBody,
-  InputAdornment, Tooltip, Chip, Stack, Collapse, Fade, useTheme
+  InputAdornment, Tooltip, Chip, Stack, Fade, useTheme
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -23,13 +23,17 @@ import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const stripPrefix = (val) => (val || "").replace(/^[A-Z]+[-\s]/i, "");
-const fmt = (v, d = 2) => {
+const fmt = (v, d) => {
   const n = parseFloat(v);
-  return isNaN(n) || n === 0 ? "" : n.toFixed(d);
+  if (isNaN(n) || n === 0) return "";
+  if (d !== undefined) return n.toFixed(d);
+  return n % 1 === 0 ? String(n) : n.toFixed(2);
 };
-const fmtTotal = (v, d = 2) => {
+const fmtTotal = (v, d) => {
   const n = parseFloat(v);
-  return isNaN(n) ? "0.00" : n.toFixed(d);
+  if (isNaN(n)) return "0";
+  if (d !== undefined) return n.toFixed(d);
+  return n % 1 === 0 ? String(n) : n.toFixed(2);
 };
 const API = "/api/erp/stores/grn";
 const PO_API = "/api/erp/purchase/orders";
@@ -299,43 +303,43 @@ export default function GRNForm() {
   const [errors, setErrors] = useState({});
 
   const GRID_COLS = [
-    { label: "SL#", width: 45 },
-    { label: "PR#", width: 65 },
-    { label: "PO#", width: 65 },
-    { label: "Item Code", width: 90 },
-    { label: "Item Description", width: 220 },
+    { label: "SL#", width: 40 },
+    { label: "PR#", width: 40 },
+    { label: "PO#", width: 40 },
+    { label: "Item Code", width: 70 },
+    { label: "Item Description", width: 200 },
     { label: "UOM", width: 45 },
-    { label: "Qty", width: 55 },
-    { label: "UT Rep#", width: 70 },
-    { label: "Dia", width: 55 },
-    { label: "Len", width: 55 },
-    { label: "Wid", width: 55 },
-    { label: "Thk", width: 55 },
-    { label: "KG Recv.", width: 70 },
-    { label: "KG Accp", width: 70 },
-    { label: "Phy Wt", width: 70 },
+    { label: "Qty", width: 40 },
+    { label: "UT Rep#", width: 50 },
+    { label: "Dia", width: 50 },
+    { label: "Len", width: 50 },
+    { label: "Wid", width: 50 },
+    { label: "Thk", width: 50 },
+    { label: "KG Recv.", width: 60 },
+    { label: "KG Accp", width: 60 },
+    { label: "Phy Wt", width: 60 },
     { label: "Rec Qty", width: 60 },
-    { label: "Supp Qty", width: 70 },
-    { label: "Accp Qty", width: 70 },
-    { label: "Rej", width: 50 },
-    { label: "Remarks", width: 140 },
+    { label: "Supp Qty", width: 60 },
+    { label: "Accp Qty", width: 60 },
+    { label: "Rej<br>Qty", width: 55 },
+    { label: "Remarks", width: 100 },
   ];
   const EDITABLE_COLS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19];
-  const colWidths = useRef(GRID_COLS.map(function(c) { return c.width; }));
+  const colWidths = useRef(GRID_COLS.map(function (c) { return c.width; }));
   const [, bump] = useState(0);
 
-  const handleColResize = useCallback(function(colIdx) {
-    return function(e) {
+  const handleColResize = useCallback(function (colIdx) {
+    return function (e) {
       e.preventDefault();
       e.stopPropagation();
       var startX = e.clientX;
       var startWidth = colWidths.current[colIdx];
-      var onMouseMove = function(me) {
+      var onMouseMove = function (me) {
         var newWidth = Math.max(20, startWidth + me.clientX - startX);
         colWidths.current[colIdx] = newWidth;
-        bump(function(n) { return n + 1; });
+        bump(function (n) { return n + 1; });
       };
-      var onMouseUp = function() {
+      var onMouseUp = function () {
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
         document.body.style.cursor = "";
@@ -348,33 +352,44 @@ export default function GRNForm() {
     };
   }, []);
 
-  useEffect(function() {
+  useEffect(function () {
     Promise.all([
-      axios.get(PO_API).catch(function() { return { data: [] }; }),
-      axios.get(PR_API, { params: { status: "Approved" } }).catch(function() { return { data: [] }; }),
-      axios.get(SUPPLIER_API, { params: { is_active: true } }).catch(function() { return { data: [] }; }),
-    ]).then(function(results) {
+      axios.get(PO_API).catch(function () { return { data: [] }; }),
+      axios.get(PR_API, { params: { status: "Approved" } }).catch(function () { return { data: [] }; }),
+      axios.get(SUPPLIER_API, { params: { is_active: true } }).catch(function () { return { data: [] }; }),
+    ]).then(function (results) {
       setAllPOs(results[0].data || []);
       setAllPRs(results[1].data || []);
       setSuppliers(results[2].data || []);
     });
   }, []);
 
-  useEffect(function() {
+  useEffect(function () {
     var sid = Number(header.supplier_id);
     if (sid) {
-      axios.get(SANCTIONS_API, { params: { supplier_id: sid } }).then(function(resp) {
+      axios.get(SANCTIONS_API, { params: { supplier_id: sid } }).then(function (resp) {
         setSanctions(resp.data || []);
-      }).catch(function() { setSanctions([]); });
+      }).catch(function () { setSanctions([]); });
     } else {
       setSanctions([]);
     }
   }, [header.supplier_id]);
 
-  useEffect(function() {
+  var fetchNextGRN = useCallback(function () {
+    if (id) return;
+    axios.get(API + "/next-number").then(function (resp) {
+      setHeader(function (h) { return { ...h, grn_no: resp.data.grn_no || "" }; });
+    }).catch(function () { });
+  }, [id]);
+
+  useEffect(function () {
+    fetchNextGRN();
+  }, [fetchNextGRN]);
+
+  useEffect(function () {
     if (id) {
       setLoading(true);
-      axios.get(API + "/" + id).then(function(resp) {
+      axios.get(API + "/" + id).then(function (resp) {
         var data = resp.data;
         setHeader({
           grn_no: data.grn_no || "", grn_date: data.grn_date ? data.grn_date.slice(0, 16) : nowLocal(),
@@ -389,7 +404,7 @@ export default function GRNForm() {
           qa_status: data.qa_status || "Pending", qa_by: data.qa_by || "",
           qa_date: data.qa_date ? data.qa_date.split("T")[0] : "", qa_remarks: data.qa_remarks || "",
         });
-        if (data.items) setItems(data.items.map(function(it) {
+        if (data.items) setItems(data.items.map(function (it) {
           return {
             po_item_id: it.po_item_id, pr_item_id: it.pr_item_id,
             item_id: it.item_id, item_code: it.item_code || "", item_name: it.item_name || "",
@@ -406,30 +421,30 @@ export default function GRNForm() {
             gst_amount: parseFloat(it.gst_amount || 0), amount: parseFloat(it.amount || 0),
           };
         }));
-      }).catch(function() { showToast("Failed to load GRR", "error"); }).finally(function() { setLoading(false); });
+      }).catch(function () { showToast("Failed to load GRR", "error"); }).finally(function () { setLoading(false); });
     }
   }, [id]);
 
-  var handleHeaderChange = useCallback(function(field) {
-    return function(e) {
+  var handleHeaderChange = useCallback(function (field) {
+    return function (e) {
       var v = e.target.value;
-      setHeader(function(h) { return { ...h, [field]: v }; });
-      setErrors(function(prev) { return { ...prev, [field]: "" }; });
+      setHeader(function (h) { return { ...h, [field]: v }; });
+      setErrors(function (prev) { return { ...prev, [field]: "" }; });
     };
   }, []);
 
-  var removeItem = useCallback(function(idx) {
+  var removeItem = useCallback(function (idx) {
     var removed = items[idx];
-    setItems(function(prev) { return prev.filter(function(_, i) { return i !== idx; }); });
+    setItems(function (prev) { return prev.filter(function (_, i) { return i !== idx; }); });
     if (removed && removed.pr_item_id) {
-      var sanction = sanctions.find(function(s) { return s.pr_item_id === removed.pr_item_id; });
-      if (sanction) setLoadedSanctionIds(function(prev) { return prev.filter(function(sid) { return sid !== sanction.id; }); });
+      var sanction = sanctions.find(function (s) { return s.pr_item_id === removed.pr_item_id; });
+      if (sanction) setLoadedSanctionIds(function (prev) { return prev.filter(function (sid) { return sid !== sanction.id; }); });
     }
   }, [items, sanctions]);
 
-  var handleItemChange = useCallback(function(idx, field) {
-    return function(e) {
-      setItems(function(prev) {
+  var handleItemChange = useCallback(function (idx, field) {
+    return function (e) {
+      setItems(function (prev) {
         var updated = prev.slice();
         updated[idx][field] = e.target.value;
         if (["accepted_qty", "rate", "gst_rate", "ordered_qty"].indexOf(field) >= 0) {
@@ -446,99 +461,111 @@ export default function GRNForm() {
   }, []);
 
   var canEdit = header.status === "Draft" && !isView;
-  var canSubmit = header.status === "Draft" && items.some(function(i) { return parseFloat(i.accepted_qty) > 0; });
+  var canSubmit = header.status === "Draft" && items.some(function (i) { return parseFloat(i.accepted_qty) > 0; });
 
-  var validate = useCallback(function() {
+  var validate = useCallback(function () {
     var errs = {};
     if (!header.grn_no) errs.grn_no = "Required";
     if (!header.grn_date) errs.grn_date = "Required";
-    if (!header.supplier_id) errs.supplier_id = "Required";
+    if (!header.supplier_id) errs.supplier_id = "Select a party";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }, [header]);
 
-  var save = useCallback(function(status, e) {
+  var save = useCallback(function (status, e) {
     if (e) e.preventDefault();
     if (!validate()) { showToast("Please fill required fields", "warning"); return; }
-    if (status === "Received" && !items.some(function(i) { return parseFloat(i.accepted_qty) > 0; })) {
+    if (items.length === 0) { showToast("Add at least one item", "warning"); return; }
+    if (status === "Received" && !items.some(function (i) { return parseFloat(i.accepted_qty) > 0; })) {
       showToast("Add at least one item with accepted qty > 0", "warning"); return;
     }
     setSaving(true);
-    var payload = {
-      ...header, ir_type: "GRR", status,
-      received_by: header.received_by || localStorage.getItem("empName") || "",
-      supplier_id: parseInt(header.supplier_id) || null,
-      po_id: null, pr_id: null,
-      items: items.map(function(i) {
-        return {
-          po_item_id: i.po_item_id || null, pr_item_id: i.pr_item_id || null, item_id: i.item_id || null,
-          item_code: i.item_code || "", item_name: i.item_name || "",
-          pr_no: i.pr_no || "", po_no: i.po_no || "",
-          rep: i.rep || "", dia: parseFloat(i.dia) || 0, len: parseFloat(i.len) || 0,
-          wid: parseFloat(i.wid) || 0, thk: parseFloat(i.thk) || 0, uom: i.uom || "NOS",
-          kg: parseFloat(i.kg) || 0, recv_kg: parseFloat(i.recv_kg) || 0,
-          accp: parseFloat(i.accp) || 0, phy: parseFloat(i.phy) || 0, weight: parseFloat(i.weight) || 0,
-          ordered_qty: parseFloat(i.ordered_qty) || 0, received_qty: parseFloat(i.received_qty) || 0,
-          accepted_qty: parseFloat(i.accepted_qty) || 0, rejected_qty: parseFloat(i.rejected_qty) || 0,
-          supp_qty: parseFloat(i.supp_qty) || 0, reject_reason: i.reject_reason || "",
-          rate: parseFloat(i.rate) || 0, gst_rate: parseFloat(i.gst_rate) || 0,
-          gst_amount: parseFloat(i.gst_amount) || 0, amount: parseFloat(i.amount) || 0,
-        };
-      }),
+    var saveWithNumber = function (grnNumber) {
+      var payload = {
+        ...header, ir_type: "GRR", status,
+        grn_no: grnNumber || header.grn_no,
+
+        received_by: header.received_by || localStorage.getItem("empName") || "",
+        supplier_id: parseInt(header.supplier_id) || null,
+        po_id: null, pr_id: null,
+        items: items.map(function (i) {
+          return {
+            po_item_id: i.po_item_id || null, pr_item_id: i.pr_item_id || null, item_id: i.item_id || null,
+            item_code: i.item_code || "", item_name: i.item_name || "",
+            pr_no: i.pr_no || "", po_no: i.po_no || "",
+            rep: i.rep || "", dia: parseFloat(i.dia) || 0, len: parseFloat(i.len) || 0,
+            wid: parseFloat(i.wid) || 0, thk: parseFloat(i.thk) || 0, uom: i.uom || "NOS",
+            kg: parseFloat(i.kg) || 0, recv_kg: parseFloat(i.recv_kg) || 0,
+            accp: parseFloat(i.accp) || 0, phy: parseFloat(i.phy) || 0, weight: parseFloat(i.weight) || 0,
+            ordered_qty: parseFloat(i.ordered_qty) || 0, received_qty: parseFloat(i.received_qty) || 0,
+            accepted_qty: parseFloat(i.accepted_qty) || 0, rejected_qty: parseFloat(i.rejected_qty) || 0,
+            supp_qty: parseFloat(i.supp_qty) || 0, reject_reason: i.reject_reason || "",
+            rate: parseFloat(i.rate) || 0, gst_rate: parseFloat(i.gst_rate) || 0,
+            gst_amount: parseFloat(i.gst_amount) || 0, amount: parseFloat(i.amount) || 0,
+          };
+        }),
+      };
+      var request;
+      if (isEdit) {
+        request = axios.put(API + "/" + id, payload);
+      } else {
+        request = axios.post(API, payload);
+      }
+      request.then(function () {
+        showToast(isEdit ? "Updated" : "Created", "success");
+        navigate("/stores/grr");
+      }).catch(function (err) {
+        showToast((err.response && err.response.data && err.response.data.error) || "Failed", "error");
+      }).finally(function () {
+        setSaving(false);
+      });
     };
-    var request;
-    if (isEdit) {
-      request = axios.put(API + "/" + id, payload);
+    if (!id && !isEdit) {
+      axios.get(API + "/next-number").then(function (resp) {
+        saveWithNumber(resp.data.grn_no);
+      }).catch(function () { saveWithNumber(header.grn_no); });
     } else {
-      request = axios.post(API, payload);
+      saveWithNumber(header.grn_no);
     }
-    request.then(function() {
-      showToast(isEdit ? "Updated" : "Created", "success");
-      navigate("/stores/grr");
-    }).catch(function(err) {
-      showToast((err.response && err.response.data && err.response.data.error) || "Failed", "error");
-    }).finally(function() {
-      setSaving(false);
-    });
   }, [header, items, isEdit, id, validate, showToast, navigate]);
 
-  var handleSubmit = useCallback(function(status) {
-    return function(e) { save(status, e); };
+  var handleSubmit = useCallback(function (status) {
+    return function (e) { save(status, e); };
   }, [save]);
 
-  var toggleShuttle = useCallback(function(sid) {
-    setShuttleChecked(function(prev) {
-      return prev.includes(sid) ? prev.filter(function(x) { return x !== sid; }) : prev.concat([sid]);
+  var toggleShuttle = useCallback(function (sid) {
+    setShuttleChecked(function (prev) {
+      return prev.includes(sid) ? prev.filter(function (x) { return x !== sid; }) : prev.concat([sid]);
     });
   }, []);
 
-  var uniquePrIds = useMemo(function() {
+  var uniquePrIds = useMemo(function () {
     var ids = new Set();
-    sanctions.forEach(function(s) { if (s.requisition && s.requisition.id) ids.add(s.requisition.id); });
+    sanctions.forEach(function (s) { if (s.requisition && s.requisition.id) ids.add(s.requisition.id); });
     return Array.from(ids);
   }, [sanctions]);
 
-  var filteredSanctions = useMemo(function() {
+  var filteredSanctions = useMemo(function () {
     var result = sanctions.slice();
-    if (prFilter) result = result.filter(function(s) { return s.requisition && s.requisition.id === Number(prFilter); });
+    if (prFilter) result = result.filter(function (s) { return s.requisition && s.requisition.id === Number(prFilter); });
     if (poFilter) {
-      var po = allPOs.find(function(p) { return p.id === Number(poFilter); });
+      var po = allPOs.find(function (p) { return p.id === Number(poFilter); });
       if (po) {
-        var poPrNos = new Set((po.items || []).map(function(i) { return i.pr_no; }).filter(Boolean));
-        result = result.filter(function(s) { return s.requisition && poPrNos.has(s.requisition.req_no); });
+        var poPrNos = new Set((po.items || []).map(function (i) { return i.pr_no; }).filter(Boolean));
+        result = result.filter(function (s) { return s.requisition && poPrNos.has(s.requisition.req_no); });
       }
     }
     return result;
   }, [sanctions, prFilter, poFilter, allPOs]);
 
-  var shuttleItems = useMemo(function() {
+  var shuttleItems = useMemo(function () {
     var poByPrNo = {};
-    allPOs.filter(function(po) { return po.supplier_id === Number(header.supplier_id); }).forEach(function(po) {
-      (po.items || []).forEach(function(poi) {
+    allPOs.filter(function (po) { return po.supplier_id === Number(header.supplier_id); }).forEach(function (po) {
+      (po.items || []).forEach(function (poi) {
         if (poi.pr_no) poByPrNo[poi.pr_no] = po.po_no || "PO#" + po.id;
       });
     });
-    return filteredSanctions.map(function(s) {
+    return filteredSanctions.map(function (s) {
       return {
         id: s.id,
         itemCode: (s.prItem && s.prItem.item_code) || "---",
@@ -556,82 +583,95 @@ export default function GRNForm() {
     });
   }, [filteredSanctions, allPOs, header.supplier_id]);
 
-  var loadItemsFromSources = useCallback(function() {
-    var toLoad = shuttleChecked.filter(function(sid) { return loadedSanctionIds.indexOf(sid) < 0; });
+  var loadItemsFromSources = useCallback(function () {
+    var toLoad = shuttleChecked.filter(function (sid) { return loadedSanctionIds.indexOf(sid) < 0; });
     if (toLoad.length === 0) { showToast("Select items to load", "warning"); return; }
     var poByPrNo = {};
-    allPOs.filter(function(po) { return po.supplier_id === Number(header.supplier_id); }).forEach(function(po) {
-      (po.items || []).forEach(function(poi) {
-        if (poi.pr_no) poByPrNo[poi.pr_no] = po.po_no || "PO#" + po.id;
+    var poItemByPrItem = {};
+    allPOs.filter(function (po) { return po.supplier_id === Number(header.supplier_id); }).forEach(function (po) {
+      (po.items || []).forEach(function (poi) {
+        if (poi.pr_no) {
+          poByPrNo[poi.pr_no] = po.po_no || "PO#" + po.id;
+          if (poi.item_id) {
+            poItemByPrItem[poi.pr_no + ":" + poi.item_id] = poi;
+          }
+        }
       });
     });
-    var newItems = toLoad.map(function(sid) {
-      var s = sanctions.find(function(san) { return san.id === sid; });
+    var newItems = toLoad.map(function (sid) {
+      var s = sanctions.find(function (san) { return san.id === sid; });
       if (!s) return null;
       var it = s.prItem || {};
       var reqNo = (s.requisition && s.requisition.req_no) || "";
+      var itemId = it.item_id || it.id || null;
+      var poItem = poItemByPrItem[reqNo + ":" + itemId];
       return {
-        po_item_id: null, pr_item_id: s.pr_item_id, item_id: it.item_id || it.id || null,
+        po_item_id: poItem ? poItem.id : null, pr_item_id: s.pr_item_id, item_id: itemId,
         item_code: it.item_code || "", item_name: it.item_name || "",
         pr_no: reqNo, po_no: poByPrNo[reqNo] || "",
         rep: "", dia: 0, len: 0, wid: 0, thk: 0, uom: it.uom || "NOS",
         kg: 0, recv_kg: 0, accp: 0, phy: 0, weight: 0,
         ordered_qty: Number(s.sanctioned_qty || 0), received_qty: 0, accepted_qty: 0, rejected_qty: 0,
         supp_qty: 0, reject_reason: "",
-        rate: Number(s.rate || 0), gst_rate: 0, gst_amount: 0, amount: 0,
+        rate: poItem ? Number(poItem.rate || 0) : Number(s.rate || 0),
+        gst_rate: poItem ? Number(poItem.gst_rate || 0) : 0,
+        gst_amount: 0, amount: 0,
       };
     }).filter(Boolean);
     if (newItems.length === 0) { showToast("No items to load", "warning"); return; }
-    setItems(function(prev) { return prev.concat(newItems); });
-    setLoadedSanctionIds(function(prev) { return Array.from(new Set(prev.concat(toLoad))); });
-    setShuttleChecked(function(prev) { return prev.filter(function(sid) { return toLoad.indexOf(sid) < 0; }); });
+    setItems(function (prev) { return prev.concat(newItems); });
+    setLoadedSanctionIds(function (prev) { return Array.from(new Set(prev.concat(toLoad))); });
+    setShuttleChecked(function (prev) { return prev.filter(function (sid) { return toLoad.indexOf(sid) < 0; }); });
     showToast(newItems.length + " item(s) loaded", "success");
   }, [shuttleChecked, loadedSanctionIds, allPOs, header.supplier_id, sanctions, showToast]);
 
-  useEffect(function() {
+  useEffect(function () {
     if (id && items.length > 0 && sanctions.length > 0) {
-      var matched = items.map(function(it) {
-        var s = sanctions.find(function(san) { return san.pr_item_id === it.pr_item_id; });
+      var matched = items.map(function (it) {
+        var s = sanctions.find(function (san) { return san.pr_item_id === it.pr_item_id; });
         return s && s.id;
       }).filter(Boolean);
-      setLoadedSanctionIds(function(prev) { return Array.from(new Set(prev.concat(matched))); });
+      setLoadedSanctionIds(function (prev) { return Array.from(new Set(prev.concat(matched))); });
     }
   }, [id, items, sanctions]);
 
-  var handleGridKeyDown = useCallback(function(rowIdx, colIdx) {
-    return function(e) {
-      if (!canEdit) return;
-      if (e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) {
-        e.preventDefault();
-        var curIdx = EDITABLE_COLS.indexOf(colIdx);
-        if (curIdx < EDITABLE_COLS.length - 1) {
-          var nextCol = EDITABLE_COLS[curIdx + 1];
-          var td = tableRef.current && tableRef.current.querySelector("tbody tr:nth-child(" + (rowIdx + 1) + ") td:nth-child(" + (nextCol + 1) + ")");
-          var inp = td && td.querySelector("input");
-          if (inp) { inp.focus(); inp.select(); }
-        } else if (rowIdx < items.length - 1) {
-          var nextCol2 = EDITABLE_COLS[0];
-          var td2 = tableRef.current && tableRef.current.querySelector("tbody tr:nth-child(" + (rowIdx + 2) + ") td:nth-child(" + (nextCol2 + 1) + ")");
-          var inp2 = td2 && td2.querySelector("input");
-          if (inp2) { inp2.focus(); inp2.select(); }
-        }
-      } else if (e.key === "Tab" && e.shiftKey) {
-        e.preventDefault();
-        var curIdx2 = EDITABLE_COLS.indexOf(colIdx);
-        if (curIdx2 > 0) {
-          var prevCol = EDITABLE_COLS[curIdx2 - 1];
-          var td3 = tableRef.current && tableRef.current.querySelector("tbody tr:nth-child(" + (rowIdx + 1) + ") td:nth-child(" + (prevCol + 1) + ")");
-          var inp3 = td3 && td3.querySelector("input");
-          if (inp3) { inp3.focus(); inp3.select(); }
-        } else if (rowIdx > 0) {
-          var prevCol2 = EDITABLE_COLS[EDITABLE_COLS.length - 1];
-          var td4 = tableRef.current && tableRef.current.querySelector("tbody tr:nth-child(" + rowIdx + ") td:nth-child(" + (prevCol2 + 1) + ")");
-          var inp4 = td4 && td4.querySelector("input");
-          if (inp4) { inp4.focus(); inp4.select(); }
+  var handleGridKeyDown = useCallback(function (e) {
+    if (!canEdit) return;
+    var isForward = e.key === "Enter" || (e.key === "Tab" && !e.shiftKey);
+    var isBackward = e.key === "Tab" && e.shiftKey;
+    if (!isForward && !isBackward) return;
+    e.preventDefault();
+    var inp = e.currentTarget.querySelector("input") || document.activeElement;
+    if (!inp) return;
+    var row = inp.closest("tr");
+    if (!row) return;
+    var inputs = row.querySelectorAll("input");
+    var curIdx = Array.prototype.indexOf.call(inputs, inp);
+    if (curIdx < 0) return;
+    if (isForward) {
+      if (curIdx < inputs.length - 1) {
+        inputs[curIdx + 1].focus();
+        inputs[curIdx + 1].select();
+      } else {
+        var nextRow = row.nextElementSibling;
+        if (nextRow) {
+          var nextInputs = nextRow.querySelectorAll("input");
+          if (nextInputs.length > 0) { nextInputs[0].focus(); nextInputs[0].select(); }
         }
       }
-    };
-  }, [canEdit, items.length]);
+    } else {
+      if (curIdx > 0) {
+        inputs[curIdx - 1].focus();
+        inputs[curIdx - 1].select();
+      } else {
+        var prevRow = row.previousElementSibling;
+        if (prevRow) {
+          var prevInputs = prevRow.querySelectorAll("input");
+          if (prevInputs.length > 0) { prevInputs[prevInputs.length - 1].focus(); prevInputs[prevInputs.length - 1].select(); }
+        }
+      }
+    }
+  }, [canEdit]);
 
   var fsx = {
     "& .MuiInputBase-root": { fontSize: "0.88rem", height: 34, borderRadius: "8px", transition: "all 0.2s" },
@@ -641,19 +681,21 @@ export default function GRNForm() {
 
   var cellInputSx = {
     "& .MuiInputBase-root": { fontSize: "0.85rem", height: 30, borderRadius: "6px" },
-    "& .MuiInputBase-input": { px: 0.75 }
+    "& .MuiInputBase-input": { px: 0.75 },
+    "& input[type=number]": { MozAppearance: "textfield" },
+    "& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button": { WebkitAppearance: "none", margin: 0 },
   };
 
-  var filteredItems = useMemo(function() {
+  var filteredItems = useMemo(function () {
     var q = filterText.trim().toLowerCase();
     if (!q) return items;
-    return items.filter(function(it) {
-      return Object.values(it).some(function(v) { return String(v || "").toLowerCase().indexOf(q) >= 0; });
+    return items.filter(function (it) {
+      return Object.values(it).some(function (v) { return String(v || "").toLowerCase().indexOf(q) >= 0; });
     });
   }, [items, filterText]);
 
-  var totals = useMemo(function() {
-    return items.reduce(function(a, i) {
+  var totals = useMemo(function () {
+    return items.reduce(function (a, i) {
       return {
         kr: a.kr + (parseFloat(i.recv_kg) || 0),
         ka: a.ka + (parseFloat(i.accp) || 0),
@@ -699,7 +741,7 @@ export default function GRNForm() {
             </>
           )}
           <Button variant="outlined" color="secondary" size="medium" startIcon={<CancelIcon />}
-            onClick={function() { navigate("/stores/grr"); }}>
+            onClick={function () { navigate("/stores/grr"); }}>
             {isView ? "Back" : "Cancel"}
           </Button>
         </Box>
@@ -712,42 +754,40 @@ export default function GRNForm() {
               <Box sx={{ width: 32, height: 32, borderRadius: "10px", bgcolor: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <InfoOutlinedIcon sx={{ fontSize: 18, color: "#1976d2" }} />
               </Box>
-              <Typography variant="subtitle2" sx={{ color: cl.textBody, fontWeight: 700, fontSize: "1rem" }}>
+              <Typography variant="subtitle2" sx={{ color: cl.textBody, fontWeight: 700, fontSize: "1.05rem" }}>
                 Header Information
               </Typography>
             </Box>
-            <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-              <Grid item xs={6} sm={4} md={2}>
+            <Box sx={{ display: "flex", gap: 1.5, mb: 1.5, flexWrap: "wrap", alignItems: "flex-start" }}>
+              <Box sx={{ width: 160 }}>
                 <TextField label="GRR #" size="small" fullWidth value={header.grn_no}
-                  onChange={handleHeaderChange("grn_no")} required disabled={isView}
-                  error={Boolean(errors.grn_no)} helperText={errors.grn_no}
+                  disabled error={Boolean(errors.grn_no)} helperText={errors.grn_no}
                   InputLabelProps={{ shrink: true }} sx={fsx} />
-              </Grid>
-              <Grid item xs={6} sm={4} md={2}>
+              </Box>
+              <Box sx={{ width: 200 }}>
                 <TextField label="GRR Date" type="datetime-local" size="small" fullWidth value={header.grn_date}
-                  onChange={handleHeaderChange("grn_date")} InputLabelProps={{ shrink: true }} required disabled={isView}
-                  error={Boolean(errors.grn_date)} helperText={errors.grn_date} sx={fsx} />
-              </Grid>
-              <Grid item xs={6} sm={4} md={1}>
+                  disabled error={Boolean(errors.grn_date)} helperText={errors.grn_date}
+                  InputLabelProps={{ shrink: true }} sx={fsx} />
+              </Box>
+              <Box sx={{ width: 135 }}>
                 <TextField label="Year" size="small" fullWidth value={header.year}
-                  onChange={function(e) { setHeader(function(h) { return { ...h, year: e.target.value.replace(/\D/g, "").slice(0, 4) }; }); }}
-                  disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
-              </Grid>
-              <Grid item xs={6} sm={4} md={2}>
+                  disabled InputLabelProps={{ shrink: true }} sx={fsx} />
+              </Box>
+              <Box sx={{ width: 220, minWidth: 220 }}>
                 <TextField select size="small" fullWidth label="Dept Cd" value={header.dept_cd}
                   onChange={handleHeaderChange("dept_cd")} disabled={isView} InputLabelProps={{ shrink: true }}
                   SelectProps={{ displayEmpty: true }} sx={fsx}>
                   <MenuItem value="">-- Select --</MenuItem>
-                  {DEPARTMENTS.map(function(d) { return <MenuItem key={d} value={d}>{d}</MenuItem>; })}
+                  {DEPARTMENTS.map(function (d) { return <MenuItem key={d} value={d}>{d}</MenuItem>; })}
                 </TextField>
-              </Grid>
-            </Grid>
-            <Grid container spacing={1.5}>
-              <Grid item xs={12} sm={6} md={3}>
+              </Box>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "flex-start" }}>
+              <Box sx={{ width: 520, maxWidth: "100%" }}>
                 <TextField select size="small" fullWidth label="Party Name" value={header.supplier_id}
-                  onChange={function(e) {
+                  onChange={function (e) {
                     var v = e.target.value;
-                    setHeader(function(h) { return { ...h, supplier_id: v }; });
+                    setHeader(function (h) { return { ...h, supplier_id: v }; });
                     setShuttleChecked([]);
                     setLoadedSanctionIds([]);
                     setItems([]);
@@ -758,44 +798,58 @@ export default function GRNForm() {
                   error={Boolean(errors.supplier_id)} helperText={errors.supplier_id}
                   SelectProps={{ displayEmpty: true }} sx={fsx}>
                   <MenuItem value="">-- Select Party --</MenuItem>
-                  {suppliers.map(function(s) { return <MenuItem key={s.id} value={s.id}>{s.supplier_name}</MenuItem>; })}
+                  {suppliers.map(function (s) { return <MenuItem key={s.id} value={s.id}>{s.supplier_name}</MenuItem>; })}
                 </TextField>
-              </Grid>
-              <Grid item xs={6} sm={3} md={1.5}>
+                {function () {
+                  var s = suppliers.find(function (x) { return Number(x.id) === Number(header.supplier_id); });
+                  if (!s) return null;
+                  var addr = [s.address_line1, s.address_line2, s.city, s.state, s.pincode].filter(Boolean).join(", ");
+                  return (
+                    <Box sx={{ mt: 0.5, px: 1.5, py: 0.75, bgcolor: cl.bgSoft, borderRadius: "8px", border: "1px solid " + cl.border }}>
+                      <Typography variant="caption" sx={{ color: cl.textMuted, fontSize: "0.7rem", lineHeight: 1.4 }}>
+                        {s.supplier_name}{s.gstin ? " | GST: " + s.gstin : ""}
+                        {addr ? <><br />{addr}</> : ""}
+                        {s.phone || s.mobile ? <><br />Ph: {s.phone || s.mobile}</> : ""}
+                      </Typography>
+                    </Box>
+                  );
+                }()}
+              </Box>
+              <Box sx={{ width: 140 }}>
                 <TextField select size="small" fullWidth label="PR No" value={prFilter}
-                  onChange={function(e) { setPrFilter(e.target.value); }}
+                  onChange={function (e) { setPrFilter(e.target.value); }}
                   disabled={isView || !header.supplier_id} InputLabelProps={{ shrink: true }}
                   SelectProps={{ displayEmpty: true }} sx={fsx}>
                   <MenuItem value="">-- All PRs --</MenuItem>
-                  {allPRs.filter(function(pr) { return uniquePrIds.indexOf(pr.id) >= 0; }).map(function(pr) {
+                  {allPRs.filter(function (pr) { return uniquePrIds.indexOf(pr.id) >= 0; }).map(function (pr) {
                     return <MenuItem key={pr.id} value={String(pr.id)}>{pr.req_no}</MenuItem>;
                   })}
                 </TextField>
-              </Grid>
-              <Grid item xs={6} sm={3} md={1.5}>
+              </Box>
+              <Box sx={{ width: 140 }}>
                 <TextField select size="small" fullWidth label="PO No" value={poFilter}
-                  onChange={function(e) { setPoFilter(e.target.value); }}
+                  onChange={function (e) { setPoFilter(e.target.value); }}
                   disabled={isView || !header.supplier_id} InputLabelProps={{ shrink: true }}
                   SelectProps={{ displayEmpty: true }} sx={fsx}>
                   <MenuItem value="">-- All POs --</MenuItem>
-                  {allPOs.filter(function(po) { return po.supplier_id === Number(header.supplier_id); }).map(function(po) {
+                  {allPOs.filter(function (po) { return po.supplier_id === Number(header.supplier_id); }).map(function (po) {
                     return <MenuItem key={po.id} value={String(po.id)}>{po.po_no}</MenuItem>;
                   })}
                 </TextField>
-              </Grid>
-              <Grid item xs={6} sm={3} md={1.5}>
+              </Box>
+              <Box sx={{ width: 130 }}>
                 <TextField label="Supplier DC#" size="small" fullWidth value={header.invoice_no}
                   onChange={handleHeaderChange("invoice_no")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
-              </Grid>
-              <Grid item xs={6} sm={3} md={1.5}>
+              </Box>
+              <Box sx={{ width: 130 }}>
                 <TextField label="DC Date" type="date" size="small" fullWidth value={header.invoice_date}
                   onChange={handleHeaderChange("invoice_date")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
-              </Grid>
-              <Grid item xs={6} sm={3} md={1.5}>
+              </Box>
+              <Box sx={{ width: 130 }}>
                 <TextField label="Inward Date" type="date" size="small" fullWidth value={header.inward_date}
                   onChange={handleHeaderChange("inward_date")} disabled={isView} InputLabelProps={{ shrink: true }} sx={fsx} />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
       </Fade>
@@ -808,7 +862,7 @@ export default function GRNForm() {
                 <Box sx={{ width: 32, height: 32, borderRadius: "10px", bgcolor: "#ede7f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Inventory2OutlinedIcon sx={{ fontSize: 18, color: "#9c27b0" }} />
                 </Box>
-                <Typography variant="subtitle2" sx={{ color: cl.textBody, fontWeight: 700, fontSize: "1rem" }}>
+                <Typography variant="subtitle2" sx={{ color: cl.textBody, fontWeight: 700, fontSize: "1.05rem" }}>
                   Sanctioned Items
                 </Typography>
                 {sanctions.length > 0 && (
@@ -845,7 +899,7 @@ export default function GRNForm() {
                   <Button variant="contained" color="success" onClick={loadItemsFromSources}
                     startIcon={<AddIcon />}
                     sx={{ borderRadius: "10px", px: 3, fontWeight: 600, boxShadow: "0 2px 12px rgba(46,125,50,0.25)" }}>
-                    Load Items ({shuttleChecked.filter(function(sid) { return loadedSanctionIds.indexOf(sid) < 0; }).length})
+                    Load Items ({shuttleChecked.filter(function (sid) { return loadedSanctionIds.indexOf(sid) < 0; }).length})
                   </Button>
                 </Box>
               )}
@@ -862,7 +916,7 @@ export default function GRNForm() {
                 <Box sx={{ width: 32, height: 32, borderRadius: "10px", bgcolor: "#e8f5e9", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <FactCheckOutlinedIcon sx={{ fontSize: 18, color: "#2e7d32" }} />
                 </Box>
-                <Typography variant="subtitle1" sx={{ color: cl.textBody, fontWeight: 700, fontSize: "1.05rem" }}>
+                <Typography variant="subtitle1" sx={{ color: cl.textBody, fontWeight: 700, fontSize: "1.1rem" }}>
                   GRR Selected Details
                 </Typography>
                 {items.length > 0 && (
@@ -871,7 +925,7 @@ export default function GRNForm() {
                 )}
               </Box>
               <Box sx={{ display: "flex", gap: 1.5, alignItems: "center", flexWrap: "wrap" }}>
-                <TextField size="small" placeholder="Search items..." value={filterText} onChange={function(e) { setFilterText(e.target.value); }}
+                <TextField size="small" placeholder="Search items..." value={filterText} onChange={function (e) { setFilterText(e.target.value); }}
                   InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment> }}
                   sx={{ "& .MuiInputBase-root": { fontSize: "0.8rem", height: 32, width: 220, borderRadius: "8px", bgcolor: "#f8fafc", transition: "all 0.2s", "&:hover": { bgcolor: cl.bgSoft }, "&.Mui-focused": { width: 260 } } }} />
               </Box>
@@ -880,15 +934,16 @@ export default function GRNForm() {
               <Table size="small" sx={{ borderCollapse: "collapse", tableLayout: "fixed", width: "100%" }}>
                 <TableHead>
                   <TableRow>
-                    {GRID_COLS.map(function(c, i) {
+                    {GRID_COLS.map(function (c, i) {
+                      var parts = c.label.split("<br>");
                       return (
-                        <TableCell key={c.label} sx={{ fontWeight: 700, fontSize: "0.72rem", py: 0.75, px: 0.75, color: cl.textBody, bgcolor: cl.bgSoft, width: colWidths.current[i], minWidth: colWidths.current[i], border: "1px solid " + cl.border, position: "relative", whiteSpace: "normal", wordBreak: "break-word" }}>
-                          {c.label}
+                        <TableCell key={c.label} sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, px: 0.75, color: cl.textBody, bgcolor: cl.bgSoft, width: colWidths.current[i], minWidth: colWidths.current[i], border: "1px solid " + cl.border, position: "relative", whiteSpace: "normal", wordBreak: "break-word" }}>
+                          {parts.length > 1 ? parts.map(function (p, pi) { return pi > 0 ? <React.Fragment key={pi}><br />{p}</React.Fragment> : p; }) : c.label}
                           <Box sx={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 5, cursor: "col-resize", transition: "background 0.2s", "&:hover": { bgcolor: "primary.main", opacity: 0.8 } }} onMouseDown={handleColResize(i)} />
                         </TableCell>
                       );
                     })}
-                    {canEdit && <TableCell sx={{ width: 45, py: 0.75, bgcolor: cl.bgSoft, border: "1px solid " + cl.border }} />}
+                    {canEdit && <TableCell sx={{ width: 45, py: 0.85, bgcolor: cl.bgSoft, border: "1px solid " + cl.border }} />}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -904,7 +959,7 @@ export default function GRNForm() {
                       </TableCell>
                     </TableRow>
                   )}
-                  {filteredItems.map(function(it, idx) {
+                  {filteredItems.map(function (it, idx) {
                     return (
                       <TableRow key={idx} hover sx={{
                         verticalAlign: "top",
@@ -916,40 +971,40 @@ export default function GRNForm() {
                         <TableCell sx={{ fontSize: "0.75rem", color: "#94a3b8", textAlign: "center" }}>{idx + 1}</TableCell>
                         <TableCell sx={{ fontSize: "0.75rem", color: "#334155", textAlign: "center" }}>{stripPrefix(it.pr_no)}</TableCell>
                         <TableCell sx={{ fontSize: "0.75rem", color: "#334155", textAlign: "center" }}>{stripPrefix(it.po_no)}</TableCell>
-                        <TableCell sx={{ fontSize: "0.75rem", color: "#334155", px: 0.5 }}>{it.item_code}</TableCell>
-                        <TableCell sx={{ fontSize: "0.75rem", color: "#334155", px: 0.5 }}>{it.item_name || ""}</TableCell>
+                        <TableCell sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", px: 0.5 }}>{it.item_code}</TableCell>
+                        <TableCell sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", px: 0.5 }}>{it.item_name || ""}</TableCell>
                         <TableCell sx={{ fontSize: "0.75rem", px: 0.5, textAlign: "center" }}>{it.uom}</TableCell>
-                        <TableCell sx={{ fontSize: "0.75rem", px: 0.5, textAlign: "center" }}>{fmt(it.ordered_qty, 2)}</TableCell>
+                        <TableCell sx={{ fontSize: "0.75rem", fontWeight: 700, px: 0.5, textAlign: "center" }}>{fmt(it.ordered_qty)}</TableCell>
                         <TableCell sx={{ px: 0.5, whiteSpace: "nowrap" }}>
                           <TextField size="small" value={it.rep}
                             onChange={handleItemChange(idx, "rep")} disabled={isView}
-                            placeholder="UT Rep#" onKeyDown={handleGridKeyDown(idx, 7)} onFocus={function() { setActiveRow(idx); }}
+                            placeholder="UT Rep#" onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }}
                             sx={{ "& .MuiInputBase-root": { fontSize: "0.8rem", height: 30, borderRadius: "6px", width: "100%" }, "& .MuiInputBase-input": { px: 0.75 } }} />
                         </TableCell>
-                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.dia || ""} onChange={handleItemChange(idx, "dia")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 8)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx }} /></TableCell>
-                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.len || ""} onChange={handleItemChange(idx, "len")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 9)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx }} /></TableCell>
-                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.wid || ""} onChange={handleItemChange(idx, "wid")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 10)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx }} /></TableCell>
-                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.thk || ""} onChange={handleItemChange(idx, "thk")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 11)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx }} /></TableCell>
+                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.dia || ""} onChange={handleItemChange(idx, "dia")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx }} /></TableCell>
+                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.len || ""} onChange={handleItemChange(idx, "len")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx }} /></TableCell>
+                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.wid || ""} onChange={handleItemChange(idx, "wid")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx }} /></TableCell>
+                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.thk || ""} onChange={handleItemChange(idx, "thk")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx }} /></TableCell>
                         <TableCell sx={{ px: 0.5 }}>
                           <TextField size="small" type="number" value={it.recv_kg || ""} onChange={handleItemChange(idx, "recv_kg")} disabled={isView}
-                            onKeyDown={handleGridKeyDown(idx, 12)} onFocus={function() { setActiveRow(idx); }}
-                            sx={{ "& .MuiInputBase-root": { fontSize: "0.8rem", height: 30, borderRadius: "6px", fontWeight: 600, color: "#1565c0" }, "& .MuiInputBase-input": { px: 0.75 } }} />
+                            onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }}
+                            sx={{ "& .MuiInputBase-root": { fontSize: "0.8rem", height: 30, borderRadius: "6px", fontWeight: 600, color: "#1565c0" }, "& .MuiInputBase-input": { px: 0.75 }, "& input[type=number]": { MozAppearance: "textfield" }, "& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button": { WebkitAppearance: "none", margin: 0 } }} />
                         </TableCell>
-                        <TableCell sx={{ px: 0.5, bgcolor: "#e3f2fd" }}><TextField size="small" type="number" value={it.accp || ""} onChange={handleItemChange(idx, "accp")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 13)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.8rem", height: 30, borderRadius: "6px", bgcolor: "transparent", color: "#1565c0" } }} /></TableCell>
+                        <TableCell sx={{ px: 0.5, bgcolor: "#e3f2fd" }}><TextField size="small" type="number" value={it.accp || ""} onChange={handleItemChange(idx, "accp")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.8rem", height: 30, borderRadius: "6px", bgcolor: "transparent", color: "#1565c0" } }} /></TableCell>
                         <TableCell sx={{ px: 0.5 }}>
-                          <TextField size="small" type="number" value={it.phy || ""} onChange={handleItemChange(idx, "phy")} disabled={isView} sx={{ ...cellInputSx }} />
+                          <TextField size="small" type="number" value={it.phy || ""} onChange={handleItemChange(idx, "phy")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx }} />
                         </TableCell>
-                        <TableCell sx={{ px: 0.5, bgcolor: "#e8f5e9" }}><TextField size="small" type="number" value={it.received_qty || ""} onChange={handleItemChange(idx, "received_qty")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 16)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.8rem", height: 30, borderRadius: "6px", bgcolor: "transparent", color: "#2e7d32" } }} /></TableCell>
-                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.supp_qty || ""} onChange={handleItemChange(idx, "supp_qty")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 17)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.9rem", height: 34, borderRadius: "6px", fontWeight: 600 } }} /></TableCell>
+                        <TableCell sx={{ px: 0.5, bgcolor: "#e8f5e9" }}><TextField size="small" type="number" value={it.received_qty || ""} onChange={handleItemChange(idx, "received_qty")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.8rem", height: 30, borderRadius: "6px", bgcolor: "transparent", color: "#2e7d32" } }} /></TableCell>
+                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.supp_qty || ""} onChange={handleItemChange(idx, "supp_qty")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.9rem", height: 34, borderRadius: "6px", fontWeight: 600 } }} /></TableCell>
                         <TableCell sx={{ px: 0.5, bgcolor: "#e8f5e9" }}><TextField size="small" type="number" value={it.accepted_qty || ""} onChange={handleItemChange(idx, "accepted_qty")} disabled={isView}
-                            onKeyDown={handleGridKeyDown(idx, 18)} onFocus={function() { setActiveRow(idx); }}
-                            sx={{ "& .MuiInputBase-root": { fontSize: "0.9rem", height: 34, borderRadius: "6px", fontWeight: 600, color: "#2e7d32", bgcolor: "transparent" }, "& .MuiInputBase-input": { px: 0.75 } }} />
+                          onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }}
+                          sx={{ "& .MuiInputBase-root": { fontSize: "0.9rem", height: 34, borderRadius: "6px", fontWeight: 600, color: "#2e7d32", bgcolor: "transparent" }, "& .MuiInputBase-input": { px: 0.75 }, "& input[type=number]": { MozAppearance: "textfield" }, "& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button": { WebkitAppearance: "none", margin: 0 } }} />
                         </TableCell>
-                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.rejected_qty || ""} onChange={handleItemChange(idx, "rejected_qty")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 19)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.7rem", height: 28, borderRadius: "6px", color: "#d32f2f", fontWeight: 600 } }} /></TableCell>
-                        <TableCell sx={{ px: 0.5 }}><TextField size="small" value={it.reject_reason} onChange={handleItemChange(idx, "reject_reason")} disabled={isView} onKeyDown={handleGridKeyDown(idx, 20)} onFocus={function() { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.7rem", height: 28, borderRadius: "6px" } }} /></TableCell>
+                        <TableCell sx={{ px: 0.5 }}><TextField size="small" type="number" value={it.rejected_qty || ""} onChange={handleItemChange(idx, "rejected_qty")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.9rem", height: 34, borderRadius: "6px", color: "#d32f2f", fontWeight: 600 } }} /></TableCell>
+                        <TableCell sx={{ px: 0.5 }}><TextField size="small" value={it.reject_reason} onChange={handleItemChange(idx, "reject_reason")} disabled={isView} onKeyDown={handleGridKeyDown} onFocus={function () { setActiveRow(idx); }} sx={{ ...cellInputSx, "& .MuiInputBase-root": { fontSize: "0.7rem", height: 28, borderRadius: "6px" } }} /></TableCell>
                         {canEdit && (
                           <TableCell sx={{ px: 0.5, textAlign: "center" }}>
-                            <IconButton size="small" color="error" onClick={function() { removeItem(idx); }} sx={{ p: 0.25, transition: "all 0.2s", "&:hover": { transform: "scale(1.15)", bgcolor: "#fef2f2" } }}>
+                            <IconButton size="small" color="error" onClick={function () { removeItem(idx); }} sx={{ p: 0.25, transition: "all 0.2s", "&:hover": { transform: "scale(1.15)", bgcolor: "#fef2f2" } }}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </TableCell>
@@ -960,16 +1015,16 @@ export default function GRNForm() {
                   {items.length > 0 && (
                     <TableRow sx={{ bgcolor: "#e8eefc" }}>
                       <TableCell colSpan={7} sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, px: 1, border: "1px solid " + cl.border, bgcolor: "#dbeafe" }}>TOTALS</TableCell>
-                      {[7, 8, 9, 10, 11].map(function(i) {
+                      {[7, 8, 9, 10, 11].map(function (i) {
                         return <TableCell key={i} sx={{ border: "1px solid " + cl.border, bgcolor: "#dbeafe", width: colWidths.current[i], minWidth: colWidths.current[i] }} />;
                       })}
                       <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", border: "1px solid " + cl.border, width: colWidths.current[12], minWidth: colWidths.current[12] }}>{fmtTotal(totals.kr, 3)}</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", color: "#1565c0", border: "1px solid " + cl.border, bgcolor: "#90caf9", width: colWidths.current[13], minWidth: colWidths.current[13] }}>{fmtTotal(totals.ka, 3)}</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", border: "1px solid " + cl.border, width: colWidths.current[14], minWidth: colWidths.current[14] }}>{fmtTotal(totals.pw, 3)}</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", border: "1px solid " + cl.border, bgcolor: "#dbeafe", width: colWidths.current[15], minWidth: colWidths.current[15] }}>{fmtTotal(totals.qr, 2)}</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", border: "1px solid " + cl.border, bgcolor: "#dbeafe", width: colWidths.current[16], minWidth: colWidths.current[16] }}>{fmtTotal(totals.qs, 2)}</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", color: "#2e7d32", border: "1px solid " + cl.border, bgcolor: "#c8e6c9", width: colWidths.current[17], minWidth: colWidths.current[17] }}>{fmtTotal(totals.qa, 2)}</TableCell>
-                      {[18, 19].map(function(i) {
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", border: "1px solid " + cl.border, bgcolor: "#dbeafe", width: colWidths.current[15], minWidth: colWidths.current[15] }}>{fmtTotal(totals.qr)}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", border: "1px solid " + cl.border, bgcolor: "#dbeafe", width: colWidths.current[16], minWidth: colWidths.current[16] }}>{fmtTotal(totals.qs)}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 0.75, textAlign: "right", color: "#2e7d32", border: "1px solid " + cl.border, bgcolor: "#c8e6c9", width: colWidths.current[17], minWidth: colWidths.current[17] }}>{fmtTotal(totals.qa)}</TableCell>
+                      {[18, 19].map(function (i) {
                         return <TableCell key={i} sx={{ border: "1px solid " + cl.border, bgcolor: "#dbeafe", width: colWidths.current[i], minWidth: colWidths.current[i] }} />;
                       })}
                       {canEdit && <TableCell sx={{ border: "1px solid " + cl.border, bgcolor: "#dbeafe", width: 45, minWidth: 45 }} />}
@@ -979,22 +1034,24 @@ export default function GRNForm() {
               </Table>
             </Box>
             {items.length > 0 && (
-              <Stack direction="row" justifyContent="flex-end" spacing={3} sx={{ mt: 2, flexWrap: "wrap" }}>
-                <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>KG Recv</Typography><Typography fontWeight="bold" sx={{ color: cl.primary, fontSize: "0.95rem" }}>{totals.kr.toFixed(3)}</Typography></Box>
-                <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>KG Accp</Typography><Typography fontWeight="bold" sx={{ color: cl.success, fontSize: "0.95rem" }}>{totals.ka.toFixed(3)}</Typography></Box>
-                <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>Phy Wt</Typography><Typography fontWeight="bold" sx={{ fontSize: "0.95rem" }}>{totals.pw.toFixed(3)}</Typography></Box>
-                <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>Rec Qty</Typography><Typography fontWeight="bold" sx={{ fontSize: "0.95rem" }}>{totals.qr.toFixed(2)}</Typography></Box>
-                <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>Supp Qty</Typography><Typography fontWeight="bold" sx={{ fontSize: "0.95rem" }}>{totals.qs.toFixed(2)}</Typography></Box>
-                <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>Accp Qty</Typography><Typography fontWeight="bold" sx={{ color: cl.primary, fontSize: "0.95rem" }}>{totals.qa.toFixed(2)}</Typography></Box>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 2, flexWrap: "wrap", gap: 1 }}>
+                {canEdit && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <KeyboardIcon sx={{ fontSize: 13, color: cl.textMuted }} />
+                    <Typography variant="caption" sx={{ color: cl.textMuted, fontStyle: "italic", fontSize: "0.68rem" }}>
+                      <strong>Enter</strong>/<strong>Tab</strong> | Dbl-click | Drag borders
+                    </Typography>
+                  </Box>
+                )}
+                <Stack direction="row" spacing={2} flexWrap="wrap">
+                  <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>KG Recv</Typography><Typography fontWeight="bold" sx={{ color: cl.primary, fontSize: "0.9rem" }}>{fmtTotal(totals.kr, 3)}</Typography></Box>
+                  <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>KG Accp</Typography><Typography fontWeight="bold" sx={{ color: cl.success, fontSize: "0.9rem" }}>{fmtTotal(totals.ka, 3)}</Typography></Box>
+                  <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>Phy Wt</Typography><Typography fontWeight="bold" sx={{ fontSize: "0.9rem" }}>{fmtTotal(totals.pw, 3)}</Typography></Box>
+                  <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>Rec Qty</Typography><Typography fontWeight="bold" sx={{ fontSize: "0.9rem" }}>{fmtTotal(totals.qr)}</Typography></Box>
+                  <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>Supp Qty</Typography><Typography fontWeight="bold" sx={{ fontSize: "0.9rem" }}>{fmtTotal(totals.qs)}</Typography></Box>
+                  <Box sx={{ textAlign: "right" }}><Typography variant="caption" color="textSecondary" display="block" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>Accp Qty</Typography><Typography fontWeight="bold" sx={{ color: cl.primary, fontSize: "0.9rem" }}>{fmtTotal(totals.qa)}</Typography></Box>
+                </Stack>
               </Stack>
-            )}
-            {canEdit && items.length > 0 && (
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, mt: 1.5 }}>
-                <KeyboardIcon sx={{ fontSize: 14, color: cl.textMuted }} />
-                <Typography variant="caption" sx={{ color: cl.textMuted, fontStyle: "italic", fontSize: "0.72rem" }}>
-                  <strong>Enter</strong> / <strong>Tab</strong> to navigate | Double-click cell | Drag column borders
-                </Typography>
-              </Box>
             )}
           </CardContent>
         </Card>

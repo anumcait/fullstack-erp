@@ -75,6 +75,17 @@ export default function StoresReports() {
       { field: 'inward_qty', header: 'Inward Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.inward_qty) },
       { field: 'inward_value', header: 'Inward Value', align: 'right', numeric: true, render: (r) => formatCurrency(r.inward_value) },
       { field: 'outward_qty', header: 'Outward Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.outward_qty) },
+      {
+        field: 'outward_rows', header: 'Issue Details', align: 'left', render: (r) => {
+          if (!r.outward_rows || r.outward_rows.length === 0) return '—';
+          return r.outward_rows.map(function (o, i) {
+            const d = o.issue_date ? new Date(o.issue_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+            return <div key={i} style={{ fontSize: '0.75rem', lineHeight: '1.7', borderBottom: i < r.outward_rows.length - 1 ? '1px dashed #e0e0e0' : 'none', padding: '2px 0' }}>
+              <strong>{o.issue_no}</strong> — {d} — {formatNumber(o.outward_qty)} qty
+            </div>;
+          });
+        }
+      },
     ],
     abc: [
       { field: 'class', header: 'Class' },

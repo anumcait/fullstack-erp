@@ -72,6 +72,17 @@ exports.getGRNs = async (req, res) => {
   }
 };
 
+exports.getNextGRNNumber = async (req, res) => {
+  try {
+    const count = await GRN.count();
+    const nextNumber = String(count + 1);
+    res.json({ grn_no: nextNumber, sequence: count + 1 });
+  } catch (err) {
+    console.error('Error getting next GRN number:', err);
+    res.status(500).json({ error: 'Failed to get next GRN number' });
+  }
+};
+
 exports.getGRN = async (req, res) => {
   try {
     const grn = await GRN.findByPk(req.params.id, {
@@ -93,6 +104,11 @@ exports.getGRN = async (req, res) => {
 exports.createGRN = async (req, res) => {
   try {
     let { items, ...header } = req.body;
+
+    // Empty strings for nullable date fields → null
+    for (const field of ['approved_date', 'qa_date', 'bill_date', 'invoice_date']) {
+      if (header[field] === '') header[field] = null;
+    }
 
     if (!header.grn_no) {
       const settings = await PurchaseSettings.findByPk(1);
@@ -157,6 +173,9 @@ exports.updateGRN = async (req, res) => {
     if (grn.status !== 'Draft') return res.status(400).json({ error: 'Only draft GRNs can be edited' });
 
     const { items, ...header } = req.body;
+    for (const field of ['approved_date', 'qa_date', 'bill_date', 'invoice_date']) {
+      if (header[field] === '') header[field] = null;
+    }
     const wasDraft = grn.status === 'Draft';
     const becomingReceived = header.status === 'Received';
 
@@ -219,21 +238,158 @@ exports.approveGRN = async (req, res) => {
     const { status, approved_by, remarks } = req.body;
     const grn = await GRN.findByPk(id);
     if (!grn) return res.status(404).json({ error: 'GRN not found' });
-    const isApproved = (status || 'Approved') === 'Approved';
-    await grn.update({
-      approval_status: status || 'Approved',
+    const updates = {
+      approval_status: 'Approved',
       approved_by: approved_by || req.session?.user?.name || 'System',
       approved_date: new Date(),
       approval_remarks: remarks || grn.approval_remarks,
-    });
+    };
+    // Also update the GRN status if provided (e.g. "Received")
+    if (status) updates.status = status;
+    await grn.update(updates);
     // Post cost on approval if not already posted
-    if (isApproved && !grn.cost_posted) {
+    if (!grn.cost_posted) {
       await postGRNCost(id);
     }
     res.json(grn);
   } catch (err) {
     console.error('Error approving GRN:', err);
     res.status(500).json({ error: 'Failed to approve GRN' });
+  }
+};
+
+exports.getPendingBilling = async (req, res) => {
+  try {
+    const data = await GRN.findAll({
+      where: {
+        bill_no: { [Op.is]: null },
+        status: 'Received',
+        ir_type: 'GRR',
+      },
+      include: [
+        { model: GRNItem, as: 'items' },
+        { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name', 'gstin'] },
+        {
+          model: PurchaseOrder, as: 'purchaseOrder',
+          attributes: ['id', 'po_no', 'po_date'],
+          include: [{ model: PurchaseOrderItem, as: 'items' }],
+        },
+        { model: PurchaseRequisition, as: 'purchaseRequisition', attributes: ['id', 'req_no', 'req_date'] },
+      ],
+      order: [['grn_no', 'ASC']],
+    });
+    res.json(data);
+  } catch (err) {
+    console.error('Error fetching pending billing:', err);
+    res.status(500).json({ error: 'Failed to fetch pending billing' });
+  }
+};
+
+exports.markGRRBilled = async (req, res) => {
+  try {
+    const doc = await GRN.findByPk(req.params.id, {
+      include: [{ model: GRNItem, as: 'items' }],
+    });
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (doc.bill_no) return res.status(400).json({ error: 'Already billed' });
+
+    const { bill_no, bill_date, invoice_no, invoice_date, remarks, items } = req.body;
+    if (!bill_no) return res.status(400).json({ error: 'Bill number required' });
+    if (!bill_date) return res.status(400).json({ error: 'Bill date required' });
+
+    await doc.update({
+      invoice_no: invoice_no || doc.invoice_no,
+      invoice_date: invoice_date || doc.invoice_date,
+      bill_no,
+      bill_date,
+      notes: remarks ? `${doc.notes || ''} | Billing: ${remarks}`.trim() : doc.notes,
+    });
+
+    if (items && items.length > 0) {
+      for (const it of items) {
+        if (it.id) {
+          await GRNItem.update(
+            {
+              rate: it.rate,
+              gst_rate: it.gst_rate,
+              gst_amount: it.gst_amount,
+              amount: it.amount,
+            },
+            { where: { id: it.id, grn_id: doc.id } }
+          );
+        }
+      }
+    }
+
+    const result = await GRN.findByPk(doc.id, {
+      include: [
+        { model: GRNItem, as: 'items' },
+        { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name', 'gstin'] },
+      ],
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error marking GRR billed:', err);
+    res.status(500).json({ error: 'Failed to mark billed' });
+  }
+};
+
+exports.batchMarkGRRBilled = async (req, res) => {
+  try {
+    const { ids, bill_no, bill_date, invoice_no, invoice_date, remarks } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'GRR IDs required' });
+    if (!bill_no) return res.status(400).json({ error: 'Bill number required' });
+    if (!bill_date) return res.status(400).json({ error: 'Bill date required' });
+
+    const docs = await GRN.findAll({ where: { id: ids } });
+    if (docs.length !== ids.length) return res.status(404).json({ error: 'One or more GRRs not found' });
+
+    const alreadyBilled = docs.filter(function (d) { return d.bill_no; });
+    if (alreadyBilled.length > 0) return res.status(400).json({ error: 'GRR(s) already billed: ' + alreadyBilled.map(function (d) { return d.grn_no; }).join(', ') });
+
+    const r2 = function (v) { return Number(Number(v || 0).toFixed(2)); };
+    for (const doc of docs) {
+      await doc.update({
+        invoice_no: invoice_no || doc.invoice_no,
+        invoice_date: invoice_date || doc.invoice_date,
+        bill_no: bill_no,
+        bill_date: bill_date,
+        notes: remarks ? (doc.notes || '') + ' | Billing: ' + remarks : doc.notes,
+      });
+    }
+
+    var items = req.body.items;
+    if (items && items.length > 0) {
+      for (const it of items) {
+        if (!it.id) continue;
+        var qty = Number(it.accepted_qty || 0);
+        var rate = Number(it.rate || 0);
+        var gross = r2(qty * rate);
+        var discInr = Number(it.discount_inr || 0);
+        var discPct = Number(it.discount_percent || 0);
+        var discAmt = discInr > 0 ? discInr : r2(gross * discPct / 100);
+        var afterDisc = r2(gross - discAmt);
+        var pfInr = Number(it.pf_inr || 0);
+        var pfPct = Number(it.pf_percent || 0);
+        var pfAmt = pfInr > 0 ? pfInr : r2(afterDisc * pfPct / 100);
+        var taxable = r2(afterDisc + pfAmt);
+        var cgstRate = Number(it.cgst_rate || 0);
+        var sgstRate = Number(it.sgst_rate || 0);
+        var igstRate = Number(it.igst_rate || 0);
+        var gstAmt = r2(taxable * (cgstRate + sgstRate + igstRate) / 100);
+        var total = r2(taxable + gstAmt);
+        var combinedGstRate = r2(cgstRate + sgstRate + igstRate);
+        await GRNItem.update(
+          { rate: rate, gst_rate: combinedGstRate, gst_amount: gstAmt, amount: total },
+          { where: { id: it.id } }
+        );
+      }
+    }
+
+    res.json({ success: true, count: docs.length });
+  } catch (err) {
+    console.error('Error batch billing:', err);
+    res.status(500).json({ error: 'Failed to batch bill' });
   }
 };
 

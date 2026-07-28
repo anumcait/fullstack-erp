@@ -75,6 +75,10 @@ router.delete('/items/:id', itemController.deleteItem);
 
 // ── GRN (Goods Receipt Note / GRR) ──
 router.get('/grn', grnController.getGRNs);
+router.get('/grn/next-number', grnController.getNextGRNNumber);
+router.get('/grn/pending-billing', grnController.getPendingBilling);
+router.put('/grn/batch-mark-billed', grnController.batchMarkGRRBilled);
+router.put('/grn/:id/mark-billed', grnController.markGRRBilled);
 router.get('/grn/:id', grnController.getGRN);
 router.post('/grn', grnController.createGRN);
 router.put('/grn/:id', grnController.updateGRN);
@@ -90,18 +94,28 @@ router.get('/reports/grr-qa', grrReportController.getGRRQASummary);
 
 // ── Material Requisition ──
 router.get('/material-requisitions', materialRequisitionController.getList);
+router.get('/material-requisitions/next-number', materialRequisitionController.getNextNumber);
 router.get('/material-requisitions/:id', materialRequisitionController.getOne);
 router.post('/material-requisitions', materialRequisitionController.create);
 router.put('/material-requisitions/:id', materialRequisitionController.update);
+router.put('/material-requisitions/:id/submit', materialRequisitionController.submitForApproval);
 router.put('/material-requisitions/:id/approve', materialRequisitionController.approve);
+router.put('/material-requisitions/:id/approve-items', materialRequisitionController.approveItems);
+router.put('/material-requisitions/:id/reject', materialRequisitionController.reject);
 router.post('/material-requisitions/:id/convert-to-pr', materialRequisitionController.convertToPR);
+router.post('/material-requisitions/:id/pr-preview', materialRequisitionController.prPreview);
+router.post('/material-requisitions/:id/create-pr', materialRequisitionController.createPRFromMR);
 router.delete('/material-requisitions/:id', materialRequisitionController.delete);
 
 // ── Material Issue ──
 router.get('/material-issues', materialIssueController.getList);
+router.get('/material-issues/next-number', materialIssueController.getNextNumber);
 router.get('/material-issues/:id', materialIssueController.getOne);
 router.post('/material-issues', materialIssueController.create);
 router.put('/material-issues/:id', materialIssueController.update);
+router.post('/material-issues/:id/convert-to-pr', materialIssueController.convertToPR);
+router.post('/material-issues/:id/pr-preview', materialIssueController.prPreview);
+router.post('/material-issues/:id/create-pr', materialIssueController.createPRFromIssue);
 router.delete('/material-issues/:id', materialIssueController.delete);
 
 // ── Stock Ledger ──

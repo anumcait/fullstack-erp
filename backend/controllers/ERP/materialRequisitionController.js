@@ -2,12 +2,23 @@ const db = require('../../models/ERP');
 const { Op } = require('sequelize');
 const { generateDocNumber } = require('../../utils/docNumber');
 
+const sequelize = db.sequelize;
 const MaterialRequisition = db.MaterialRequisition;
 const MaterialRequisitionItem = db.MaterialRequisitionItem;
 const ItemMaster = db.ItemMaster;
 const PurchaseRequisition = db.PurchaseRequisition;
 const PurchaseRequisitionItem = db.PurchaseRequisitionItem;
 const PurchaseSettings = db.PurchaseSettings;
+
+exports.getNextNumber = async (req, res) => {
+  try {
+    const seq = await MaterialRequisition.count() + 1;
+    res.json({ req_no: String(seq), sequence: seq });
+  } catch (err) {
+    console.error('Error getting next MR number:', err);
+    res.status(500).json({ error: 'Failed' });
+  }
+};
 
 exports.getList = async (req, res) => {
   try {
@@ -115,13 +126,13 @@ exports.approve = async (req, res) => {
 };
 
 exports.convertToPR = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const doc = await MaterialRequisition.findByPk(req.params.id, {
       include: [{ model: MaterialRequisitionItem, as: 'items' }],
     });
     if (!doc) return res.status(404).json({ error: 'Not found' });
 
-    // Check stock for each item
     const itemIds = doc.items.map((it) => it.item_id).filter(Boolean);
     const stockMap = {};
     if (itemIds.length > 0) {
@@ -129,7 +140,6 @@ exports.convertToPR = async (req, res) => {
       stockItems.forEach((it) => { stockMap[it.id] = Number(it.current_stock || 0); });
     }
 
-    // Only convert items where stock < requested quantity
     const itemsToPurchase = doc.items.filter((it) => {
       const available = stockMap[it.item_id] || 0;
       const requested = Number(it.pending_quantity > 0 ? it.pending_quantity : it.quantity || 0);
@@ -148,14 +158,14 @@ exports.convertToPR = async (req, res) => {
       req_date: new Date(),
       status: 'Pending',
       remarks: `Auto-converted from MR #${doc.req_no} (insufficient stock items)`,
-    });
+    }, { transaction: t });
 
     const prItems = itemsToPurchase.map((it) => {
       const available = stockMap[it.item_id] || 0;
       const requested = Number(it.pending_quantity > 0 ? it.pending_quantity : it.quantity || 0);
       const toPurchase = requested - available;
       return {
-        req_id: pr.id,
+        requisition_id: pr.id,
         item_id: it.item_id,
         item_code: it.item_code,
         item_name: it.item_name,
@@ -164,9 +174,11 @@ exports.convertToPR = async (req, res) => {
         remarks: `From MR #${doc.req_no} (stock: ${available}, need: ${toPurchase})`,
       };
     });
-    await PurchaseRequisitionItem.bulkCreate(prItems);
+    await PurchaseRequisitionItem.bulkCreate(prItems, { transaction: t });
 
-    await doc.update({ status: 'Closed', remarks: `${doc.remarks || ''} | PR #${prNo} created for ${itemsToPurchase.length} item(s)` });
+    await doc.update({ status: 'Closed', remarks: `${doc.remarks || ''} | PR #${prNo} created for ${itemsToPurchase.length} item(s)` }, { transaction: t });
+
+    await t.commit();
 
     const skippedCount = doc.items.length - itemsToPurchase.length;
     let message = `PR #${prNo} created for ${itemsToPurchase.length} item(s)`;
@@ -174,8 +186,169 @@ exports.convertToPR = async (req, res) => {
 
     res.status(201).json({ pr_id: pr.id, pr_no: prNo, message, skippedCount });
   } catch (err) {
+    await t.rollback();
     console.error('Error converting MR to PR:', err);
     res.status(500).json({ error: 'Failed to convert' });
+  }
+};
+
+exports.prPreview = async (req, res) => {
+  try {
+    const doc = await MaterialRequisition.findByPk(req.params.id, {
+      include: [{ model: MaterialRequisitionItem, as: 'items' }],
+    });
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+
+    const itemIds = doc.items.map((it) => it.item_id).filter(Boolean);
+    const stockMap = {};
+    if (itemIds.length > 0) {
+      const stockItems = await ItemMaster.findAll({ where: { id: itemIds } });
+      stockItems.forEach((it) => { stockMap[it.id] = Number(it.current_stock || 0); });
+    }
+
+    const previewItems = doc.items
+      .filter((it) => {
+        const available = stockMap[it.item_id] || 0;
+        const requested = Number(it.pending_quantity > 0 ? it.pending_quantity : it.quantity || 0);
+        return requested > available;
+      })
+      .map((it) => {
+        const available = stockMap[it.item_id] || 0;
+        const requested = Number(it.pending_quantity > 0 ? it.pending_quantity : it.quantity || 0);
+        return {
+          source_item_id: it.id,
+          item_id: it.item_id,
+          item_code: it.item_code,
+          item_name: it.item_name,
+          unit_id: it.unit_id,
+          uom: it.uom || 'NOS',
+          requested: requested,
+          available: available,
+          suggested_qty: requested - available,
+          quantity: requested - available,
+        };
+      });
+
+    res.json({
+      doc_no: doc.req_no,
+      doc_date: doc.req_date,
+      doc_department: doc.department,
+      doc_requested_by: doc.requested_by,
+      items: previewItems,
+      allSufficient: previewItems.length === 0,
+    });
+  } catch (err) {
+    console.error('Error preparing PR preview:', err);
+    res.status(500).json({ error: 'Failed to prepare preview' });
+  }
+};
+
+exports.createPRFromMR = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const doc = await MaterialRequisition.findByPk(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+
+    let { items, remarks } = req.body;
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: 'No items provided for PR' });
+    }
+
+    const settings = await PurchaseSettings.findByPk(1);
+    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_prefix', 'req_no', settings || {});
+
+    const pr = await PurchaseRequisition.create({
+      req_no: prNo,
+      req_date: new Date(),
+      status: 'Pending',
+      department: doc.department,
+      requested_by: doc.requested_by || null,
+      remarks: remarks || `Converted from MR #${doc.req_no}`,
+    }, { transaction: t });
+
+    const prItems = items.map((it) => ({
+      requisition_id: pr.id,
+      item_id: it.item_id,
+      item_code: it.item_code,
+      item_name: it.item_name,
+      quantity: it.quantity,
+      unit_id: it.unit_id || null,
+      remarks: it.remarks || `From MR #${doc.req_no}`,
+    }));
+    await PurchaseRequisitionItem.bulkCreate(prItems, { transaction: t });
+
+    await doc.update({
+      status: 'Closed',
+      remarks: `${doc.remarks || ''} | PR #${prNo} created for ${items.length} item(s)`,
+    }, { transaction: t });
+
+    await t.commit();
+    res.status(201).json({ pr_id: pr.id, pr_no: prNo, message: `PR #${prNo} created for ${items.length} item(s)` });
+  } catch (err) {
+    await t.rollback();
+    console.error('Error creating PR from MR:', err);
+    res.status(500).json({ error: 'Failed to create PR' });
+  }
+};
+
+exports.submitForApproval = async (req, res) => {
+  try {
+    const doc = await MaterialRequisition.findByPk(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (doc.status !== 'Draft') return res.status(400).json({ error: 'Only Draft can be submitted' });
+
+    await doc.update({ status: 'Pending' });
+    await MaterialRequisitionItem.update(
+      { item_status: 'Pending' },
+      { where: { req_id: doc.id } }
+    );
+
+    const result = await MaterialRequisition.findByPk(doc.id, {
+      include: [{ model: MaterialRequisitionItem, as: 'items' }],
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error submitting for approval:', err);
+    res.status(500).json({ error: 'Failed to submit for approval' });
+  }
+};
+
+exports.approveItems = async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || !items.length) return res.status(400).json({ error: 'No items provided' });
+    for (const it of items) {
+      await MaterialRequisitionItem.update(
+        { item_status: it.item_status, remarks: it.remarks || undefined },
+        { where: { id: it.id, req_id: req.params.id } }
+      );
+    }
+    const allItems = await MaterialRequisitionItem.findAll({ where: { req_id: req.params.id } });
+    const anyPending = allItems.some(i => i.item_status === 'Pending');
+    const anyApproved = allItems.some(i => i.item_status === 'Approved');
+    let headerStatus = 'Cancelled';
+    if (anyApproved) headerStatus = anyPending ? 'Partially Approved' : 'Approved';
+    await MaterialRequisition.update({ status: headerStatus }, { where: { id: req.params.id } });
+    const doc = await MaterialRequisition.findByPk(req.params.id, {
+      include: [{ model: MaterialRequisitionItem, as: 'items' }],
+    });
+    res.json(doc);
+  } catch (err) {
+    console.error('Error approving items:', err);
+    res.status(500).json({ error: 'Failed to approve items' });
+  }
+};
+
+exports.reject = async (req, res) => {
+  try {
+    const doc = await MaterialRequisition.findByPk(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (!['Pending', 'Draft'].includes(doc.status)) return res.status(400).json({ error: 'Only Pending/Draft can be rejected' });
+    await doc.update({ status: 'Cancelled', remarks: `${doc.remarks || ''} | Rejected: ${req.body.reason || 'No reason'}` });
+    res.json({ message: 'Rejected' });
+  } catch (err) {
+    console.error('Error rejecting material requisition:', err);
+    res.status(500).json({ error: 'Failed to reject' });
   }
 };
 

@@ -1,4 +1,4 @@
-const db = require('../../models');
+const db = require('../../models/Accounts');
 const { Op } = require('sequelize');
 const { Voucher, VoucherItem, ChartOfAccount, VoucherType, FinancialYear } = db;
 

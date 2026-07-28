@@ -13,7 +13,9 @@ module.exports = (sequelize) => {
       issued_quantity: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
       pending_quantity: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
       unit_id: { type: DataTypes.INTEGER, allowNull: true },
+      uom: { type: DataTypes.STRING(20), allowNull: true },
       remarks: { type: DataTypes.TEXT, allowNull: true },
+      item_status: { type: DataTypes.STRING(20), defaultValue: 'Draft' },
     },
     {
       tableName: 't_material_requisition_item',

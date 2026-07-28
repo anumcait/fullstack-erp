@@ -1,4 +1,4 @@
-const db = require('../../models');
+const db = require('../../models/Accounts');
 const { AccountsSettings, FinancialYear } = db;
 
 exports.getSettings = async (req, res) => {

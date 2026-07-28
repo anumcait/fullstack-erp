@@ -82,6 +82,10 @@ services:
       - ./backend/.env.development
     environment:
       - PYTHON_AGENT_URL=http://agent_python:8001/process
+      - DB_HOST=db
+      - DB_PORT=5432
+      - ERP_DB_HOST=db
+      - ERP_DB_PORT=5432
     depends_on:
       db:
         condition: service_healthy

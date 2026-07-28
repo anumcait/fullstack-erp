@@ -87,12 +87,16 @@ exports.getStockMovement = async (req, res) => {
       GROUP BY gi.item_id, i.item_code, i.item_name
     `;
     const outwardSql = `
-      SELECT ii.item_id,
-             COALESCE(SUM(ii.quantity), 0) AS outward_qty
+      SELECT ii.item_id, i.item_code, i.item_name,
+             mi.issue_no, mi.issue_date,
+             ii.quantity AS outward_qty,
+             mi.issued_to, mi.department
       FROM t_material_issue mi
       JOIN t_material_issue_item ii ON ii.issue_id = mi.id
-      WHERE mi.issue_date BETWEEN :from AND :to
-      GROUP BY ii.item_id
+      LEFT JOIN m_item_master i ON i.id = ii.item_id
+      WHERE mi.status = 'Issued'
+        AND mi.issue_date BETWEEN :from AND :to
+      ORDER BY mi.issue_date DESC
     `;
 
     const [inward, outward] = await Promise.all([
@@ -109,13 +113,22 @@ exports.getStockMovement = async (req, res) => {
         inward_qty: parseFloat(r.inward_qty || 0),
         inward_value: parseFloat(r.inward_value || 0),
         outward_qty: 0,
+        outward_rows: [],
       };
     });
     outward.forEach((r) => {
       if (!map[r.item_id]) {
-        map[r.item_id] = { item_id: r.item_id, item_code: '', item_name: '', inward_qty: 0, inward_value: 0, outward_qty: 0 };
+        map[r.item_id] = { item_id: r.item_id, item_code: r.item_code || '', item_name: r.item_name || '', inward_qty: 0, inward_value: 0, outward_qty: 0, outward_rows: [] };
       }
-      map[r.item_id].outward_qty = parseFloat(r.outward_qty || 0);
+      const qty = parseFloat(r.outward_qty || 0);
+      map[r.item_id].outward_qty += qty;
+      map[r.item_id].outward_rows.push({
+        issue_no: r.issue_no,
+        issue_date: r.issue_date,
+        outward_qty: qty,
+        issued_to: r.issued_to,
+        department: r.department,
+      });
     });
 
     const rows = Object.values(map).sort((a, b) => b.inward_value - a.inward_value);

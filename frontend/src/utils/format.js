@@ -16,6 +16,13 @@ export const formatCurrency = (value, currency = 'INR', decimals = 2) => {
   return `${symbol}${formatNumber(n, decimals)}`;
 };
 
+export const formatQty = (value) => {
+  if (value == null || value === '') return '';
+  const n = Number(value);
+  if (Number.isNaN(n)) return String(value);
+  return n.toString();
+};
+
 export const formatDate = (value) => {
   if (!value) return '—';
   const d = new Date(value);
