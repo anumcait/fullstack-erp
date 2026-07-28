@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress,
-  Table, TableHead, TableRow, TableCell, TableBody, TableContainer, IconButton,
-  MenuItem, Checkbox, Autocomplete,
+  Table, TableHead, TableRow, TableCell, TableBody, IconButton,
+  MenuItem, Checkbox, Autocomplete, Stack, Tooltip,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CancelIcon from "@mui/icons-material/Cancel";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import DoubleArrowIcon from "@mui/icons-material/DoubleArrow";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "../../../../context/ToastContext";
@@ -32,9 +32,9 @@ export default function BillingForm() {
   var [pendingGrrs, setPendingGrrs] = useState([]);
   var [allPos, setAllPos] = useState([]);
   var [billItems, setBillItems] = useState([]);
-  var [expandedGrrs, setExpandedGrrs] = useState({});
-  var [selectedItems, setSelectedItems] = useState({});
   var [selectedGrnIds, setSelectedGrnIds] = useState([]);
+  var [shuttleChecked, setShuttleChecked] = useState([]);
+  var [shuttleOpen, setShuttleOpen] = useState(false);
   var [form, setForm] = useState({
     supplier_name: "",
     state: "",
@@ -89,39 +89,13 @@ export default function BillingForm() {
     : pendingGrrs;
 
   var selectedGrns = filteredGrrs.filter(function (g) { return selectedGrnIds.includes(g.id); });
-  var totalItems = selectedGrns.reduce(function (s, g) { return s + (g.items || []).length; }, 0);
-  var selCount = Object.values(selectedItems).filter(Boolean).length;
 
   function getItemKey(grnId, itemId) { return grnId + ":" + (itemId || Math.random()); }
 
-  function toggleSelectItem(grnId, itemId) {
-    var key = getItemKey(grnId, itemId);
-    setSelectedItems(function (prev) { return { ...prev, [key]: !prev[key] }; });
-  }
-
-  function toggleSelectGrn(grnId) {
-    var grn = filteredGrrs.find(function (g) { return g.id === grnId; });
-    if (!grn) return;
-    var items = grn.items || [];
-    var allSelected = items.every(function (it) { return selectedItems[getItemKey(grnId, it.id || it.item_id)]; });
-    setSelectedItems(function (prev) {
-      var next = { ...prev };
-      items.forEach(function (it) { next[getItemKey(grnId, it.id || it.item_id)] = !allSelected; });
-      return next;
+  function toggleShuttle(key) {
+    setShuttleChecked(function (prev) {
+      return prev.includes(key) ? prev.filter(function (x) { return x !== key; }) : prev.concat([key]);
     });
-  }
-
-  function selectAllGRRItems() {
-    if (selCount === totalItems) { setSelectedItems({}); return; }
-    var all = {};
-    selectedGrns.forEach(function (g) {
-      (g.items || []).forEach(function (it) { all[getItemKey(g.id, it.id || it.item_id)] = true; });
-    });
-    setSelectedItems(all);
-  }
-
-  function toggleExpand(grnId) {
-    setExpandedGrrs(function (prev) { return { ...prev, [grnId]: !prev[grnId] }; });
   }
 
   var poItemMap = useMemo(function () {
@@ -173,6 +147,23 @@ export default function BillingForm() {
     };
   }, [poItemMap]);
 
+  // All items from selected GRRs that can appear in the shuttle
+  var allShuttleItems = useMemo(function () {
+    var result = [];
+    selectedGrns.forEach(function (grn) {
+      (grn.items || []).forEach(function (it) {
+        var computed = computeItemDetails(it, grn);
+        result.push({
+          key: getItemKey(grn.id, it.id || it.item_id),
+          grn: grn,
+          item: it,
+          computed: computed,
+        });
+      });
+    });
+    return result;
+  }, [selectedGrns, computeItemDetails]);
+
   // On mount, if we received GRNs via location state, load them directly
   useEffect(function () {
     if (initialLoaded || !location.state) return;
@@ -181,12 +172,12 @@ export default function BillingForm() {
     setInitialLoaded(true);
     setSelectedGrnIds(grns.map(function (g) { return g.id; }));
     setForm(function (f) { return { ...f, supplier_name: grns[0]?.supplier?.supplier_name || "", party_name: grns[0]?.supplier?.supplier_name || "" }; });
-    var allKeys = {};
     var items = [];
+    var allKeys = [];
     grns.forEach(function (grn) {
       (grn.items || []).forEach(function (it) {
         var computed = computeItemDetails(it, grn);
-        allKeys[getItemKey(grn.id, it.id || it.item_id)] = true;
+        allKeys.push(getItemKey(grn.id, it.id || it.item_id));
         items.push({
           grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
           po_no: computed.po_no, pr_no: it.pr_no || "",
@@ -201,44 +192,36 @@ export default function BillingForm() {
         });
       });
     });
-    if (items.length > 0) { setBillItems(items); setSelectedItems(allKeys); }
+    if (items.length > 0) { setBillItems(items); setShuttleChecked(allKeys); }
   }, [location.state, pendingGrrs, allPos, initialLoaded, computeItemDetails]);
 
-  // Load selected items from GRRs into billing grid
+  // Load checked items from shuttle into billing grid
   function handleGrrListSelection() {
+    var checkedSet = new Set(shuttleChecked);
+    var loadedSet = new Set(billItems.map(function (bi) { return getItemKey(bi.grn_id, bi.id); }));
     var newItems = [];
-    selectedGrns.forEach(function (grn) {
-      (grn.items || []).forEach(function (it) {
-        var key = getItemKey(grn.id, it.id || it.item_id);
-        if (!selectedItems[key]) return;
-        if (billItems.some(function (bi) { return bi.grn_id === grn.id && bi.id === it.id; })) return;
-        var computed = computeItemDetails(it, grn);
-        newItems.push({
-          grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
-          po_no: computed.po_no, pr_no: it.pr_no || "",
-          item_code: it.item_code, item_name: it.item_name, uom: it.uom,
-          po_item_id: it.po_item_id, accepted_qty: it.accepted_qty || 0,
-          rate: computed.rate, gst_rate: it.gst_rate || 0,
-          kg: it.kg || 0, accp: it.accp || 0,
-          discount_percent: computed.discPercent, discount_inr: computed.discInr,
-          pf_percent: computed.pfPercent, pf_inr: computed.pfInr,
-          cgst_rate: computed.cgstRate, sgst_rate: computed.sgstRate, igst_rate: computed.igstRate,
-          selected: true,
-        });
+    allShuttleItems.forEach(function (si) {
+      if (!checkedSet.has(si.key)) return;
+      if (loadedSet.has(si.key)) return;
+      var it = si.item;
+      var computed = si.computed;
+          var grn = si.grn;
+      newItems.push({
+        grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
+        po_no: computed.po_no, pr_no: it.pr_no || "",
+        item_code: it.item_code, item_name: it.item_name, uom: it.uom,
+        po_item_id: it.po_item_id, accepted_qty: it.accepted_qty || 0,
+        rate: computed.rate, gst_rate: it.gst_rate || 0,
+        kg: it.kg || 0, accp: it.accp || 0,
+        discount_percent: computed.discPercent, discount_inr: computed.discInr,
+        pf_percent: computed.pfPercent, pf_inr: computed.pfInr,
+        cgst_rate: computed.cgstRate, sgst_rate: computed.sgstRate, igst_rate: computed.igstRate,
       });
     });
     if (newItems.length === 0) { showToast("No new items to load", "info"); return; }
     setBillItems(function (prev) { return [...prev, ...newItems]; });
+    setShuttleChecked([]);
     showToast(newItems.length + " item(s) loaded", "success");
-  }
-
-  function toggleItemSelect(idx) {
-    if (billItems[idx]?.selected) removeBillItem(idx);
-  }
-
-  function selectAllItems() {
-    var allSelected = billItems.every(function (it) { return it.selected; });
-    setBillItems(function (prev) { return prev.map(function (it) { return { ...it, selected: !allSelected }; }); });
   }
 
   function removeBillItem(idx) {
@@ -321,7 +304,7 @@ export default function BillingForm() {
       {/* Form Header — flat compact layout */}
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 1.5, p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0", alignItems: "center" }}>
         <TextField select size="small" label="Supplier" sx={fieldSx} value={form.supplier_name}
-          onChange={function (e) { setForm(function (f) { return { ...f, supplier_name: e.target.value, party_name: e.target.value }; }); setSelectedItems({}); setBillItems([]); }}
+          onChange={function (e) { setForm(function (f) { return { ...f, supplier_name: e.target.value, party_name: e.target.value }; }); setBillItems([]); }}
           disabled={isView} SelectProps={{ sx: { fontSize: "0.78rem" } }}>
           <MenuItem value="">All</MenuItem>
           {suppliers.map(function (s) { return <MenuItem key={s} value={s} sx={{ fontSize: "0.78rem" }}>{s}</MenuItem>; })}
@@ -340,31 +323,22 @@ export default function BillingForm() {
           onChange={function (e) { setForm(function (f) { return { ...f, remarks: e.target.value }; }); }} disabled={isView} placeholder="Any notes..." multiline rows={1} />
       </Box>
 
-      {/* Select GRRs — Multi-select dropdown with item picker */}
+      {/* Select GRRs — Autocomplete + Shuttle */}
       <Card id="grr-selection-card" sx={{ borderRadius: 2, mb: 1.5, boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
         <CardContent sx={{ p: "8px!important" }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "var(--heading-color)", fontSize: "0.82rem" }}>
-              Select GRRs
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              {selCount > 0 && (
-                <Chip label={selCount + " item(s) selected"} size="small" color="primary" onDelete={function () { setSelectedItems({}); }} />
-              )}
-              <Button variant="contained" color="success" size="small"
-                onClick={handleGrrListSelection} disabled={selCount === 0}
-                sx={{ textTransform: "none", fontSize: "0.75rem" }}>
-                Load Selected ({selCount})
-              </Button>
-            </Box>
-          </Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "var(--heading-color)", fontSize: "0.82rem", mb: 1 }}>
+            Select GRRs
+          </Typography>
 
           <Autocomplete
             multiple
             size="small"
             options={filteredGrrs}
             value={selectedGrns}
-            onChange={function (_, newVal) { setSelectedGrnIds(newVal.map(function (g) { return g.id; })); }}
+            onChange={function (_, newVal) {
+              setSelectedGrnIds(newVal.map(function (g) { return g.id; }));
+              setShuttleChecked([]);
+            }}
             getOptionLabel={function (option) { return option.grn_no + " (" + (option.supplier?.supplier_name || "-") + ")"; }}
             renderInput={function (params) {
               return <TextField {...params} label="Search & Select GRR Numbers" placeholder="Type to search..." sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem" } }} />;
@@ -374,99 +348,36 @@ export default function BillingForm() {
                 return <Chip label={option.grn_no} size="small" {...getTagProps({ index })} />;
               });
             }}
-            sx={{ mb: 1, maxWidth: 420 }}
+            sx={{ mb: 1.5, maxWidth: 420 }}
           />
 
           {loading && <LinearProgress sx={{ mb: 1 }} />}
 
-          {selectedGrns.length > 0 && (
-            <Box>
+          {selectedGrns.length > 0 && allShuttleItems.length > 0 && (
+            <>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                <Checkbox size="small" checked={selCount === totalItems && totalItems > 0}
-                  indeterminate={selCount > 0 && selCount < totalItems}
-                  onChange={selectAllGRRItems} />
-                <Typography variant="caption" sx={{ fontWeight: 600, color: "#475569" }}>
-                  Select all items ({totalItems} items)
-                </Typography>
+                <Button size="small" variant="outlined" onClick={function () { setShuttleOpen(function (p) { return !p; }); }}
+                  sx={{ textTransform: "none", fontSize: "0.72rem", minWidth: 0 }}>
+                  {shuttleOpen ? "Hide Item Selector" : "Show Item Selector"} ({allShuttleItems.length} items)
+                </Button>
               </Box>
-              <Box sx={{ maxHeight: 320, overflow: "auto" }}>
-                {selectedGrns.map(function (grn) {
-                  var items = grn.items || [];
-                  var isExpanded = expandedGrrs[grn.id];
-                  var grnItemKeys = items.map(function (it) { return getItemKey(grn.id, it.id || it.item_id); });
-                  var selInGrn = grnItemKeys.filter(function (k) { return selectedItems[k]; }).length;
-                  var isSelected = selInGrn === 0 ? false : selInGrn === grnItemKeys.length ? true : "partial";
-                  return (
-                    <Box key={grn.id} sx={{ mb: 0.5, border: "1px solid #e2e8f0", borderRadius: 2, overflow: "hidden" }}>
-                      <Box
-                        sx={{
-                          display: "flex", alignItems: "center", gap: 1, px: 1.5, py: 0.75,
-                          bgcolor: isSelected ? "#e3f2fd" : "#f8fafc",
-                          cursor: "pointer", "&:hover": { bgcolor: isSelected ? "#bbdefb" : "#eef2ff" },
-                        }}
-                        onClick={function () { toggleExpand(grn.id); }}
-                      >
-                        <Checkbox size="small" checked={isSelected}
-                          indeterminate={items.length > 0 && isSelected === "partial"}
-                          onChange={function (e) { e.stopPropagation(); toggleSelectGrn(grn.id); }} />
-                        <IconButton size="small" sx={{ p: 0.3 }}>
-                          {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                        </IconButton>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: "#1565c0", minWidth: 120, fontSize: "0.82rem" }}>
-                          {grn.grn_no}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: "#64748b", minWidth: 100, fontSize: "0.78rem" }}>
-                          {fmtDate(grn.grn_date)}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: "#334155", fontSize: "0.78rem" }}>
-                          {grn.supplier?.supplier_name || "-"}
-                        </Typography>
-                        <Chip label={items.length + " item(s)"} size="small" sx={{ ml: "auto", fontSize: "0.7rem" }} />
-                      </Box>
-
-                      {isExpanded && (
-                        <Box sx={{ px: 1.5, py: 0.5, bgcolor: "#fafcff" }}>
-                          <Table size="small" sx={{ "& td, & th": { border: "1px solid #e0e0e0", px: 0.35, py: 0.2, fontSize: "0.68rem" } }}>
-                            <TableHead>
-                              <TableRow sx={{ bgcolor: "#f1f5f9" }}>
-                                <TableCell sx={{ ...thSx, textAlign: "center", width: 28 }}>#</TableCell>
-                                <TableCell sx={{ ...thSx, width: 28 }}></TableCell>
-                                <TableCell sx={thSx}>Item Code</TableCell>
-                                <TableCell sx={thSx}>Description</TableCell>
-                                <TableCell sx={{ ...thSx, textAlign: "right" }}>Accp Qty</TableCell>
-                                <TableCell sx={{ ...thSx, textAlign: "center" }}>UOM</TableCell>
-                                <TableCell sx={{ ...thSx, textAlign: "right" }}>Rate</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {items.map(function (it, ii) {
-                                var comp = computeItemDetails(it, grn);
-                                var itemKey = getItemKey(grn.id, it.id || it.item_id);
-                                var itemSel = Boolean(selectedItems[itemKey]);
-                                return (
-                                  <TableRow key={it.id || ii} hover sx={{ bgcolor: itemSel ? "#e8f5e9" : "inherit" }}>
-                                    <TableCell sx={{ textAlign: "center", fontSize: "0.68rem", py: 0.2 }}>{ii + 1}</TableCell>
-                                    <TableCell sx={{ textAlign: "center", py: 0.2 }}>
-                                      <Checkbox size="small" checked={itemSel}
-                                        onChange={function () { toggleSelectItem(grn.id, it.id || it.item_id); }} />
-                                    </TableCell>
-                                    <TableCell sx={{ fontWeight: 600, fontSize: "0.68rem", py: 0.2 }}>{it.item_code || "-"}</TableCell>
-                                    <TableCell sx={{ fontSize: "0.68rem", py: 0.2 }}>{it.item_name || "-"}</TableCell>
-                                    <TableCell sx={{ textAlign: "right", fontWeight: 600, fontSize: "0.68rem", py: 0.2 }}>{comp.qty.toFixed(2)}</TableCell>
-                                    <TableCell sx={{ textAlign: "center", fontSize: "0.68rem", py: 0.2 }}>{it.uom || "-"}</TableCell>
-                                    <TableCell sx={{ textAlign: "right", fontSize: "0.68rem", py: 0.2 }}>{comp.rate.toFixed(2)}</TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </Box>
-                      )}
-                    </Box>
-                  );
-                })}
+              {shuttleOpen && (<>
+              <GrnItemShuttle
+                items={allShuttleItems}
+                shuttleChecked={shuttleChecked}
+                loadedKeys={new Set(billItems.map(function (bi) { return getItemKey(bi.grn_id, bi.id); }))}
+                toggleShuttle={toggleShuttle}
+              />
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+                <Button variant="contained" color="success" size="small"
+                  onClick={handleGrrListSelection}
+                  disabled={shuttleChecked.length === 0}
+                  sx={{ textTransform: "none", fontSize: "0.78rem" }}>
+                  Load Items ({shuttleChecked.length})
+                </Button>
               </Box>
-            </Box>
+              </>)}
+            </>
           )}
         </CardContent>
       </Card>
@@ -479,20 +390,13 @@ export default function BillingForm() {
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "var(--heading-color)", fontSize: "0.82rem" }}>
                 Billing Items — Edit Disc, P&amp;F, Tax as needed
               </Typography>
-              <Button size="small" variant="outlined" startIcon={<AddCircleIcon />}
-                onClick={function () { document.getElementById("grr-selection-card")?.scrollIntoView({ behavior: "smooth" }); }}
-                sx={{ textTransform: "none", fontSize: "0.78rem" }}>
-                Add More Items
-              </Button>
             </Box>
             <Box sx={{ maxHeight: 380, overflow: "auto", mb: 2, border: "1px solid #e2e8f0", borderRadius: 2 }}>
               <Table size="small" sx={{ "& td, & th": { border: "1px solid #e0e0e0", px: 0.35, py: 0.25, fontSize: "0.68rem" } }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: "#f1f5f9" }}>
                     <TableCell sx={{ ...thSx, width: 28 }}></TableCell>
-                    <TableCell sx={{ ...thSx, width: 32 }}>
-                      <Checkbox size="small" checked={billItems.every(function (it) { return it.selected; })} onChange={selectAllItems} />
-                    </TableCell>
+                    <TableCell sx={{ ...thSx, width: 28, textAlign: "center" }}>Sl#</TableCell>
                     <TableCell sx={thSx}>GRR #</TableCell>
                     <TableCell sx={thSx}>PO #</TableCell>
                     <TableCell sx={thSx}>PR #</TableCell>
@@ -526,7 +430,7 @@ export default function BillingForm() {
                     var amount = taxable + pfVal + (taxable + pfVal) * ((cgstPer + sgstPer + igstPer) / 100);
 
                     return (
-                      <TableRow key={idx} hover sx={{ bgcolor: it.selected ? "#f0fdf4" : "inherit" }}>
+                      <TableRow key={idx} hover>
                         <TableCell sx={{ textAlign: "center", py: 0.25 }}>
                           {!isView && (
                             <IconButton size="small" onClick={function () { removeBillItem(idx); }} sx={{ p: 0.2, color: "#ef4444" }}>
@@ -534,9 +438,7 @@ export default function BillingForm() {
                             </IconButton>
                           )}
                         </TableCell>
-                        <TableCell sx={{ textAlign: "center", py: 0.25 }}>
-                          <Checkbox size="small" checked={it.selected} onChange={function () { if (!isView) { if (it.selected) removeBillItem(idx); else toggleItemSelect(idx); } }} />
-                        </TableCell>
+                        <TableCell sx={{ textAlign: "center", fontWeight: 600, fontSize: "0.68rem", py: 0.25, color: "#64748b" }}>{idx + 1}</TableCell>
                         <TableCell sx={{ fontWeight: 600, fontSize: "0.68rem", py: 0.25 }}>{it.grn_no}</TableCell>
                         <TableCell sx={{ fontSize: "0.68rem", py: 0.25 }}>{it.po_no || "-"}</TableCell>
                         <TableCell sx={{ fontSize: "0.68rem", py: 0.25 }}>{it.pr_no || "-"}</TableCell>
@@ -632,5 +534,176 @@ function SummaryChip({ label, value }) {
       <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 500, fontSize: "0.72rem" }}>{label}</Typography>
       <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.78rem" }}>&#8377;{formatNumber(value)}</Typography>
     </Box>
+  );
+}
+
+function GrnItemShuttle({ items, shuttleChecked, loadedKeys, toggleShuttle }) {
+  var [leftSearch, setLeftSearch] = useState("");
+  var [rightSearch, setRightSearch] = useState("");
+  var [selected, setSelected] = useState([]);
+
+  var checkedSet = useMemo(function () { return new Set(shuttleChecked); }, [shuttleChecked]);
+
+  var leftItems = useMemo(function () {
+    var q = leftSearch.toLowerCase();
+    return items.filter(function (s) {
+      return !checkedSet.has(s.key) && !loadedKeys.has(s.key) && (!q || (s.item.item_name || "").toLowerCase().includes(q) || (s.item.item_code || "").toLowerCase().includes(q) || (s.grn.grn_no || "").toLowerCase().includes(q));
+    });
+  }, [items, checkedSet, loadedKeys, leftSearch]);
+
+  var rightItems = useMemo(function () {
+    var q = rightSearch.toLowerCase();
+    return items.filter(function (s) {
+      return (checkedSet.has(s.key) || loadedKeys.has(s.key)) && (!q || (s.item.item_name || "").toLowerCase().includes(q) || (s.item.item_code || "").toLowerCase().includes(q) || (s.grn.grn_no || "").toLowerCase().includes(q));
+    });
+  }, [items, checkedSet, loadedKeys, rightSearch]);
+
+  var leftIds = useMemo(function () { return new Set(leftItems.map(function (s) { return s.key; })); }, [leftItems]);
+
+  function shuttleToggleSelect(id) {
+    setSelected(function (prev) { return prev.includes(id) ? prev.filter(function (x) { return x !== id; }) : prev.concat([id]); });
+  }
+
+  function moveSelectedRight() {
+    var toMove = selected.filter(function (sid) { return leftIds.has(sid); });
+    toMove.forEach(function (sid) { toggleShuttle(sid); });
+    setSelected([]);
+  }
+
+  function moveSelectedLeft() {
+    var toMove = selected.filter(function (sid) { return !leftIds.has(sid) && !loadedKeys.has(sid); });
+    toMove.forEach(function (sid) { toggleShuttle(sid); });
+    setSelected([]);
+  }
+
+  function moveAllRight() {
+    leftItems.forEach(function (s) { toggleShuttle(s.key); });
+    setSelected([]);
+  }
+
+  function moveAllLeft() {
+    shuttleChecked.forEach(function (key) { if (!loadedKeys.has(key)) toggleShuttle(key); });
+    setSelected([]);
+  }
+
+  var num = function (v) { return Number(v || 0).toFixed(2); };
+
+  var searchSx = {
+    "& .MuiOutlinedInput-root": { fontSize: "0.8rem" },
+    "& .MuiOutlinedInput-input": { py: 0.75 },
+    mb: 0.75,
+  };
+
+  var listSx = {
+    border: "1px solid #e2e8f0", borderRadius: 2, minHeight: 200, maxHeight: 320,
+    overflow: "auto", bgcolor: "#fff",
+  };
+
+  var rowSx = function (isSel) {
+    return {
+      display: "flex", alignItems: "center", gap: 1,
+      px: 1.25, py: 0.6, cursor: "pointer", userSelect: "none",
+      borderBottom: "1px solid #f1f5f9",
+      bgcolor: isSel ? "#eff6ff" : "transparent",
+      transition: "background 0.1s",
+      "&:hover": { bgcolor: isSel ? "#dbeafe" : "#f8fafc" },
+    };
+  };
+
+  return (
+    <Stack direction="row" spacing={1} alignItems="stretch">
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" sx={{ fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5, display: "block" }}>
+          Available ({leftItems.length})
+        </Typography>
+        <TextField size="small" placeholder="Search items..." variant="outlined" fullWidth
+          value={leftSearch} onChange={function (e) { setLeftSearch(e.target.value); }} sx={searchSx} />
+        <Box sx={listSx}>
+          {leftItems.length === 0 && (
+            <Typography variant="body2" sx={{ p: 2, color: "text.secondary", textAlign: "center", fontStyle: "italic" }}>
+              {leftSearch ? "No items match your search" : "All items selected \u2192"}
+            </Typography>
+          )}
+          {leftItems.map(function (s) {
+            var isSel = selected.includes(s.key);
+            return (
+              <Box key={s.key} sx={rowSx(isSel)} onClick={function () { shuttleToggleSelect(s.key); }} onDoubleClick={function () { toggleShuttle(s.key); }}>
+                <Typography variant="body2" sx={{ fontSize: "0.8rem", color: "#1e293b", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <Box component="span" sx={{ fontWeight: 700, color: "#475569", mr: 0.5 }}>{s.item.item_code || "---"}</Box>
+                  <Box component="span" sx={{ fontWeight: 600 }}>{s.item.item_name}</Box>
+                  <Box component="span" sx={{ color: "#64748b", ml: 0.5 }}>
+                    &middot; {s.grn.grn_no} &middot; Qty: {num(s.item.accepted_qty)} &middot; &#x20B9;{num(s.computed.rate)}
+                  </Box>
+                </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      </Box>
+
+      <Stack spacing={0.5} justifyContent="center" alignItems="center" sx={{ px: 0.5 }}>
+        <Tooltip title="Move selected to right" placement="right">
+          <IconButton size="small" onClick={moveSelectedRight}
+            disabled={selected.length === 0 || leftItems.every(function (s) { return !selected.includes(s.key); })}
+            sx={{ border: "1px solid #cbd5e1", borderRadius: 1, "&:hover": { bgcolor: "#dbeafe" } }}>
+            <ChevronRightIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Move all to right" placement="right">
+          <IconButton size="small" onClick={moveAllRight} disabled={leftItems.length === 0}
+            sx={{ border: "1px solid #cbd5e1", borderRadius: 1, "&:hover": { bgcolor: "#dbeafe" } }}>
+            <DoubleArrowIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Move all to left" placement="right">
+          <IconButton size="small" onClick={moveAllLeft}
+            disabled={shuttleChecked.filter(function (k) { return !loadedKeys.has(k); }).length === 0}
+            sx={{ border: "1px solid #cbd5e1", borderRadius: 1, "&:hover": { bgcolor: "#fef2f2" } }}>
+            <DoubleArrowIcon sx={{ fontSize: 18, transform: "scaleX(-1)" }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Move selected to left" placement="right">
+          <IconButton size="small" onClick={moveSelectedLeft}
+            disabled={selected.length === 0 || rightItems.every(function (s) { return !selected.includes(s.key); })}
+            sx={{ border: "1px solid #cbd5e1", borderRadius: 1, "&:hover": { bgcolor: "#fef2f2" } }}>
+            <ChevronLeftIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="caption" sx={{ fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5, display: "block" }}>
+          Selected ({rightItems.length})
+        </Typography>
+        <TextField size="small" placeholder="Search items..." variant="outlined" fullWidth
+          value={rightSearch} onChange={function (e) { setRightSearch(e.target.value); }} sx={searchSx} />
+        <Box sx={listSx}>
+          {rightItems.length === 0 && (
+            <Typography variant="body2" sx={{ p: 2, color: "text.secondary", textAlign: "center", fontStyle: "italic" }}>
+              {rightSearch ? "No items match your search" : "\u2190 Move items from left"}
+            </Typography>
+          )}
+          {rightItems.map(function (s) {
+            var alreadyLoaded = loadedKeys.has(s.key);
+            var isSel = selected.includes(s.key);
+            return (
+              <Box key={s.key}
+                sx={{ ...rowSx(isSel), ...(alreadyLoaded ? { opacity: 0.6, cursor: "default" } : {}) }}
+                onClick={function () { if (!alreadyLoaded) shuttleToggleSelect(s.key); }}
+                onDoubleClick={function () { if (!alreadyLoaded) toggleShuttle(s.key); }}>
+                <Typography variant="body2" sx={{ fontSize: "0.8rem", color: "#1e293b", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                  <Box component="span" sx={{ fontWeight: 700, color: "#475569", mr: 0.5 }}>{s.item.item_code || "---"}</Box>
+                  <Box component="span" sx={{ fontWeight: 600 }}>{s.item.item_name}</Box>
+                  <Box component="span" sx={{ color: "#64748b", ml: 0.5 }}>
+                    &middot; {s.grn.grn_no} &middot; Qty: {num(s.item.accepted_qty)} &middot; &#x20B9;{num(s.computed.rate)}
+                  </Box>
+                </Typography>
+                {alreadyLoaded && <Chip size="small" label="Loaded" color="success" variant="outlined" sx={{ fontSize: "0.65rem", height: 18, ml: "auto" }} />}
+              </Box>
+            );
+          })}
+        </Box>
+      </Box>
+    </Stack>
   );
 }
