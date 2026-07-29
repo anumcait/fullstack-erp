@@ -20,8 +20,9 @@ const GRR_API = "/api/erp/stores/grn";
 const r2 = (v) => Number(Number(v || 0).toFixed(2));
 const fieldSx = { "& .MuiInputBase-root": { fontSize: "0.78rem" }, "& .MuiInputLabel-root": { fontSize: "0.78rem" } };
 const thSx = { fontWeight: 700, fontSize: "0.8rem", color: "#475569", whiteSpace: "nowrap", py: 0.4 };
-// Freeze-pane: columns 0-9 are sticky. Widths: Del(32) Sl(32) GRR(78) PO(68) PR(68) Code(78) Desc(160) Qty(62) KG(52) Rate(78)
-const FZ = [0, 32, 64, 142, 210, 278, 356, 516, 578, 630]; // cumulative left offsets
+// Freeze-pane: columns 0-18 are sticky through Rate
+// Widths: Del(30) Sl(30) GRR(72) GRR_Dt(85) PO(68) PR(68) PR_Dt(85) DC_No(70) DC_Dt(85) WO(60) Code(78) Desc(150) Dia(42) Len(42) Wid(42) Thk(42) KG(55) Qty(58) Rate(72)
+const FZ = [0, 30, 60, 132, 217, 285, 353, 438, 508, 593, 653, 731, 881, 923, 965, 1007, 1049, 1104, 1162];
 const fzTh = (col, extra) => ({ position: "sticky", left: FZ[col], zIndex: 4, bgcolor: "#f1f5f9", ...extra });
 const fzTd = (col, extra) => ({ position: "sticky", left: FZ[col], zIndex: 2, bgcolor: "#fff", ...extra });
 const fzFt = (col, extra) => ({ position: "sticky", left: FZ[col], zIndex: 2, bgcolor: "#e8f4fd", ...extra });
@@ -214,14 +215,22 @@ export default function BillingForm() {
         allKeys.push(getItemKey(grn.id, it.id || it.item_id));
         items.push({
           grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
+          grn_date: grn.grn_date,
+          pr_date: grn.purchaseRequisition?.req_date,
+          supp_dc_no: grn.invoice_no,
+          supp_dc_date: grn.invoice_date,
+          wo_no: it.wo_no,
           po_no: computed.po_no, pr_no: computed.pr_no,
           item_code: it.item_code, item_name: it.item_name, uom: it.uom,
           po_item_id: it.po_item_id, accepted_qty: it.accepted_qty || 0,
           rate: computed.rate, gst_rate: it.gst_rate || 0,
           kg: it.kg || 0, accp: it.accp || 0,
+          dia: it.dia || 0, len: it.len || 0, wid: it.wid || 0, thk: it.thk || 0,
           discount_percent: computed.discPercent, discount_inr: computed.discInr,
           pf_percent: computed.pfPercent, pf_inr: computed.pfInr,
           cgst_rate: computed.cgstRate, sgst_rate: computed.sgstRate, igst_rate: computed.igstRate,
+          fre_percent: 0, fre_inr: 0, oth_percent: 0, oth_inr: 0, tcs_percent: 0,
+          grr_sl: it.id,
           selected: true,
         });
       });
@@ -242,14 +251,22 @@ export default function BillingForm() {
       var grn = si.grn;
       newItems.push({
         grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
+        grn_date: grn.grn_date,
+        pr_date: grn.purchaseRequisition?.req_date,
+        supp_dc_no: grn.invoice_no,
+        supp_dc_date: grn.invoice_date,
+        wo_no: it.wo_no,
         po_no: computed.po_no, pr_no: computed.pr_no,
         item_code: it.item_code, item_name: it.item_name, uom: it.uom,
         po_item_id: it.po_item_id, accepted_qty: it.accepted_qty || 0,
         rate: computed.rate, gst_rate: it.gst_rate || 0,
         kg: it.kg || 0, accp: it.accp || 0,
+        dia: it.dia || 0, len: it.len || 0, wid: it.wid || 0, thk: it.thk || 0,
         discount_percent: computed.discPercent, discount_inr: computed.discInr,
         pf_percent: computed.pfPercent, pf_inr: computed.pfInr,
         cgst_rate: computed.cgstRate, sgst_rate: computed.sgstRate, igst_rate: computed.igstRate,
+        fre_percent: 0, fre_inr: 0, oth_percent: 0, oth_inr: 0, tcs_percent: 0,
+        grr_sl: it.id,
       });
     });
     if (newItems.length === 0) { showToast("No new items to load", "info"); return; }
@@ -286,16 +303,16 @@ export default function BillingForm() {
   var displayVal = function (val) {
     if (val === undefined || val === null || val === "" || Number(val) === 0) return "";
     var n = Number(val);
-    return n % 1 === 0 ? n.toLocaleString("en-IN") : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return n % 1 === 0 ? n.toLocaleString("en-IN") : n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
   };
 
   var displayTotalVal = function (val) {
     var n = Number(val || 0);
-    return n % 1 === 0 ? n.toLocaleString("en-IN") : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return n % 1 === 0 ? n.toLocaleString("en-IN") : n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
   };
 
   var summary = useMemo(function () {
-    var qty = 0, kg = 0, gross = 0, disc = 0, pf = 0, basic = 0, cgst = 0, sgst = 0, igst = 0, tcs = 0;
+    var qty = 0, kg = 0, gross = 0, disc = 0, pf = 0, basic = 0, cgst = 0, sgst = 0, igst = 0, tcs = 0, fre = 0, oth = 0, afterDiscTotal = 0;
     billItems.forEach(function (it) {
       var accp = Number(it.accepted_qty || 0);
       var kgVal = Number(it.kg || 0);
@@ -317,30 +334,43 @@ export default function BillingForm() {
       var igstVal = r2(taxable * igstPer / 100);
       var tcsPer = Number(it.tcs_percent || 0);
       var tcsVal = r2((taxable + cgstVal + sgstVal + igstVal) * tcsPer / 100);
+      var frePer = Number(it.fre_percent || 0);
+      var freInr = Number(it.fre_inr || 0);
+      var freVal = freInr > 0 ? freInr : r2(taxable * frePer / 100);
+      var othPer = Number(it.oth_percent || 0);
+      var othInr = Number(it.oth_inr || 0);
+      var othVal = othInr > 0 ? othInr : r2(taxable * othPer / 100);
 
       qty += accp;
       kg += kgVal;
       gross += grossVal;
       disc += discAmt;
+      afterDiscTotal += afterDisc;
       pf += pfAmt;
       basic += taxable;
       cgst += cgstVal;
       sgst += sgstVal;
       igst += igstVal;
       tcs += tcsVal;
+      fre += freVal;
+      oth += othVal;
     });
     return {
       qty: r2(qty),
       kg: r2(kg),
       gross: r2(gross),
       disc: r2(disc),
+      afterDisc: r2(afterDiscTotal),
       pf: r2(pf),
       basic: r2(basic),
       cgst: r2(cgst),
       sgst: r2(sgst),
       igst: r2(igst),
       tcs: r2(tcs),
-      total: r2(basic + cgst + sgst + igst + tcs)
+      fre: r2(fre),
+      oth: r2(oth),
+      total: r2(basic + cgst + sgst + igst + tcs),
+      totalValue: r2(basic + cgst + sgst + igst + tcs + fre + oth)
     };
   }, [billItems]);
 
@@ -364,7 +394,7 @@ export default function BillingForm() {
   }
 
   function fmtDate(d) {
-    return d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-";
+    return d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "";
   }
 
   return (
@@ -473,34 +503,50 @@ export default function BillingForm() {
               </Typography>
             </Box>
             <Box sx={{ maxHeight: 480, overflow: "auto", mb: 2, border: "1px solid #e2e8f0", borderRadius: 2 }}>
-              <Table size="small" stickyHeader sx={{ "& td, & th": { border: "1px solid #e0e0e0", px: 0.5, py: 0.3, fontSize: "0.8rem" }, minWidth: 1800 }}>
+              <Table size="small" stickyHeader sx={{ "& td, & th": { border: "1px solid #e0e0e0", px: 0.5, py: 0.3, fontSize: "0.8rem" }, minWidth: 2800 }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: "#f1f5f9" }}>
-                    <TableCell sx={{ ...thSx, width: 32, ...fzTh(0) }}></TableCell>
-                    <TableCell sx={{ ...thSx, width: 32, textAlign: "center", ...fzTh(1) }}>Sl#</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 78, ...fzTh(2) }}>GRR #</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 68, ...fzTh(3) }}>PO #</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 68, ...fzTh(4) }}>PR #</TableCell>
-                    <TableCell sx={{ ...thSx, minWidth: 78, ...fzTh(5) }}>Item Code</TableCell>
-                    <TableCell sx={{ ...thSx, minWidth: 160, ...fzTh(6) }}>Description</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 62, ...fzTh(7) }}>Qty<br />Accp</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 52, ...fzTh(8) }}>KG<br />Accp</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4", minWidth: 78, ...fzTh(9, { bgcolor: "#fff9c4" }) }}>Rate</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Gross</TableCell>
+                    <TableCell sx={{ ...thSx, width: 30, ...fzTh(0) }}></TableCell>
+                    <TableCell sx={{ ...thSx, width: 30, textAlign: "center", ...fzTh(1) }}>Sl#</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 72, ...fzTh(2) }}>GRR #</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 85, ...fzTh(3) }}>GRR Date</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 68, ...fzTh(4) }}>PO #</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 68, ...fzTh(5) }}>PR #</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 85, ...fzTh(6) }}>PR Date</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 70, ...fzTh(7) }}>Supp DC No</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 85, ...fzTh(8) }}>Supp DC Date</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 60, ...fzTh(9) }}>W.O</TableCell>
+                    <TableCell sx={{ ...thSx, width: 78, ...fzTh(10) }}>Item Code</TableCell>
+                    <TableCell sx={{ ...thSx, width: 150, ...fzTh(11) }}>Description</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 42, ...fzTh(12) }}>Dia</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 42, ...fzTh(13) }}>Len</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 42, ...fzTh(14) }}>Wid</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 42, ...fzTh(15) }}>Thk</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 55, ...fzTh(16) }}>KG<br />Accp</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", width: 58, ...fzTh(17) }}>Qty<br />Accp</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4", width: 72, ...fzTh(18, { bgcolor: "#fff9c4" }) }}>Rate</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Basic Amt</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>Disc%</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>Disc Amt</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>PF%</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>PF Amt</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>After Disc</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>P&amp;F%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>P&amp;F Amt</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right" }}>Taxable</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>CGST%</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>CGST Amt</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>SGST%</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right" }}>SGST Amt</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>CGST%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>CGST Amt</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>IGST%</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right" }}>IGST Amt</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>TCS%</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right" }}>TCS Amt</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Amount</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>Fre%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Fre Val</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>Oth%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Oth Val</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#bbdefb" }}>Total Value</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#c8e6c9" }}>TAXABLE AMT</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center" }}>GRR Sl#</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -524,7 +570,14 @@ export default function BillingForm() {
                     var igstAmt = r2(taxable * igstPer / 100);
                     var tcsPer = Number(it.tcs_percent || 0);
                     var tcsAmt = r2((taxable + cgstAmt + sgstAmt + igstAmt) * tcsPer / 100);
-                    var amount = r2(taxable + cgstAmt + sgstAmt + igstAmt + tcsAmt);
+                    var frePer = Number(it.fre_percent || 0);
+                    var freInr = Number(it.fre_inr || 0);
+                    var freVal = freInr > 0 ? freInr : r2(taxable * frePer / 100);
+                    var othPer = Number(it.oth_percent || 0);
+                    var othInr = Number(it.oth_inr || 0);
+                    var othVal = othInr > 0 ? othInr : r2(taxable * othPer / 100);
+                    var totalVal = r2(taxable + cgstAmt + sgstAmt + igstAmt + tcsAmt);
+                    var totalWithFreOth = r2(totalVal + freVal + othVal);
                     var editSx = { textAlign: "right", fontSize: "0.8rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "#fffde7", outline: "none" };
                     var roSx = { textAlign: "right", fontSize: "0.8rem", py: 0.3, color: "#374151" };
 
@@ -539,78 +592,101 @@ export default function BillingForm() {
                         </TableCell>
                         <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, color: "#64748b", ...fzTd(1) }}>{idx + 1}</TableCell>
                         <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, ...fzTd(2) }}>{it.grn_no}</TableCell>
-                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(3) }}>{it.po_no || "-"}</TableCell>
-                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(4) }}>{it.pr_no || "-"}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, py: 0.3, ...fzTd(5) }}>{it.item_code}</TableCell>
-                        <TableCell sx={{ py: 0.3, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", ...fzTd(6) }}>{it.item_name}</TableCell>
-                        <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, ...fzTd(7) }}>{accp || "-"}</TableCell>
-                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(8) }}>{Number(it.kg || 0) || "-"}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(3) }}>{fmtDate(it.grn_date)}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(4) }}>{it.po_no || ""}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(5) }}>{it.pr_no || ""}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(6) }}>{fmtDate(it.pr_date)}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(7) }}>{it.supp_dc_no || ""}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(8) }}>{fmtDate(it.supp_dc_date)}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(9) }}>{it.wo_no || ""}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, py: 0.3, ...fzTd(10) }}>{it.item_code}</TableCell>
+                        <TableCell sx={{ py: 0.3, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", ...fzTd(11) }}>{it.item_name}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(12) }}>{Number(it.dia) || ""}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(13) }}>{Number(it.len) || ""}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(14) }}>{Number(it.wid) || ""}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(15) }}>{Number(it.thk) || ""}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(16) }}>{Number(it.kg || 0) || ""}</TableCell>
+                        <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, ...fzTd(17) }}>{accp || ""}</TableCell>
                         {/* Rate - yellow editable */}
-                        <TableCell sx={{ py: 0.3, ...fzTd(9, { bgcolor: "#fffde7" }) }}>
+                        <TableCell sx={{ py: 0.3, ...fzTd(18, { bgcolor: "#fffde7" }) }}>
                           <input type="number" value={rate || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "rate", Number(e.target.value) || 0); }}
-                            style={{ ...editSx, width: 78 }} />
+                            style={{ ...editSx, width: 72 }} />
                         </TableCell>
-                        {/* Gross computed */}
                         <TableCell sx={roSx}>{displayVal(gross)}</TableCell>
-                        {/* Disc% editable */}
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
                           <input type="number" value={discPer || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "discount_percent", Number(e.target.value) || 0); handleFieldChange(idx, "discount_inr", 0); }}
                             style={{ ...editSx, width: 55 }} />
                         </TableCell>
-                        {/* Disc Amt editable (overrides %) */}
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
                           <input type="number" value={discAmt || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "discount_inr", Number(e.target.value) || 0); handleFieldChange(idx, "discount_percent", 0); }}
                             style={{ ...editSx, width: 70 }} />
                         </TableCell>
-                        {/* PF% editable */}
+                        <TableCell sx={roSx}>{displayVal(afterDisc)}</TableCell>
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
                           <input type="number" value={pfPer || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "pf_percent", Number(e.target.value) || 0); handleFieldChange(idx, "pf_inr", 0); }}
                             style={{ ...editSx, width: 55 }} />
                         </TableCell>
-                        {/* PF Amt editable */}
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
                           <input type="number" value={pfAmt || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "pf_inr", Number(e.target.value) || 0); handleFieldChange(idx, "pf_percent", 0); }}
                             style={{ ...editSx, width: 70 }} />
                         </TableCell>
-                        {/* Taxable computed */}
                         <TableCell sx={{ ...roSx, fontWeight: 700, color: "#1565c0" }}>{displayVal(taxable)}</TableCell>
-                        {/* CGST% editable */}
-                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
-                          <input type="number" value={cgstPer || ""} disabled={isView}
-                            onChange={function (e) { handleFieldChange(idx, "cgst_rate", Number(e.target.value) || 0); }}
-                            style={{ ...editSx, width: 55 }} />
-                        </TableCell>
-                        <TableCell sx={roSx}>{displayVal(cgstAmt)}</TableCell>
-                        {/* SGST% editable */}
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
                           <input type="number" value={sgstPer || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "sgst_rate", Number(e.target.value) || 0); }}
                             style={{ ...editSx, width: 55 }} />
                         </TableCell>
                         <TableCell sx={roSx}>{displayVal(sgstAmt)}</TableCell>
-                        {/* IGST% editable */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={cgstPer || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "cgst_rate", Number(e.target.value) || 0); }}
+                            style={{ ...editSx, width: 55 }} />
+                        </TableCell>
+                        <TableCell sx={roSx}>{displayVal(cgstAmt)}</TableCell>
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
                           <input type="number" value={igstPer || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "igst_rate", Number(e.target.value) || 0); }}
                             style={{ ...editSx, width: 55 }} />
                         </TableCell>
                         <TableCell sx={roSx}>{displayVal(igstAmt)}</TableCell>
-                        {/* TCS% editable */}
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
                           <input type="number" value={tcsPer || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "tcs_percent", Number(e.target.value) || 0); }}
                             style={{ ...editSx, width: 55 }} />
                         </TableCell>
                         <TableCell sx={roSx}>{displayVal(tcsAmt)}</TableCell>
-                        {/* Final Amount */}
-                        <TableCell sx={{ textAlign: "right", fontWeight: 700, fontSize: "0.82rem", py: 0.3, color: "#16a34a" }}>
-                          {displayVal(amount)}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={frePer || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "fre_percent", Number(e.target.value) || 0); handleFieldChange(idx, "fre_inr", 0); }}
+                            style={{ ...editSx, width: 55 }} />
                         </TableCell>
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={freVal || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "fre_inr", Number(e.target.value) || 0); handleFieldChange(idx, "fre_percent", 0); }}
+                            style={{ ...editSx, width: 70 }} />
+                        </TableCell>
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={othPer || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "oth_percent", Number(e.target.value) || 0); handleFieldChange(idx, "oth_inr", 0); }}
+                            style={{ ...editSx, width: 55 }} />
+                        </TableCell>
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={othVal || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "oth_inr", Number(e.target.value) || 0); handleFieldChange(idx, "oth_percent", 0); }}
+                            style={{ ...editSx, width: 70 }} />
+                        </TableCell>
+                        <TableCell sx={{ textAlign: "right", fontWeight: 700, fontSize: "0.82rem", py: 0.3, color: "#0f172a" }}>
+                          {displayVal(totalWithFreOth)}
+                        </TableCell>
+                        <TableCell sx={{ textAlign: "right", fontWeight: 700, fontSize: "0.82rem", py: 0.3, color: "#16a34a" }}>
+                          {displayVal(totalVal)}
+                        </TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, color: "#64748b" }}>{it.grr_sl || ""}</TableCell>
                       </TableRow>
                     );
                   })}
@@ -627,40 +703,40 @@ export default function BillingForm() {
                         <TableCell sx={{ ...fzFt(4), borderTop: "2px solid #93c5fd" }} />
                         <TableCell sx={{ ...fzFt(5), borderTop: "2px solid #93c5fd" }} />
                         <TableCell sx={{ ...fzFt(6), borderTop: "2px solid #93c5fd" }} />
-                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(7) }}>{displayTotalVal(t.qty)}</TableCell>
-                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(8) }}>{displayTotalVal(t.kg)}</TableCell>
-                        {/* Rate col - blank */}
-                        <TableCell sx={{ ...ftSx, ...fzFt(9), bgcolor: "#fff9c4", borderTop: "2px solid #93c5fd" }}></TableCell>
-                        {/* Gross */}
+                        <TableCell sx={{ ...fzFt(7), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(8), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(9), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(10), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(11), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(12), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(13), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(14), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(15), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(16) }}>{displayTotalVal(t.kg)}</TableCell>
+                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(17) }}>{displayTotalVal(t.qty)}</TableCell>
+                        <TableCell sx={{ ...ftSx, ...fzFt(18), bgcolor: "#fff9c4", borderTop: "2px solid #93c5fd" }}></TableCell>
                         <TableCell sx={ftSx}>{displayTotalVal(t.gross)}</TableCell>
-                        {/* Disc% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
-                        {/* Disc Amt */}
                         <TableCell sx={ftSx}>{displayTotalVal(t.disc)}</TableCell>
-                        {/* PF% - blank */}
+                        <TableCell sx={ftSx}>{displayTotalVal(t.afterDisc)}</TableCell>
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
-                        {/* PF Amt */}
                         <TableCell sx={ftSx}>{displayTotalVal(t.pf)}</TableCell>
-                        {/* Taxable */}
                         <TableCell sx={{ ...ftSx, color: "#1565c0" }}>{displayTotalVal(t.basic)}</TableCell>
-                        {/* CGST% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
-                        {/* CGST Amt */}
-                        <TableCell sx={ftSx}>{displayTotalVal(t.cgst)}</TableCell>
-                        {/* SGST% - blank */}
-                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
-                        {/* SGST Amt */}
                         <TableCell sx={ftSx}>{displayTotalVal(t.sgst)}</TableCell>
-                        {/* IGST% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
-                        {/* IGST Amt */}
+                        <TableCell sx={ftSx}>{displayTotalVal(t.cgst)}</TableCell>
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
                         <TableCell sx={ftSx}>{displayTotalVal(t.igst)}</TableCell>
-                        {/* TCS% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
-                        {/* TCS Amt */}
                         <TableCell sx={ftSx}>{displayTotalVal(t.tcs)}</TableCell>
-                        {/* Grand Total */}
-                        <TableCell sx={{ ...ftSx, color: "#16a34a", fontSize: "0.82rem" }}>{displayTotalVal(t.total)}</TableCell>
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.fre)}</TableCell>
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.oth)}</TableCell>
+                        <TableCell sx={{ ...ftSx, bgcolor: "#bbdefb" }}>{displayTotalVal(t.totalValue)}</TableCell>
+                        <TableCell sx={{ ...ftSx, color: "#16a34a", fontSize: "0.82rem", bgcolor: "#c8e6c9" }}>{displayTotalVal(t.total)}</TableCell>
+                        <TableCell sx={ftSx}></TableCell>
                       </TableRow>
                     );
                   })()}
@@ -671,16 +747,23 @@ export default function BillingForm() {
             {/* Summary chips - compact totals strip */}
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5, px: 1, py: 0.75, bgcolor: "#f1f5f9", borderRadius: 2, flexWrap: "wrap", alignItems: "center" }}>
               <SummaryChip label="Qty" value={summary.qty} plain />
-              <SummaryChip label="Gross" value={summary.gross} />
+              <SummaryChip label="Basic Amt" value={summary.gross} />
               <SummaryChip label="Disc" value={summary.disc} />
-              <SummaryChip label="P&F" value={summary.pf} />
+              <SummaryChip label="After Disc" value={summary.afterDisc} />
+              <SummaryChip label="P&amp;F" value={summary.pf} />
               <SummaryChip label="Taxable" value={summary.basic} />
-              <SummaryChip label="CGST" value={summary.cgst} />
               <SummaryChip label="SGST" value={summary.sgst} />
+              <SummaryChip label="CGST" value={summary.cgst} />
               <SummaryChip label="IGST" value={summary.igst} />
               <SummaryChip label="TCS" value={summary.tcs} />
-              <Box sx={{ bgcolor: "#16a34a", color: "#fff", borderRadius: 2, px: 1.25, py: 0.35, display: "flex", alignItems: "center", gap: 0.5, fontWeight: 700, fontSize: "0.8rem" }}>
+              <SummaryChip label="Fre" value={summary.fre} />
+              <SummaryChip label="Oth" value={summary.oth} />
+              <Box sx={{ bgcolor: "#1565c0", color: "#fff", borderRadius: 2, px: 1.25, py: 0.35, display: "flex", alignItems: "center", gap: 0.5, fontWeight: 700, fontSize: "0.8rem" }}>
                 <Typography variant="caption" sx={{ opacity: 0.85, fontWeight: 500 }}>Total Value</Typography>
+                <span>&#8377;{summary.totalValue ? displayVal(summary.totalValue) : "0"}</span>
+              </Box>
+              <Box sx={{ bgcolor: "#16a34a", color: "#fff", borderRadius: 2, px: 1.25, py: 0.35, display: "flex", alignItems: "center", gap: 0.5, fontWeight: 700, fontSize: "0.8rem" }}>
+                <Typography variant="caption" sx={{ opacity: 0.85, fontWeight: 500 }}>TAXABLE AMT</Typography>
                 <span>&#8377;{summary.total ? displayVal(summary.total) : "0"}</span>
               </Box>
             </Box>
@@ -704,7 +787,7 @@ export default function BillingForm() {
 
 function SummaryChip({ label, value, plain }) {
   var valNum = Number(value || 0);
-  var display = valNum % 1 === 0 ? valNum.toLocaleString("en-IN") : valNum.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var display = valNum % 1 === 0 ? valNum.toLocaleString("en-IN") : valNum.toLocaleString("en-IN", { maximumFractionDigits: 2 });
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, bgcolor: "#fff", borderRadius: 2, px: 1.25, py: 0.25, border: "1px solid #e2e8f0" }}>
       <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 500, fontSize: "0.72rem" }}>{label}</Typography>
@@ -768,7 +851,7 @@ function GrnItemShuttle({ items, shuttleChecked, loadedKeys, toggleShuttle }) {
   var num = function (v) {
     if (!v) return "0";
     var n = Number(v);
-    return n % 1 === 0 ? n.toString() : n.toFixed(2);
+    return n % 1 === 0 ? n.toString() : n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
   };
 
   var searchSx = {

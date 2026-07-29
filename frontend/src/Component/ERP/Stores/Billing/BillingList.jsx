@@ -405,7 +405,7 @@ export default function BillingList() {
                   size="small"
                   stickyHeader
                   sx={{
-                    minWidth: 1600,
+                    minWidth: 1500,
                     borderCollapse: "separate",
                     borderSpacing: 0,
                   }}
@@ -413,17 +413,17 @@ export default function BillingList() {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ ...thSx, width: 90 }}>
-                        Display Status
+                        Action
                       </TableCell>
                       <TableCell sx={{ ...thSx, width: 75 }}>GRR #</TableCell>
                       <TableCell sx={{ ...thSx, width: 90 }}>GRR Date</TableCell>
                       <TableCell sx={{ ...thSx, width: 60 }}>GRS #</TableCell>
                       <TableCell sx={{ ...thSx, width: 70 }}>PR No</TableCell>
-                      <TableCell sx={{ ...thSx, width: 90 }}>Date</TableCell>
+                      <TableCell sx={{ ...thSx, width: 90 }}>PR Date</TableCell>
                       <TableCell sx={{ ...thSx, width: 160 }}>Pty Name</TableCell>
                       <TableCell sx={{ ...thSx, width: 80 }}>Pty DC</TableCell>
                       <TableCell sx={{ ...thSx, width: 90 }}>DC Date</TableCell>
-                      <TableCell sx={{ ...thSx, width: 50 }}>No.</TableCell>
+                      <TableCell sx={{ ...thSx, width: 50 }}>Sl#</TableCell>
                       <TableCell sx={{ ...thSx, width: 55, textAlign: "center" }}>
                         W.O.P
                       </TableCell>
@@ -435,14 +435,9 @@ export default function BillingList() {
                         Qty
                       </TableCell>
                       <TableCell
-                        sx={{ ...thSx, width: 50, textAlign: "right" }}
-                      >
-                        City
-                      </TableCell>
-                      <TableCell
                         sx={{ ...thSx, width: 60, textAlign: "right" }}
                       >
-                        No
+                        Kg
                       </TableCell>
                       <TableCell
                         sx={{ ...thSx, width: 65, textAlign: "right" }}
@@ -569,9 +564,6 @@ export default function BillingList() {
                           }}
                         >
                           {r.qty > 0 ? formatNumber(r.qty) : "-"}
-                        </TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "right" }}>
-                          {r.city || "-"}
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "right" }}>
                           {r.kg > 0 ? formatNumber(r.kg, 3) : "-"}
