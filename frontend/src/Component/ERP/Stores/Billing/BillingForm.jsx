@@ -289,6 +289,11 @@ export default function BillingForm() {
     return n % 1 === 0 ? n.toLocaleString("en-IN") : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  var displayTotalVal = function (val) {
+    var n = Number(val || 0);
+    return n % 1 === 0 ? n.toLocaleString("en-IN") : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   var summary = useMemo(function () {
     var qty = 0, kg = 0, gross = 0, disc = 0, pf = 0, basic = 0, cgst = 0, sgst = 0, igst = 0, tcs = 0;
     billItems.forEach(function (it) {
@@ -556,7 +561,7 @@ export default function BillingForm() {
                         </TableCell>
                         {/* Disc Amt editable (overrides %) */}
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
-                          <input type="number" value={discInr || ""} disabled={isView}
+                          <input type="number" value={discAmt || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "discount_inr", Number(e.target.value) || 0); handleFieldChange(idx, "discount_percent", 0); }}
                             style={{ ...editSx, width: 70 }} />
                         </TableCell>
@@ -568,7 +573,7 @@ export default function BillingForm() {
                         </TableCell>
                         {/* PF Amt editable */}
                         <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
-                          <input type="number" value={pfInr || ""} disabled={isView}
+                          <input type="number" value={pfAmt || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "pf_inr", Number(e.target.value) || 0); handleFieldChange(idx, "pf_percent", 0); }}
                             style={{ ...editSx, width: 70 }} />
                         </TableCell>
@@ -622,40 +627,40 @@ export default function BillingForm() {
                         <TableCell sx={{ ...fzFt(4), borderTop: "2px solid #93c5fd" }} />
                         <TableCell sx={{ ...fzFt(5), borderTop: "2px solid #93c5fd" }} />
                         <TableCell sx={{ ...fzFt(6), borderTop: "2px solid #93c5fd" }} />
-                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(7) }}>{t.qty || "-"}</TableCell>
-                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(8) }}>{t.kg || "-"}</TableCell>
+                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(7) }}>{displayTotalVal(t.qty)}</TableCell>
+                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(8) }}>{displayTotalVal(t.kg)}</TableCell>
                         {/* Rate col - blank */}
                         <TableCell sx={{ ...ftSx, ...fzFt(9), bgcolor: "#fff9c4", borderTop: "2px solid #93c5fd" }}></TableCell>
                         {/* Gross */}
-                        <TableCell sx={ftSx}>{displayVal(t.gross)}</TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.gross)}</TableCell>
                         {/* Disc% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
                         {/* Disc Amt */}
-                        <TableCell sx={ftSx}>{displayVal(t.disc)}</TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.disc)}</TableCell>
                         {/* PF% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
                         {/* PF Amt */}
-                        <TableCell sx={ftSx}>{displayVal(t.pf)}</TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.pf)}</TableCell>
                         {/* Taxable */}
-                        <TableCell sx={{ ...ftSx, color: "#1565c0" }}>{displayVal(t.basic)}</TableCell>
+                        <TableCell sx={{ ...ftSx, color: "#1565c0" }}>{displayTotalVal(t.basic)}</TableCell>
                         {/* CGST% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
                         {/* CGST Amt */}
-                        <TableCell sx={ftSx}>{displayVal(t.cgst)}</TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.cgst)}</TableCell>
                         {/* SGST% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
                         {/* SGST Amt */}
-                        <TableCell sx={ftSx}>{displayVal(t.sgst)}</TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.sgst)}</TableCell>
                         {/* IGST% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
                         {/* IGST Amt */}
-                        <TableCell sx={ftSx}>{displayVal(t.igst)}</TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.igst)}</TableCell>
                         {/* TCS% - blank */}
                         <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
                         {/* TCS Amt */}
-                        <TableCell sx={ftSx}>{displayVal(t.tcs)}</TableCell>
+                        <TableCell sx={ftSx}>{displayTotalVal(t.tcs)}</TableCell>
                         {/* Grand Total */}
-                        <TableCell sx={{ ...ftSx, color: "#16a34a", fontSize: "0.82rem" }}>{displayVal(t.total)}</TableCell>
+                        <TableCell sx={{ ...ftSx, color: "#16a34a", fontSize: "0.82rem" }}>{displayTotalVal(t.total)}</TableCell>
                       </TableRow>
                     );
                   })()}
@@ -698,13 +703,14 @@ export default function BillingForm() {
 }
 
 function SummaryChip({ label, value, plain }) {
-  if (value === undefined || value === null || value === "" || Number(value) === 0) return null;
+  var valNum = Number(value || 0);
+  var display = valNum % 1 === 0 ? valNum.toLocaleString("en-IN") : valNum.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, bgcolor: "#fff", borderRadius: 2, px: 1.25, py: 0.25, border: "1px solid #e2e8f0" }}>
       <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 500, fontSize: "0.72rem" }}>{label}</Typography>
       <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.78rem" }}>
         {!plain && <span style={{ marginRight: "2px" }}>&#8377;</span>}
-        {plain ? value : formatNumber(value)}
+        {display}
       </Typography>
     </Box>
   );
