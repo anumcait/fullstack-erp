@@ -19,7 +19,12 @@ import { formatNumber } from "../../../../utils/format";
 const GRR_API = "/api/erp/stores/grn";
 const r2 = (v) => Number(Number(v || 0).toFixed(2));
 const fieldSx = { "& .MuiInputBase-root": { fontSize: "0.78rem" }, "& .MuiInputLabel-root": { fontSize: "0.78rem" } };
-const thSx = { fontWeight: 700, fontSize: "0.68rem", color: "#475569", whiteSpace: "nowrap", py: 0.3 };
+const thSx = { fontWeight: 700, fontSize: "0.8rem", color: "#475569", whiteSpace: "nowrap", py: 0.4 };
+// Freeze-pane: columns 0-9 are sticky. Widths: Del(32) Sl(32) GRR(78) PO(68) PR(68) Code(78) Desc(160) Qty(62) KG(52) Rate(78)
+const FZ = [0, 32, 64, 142, 210, 278, 356, 516, 578, 630]; // cumulative left offsets
+const fzTh = (col, extra) => ({ position: "sticky", left: FZ[col], zIndex: 4, bgcolor: "#f1f5f9", ...extra });
+const fzTd = (col, extra) => ({ position: "sticky", left: FZ[col], zIndex: 2, bgcolor: "#fff", ...extra });
+const fzFt = (col, extra) => ({ position: "sticky", left: FZ[col], zIndex: 2, bgcolor: "#e8f4fd", ...extra });
 
 export default function BillingForm() {
   var navigate = useNavigate();
@@ -31,6 +36,7 @@ export default function BillingForm() {
   var [suppliers, setSuppliers] = useState([]);
   var [pendingGrrs, setPendingGrrs] = useState([]);
   var [allPos, setAllPos] = useState([]);
+  var [posLoaded, setPosLoaded] = useState(false);
   var [billItems, setBillItems] = useState([]);
   var [selectedGrnIds, setSelectedGrnIds] = useState([]);
   var [shuttleChecked, setShuttleChecked] = useState([]);
@@ -77,9 +83,12 @@ export default function BillingForm() {
 
   var fetchAllPos = useCallback(async function () {
     try {
-      var { data } = await axios.get("/api/erp/purchases/pos/all");
+      var { data } = await axios.get("/api/erp/purchase/orders");
       setAllPos(data);
     } catch (e) { /* non-critical */ }
+    finally {
+      setPosLoaded(true);
+    }
   }, []);
 
   useEffect(function () { fetchPending(); fetchAllPos(); }, [fetchPending, fetchAllPos]);
@@ -99,14 +108,23 @@ export default function BillingForm() {
   }
 
   var poItemMap = useMemo(function () {
-    var maps = { byId: {}, byGroupId: {}, byPoAndCode: {} };
+    var maps = { byId: {}, byGroupId: {}, byPoAndCode: {}, byPoAndId: {} };
     function addPoItems(po) {
       if (po && po.items) {
+        var poNoClean = (po.po_no || "").trim().toUpperCase();
         po.items.forEach(function (poi) {
           var detail = { po_no: po.po_no, ...poi };
           maps.byId[poi.id] = detail;
-          if (poi.item_id) maps.byGroupId[poi.item_id] = detail;
-          if (poi.item_code) maps.byPoAndCode[po.po_no + ":" + poi.item_code] = detail;
+          if (poi.item_id) {
+            maps.byGroupId[poi.item_id] = detail;
+            if (poNoClean) {
+              maps.byPoAndId[poNoClean + ":" + poi.item_id] = detail;
+            }
+          }
+          if (poi.item_code && poNoClean) {
+            var codeClean = poi.item_code.trim().toUpperCase();
+            maps.byPoAndCode[poNoClean + ":" + codeClean] = detail;
+          }
         });
       }
     }
@@ -117,18 +135,33 @@ export default function BillingForm() {
 
   function findPOItem(it, grn) {
     if (it.po_item_id && poItemMap.byId[it.po_item_id]) return poItemMap.byId[it.po_item_id];
-    if (it.item_id && poItemMap.byGroupId[it.item_id]) return poItemMap.byGroupId[it.item_id];
     var poNo = it.po_no || grn.po_no;
-    if (poNo && it.item_code && poItemMap.byPoAndCode[poNo + ":" + it.item_code]) return poItemMap.byPoAndCode[poNo + ":" + it.item_code];
-    if (grn.purchaseOrder?.items) return grn.purchaseOrder.items.find(function (poi) { return poi.item_code === it.item_code || poi.item_id === it.item_id; });
+    if (poNo) {
+      var poNoClean = poNo.trim().toUpperCase();
+      var codeClean = (it.item_code || "").trim().toUpperCase();
+      if (codeClean && poItemMap.byPoAndCode[poNoClean + ":" + codeClean]) {
+        return poItemMap.byPoAndCode[poNoClean + ":" + codeClean];
+      }
+      if (it.item_id && poItemMap.byPoAndId[poNoClean + ":" + it.item_id]) {
+        return poItemMap.byPoAndId[poNoClean + ":" + it.item_id];
+      }
+    }
+    if (grn.purchaseOrder?.items) {
+      var match = grn.purchaseOrder.items.find(function (poi) {
+        return (poi.item_code && it.item_code && poi.item_code.trim().toUpperCase() === it.item_code.trim().toUpperCase()) ||
+          (poi.item_id && it.item_id && poi.item_id === it.item_id);
+      });
+      if (match) return { po_no: grn.purchaseOrder.po_no, ...match };
+    }
+    if (it.item_id && poItemMap.byGroupId[it.item_id]) return poItemMap.byGroupId[it.item_id];
     return null;
   }
 
   var computeItemDetails = useCallback(function (it, grn) {
     var poi = findPOItem(it, grn);
     var rate = Number(poi?.rate || it.rate || 0);
-    var poDiscPercent = Number(poi?.discount_percent || 0);
-    var poDiscInr = Number(poi?.discount_inr || 0);
+    var poDiscPercent = Number(poi?.disc_percent || 0);
+    var poDiscInr = Number(poi?.disc_inr || 0);
     var poPfPercent = Number(poi?.pf_percent || 0);
     var poPfInr = Number(poi?.pf_inr || 0);
     var poCgstRate = Number(poi?.cgst_rate || 0);
@@ -139,6 +172,7 @@ export default function BillingForm() {
     var pfAmt = (qty * rate - discAmt) * (poPfPercent / 100);
     return {
       po_no: poi?.po_no || it.po_no || grn.po_no || "",
+      pr_no: poi?.pr_no || it.pr_no || "",
       qty: qty, rate: rate,
       discPercent: poDiscPercent, discInr: poDiscInr,
       pfPercent: poPfPercent, pfInr: poPfInr,
@@ -164,9 +198,9 @@ export default function BillingForm() {
     return result;
   }, [selectedGrns, computeItemDetails]);
 
-  // On mount, if we received GRNs via location state, load them directly
+  // On mount, if we received GRNs via location state and allPos is loaded, load them directly
   useEffect(function () {
-    if (initialLoaded || !location.state) return;
+    if (initialLoaded || !posLoaded || !location.state) return;
     var grns = location.state.grns || (location.state.grn ? [location.state.grn] : null);
     if (!grns || grns.length === 0) return;
     setInitialLoaded(true);
@@ -180,7 +214,7 @@ export default function BillingForm() {
         allKeys.push(getItemKey(grn.id, it.id || it.item_id));
         items.push({
           grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
-          po_no: computed.po_no, pr_no: it.pr_no || "",
+          po_no: computed.po_no, pr_no: computed.pr_no,
           item_code: it.item_code, item_name: it.item_name, uom: it.uom,
           po_item_id: it.po_item_id, accepted_qty: it.accepted_qty || 0,
           rate: computed.rate, gst_rate: it.gst_rate || 0,
@@ -193,7 +227,7 @@ export default function BillingForm() {
       });
     });
     if (items.length > 0) { setBillItems(items); setShuttleChecked(allKeys); }
-  }, [location.state, pendingGrrs, allPos, initialLoaded, computeItemDetails]);
+  }, [location.state, pendingGrrs, allPos, posLoaded, initialLoaded, computeItemDetails]);
 
   // Load checked items from shuttle into billing grid
   function handleGrrListSelection() {
@@ -205,10 +239,10 @@ export default function BillingForm() {
       if (loadedSet.has(si.key)) return;
       var it = si.item;
       var computed = si.computed;
-          var grn = si.grn;
+      var grn = si.grn;
       newItems.push({
         grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
-        po_no: computed.po_no, pr_no: it.pr_no || "",
+        po_no: computed.po_no, pr_no: computed.pr_no,
         item_code: it.item_code, item_name: it.item_name, uom: it.uom,
         po_item_id: it.po_item_id, accepted_qty: it.accepted_qty || 0,
         rate: computed.rate, gst_rate: it.gst_rate || 0,
@@ -230,32 +264,79 @@ export default function BillingForm() {
   }
 
   function handleFieldChange(idx, field, value) {
-    setBillItems(function (prev) { return prev.map(function (it, i) { return i === idx ? { ...it, [field]: value } : it; }); });
+    setBillItems(function (prev) {
+      return prev.map(function (it, i) {
+        if (i !== idx) return it;
+        var updated = { ...it, [field]: value };
+        if (field === "cgst_rate" || field === "sgst_rate") {
+          if (Number(value) > 0) {
+            updated.igst_rate = 0;
+          }
+        } else if (field === "igst_rate") {
+          if (Number(value) > 0) {
+            updated.cgst_rate = 0;
+            updated.sgst_rate = 0;
+          }
+        }
+        return updated;
+      });
+    });
   }
 
+  var displayVal = function (val) {
+    if (val === undefined || val === null || val === "" || Number(val) === 0) return "";
+    var n = Number(val);
+    return n % 1 === 0 ? n.toLocaleString("en-IN") : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   var summary = useMemo(function () {
-    var qty = 0, kg = 0, basic = 0, cgst = 0, sgst = 0, igst = 0;
+    var qty = 0, kg = 0, gross = 0, disc = 0, pf = 0, basic = 0, cgst = 0, sgst = 0, igst = 0, tcs = 0;
     billItems.forEach(function (it) {
       var accp = Number(it.accepted_qty || 0);
       var kgVal = Number(it.kg || 0);
       var rate = Number(it.rate || 0);
+      var grossVal = r2(accp * rate);
       var discPer = Number(it.discount_percent || 0);
       var discInr = Number(it.discount_inr || 0);
+      var discAmt = discInr > 0 ? discInr : r2(grossVal * discPer / 100);
+      var afterDisc = r2(grossVal - discAmt);
       var pfPer = Number(it.pf_percent || 0);
       var pfInr = Number(it.pf_inr || 0);
+      var pfAmt = pfInr > 0 ? pfInr : r2(afterDisc * pfPer / 100);
+      var taxable = r2(afterDisc + pfAmt);
       var cgstPer = Number(it.cgst_rate || 0);
       var sgstPer = Number(it.sgst_rate || 0);
       var igstPer = Number(it.igst_rate || 0);
-      var taxable = accp * rate - discInr;
-      var pfVal = pfInr + taxable * (pfPer / 100);
-      var cgstVal = (taxable + pfVal) * (cgstPer / 100);
-      var sgstVal = (taxable + pfVal) * (sgstPer / 100);
-      var igstVal = (taxable + pfVal) * (igstPer / 100);
-      qty += accp; kg += kgVal;
-      basic += taxable + pfVal;
-      cgst += cgstVal; sgst += sgstVal; igst += igstVal;
+      var cgstVal = r2(taxable * cgstPer / 100);
+      var sgstVal = r2(taxable * sgstPer / 100);
+      var igstVal = r2(taxable * igstPer / 100);
+      var tcsPer = Number(it.tcs_percent || 0);
+      var tcsVal = r2((taxable + cgstVal + sgstVal + igstVal) * tcsPer / 100);
+
+      qty += accp;
+      kg += kgVal;
+      gross += grossVal;
+      disc += discAmt;
+      pf += pfAmt;
+      basic += taxable;
+      cgst += cgstVal;
+      sgst += sgstVal;
+      igst += igstVal;
+      tcs += tcsVal;
     });
-    return { qty: r2(qty), kg: r2(kg), basic: r2(basic), cgst: r2(cgst), sgst: r2(sgst), igst: r2(igst), total: r2(basic + cgst + sgst + igst) };
+    return {
+      qty: r2(qty),
+      kg: r2(kg),
+      gross: r2(gross),
+      disc: r2(disc),
+      pf: r2(pf),
+      basic: r2(basic),
+      cgst: r2(cgst),
+      sgst: r2(sgst),
+      igst: r2(igst),
+      tcs: r2(tcs),
+      total: r2(basic + cgst + sgst + igst + tcs)
+    };
   }, [billItems]);
 
   async function handleSubmit() {
@@ -330,55 +411,50 @@ export default function BillingForm() {
             Select GRRs
           </Typography>
 
-          <Autocomplete
-            multiple
-            size="small"
-            options={filteredGrrs}
-            value={selectedGrns}
-            onChange={function (_, newVal) {
-              setSelectedGrnIds(newVal.map(function (g) { return g.id; }));
-              setShuttleChecked([]);
-            }}
-            getOptionLabel={function (option) { return option.grn_no + " (" + (option.supplier?.supplier_name || "-") + ")"; }}
-            renderInput={function (params) {
-              return <TextField {...params} label="Search & Select GRR Numbers" placeholder="Type to search..." sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem" } }} />;
-            }}
-            renderTags={function (tagValue, getTagProps) {
-              return tagValue.map(function (option, index) {
-                return <Chip label={option.grn_no} size="small" {...getTagProps({ index })} />;
-              });
-            }}
-            sx={{ mb: 1.5, maxWidth: 420 }}
-          />
-
-          {loading && <LinearProgress sx={{ mb: 1 }} />}
-
-          {selectedGrns.length > 0 && allShuttleItems.length > 0 && (
-            <>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                <Button size="small" variant="outlined" onClick={function () { setShuttleOpen(function (p) { return !p; }); }}
-                  sx={{ textTransform: "none", fontSize: "0.72rem", minWidth: 0 }}>
-                  {shuttleOpen ? "Hide Item Selector" : "Show Item Selector"} ({allShuttleItems.length} items)
-                </Button>
-              </Box>
-              {shuttleOpen && (<>
-              <GrnItemShuttle
-                items={allShuttleItems}
-                shuttleChecked={shuttleChecked}
-                loadedKeys={new Set(billItems.map(function (bi) { return getItemKey(bi.grn_id, bi.id); }))}
-                toggleShuttle={toggleShuttle}
-              />
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
-                <Button variant="contained" color="success" size="small"
-                  onClick={handleGrrListSelection}
-                  disabled={shuttleChecked.length === 0}
-                  sx={{ textTransform: "none", fontSize: "0.78rem" }}>
-                  Load Items ({shuttleChecked.length})
-                </Button>
-              </Box>
-              </>)}
-            </>
-          )}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+            <Autocomplete
+              multiple
+              size="small"
+              options={filteredGrrs}
+              value={selectedGrns}
+              onChange={function (_, newVal) {
+                setSelectedGrnIds(newVal.map(function (g) { return g.id; }));
+                setShuttleChecked([]);
+              }}
+              getOptionLabel={function (option) { return option.grn_no + " (" + (option.supplier?.supplier_name || "-") + ")"; }}
+              renderInput={function (params) {
+                return <TextField {...params} label="Search & Select GRR Numbers" placeholder="Type to search..." sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem" } }} />;
+              }}
+              renderTags={function (tagValue, getTagProps) {
+                return tagValue.map(function (option, index) {
+                  return <Chip label={option.grn_no} size="small" {...getTagProps({ index })} />;
+                });
+              }}
+              sx={{ flex: 1, maxWidth: 420 }}
+            />
+            {selectedGrns.length > 0 && allShuttleItems.length > 0 && (
+              <Button size="small" variant="outlined" onClick={function () { setShuttleOpen(function (p) { return !p; }); }}
+                sx={{ textTransform: "none", fontSize: "0.72rem", whiteSpace: "nowrap", minWidth: 0 }}>
+                {shuttleOpen ? "Hide" : "Show"} Item Selector ({allShuttleItems.length})
+              </Button>
+            )}
+          </Box>
+          {shuttleOpen && (<>
+            <GrnItemShuttle
+              items={allShuttleItems}
+              shuttleChecked={shuttleChecked}
+              loadedKeys={new Set(billItems.map(function (bi) { return getItemKey(bi.grn_id, bi.id); }))}
+              toggleShuttle={toggleShuttle}
+            />
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+              <Button variant="contained" color="success" size="small"
+                onClick={handleGrrListSelection}
+                disabled={shuttleChecked.length === 0}
+                sx={{ textTransform: "none", fontSize: "0.78rem" }}>
+                Load Items ({shuttleChecked.length})
+              </Button>
+            </Box>
+          </>)}
         </CardContent>
       </Card>
 
@@ -391,27 +467,34 @@ export default function BillingForm() {
                 Billing Items — Edit Disc, P&amp;F, Tax as needed
               </Typography>
             </Box>
-            <Box sx={{ maxHeight: 380, overflow: "auto", mb: 2, border: "1px solid #e2e8f0", borderRadius: 2 }}>
-              <Table size="small" sx={{ "& td, & th": { border: "1px solid #e0e0e0", px: 0.35, py: 0.25, fontSize: "0.68rem" } }}>
+            <Box sx={{ maxHeight: 480, overflow: "auto", mb: 2, border: "1px solid #e2e8f0", borderRadius: 2 }}>
+              <Table size="small" stickyHeader sx={{ "& td, & th": { border: "1px solid #e0e0e0", px: 0.5, py: 0.3, fontSize: "0.8rem" }, minWidth: 1800 }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: "#f1f5f9" }}>
-                    <TableCell sx={{ ...thSx, width: 28 }}></TableCell>
-                    <TableCell sx={{ ...thSx, width: 28, textAlign: "center" }}>Sl#</TableCell>
-                    <TableCell sx={thSx}>GRR #</TableCell>
-                    <TableCell sx={thSx}>PO #</TableCell>
-                    <TableCell sx={thSx}>PR #</TableCell>
-                    <TableCell sx={thSx}>Item Code</TableCell>
-                    <TableCell sx={{ ...thSx, minWidth: 140 }}>Description</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Accp Qty</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>KG</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Rate</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Disc%</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Disc Amt</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>PF%</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>PF Amt</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>CGST%</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>SGST%</TableCell>
-                    <TableCell sx={{ ...thSx, textAlign: "right" }}>IGST%</TableCell>
+                    <TableCell sx={{ ...thSx, width: 32, ...fzTh(0) }}></TableCell>
+                    <TableCell sx={{ ...thSx, width: 32, textAlign: "center", ...fzTh(1) }}>Sl#</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 78, ...fzTh(2) }}>GRR #</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 68, ...fzTh(3) }}>PO #</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 68, ...fzTh(4) }}>PR #</TableCell>
+                    <TableCell sx={{ ...thSx, minWidth: 78, ...fzTh(5) }}>Item Code</TableCell>
+                    <TableCell sx={{ ...thSx, minWidth: 160, ...fzTh(6) }}>Description</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 62, ...fzTh(7) }}>Qty<br />Accp</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "center", minWidth: 52, ...fzTh(8) }}>KG<br />Accp</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4", minWidth: 78, ...fzTh(9, { bgcolor: "#fff9c4" }) }}>Rate</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Gross</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>Disc%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>Disc Amt</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>PF%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>PF Amt</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>Taxable</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>CGST%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>CGST Amt</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>SGST%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>SGST Amt</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>IGST%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>IGST Amt</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right", bgcolor: "#fff9c4" }}>TCS%</TableCell>
+                    <TableCell sx={{ ...thSx, textAlign: "right" }}>TCS Amt</TableCell>
                     <TableCell sx={{ ...thSx, textAlign: "right" }}>Amount</TableCell>
                   </TableRow>
                 </TableHead>
@@ -419,95 +502,181 @@ export default function BillingForm() {
                   {billItems.map(function (it, idx) {
                     var accp = Number(it.accepted_qty || 0);
                     var rate = Number(it.rate || 0);
+                    var gross = r2(accp * rate);
+                    var discPer = Number(it.discount_percent || 0);
                     var discInr = Number(it.discount_inr || 0);
+                    var discAmt = discInr > 0 ? discInr : r2(gross * discPer / 100);
+                    var afterDisc = r2(gross - discAmt);
                     var pfPer = Number(it.pf_percent || 0);
                     var pfInr = Number(it.pf_inr || 0);
+                    var pfAmt = pfInr > 0 ? pfInr : r2(afterDisc * pfPer / 100);
+                    var taxable = r2(afterDisc + pfAmt);
                     var cgstPer = Number(it.cgst_rate || 0);
                     var sgstPer = Number(it.sgst_rate || 0);
                     var igstPer = Number(it.igst_rate || 0);
-                    var taxable = accp * rate - discInr;
-                    var pfVal = pfInr + taxable * (pfPer / 100);
-                    var amount = taxable + pfVal + (taxable + pfVal) * ((cgstPer + sgstPer + igstPer) / 100);
+                    var cgstAmt = r2(taxable * cgstPer / 100);
+                    var sgstAmt = r2(taxable * sgstPer / 100);
+                    var igstAmt = r2(taxable * igstPer / 100);
+                    var tcsPer = Number(it.tcs_percent || 0);
+                    var tcsAmt = r2((taxable + cgstAmt + sgstAmt + igstAmt) * tcsPer / 100);
+                    var amount = r2(taxable + cgstAmt + sgstAmt + igstAmt + tcsAmt);
+                    var editSx = { textAlign: "right", fontSize: "0.8rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "#fffde7", outline: "none" };
+                    var roSx = { textAlign: "right", fontSize: "0.8rem", py: 0.3, color: "#374151" };
 
                     return (
                       <TableRow key={idx} hover>
-                        <TableCell sx={{ textAlign: "center", py: 0.25 }}>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(0) }}>
                           {!isView && (
                             <IconButton size="small" onClick={function () { removeBillItem(idx); }} sx={{ p: 0.2, color: "#ef4444" }}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           )}
                         </TableCell>
-                        <TableCell sx={{ textAlign: "center", fontWeight: 600, fontSize: "0.68rem", py: 0.25, color: "#64748b" }}>{idx + 1}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: "0.68rem", py: 0.25 }}>{it.grn_no}</TableCell>
-                        <TableCell sx={{ fontSize: "0.68rem", py: 0.25 }}>{it.po_no || "-"}</TableCell>
-                        <TableCell sx={{ fontSize: "0.68rem", py: 0.25 }}>{it.pr_no || "-"}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: "0.68rem", py: 0.25 }}>{it.item_code}</TableCell>
-                        <TableCell sx={{ fontSize: "0.68rem", py: 0.25, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis" }}>{it.item_name}</TableCell>
-                        <TableCell sx={{ textAlign: "right", fontWeight: 600, fontSize: "0.68rem", py: 0.25 }}>{accp.toFixed(2)}</TableCell>
-                        <TableCell sx={{ textAlign: "right", fontSize: "0.68rem", py: 0.25 }}>{Number(it.kg || 0).toFixed(2)}</TableCell>
-                        <TableCell sx={{ textAlign: "right", py: 0.25 }}>
-                          <input type="number" value={rate} disabled={isView}
+                        <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, color: "#64748b", ...fzTd(1) }}>{idx + 1}</TableCell>
+                        <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, ...fzTd(2) }}>{it.grn_no}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(3) }}>{it.po_no || "-"}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(4) }}>{it.pr_no || "-"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, py: 0.3, ...fzTd(5) }}>{it.item_code}</TableCell>
+                        <TableCell sx={{ py: 0.3, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", ...fzTd(6) }}>{it.item_name}</TableCell>
+                        <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, ...fzTd(7) }}>{accp || "-"}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, ...fzTd(8) }}>{Number(it.kg || 0) || "-"}</TableCell>
+                        {/* Rate - yellow editable */}
+                        <TableCell sx={{ py: 0.3, ...fzTd(9, { bgcolor: "#fffde7" }) }}>
+                          <input type="number" value={rate || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "rate", Number(e.target.value) || 0); }}
-                            style={{ width: 70, textAlign: "right", fontSize: "0.68rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "transparent" }} />
+                            style={{ ...editSx, width: 78 }} />
                         </TableCell>
-                        <TableCell sx={{ textAlign: "right", py: 0.25 }}>
-                          <input type="number" value={it.discount_percent || 0} disabled={isView}
-                            onChange={function (e) { handleFieldChange(idx, "discount_percent", Number(e.target.value) || 0); }}
-                            style={{ width: 50, textAlign: "right", fontSize: "0.68rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "transparent" }} />
+                        {/* Gross computed */}
+                        <TableCell sx={roSx}>{displayVal(gross)}</TableCell>
+                        {/* Disc% editable */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={discPer || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "discount_percent", Number(e.target.value) || 0); handleFieldChange(idx, "discount_inr", 0); }}
+                            style={{ ...editSx, width: 55 }} />
                         </TableCell>
-                        <TableCell sx={{ textAlign: "right", py: 0.25 }}>
-                          <input type="number" value={discInr} disabled={isView}
-                            onChange={function (e) { handleFieldChange(idx, "discount_inr", Number(e.target.value) || 0); }}
-                            style={{ width: 65, textAlign: "right", fontSize: "0.68rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "transparent" }} />
+                        {/* Disc Amt editable (overrides %) */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={discInr || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "discount_inr", Number(e.target.value) || 0); handleFieldChange(idx, "discount_percent", 0); }}
+                            style={{ ...editSx, width: 70 }} />
                         </TableCell>
-                        <TableCell sx={{ textAlign: "right", py: 0.25 }}>
-                          <input type="number" value={pfPer} disabled={isView}
-                            onChange={function (e) { handleFieldChange(idx, "pf_percent", Number(e.target.value) || 0); }}
-                            style={{ width: 50, textAlign: "right", fontSize: "0.68rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "transparent" }} />
+                        {/* PF% editable */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={pfPer || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "pf_percent", Number(e.target.value) || 0); handleFieldChange(idx, "pf_inr", 0); }}
+                            style={{ ...editSx, width: 55 }} />
                         </TableCell>
-                        <TableCell sx={{ textAlign: "right", py: 0.25 }}>
-                          <input type="number" value={pfInr} disabled={isView}
-                            onChange={function (e) { handleFieldChange(idx, "pf_inr", Number(e.target.value) || 0); }}
-                            style={{ width: 65, textAlign: "right", fontSize: "0.68rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "transparent" }} />
+                        {/* PF Amt editable */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={pfInr || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "pf_inr", Number(e.target.value) || 0); handleFieldChange(idx, "pf_percent", 0); }}
+                            style={{ ...editSx, width: 70 }} />
                         </TableCell>
-                        <TableCell sx={{ textAlign: "right", py: 0.25 }}>
-                          <input type="number" value={cgstPer} disabled={isView}
+                        {/* Taxable computed */}
+                        <TableCell sx={{ ...roSx, fontWeight: 700, color: "#1565c0" }}>{displayVal(taxable)}</TableCell>
+                        {/* CGST% editable */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={cgstPer || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "cgst_rate", Number(e.target.value) || 0); }}
-                            style={{ width: 55, textAlign: "right", fontSize: "0.68rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "transparent" }} />
+                            style={{ ...editSx, width: 55 }} />
                         </TableCell>
-                        <TableCell sx={{ textAlign: "right", py: 0.25 }}>
-                          <input type="number" value={sgstPer} disabled={isView}
+                        <TableCell sx={roSx}>{displayVal(cgstAmt)}</TableCell>
+                        {/* SGST% editable */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={sgstPer || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "sgst_rate", Number(e.target.value) || 0); }}
-                            style={{ width: 55, textAlign: "right", fontSize: "0.68rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "transparent" }} />
+                            style={{ ...editSx, width: 55 }} />
                         </TableCell>
-                        <TableCell sx={{ textAlign: "right", py: 0.25 }}>
-                          <input type="number" value={igstPer} disabled={isView}
+                        <TableCell sx={roSx}>{displayVal(sgstAmt)}</TableCell>
+                        {/* IGST% editable */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={igstPer || ""} disabled={isView}
                             onChange={function (e) { handleFieldChange(idx, "igst_rate", Number(e.target.value) || 0); }}
-                            style={{ width: 55, textAlign: "right", fontSize: "0.68rem", border: "none", borderBottom: "1px solid #cbd5e1", padding: "2px 4px", background: "transparent" }} />
+                            style={{ ...editSx, width: 55 }} />
                         </TableCell>
-                        <TableCell sx={{ textAlign: "right", fontWeight: 700, fontSize: "0.7rem", py: 0.25, color: "#1565c0" }}>
-                          {formatNumber(amount)}
+                        <TableCell sx={roSx}>{displayVal(igstAmt)}</TableCell>
+                        {/* TCS% editable */}
+                        <TableCell sx={{ py: 0.3, bgcolor: "#fffde7" }}>
+                          <input type="number" value={tcsPer || ""} disabled={isView}
+                            onChange={function (e) { handleFieldChange(idx, "tcs_percent", Number(e.target.value) || 0); }}
+                            style={{ ...editSx, width: 55 }} />
+                        </TableCell>
+                        <TableCell sx={roSx}>{displayVal(tcsAmt)}</TableCell>
+                        {/* Final Amount */}
+                        <TableCell sx={{ textAlign: "right", fontWeight: 700, fontSize: "0.82rem", py: 0.3, color: "#16a34a" }}>
+                          {displayVal(amount)}
                         </TableCell>
                       </TableRow>
                     );
                   })}
+                  {/* ── Totals Row ── */}
+                  {billItems.length > 0 && (function () {
+                    var t = summary;
+                    var ftSx = { textAlign: "right", fontWeight: 700, fontSize: "0.8rem", py: 0.4, color: "#0f172a", bgcolor: "#e8f4fd", borderTop: "2px solid #93c5fd" };
+                    return (
+                      <TableRow>
+                        <TableCell sx={{ ...fzFt(0), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(1), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(2), fontWeight: 800, fontSize: "0.8rem", color: "#1e40af", borderTop: "2px solid #93c5fd" }}>TOTAL</TableCell>
+                        <TableCell sx={{ ...fzFt(3), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(4), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(5), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...fzFt(6), borderTop: "2px solid #93c5fd" }} />
+                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(7) }}>{t.qty || "-"}</TableCell>
+                        <TableCell sx={{ ...ftSx, textAlign: "center", ...fzFt(8) }}>{t.kg || "-"}</TableCell>
+                        {/* Rate col - blank */}
+                        <TableCell sx={{ ...ftSx, ...fzFt(9), bgcolor: "#fff9c4", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        {/* Gross */}
+                        <TableCell sx={ftSx}>{displayVal(t.gross)}</TableCell>
+                        {/* Disc% - blank */}
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        {/* Disc Amt */}
+                        <TableCell sx={ftSx}>{displayVal(t.disc)}</TableCell>
+                        {/* PF% - blank */}
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        {/* PF Amt */}
+                        <TableCell sx={ftSx}>{displayVal(t.pf)}</TableCell>
+                        {/* Taxable */}
+                        <TableCell sx={{ ...ftSx, color: "#1565c0" }}>{displayVal(t.basic)}</TableCell>
+                        {/* CGST% - blank */}
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        {/* CGST Amt */}
+                        <TableCell sx={ftSx}>{displayVal(t.cgst)}</TableCell>
+                        {/* SGST% - blank */}
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        {/* SGST Amt */}
+                        <TableCell sx={ftSx}>{displayVal(t.sgst)}</TableCell>
+                        {/* IGST% - blank */}
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        {/* IGST Amt */}
+                        <TableCell sx={ftSx}>{displayVal(t.igst)}</TableCell>
+                        {/* TCS% - blank */}
+                        <TableCell sx={{ ...ftSx, bgcolor: "#fffde7", borderTop: "2px solid #93c5fd" }}></TableCell>
+                        {/* TCS Amt */}
+                        <TableCell sx={ftSx}>{displayVal(t.tcs)}</TableCell>
+                        {/* Grand Total */}
+                        <TableCell sx={{ ...ftSx, color: "#16a34a", fontSize: "0.82rem" }}>{displayVal(t.total)}</TableCell>
+                      </TableRow>
+                    );
+                  })()}
                 </TableBody>
               </Table>
             </Box>
 
-            {/* Summary Row */}
-            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, px: 1, py: 0.75, bgcolor: "#f1f5f9", borderRadius: 2, flexWrap: "wrap" }}>
-              <SummaryChip label="Qty Accp" value={summary.qty} />
-              <SummaryChip label="KG Accp" value={summary.kg} />
-              <SummaryChip label="Basic Amt" value={summary.basic} />
+            {/* Summary chips - compact totals strip */}
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5, px: 1, py: 0.75, bgcolor: "#f1f5f9", borderRadius: 2, flexWrap: "wrap", alignItems: "center" }}>
+              <SummaryChip label="Qty" value={summary.qty} plain />
+              <SummaryChip label="Gross" value={summary.gross} />
+              <SummaryChip label="Disc" value={summary.disc} />
+              <SummaryChip label="P&F" value={summary.pf} />
+              <SummaryChip label="Taxable" value={summary.basic} />
               <SummaryChip label="CGST" value={summary.cgst} />
               <SummaryChip label="SGST" value={summary.sgst} />
               <SummaryChip label="IGST" value={summary.igst} />
-              <SummaryChip label="Freight" value="0" />
-              <Box sx={{ bgcolor: "#16a34a", color: "#fff", borderRadius: 2, px: 1.25, py: 0.25, display: "flex", alignItems: "center", gap: 0.5, fontWeight: 700, fontSize: "0.78rem" }}>
+              <SummaryChip label="TCS" value={summary.tcs} />
+              <Box sx={{ bgcolor: "#16a34a", color: "#fff", borderRadius: 2, px: 1.25, py: 0.35, display: "flex", alignItems: "center", gap: 0.5, fontWeight: 700, fontSize: "0.8rem" }}>
                 <Typography variant="caption" sx={{ opacity: 0.85, fontWeight: 500 }}>Total Value</Typography>
-                <span>&#8377;{formatNumber(summary.total)}</span>
+                <span>&#8377;{summary.total ? displayVal(summary.total) : "0"}</span>
               </Box>
             </Box>
           </CardContent>
@@ -528,11 +697,15 @@ export default function BillingForm() {
   );
 }
 
-function SummaryChip({ label, value }) {
+function SummaryChip({ label, value, plain }) {
+  if (value === undefined || value === null || value === "" || Number(value) === 0) return null;
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, bgcolor: "#fff", borderRadius: 2, px: 1.25, py: 0.25, border: "1px solid #e2e8f0" }}>
       <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 500, fontSize: "0.72rem" }}>{label}</Typography>
-      <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.78rem" }}>&#8377;{formatNumber(value)}</Typography>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a", fontSize: "0.78rem" }}>
+        {!plain && <span style={{ marginRight: "2px" }}>&#8377;</span>}
+        {plain ? value : formatNumber(value)}
+      </Typography>
     </Box>
   );
 }
@@ -586,7 +759,11 @@ function GrnItemShuttle({ items, shuttleChecked, loadedKeys, toggleShuttle }) {
     setSelected([]);
   }
 
-  var num = function (v) { return Number(v || 0).toFixed(2); };
+  var num = function (v) {
+    if (!v) return "0";
+    var n = Number(v);
+    return n % 1 === 0 ? n.toString() : n.toFixed(2);
+  };
 
   var searchSx = {
     "& .MuiOutlinedInput-root": { fontSize: "0.8rem" },
