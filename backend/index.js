@@ -209,12 +209,25 @@ END $$;`,
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS jo_year VARCHAR(10)`,
         // ── Delivery Challan: prepared_by column + dc_date stores local datetime ──
         `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS prepared_by VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS approved_by VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS maintenance_type VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS cancel_remarks TEXT`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS cancel_by VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS cancel_date TIMESTAMPTZ`,
         `ALTER TABLE IF EXISTS t_delivery_challan ALTER COLUMN dc_date TYPE timestamptz USING dc_date::timestamp`,
         `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS unit VARCHAR(20)`,
+        `UPDATE t_delivery_challan SET status = 'Approved' WHERE status = 'Issued'`,
       ];
       for (const sql of erpMigrations) {
         try { await erpDb.sequelize.query(sql); } catch (_) { /* ignore */ }
       }
+
+      // 4b2. HR DB migrations (m_company_settings lives in the HR database)
+      try {
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS cin VARCHAR(30)`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS pan VARCHAR(15)`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS show_format_no BOOLEAN NOT NULL DEFAULT TRUE`);
+      } catch (_) { /* ignore */ }
 
       // 4c. Drop any stale foreign keys that still reference the legacy
       // `m_supplier_master` table. Suppliers were migrated to `m_party_master`

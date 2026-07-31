@@ -50,6 +50,8 @@ const PAGE_TITLES = [
   ['/stores/stock-audit', 'Stock Audit'],
   ['/stores/gate-entry', 'Gate Entry'],
   ['/stores/material-returns', 'Material Returns'],
+  ['/stores/delivery-challans/repair', 'Repair Challan'],
+  ['/stores/delivery-challans/maintenance', 'Maintenance Challan'],
   ['/stores/delivery-challans', 'Delivery Challan'],
   ['/stores/sale-approval', 'Sale on Approval'],
   ['/stores/invoices', 'Tax Invoices'],

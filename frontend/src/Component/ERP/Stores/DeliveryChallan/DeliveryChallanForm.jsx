@@ -155,8 +155,8 @@ export default function DeliveryChallanForm() {
       let saved;
       if (id && isEdit) saved = await axios.put(`${API}/${id}`, payload);
       else saved = await axios.post(API, payload);
-      if (issue) await axios.post(`${API}/${saved.data.id}/issue`);
-      showToast(issue ? 'Challan issued' : 'Challan saved', 'success');
+      if (issue) await axios.post(`${API}/${saved.data.id}/approve`, { approved_by: localStorage.getItem("empId") || null });
+      showToast(issue ? 'Challan approved' : 'Challan saved', 'success');
       navigate('/stores/delivery-challans');
     } catch (e) {
       showToast(e.response?.data?.error || 'Failed to save', 'error');
@@ -179,7 +179,7 @@ export default function DeliveryChallanForm() {
           <Box sx={{ ml: "auto", display: "flex", gap: 1, alignItems: "center" }}>
             <Typography variant="caption" sx={{ color: "#94a3b8" }}>Ctrl+Enter</Typography>
             <Button variant="contained" startIcon={<SaveIcon />} onClick={() => handleSubmit(false)} disabled={saving} size="small">{saving ? 'Saving...' : 'Save as Draft'}</Button>
-            <Button variant="outlined" color="primary" startIcon={<SendIcon />} onClick={() => handleSubmit(true)} disabled={saving} size="small">Save & Issue</Button>
+            <Button variant="outlined" color="primary" startIcon={<SendIcon />} onClick={() => handleSubmit(true)} disabled={saving} size="small">Save & Approve</Button>
             <Button variant="text" size="small" onClick={() => navigate('/stores/delivery-challans')}>Cancel</Button>
           </Box>
         )}

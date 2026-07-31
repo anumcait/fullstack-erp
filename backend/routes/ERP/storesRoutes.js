@@ -152,7 +152,8 @@ router.get('/delivery-challans/by-party/:partyId', deliveryChallanController.get
 router.get('/delivery-challans/:id', deliveryChallanController.getOne);
 router.post('/delivery-challans', deliveryChallanController.create);
 router.put('/delivery-challans/:id', deliveryChallanController.update);
-router.post('/delivery-challans/:id/issue', deliveryChallanController.issue);
+router.post('/delivery-challans/:id/approve', deliveryChallanController.approve);
+router.post('/delivery-challans/:id/cancel', deliveryChallanController.cancel);
 router.post('/delivery-challans/:id/return', deliveryChallanController.returnDc);
 router.post('/delivery-challans/bill', deliveryChallanController.billDc);
 router.delete('/delivery-challans/:id', deliveryChallanController.remove);

@@ -4,12 +4,15 @@ const ItemMaster = db.ItemMaster;
 
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
 
-async function generateDcNo(dcDateStr) {
-  const count = await db.DeliveryChallan.count();
-  const now = dcDateStr ? new Date(dcDateStr) : new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  return `${count + 1}${time}`;
+const isSameDay = (a, b) => {
+  const da = new Date(a);
+  const db = new Date(b);
+  return !isNaN(da) && !isNaN(db) && da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
+};
+
+async function generateDcNo() {
+  const [rows] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
+  return String(Number(rows[0]?.max_no || 0) + 1);
 }
 
 exports.getNextNumber = async (req, res) => {
@@ -42,7 +45,8 @@ exports.getList = async (req, res) => {
     if (returnable === 'true') where.returnable = true;
     if (returnable === 'false') where.returnable = false;
     if (date_from && date_to) {
-      where.dc_date = { [Op.between]: [date_from, date_to] };
+      const toEnd = new Date(new Date(date_to).getTime() + 86400000).toISOString().slice(0, 10);
+      where.dc_date = { [Op.between]: [date_from, toEnd] };
     } else if (date_from) {
       where.dc_date = { [Op.gte]: date_from };
     } else if (date_to) {
@@ -65,7 +69,7 @@ exports.getList = async (req, res) => {
 exports.getPendingBilling = async (req, res) => {
   try {
     const { year } = req.query;
-    const where = { status: 'Issued', bill_no: null };
+    const where = { status: 'Approved', bill_no: null };
     if (year) {
       where[Op.and] = [
         db.sequelize.where(db.sequelize.fn('EXTRACT', db.sequelize.literal('YEAR FROM "dc_date"')), year),
@@ -119,6 +123,9 @@ exports.getOne = async (req, res) => {
       include: [{
         model: db.DeliveryChallanItem, as: 'items',
         include: [{ model: ItemMaster, as: 'item', include: [{ model: db.Unit, as: 'unit' }] }],
+      },
+      {
+        model: db.SupplierMaster, as: 'supplier',
       }],
     });
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
@@ -132,7 +139,7 @@ exports.getOne = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const body = req.body;
-    const dc_no = await generateDcNo(body.dc_date);
+    const dc_no = await generateDcNo();
     const dc = await db.DeliveryChallan.create({
       dc_no,
       dc_date: body.dc_date,
@@ -142,6 +149,7 @@ exports.create = async (req, res) => {
       dc_type: body.dc_type || 'S',
       expected_return_date: body.expected_return_date || null,
       reference_no: body.reference_no || null,
+      maintenance_type: body.maintenance_type || null,
       vehicle_no: body.vehicle_no || null,
       driver_name: body.driver_name || null,
       department: body.department || null,
@@ -192,6 +200,7 @@ exports.update = async (req, res) => {
       dc_type: body.dc_type || dc.dc_type,
       expected_return_date: body.expected_return_date || null,
       reference_no: body.reference_no || null,
+      maintenance_type: body.maintenance_type || null,
       vehicle_no: body.vehicle_no || null,
       driver_name: body.driver_name || null,
       department: body.department || null,
@@ -228,20 +237,48 @@ exports.update = async (req, res) => {
   }
 };
 
-exports.issue = async (req, res) => {
+exports.approve = async (req, res) => {
   try {
     const dc = await db.DeliveryChallan.findByPk(req.params.id, {
       include: [{ model: db.DeliveryChallanItem, as: 'items' }],
     });
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
-    if (dc.status !== 'Draft') return res.status(400).json({ error: 'Challan already issued' });
+    if (dc.status !== 'Draft') return res.status(400).json({ error: 'Challan already approved' });
     await adjustStock(dc.items, -1);
-    dc.status = 'Issued';
+    dc.status = 'Approved';
+    dc.approved_by = req.body.approved_by || null;
+    if (!isSameDay(dc.dc_date, new Date())) {
+      dc.dc_date = new Date();
+      dc.dc_no = await generateDcNo();
+    }
     await dc.save();
     res.json(dc);
   } catch (err) {
-    console.error('Error issuing DC:', err);
-    res.status(500).json({ error: 'Failed to issue delivery challan' });
+    console.error('Error approving DC:', err);
+    res.status(500).json({ error: 'Failed to approve delivery challan' });
+  }
+};
+
+exports.cancel = async (req, res) => {
+  try {
+    const dc = await db.DeliveryChallan.findByPk(req.params.id, {
+      include: [{ model: db.DeliveryChallanItem, as: 'items' }],
+    });
+    if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
+    if (dc.status === 'Cancelled') return res.status(400).json({ error: 'Challan already cancelled' });
+    if (!['Draft', 'Approved'].includes(dc.status)) return res.status(400).json({ error: 'Only draft or approved challans can be cancelled' });
+    if (dc.status === 'Approved') {
+      await adjustStock(dc.items, 1);
+    }
+    dc.status = 'Cancelled';
+    dc.cancel_remarks = req.body.cancel_remarks || null;
+    dc.cancel_by = req.body.cancel_by || null;
+    dc.cancel_date = req.body.cancel_date || new Date();
+    await dc.save();
+    res.json(dc);
+  } catch (err) {
+    console.error('Error cancelling DC:', err);
+    res.status(500).json({ error: 'Failed to cancel delivery challan' });
   }
 };
 
@@ -252,7 +289,7 @@ exports.returnDc = async (req, res) => {
     });
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
     if (dc.dc_type !== 'S') return res.status(400).json({ error: 'Only Sale on Approval challans can be returned' });
-    if (dc.status !== 'Issued') return res.status(400).json({ error: 'Only issued challans can be returned' });
+    if (dc.status !== 'Approved') return res.status(400).json({ error: 'Only approved challans can be returned' });
     const returns = req.body.items || [];
     for (const r of returns) {
       const it = dc.items.find((x) => x.id === r.id);
@@ -268,7 +305,7 @@ exports.returnDc = async (req, res) => {
       }
     }
     const allReturned = dc.items.every((x) => parseFloat(x.returned_qty || 0) >= parseFloat(x.quantity));
-    dc.status = allReturned ? 'Returned' : 'Issued';
+    dc.status = allReturned ? 'Returned' : 'Approved';
     await dc.save();
     res.json(dc);
   } catch (err) {
@@ -281,7 +318,7 @@ exports.remove = async (req, res) => {
   try {
     const dc = await db.DeliveryChallan.findByPk(req.params.id);
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
-    if (dc.status === 'Issued') return res.status(400).json({ error: 'Cannot delete an issued challan' });
+    if (dc.status === 'Approved') return res.status(400).json({ error: 'Cannot delete an approved challan' });
     await db.DeliveryChallanItem.destroy({ where: { dc_id: dc.id } });
     await dc.destroy();
     res.json({ message: 'Deleted' });

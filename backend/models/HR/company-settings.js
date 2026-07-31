@@ -30,6 +30,18 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true
         },
+        cin: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        pan: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        show_format_no: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true
+        },
         pf_number: {
             type: DataTypes.STRING,
             allowNull: true

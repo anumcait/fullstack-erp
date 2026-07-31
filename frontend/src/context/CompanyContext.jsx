@@ -13,6 +13,9 @@ export const CompanyProvider = ({ children }) => {
         phone: '',
         email: '',
         gstin: '',
+        cin: '',
+        pan: '',
+        show_format_no: true,
         pf_number: '',
         esi_number: ''
     });

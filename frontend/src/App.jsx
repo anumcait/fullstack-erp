@@ -154,6 +154,8 @@ import GateEntryList from "./Component/ERP/Stores/GateEntry/GateEntryList.jsx";
 import DeliveryChallanList from "./Component/ERP/Stores/DeliveryChallan/DeliveryChallanList.jsx";
 import DeliveryChallanForm from "./Component/ERP/Stores/DeliveryChallan/DeliveryChallanForm.jsx";
 import DcPreparationForm from "./Component/ERP/Stores/DeliveryChallan/DcPreparationForm.jsx";
+import RepairChallanForm from "./Component/ERP/Stores/DeliveryChallan/RepairChallanForm.jsx";
+import MaintenanceChallanForm from "./Component/ERP/Stores/DeliveryChallan/MaintenanceChallanForm.jsx";
 import DcBillingList from "./Component/ERP/Stores/SaleOnApproval/DcBillingList.jsx";
 import BillingList from "./Component/ERP/Stores/Billing/BillingList.jsx";
 import BillingForm from "./Component/ERP/Stores/Billing/BillingForm.jsx";
@@ -330,6 +332,12 @@ function App() {
                     <Route path="/stores/delivery-challans/prepare/:dcCode" element={<DcPreparationForm />} />
                     <Route path="/stores/delivery-challans/view/:id" element={<DcPreparationForm />} />
                     <Route path="/stores/delivery-challans/edit/:id" element={<DcPreparationForm />} />
+                    <Route path="/stores/delivery-challans/repair/new" element={<RepairChallanForm />} />
+                    <Route path="/stores/delivery-challans/repair/view/:id" element={<RepairChallanForm />} />
+                    <Route path="/stores/delivery-challans/repair/edit/:id" element={<RepairChallanForm />} />
+                    <Route path="/stores/delivery-challans/maintenance/new" element={<MaintenanceChallanForm />} />
+                    <Route path="/stores/delivery-challans/maintenance/view/:id" element={<MaintenanceChallanForm />} />
+                    <Route path="/stores/delivery-challans/maintenance/edit/:id" element={<MaintenanceChallanForm />} />
 
                     {/* Sale on Approval */}
                     <Route path="/stores/sale-approval" element={<DcBillingList />} />

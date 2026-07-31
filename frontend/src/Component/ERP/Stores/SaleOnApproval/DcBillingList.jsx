@@ -20,7 +20,7 @@ const typeTabs = [
   { label: "Jobwork", code: "J" },
   { label: "Sale on Approval", code: "S" },
 ];
-const statusColor = { Draft: "default", Issued: "primary", Returned: "success", Cancelled: "error", Billed: "success" };
+const statusColor = { Draft: "default", Approved: "primary", Returned: "success", Cancelled: "error", Billed: "success" };
 
 export default function DcBillingList() {
   const navigate = useNavigate();

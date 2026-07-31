@@ -42,6 +42,9 @@ const Settings = () => {
     email: "",
     website: "",
     gstin: "",
+    cin: "",
+    pan: "",
+    show_format_no: true,
     pf_number: "",
     esi_number: "",
     logo_url: ""
@@ -310,6 +313,24 @@ const Settings = () => {
               <Grid item xs={6} sm={4} md={2}>
                 <TextField
                   fullWidth
+                  label="CIN"
+                  size="small"
+                  value={companySettings.cin || ""}
+                  onChange={(e) => setCompanySettings({ ...companySettings, cin: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <TextField
+                  fullWidth
+                  label="PAN"
+                  size="small"
+                  value={companySettings.pan || ""}
+                  onChange={(e) => setCompanySettings({ ...companySettings, pan: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <TextField
+                  fullWidth
                   label="PF Number"
                   size="small"
                   value={companySettings.pf_number || ""}
@@ -323,6 +344,18 @@ const Settings = () => {
                   size="small"
                   value={companySettings.esi_number || ""}
                   onChange={(e) => setCompanySettings({ ...companySettings, esi_number: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={companySettings.show_format_no !== false}
+                      onChange={(e) => setCompanySettings({ ...companySettings, show_format_no: e.target.checked })}
+                      size="small"
+                    />
+                  }
+                  label="Show Format Number on Delivery Challan (Str./F06/L/Rev.02/Dec'18)"
                 />
               </Grid>
             </Grid>

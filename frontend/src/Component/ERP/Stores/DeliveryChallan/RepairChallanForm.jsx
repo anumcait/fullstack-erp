@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton, Autocomplete,
-  Grid, TableContainer, MenuItem, Alert,
+  TableContainer, Alert,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
@@ -20,7 +20,6 @@ import DeliveryChallanPreview from "./DeliveryChallanPreview";
 const API = "/api/erp/stores/delivery-challans";
 const ITEMS_API = "/api/erp/stores/items";
 
-const dcTypeLabels = { L: "Replacement", R: "Repair", M: "Maintenance", J: "Jobwork", S: "Sale on Approval" };
 const DEPARTMENTS = ["Production", "Maintenance", "Quality", "Stores", "Engineering", "Planning", "Marketing", "HR", "Accounts", "Purchase", "Other"];
 
 const blankItem = () => ({ tempId: Date.now() + Math.random(), item_grp: "", wo_no: "", hs_code: "", item_id: "", item_code: "", item_name: "", uom: "", unit_id: "", qty: "", rate: "", remarks: "", req_date: "" });
@@ -70,9 +69,9 @@ const validateItems = (items, showToast) => {
   return true;
 };
 
-export default function DcPreparationForm() {
+export default function RepairChallanForm() {
   const navigate = useNavigate();
-  const { dcCode, id } = useParams();
+  const { id } = useParams();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -86,7 +85,7 @@ export default function DcPreparationForm() {
   const [empPicker, setEmpPicker] = useState(false);
   const reqDateRef = useRef(null);
   const [form, setForm] = useState({
-    dc_type: dcCode || "S",
+    dc_type: "R",
     dc_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
     dc_no: "",
     requested_by: "",
@@ -95,6 +94,9 @@ export default function DcPreparationForm() {
     party_name: "",
     party_id: "",
     req_date: "",
+    reference_no: "",
+    remarks: "",
+    expected_return_date: "",
   });
 
   const isEdit = Boolean(id) && window.location.pathname.includes('/edit/') && isSameDay(form.dc_date, new Date());
@@ -117,7 +119,7 @@ export default function DcPreparationForm() {
     if (!id) return;
     axios.get(`${API}/${id}`).then(({ data }) => {
       setForm({
-        dc_type: data.dc_type || "S",
+        dc_type: "R",
         dc_date: data.dc_date ? toLocalInput(data.dc_date) : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
         dc_no: data.dc_no || "",
         requested_by: data.requested_by || "",
@@ -126,6 +128,9 @@ export default function DcPreparationForm() {
         party_name: data.party_name || "",
         party_id: String(data.party_id || ""),
         req_date: data.req_date ? data.req_date.slice(0, 10) : "",
+        reference_no: data.reference_no || "",
+        remarks: data.remarks || "",
+        expected_return_date: data.expected_return_date ? String(data.expected_return_date).slice(0, 10) : "",
       });
       setItems(data.items?.length ? data.items.map((i) => ({
         tempId: Date.now() + Math.random(),
@@ -143,7 +148,7 @@ export default function DcPreparationForm() {
         req_date: i.req_date || "",
       })) : [blankItem()]);
     }).catch(() => {
-      showToast("Failed to load DC", "error");
+      showToast("Failed to load Repair DC", "error");
       navigate("/stores/delivery-challans");
     }).finally(() => setInitialLoading(false));
   }, [id]);
@@ -201,13 +206,22 @@ export default function DcPreparationForm() {
     if (!validateItems(items.filter((r) => r.item_id), showToast)) return;
     setSaving(true);
     try {
-      const payload = { ...form, dc_date: toIsoUtc(form.dc_date), party_id: Number(form.party_id) || null, dc_no: form.dc_no || undefined, items: items.filter((r) => r.item_id).map(({ tempId, uom, qty, value, ...rest }) => ({ ...rest, quantity: qty, unit: uom })) };
+      const payload = {
+        ...form,
+        dc_date: toIsoUtc(form.dc_date),
+        party_id: Number(form.party_id) || null,
+        dc_no: form.dc_no || undefined,
+        reference_no: form.reference_no || null,
+        remarks: form.remarks || null,
+        expected_return_date: form.expected_return_date || null,
+        items: items.filter((r) => r.item_id).map(({ tempId, uom, qty, value, ...rest }) => ({ ...rest, quantity: qty, unit: uom })),
+      };
       if (id && isEdit) {
         await axios.put(`${API}/${id}`, payload);
-        showToast("DC updated", "success");
+        showToast("Repair DC updated", "success");
       } else {
         await axios.post(API, payload);
-        showToast("DC saved as Draft", "success");
+        showToast("Repair DC saved as Draft", "success");
       }
       navigate("/stores/delivery-challans");
     } catch (e) {
@@ -231,8 +245,8 @@ export default function DcPreparationForm() {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <IconButton onClick={() => navigate("/stores/delivery-challans")}><ArrowBackIcon /></IconButton>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>{dcTypeLabels[form.dc_type] || "Sale on Approval"} DC</Typography>
-          <Chip label={form.dc_type} size="small" color="primary" />
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>Repair DC</Typography>
+          <Chip label="R" size="small" color="primary" />
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button variant="outlined" onClick={() => navigate("/stores/delivery-challans")}>Back</Button>
@@ -313,6 +327,32 @@ export default function DcPreparationForm() {
             </Box>
             <Box sx={{ width: 200 }}>
               <TextField size="small" label="DC Date" type="datetime-local" fullWidth value={form.dc_date} disabled InputLabelProps={{ shrink: true }} sx={{ ...fsx, "& .Mui-disabled": { WebkitTextFillColor: "#64748b !important", fontWeight: 600 } }} />
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ borderRadius: "10px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", mb: 3, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+        <Box sx={{ px: 2.5, py: 1.2, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ width: 3, height: 18, bgcolor: "#8b5cf6", borderRadius: 2 }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.85rem", color: "#1e293b", letterSpacing: "0.2px" }}>Repair Details</Typography>
+        </Box>
+        <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "flex-start" }}>
+            <Box sx={{ width: 220 }}>
+              <TextField size="small" label="Job Reference" fullWidth value={form.reference_no}
+                onChange={handleChange("reference_no")} onKeyDown={onEnter} disabled={isView} sx={fsx}
+                placeholder="e.g. JOB-2026-001" />
+            </Box>
+            <Box sx={{ width: 180 }}>
+              <TextField size="small" label="Expected Return" type="date" fullWidth value={form.expected_return_date}
+                onChange={handleChange("expected_return_date")} onKeyDown={onEnter} disabled={isView}
+                InputLabelProps={{ shrink: true }} sx={fsx} />
+            </Box>
+            <Box sx={{ flex: "1 1 320px", minWidth: 280 }}>
+              <TextField size="small" label="Defect / Complaint" fullWidth multiline minRows={1} maxRows={3} value={form.remarks}
+                onChange={handleChange("remarks")} onKeyDown={onEnter} disabled={isView} sx={fsx}
+                placeholder="Describe the defect, complaint or work to be done" />
             </Box>
           </Box>
         </CardContent>
