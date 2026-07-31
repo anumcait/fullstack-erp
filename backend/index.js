@@ -207,6 +207,10 @@ END $$;`,
         // ── Job Order: old JO number and year reference ──
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS old_jo_no VARCHAR(50)`,
         `ALTER TABLE IF EXISTS t_production_order ADD COLUMN IF NOT EXISTS jo_year VARCHAR(10)`,
+        // ── Delivery Challan: prepared_by column + dc_date stores local datetime ──
+        `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS prepared_by VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ALTER COLUMN dc_date TYPE timestamptz USING dc_date::timestamp`,
+        `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS unit VARCHAR(20)`,
       ];
       for (const sql of erpMigrations) {
         try { await erpDb.sequelize.query(sql); } catch (_) { /* ignore */ }

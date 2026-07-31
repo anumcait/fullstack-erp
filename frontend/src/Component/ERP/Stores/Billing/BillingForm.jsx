@@ -27,6 +27,17 @@ const INITIAL_COL_WIDTHS = [
   55, 45, 55, 55, 45, 50, 65, 45, 50, 45, 50, 45, 50, 45, 50, 45, 50, 45, 50, 70 // Scrollable (19-38)
 ];
 
+const COL_GROUPS = [
+  { key: "g1", label: "PR Date ~ W.O", indices: [6, 7, 8, 9] },
+  { key: "g2", label: "Dia ~ KG Accp", indices: [12, 13, 14, 15, 16] },
+];
+
+var groupColStyle = {};
+COL_GROUPS.forEach(function (g) {
+  var color = g.key === "g1" ? "#3b82f6" : "#10b981";
+  g.indices.forEach(function (i) { groupColStyle[i] = { borderTop: "3px solid " + color, borderTopColor: color }; });
+});
+
 export default function BillingForm() {
   var navigate = useNavigate();
   var location = useLocation();
@@ -35,7 +46,17 @@ export default function BillingForm() {
   var [loading, setLoading] = useState(false);
   var [saving, setSaving] = useState(false);
   var [colWidths, setColWidths] = useState(INITIAL_COL_WIDTHS);
+  var [hiddenGroups, setHiddenGroups] = useState({ g1: true, g2: true });
   var prevColKey = useRef(JSON.stringify(INITIAL_COL_WIDTHS));
+  var hiddenColSet = useMemo(function () {
+    var set = new Set();
+    COL_GROUPS.forEach(function (g) {
+      if (hiddenGroups[g.key]) {
+        g.indices.forEach(function (i) { set.add(i); });
+      }
+    });
+    return set;
+  }, [hiddenGroups]);
   useEffect(function () {
     var key = JSON.stringify(INITIAL_COL_WIDTHS);
     if (prevColKey.current !== key) {
@@ -44,24 +65,43 @@ export default function BillingForm() {
     }
   }, [JSON.stringify(INITIAL_COL_WIDTHS)]);
 
+  var visibleWidths = useMemo(function () {
+    return colWidths.slice(0, 19).map(function (w, i) {
+      return hiddenColSet.has(i) ? 0 : w;
+    });
+  }, [colWidths, hiddenColSet]);
+
   var FZ = useMemo(function () {
-    return colWidths.slice(0, 19).reduce(function (acc, w, i) {
-      acc.push(i === 0 ? 0 : acc[i - 1] + colWidths[i - 1]);
+    return visibleWidths.reduce(function (acc, w, i) {
+      acc.push(i === 0 ? 0 : Math.round(acc[i - 1] + visibleWidths[i - 1]));
       return acc;
     }, []);
-  }, [colWidths]);
+  }, [visibleWidths]);
 
   var wTh = function (col, extra) {
-    var isSt = col < 19;
-    return { width: colWidths[col], minWidth: colWidths[col], maxWidth: colWidths[col], position: isSt ? "sticky" : "relative", left: isSt ? FZ[col] : undefined, zIndex: isSt ? 4 : 1, bgcolor: isSt ? "#f1f5f9" : "inherit", overflow: "visible", ...extra };
+    var hide = hiddenColSet.has(col) ? { display: "none" } : {};
+    var grpStyle = groupColStyle[col] || {};
+    var isLeftSt = col < 19, isRightSt = col === 38;
+    var posStyle = isRightSt ? { position: "sticky", right: 0, zIndex: 6, bgcolor: "#e8f4fd", willChange: "transform" }
+      : isLeftSt ? { position: "sticky", left: FZ[col], zIndex: 4, bgcolor: "#f1f5f9", overflow: "visible", willChange: "transform" }
+      : { position: "relative", zIndex: 1, bgcolor: "inherit" };
+    return { width: colWidths[col], minWidth: colWidths[col], maxWidth: colWidths[col], ...posStyle, ...hide, ...grpStyle, ...extra };
   };
   var wTd = function (col, extra) {
-    var isSt = col < 19;
-    return { width: colWidths[col], minWidth: colWidths[col], maxWidth: colWidths[col], position: isSt ? "sticky" : "relative", left: isSt ? FZ[col] : undefined, zIndex: isSt ? 2 : 1, bgcolor: isSt ? "#fff" : "inherit", ...extra };
+    var hide = hiddenColSet.has(col) ? { display: "none" } : {};
+    var isLeftSt = col < 19, isRightSt = col === 38;
+    var posStyle = isRightSt ? { position: "sticky", right: 0, zIndex: 4, bgcolor: "#fff", willChange: "transform" }
+      : isLeftSt ? { position: "sticky", left: FZ[col], zIndex: 2, bgcolor: "#fff", willChange: "transform" }
+      : { position: "relative", zIndex: 1, bgcolor: "inherit" };
+    return { width: colWidths[col], minWidth: colWidths[col], maxWidth: colWidths[col], ...posStyle, ...hide, ...extra };
   };
   var wFt = function (col, extra) {
-    var isSt = col < 19;
-    return { width: colWidths[col], minWidth: colWidths[col], maxWidth: colWidths[col], position: isSt ? "sticky" : "relative", left: isSt ? FZ[col] : undefined, zIndex: isSt ? 3 : 1, bgcolor: isSt ? "#e8f4fd" : "inherit", ...extra };
+    var hide = hiddenColSet.has(col) ? { display: "none" } : {};
+    var isLeftSt = col < 19, isRightSt = col === 38;
+    var posStyle = isRightSt ? { position: "sticky", right: 0, zIndex: 5, bgcolor: "#e8f4fd", willChange: "transform" }
+      : isLeftSt ? { position: "sticky", left: FZ[col], zIndex: 3, bgcolor: "#e8f4fd", willChange: "transform" }
+      : { position: "relative", zIndex: 1, bgcolor: "inherit" };
+    return { width: colWidths[col], minWidth: colWidths[col], maxWidth: colWidths[col], ...posStyle, ...hide, ...extra };
   };
 
   var handleColResize = function (e, colIdx) {
@@ -74,7 +114,7 @@ export default function BillingForm() {
       var diff = moveE.clientX - startX;
       setColWidths(function (prev) {
         var next = [...prev];
-        next[colIdx] = Math.max(20, startW + diff);
+        next[colIdx] = Math.round(Math.max(20, startW + diff));
         return next;
       });
     };
@@ -97,6 +137,18 @@ export default function BillingForm() {
     );
   };
 
+  var toggleGroup = function (key) {
+    setHiddenGroups(function (prev) {
+      var next = { ...prev };
+      if (next[key]) {
+        delete next[key];
+      } else {
+        next[key] = true;
+      }
+      return next;
+    });
+  };
+
   var [suppliers, setSuppliers] = useState([]);
   var [pendingGrrs, setPendingGrrs] = useState([]);
   var [allPos, setAllPos] = useState([]);
@@ -115,6 +167,7 @@ export default function BillingForm() {
     invoice_date: "",
     remarks: "",
   });
+  var [nextBillNo, setNextBillNo] = useState("");
   var [initialLoaded, setInitialLoaded] = useState(false);
 
   function localDatetime() {
@@ -128,6 +181,13 @@ export default function BillingForm() {
     updateDate();
     var timer = setInterval(updateDate, 30000);
     return function () { clearInterval(timer); };
+  }, []);
+
+  useEffect(function () {
+    axios.get("/api/erp/stores/bills/next-number").then(function (r) {
+      setNextBillNo(r.data.display);
+      setForm(function (f) { return { ...f, bill_no: r.data.display }; });
+    }).catch(function () { /* non-critical */ });
   }, []);
 
   var fetchPending = useCallback(async function () {
@@ -380,7 +440,7 @@ export default function BillingForm() {
       var accp = Number(it.accepted_qty || 0);
       var kgVal = Number(it.kg || 0);
       var rate = Number(it.rate || 0);
-      var grossVal = r2(accp * rate);
+      var grossVal = kgVal > 0 ? r2(kgVal * accp * rate) : r2(accp * rate);
       var discPer = Number(it.discount_percent || 0);
       var discInr = Number(it.discount_inr || 0);
       var discAmt = discPer > 0 ? r2(grossVal * discPer / 100) : discInr;
@@ -441,12 +501,12 @@ export default function BillingForm() {
     if (!form.supplier_name && billItems.length === 0) {
       showToast("Select supplier and load items", "warning"); return;
     }
-    if (!form.bill_no) { showToast("Bill number required", "warning"); return; }
-    if (!form.bill_date) { showToast("Bill date required", "warning"); return; }
     try {
       setSaving(true);
-      await axios.post("/api/erp/stores/bills/create", {
+      var grrIds = billItems.reduce(function (acc, it) { return acc.indexOf(it.grn_id) === -1 ? acc.concat([it.grn_id]) : acc; }, []);
+      await axios.post("/api/erp/stores/bills", {
         ...form,
+        grr_ids: grrIds,
         items: billItems.map(function (it) { return { ...it, selected: undefined }; }),
       });
       showToast("Bill created successfully", "success");
@@ -505,8 +565,8 @@ export default function BillingForm() {
           onChange={function (e) { setForm(function (f) { return { ...f, invoice_no: e.target.value }; }); }} disabled={isView} placeholder="Supplier DC" />
         <TextField size="small" label="Supp Bill Dt" type="date" sx={{ ...fieldSx, width: 140 }} value={form.invoice_date}
           onChange={function (e) { setForm(function (f) { return { ...f, invoice_date: e.target.value }; }); }} disabled={isView} InputLabelProps={{ shrink: true }} />
-        <TextField size="small" label="Bill No *" sx={{ ...fieldSx, width: 130 }} value={form.bill_no}
-          onChange={function (e) { setForm(function (f) { return { ...f, bill_no: e.target.value }; }); }} disabled={isView} placeholder="BILL-001" InputLabelProps={{ shrink: true }} />
+        <TextField size="small" label="Bill No" sx={{ ...fieldSx, width: 130 }} value={nextBillNo || form.bill_no}
+          disabled InputLabelProps={{ shrink: true }} />
         <TextField size="small" label="Bill Date *" type="datetime-local" sx={{ ...fieldSx, width: 190 }} value={form.bill_date}
           onChange={function (e) { setForm(function (f) { return { ...f, bill_date: e.target.value }; }); }} disabled InputLabelProps={{ shrink: true }} />
         <TextField size="small" label="Remarks" sx={{ ...fieldSx, minWidth: 180, flex: 1 }} value={form.remarks}
@@ -577,6 +637,23 @@ export default function BillingForm() {
               </Typography>
             </Box>
             <Box className="billing-table-container" sx={{ maxHeight: 480, overflow: "auto", mb: 2, border: "1px solid #e2e8f0", borderRadius: 2, "--sticky-width": (FZ[18] + colWidths[18]) + "px", bgcolor: "#fff" }}>
+              {/* Column group toggle bar */}
+              <Box sx={{ position: "sticky", top: 0, left: 0, zIndex: 7, pointerEvents: "none", height: 14, bgcolor: "transparent" }}>
+                <Box onClick={function () { toggleGroup("g1"); }}
+                  sx={{ position: "absolute", left: FZ[6], top: 0, pointerEvents: "auto", display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 16, height: 14, cursor: "pointer", userSelect: "none", color: "#fff", fontSize: "0.75rem", fontWeight: 800, lineHeight: 1,
+                    bgcolor: hiddenGroups.g1 ? "#94a3b8" : "#3b82f6", borderRadius: "0 0 3px 3px",
+                    "&:hover": { bgcolor: hiddenGroups.g1 ? "#64748b" : "#2563eb" } }}>
+                  {hiddenGroups.g1 ? "+" : "\u2212"}
+                </Box>
+                <Box onClick={function () { toggleGroup("g2"); }}
+                  sx={{ position: "absolute", left: FZ[12], top: 0, pointerEvents: "auto", display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 16, height: 14, cursor: "pointer", userSelect: "none", color: "#fff", fontSize: "0.75rem", fontWeight: 800, lineHeight: 1,
+                    bgcolor: hiddenGroups.g2 ? "#94a3b8" : "#10b981", borderRadius: "0 0 3px 3px",
+                    "&:hover": { bgcolor: hiddenGroups.g2 ? "#64748b" : "#059669" } }}>
+                  {hiddenGroups.g2 ? "+" : "\u2212"}
+                </Box>
+              </Box>
               <Table size="small" stickyHeader sx={{ tableLayout: "fixed", "& td, & th": { border: "1px solid #e0e0e0", px: 0.5, py: 0.3, fontSize: "0.8rem" }, minWidth: 1600 }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: "#f1f5f9" }}>
@@ -625,7 +702,8 @@ export default function BillingForm() {
                   {billItems.map(function (it, idx) {
                     var accp = Number(it.accepted_qty || 0);
                     var rate = Number(it.rate || 0);
-                    var gross = r2(accp * rate);
+                    var kgAccp = Number(it.kg || 0);
+                    var gross = kgAccp > 0 ? r2(kgAccp * accp * rate) : r2(accp * rate);
                     var discPer = Number(it.discount_percent || 0);
                     var discInr = Number(it.discount_inr || 0);
                     var discAmt = discPer > 0 ? r2(gross * discPer / 100) : discInr;

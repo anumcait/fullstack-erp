@@ -54,7 +54,7 @@ export default function DashboardTabs() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <PageHeader title="HR Workspace" subtitle="Your personal HR dashboard — attendance, leaves, payslips & more" />
+      <PageHeader title="HR Dashboard" subtitle="Your personal HR dashboard — attendance, leaves, payslips & more" />
 
       <div className="flex flex-wrap justify-center gap-3 mb-6">
         {tabs.map((tab) => {

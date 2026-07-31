@@ -153,6 +153,8 @@ import StockAuditForm from "./Component/ERP/Stores/StockAudit/StockAuditForm.jsx
 import GateEntryList from "./Component/ERP/Stores/GateEntry/GateEntryList.jsx";
 import DeliveryChallanList from "./Component/ERP/Stores/DeliveryChallan/DeliveryChallanList.jsx";
 import DeliveryChallanForm from "./Component/ERP/Stores/DeliveryChallan/DeliveryChallanForm.jsx";
+import DcPreparationForm from "./Component/ERP/Stores/DeliveryChallan/DcPreparationForm.jsx";
+import DcBillingList from "./Component/ERP/Stores/SaleOnApproval/DcBillingList.jsx";
 import BillingList from "./Component/ERP/Stores/Billing/BillingList.jsx";
 import BillingForm from "./Component/ERP/Stores/Billing/BillingForm.jsx";
 import GRRBilling from "./Component/ERP/Stores/Billing/GRRBilling.jsx";
@@ -325,8 +327,12 @@ function App() {
                     {/* Delivery Challan */}
                     <Route path="/stores/delivery-challans" element={<DeliveryChallanList />} />
                     <Route path="/stores/delivery-challans/add" element={<DeliveryChallanForm />} />
-                    <Route path="/stores/delivery-challans/view/:id" element={<DeliveryChallanForm />} />
-                    <Route path="/stores/delivery-challans/edit/:id" element={<DeliveryChallanForm />} />
+                    <Route path="/stores/delivery-challans/prepare/:dcCode" element={<DcPreparationForm />} />
+                    <Route path="/stores/delivery-challans/view/:id" element={<DcPreparationForm />} />
+                    <Route path="/stores/delivery-challans/edit/:id" element={<DcPreparationForm />} />
+
+                    {/* Sale on Approval */}
+                    <Route path="/stores/sale-approval" element={<DcBillingList />} />
 
                     {/* Billing (Tax Invoice) */}
                     <Route path="/stores/invoices" element={<BillingList />} />

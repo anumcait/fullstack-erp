@@ -3,10 +3,29 @@ const db = require('../../models/ERP');
 
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
 
-async function generateInvoiceNo() {
-  const year = new Date().getFullYear();
-  const count = await db.Invoice.count({ where: { invoice_no: { [Op.like]: `INV-${year}-%` } } });
-  return `INV-${year}-${String(count + 1).padStart(4, '0')}`;
+function getFinancialYear() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  return month >= 4 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}
+
+async function generateBillNo() {
+  const finYear = getFinancialYear();
+  const seq = db.sequelize;
+  return await seq.transaction(async (t) => {
+    await seq.query(
+      `INSERT INTO t_sequence_counters (prefix, financial_year, last_number) VALUES ('BILL', :finYear, 0) ON CONFLICT DO NOTHING`,
+      { replacements: { finYear }, transaction: t }
+    );
+    const [rows] = await seq.query(
+      `UPDATE t_sequence_counters SET last_number = last_number + 1 WHERE prefix = 'BILL' AND financial_year = :finYear RETURNING last_number`,
+      { replacements: { finYear }, transaction: t }
+    );
+    const num = rows[0].last_number;
+    const shortFinYear = finYear.slice(2, 4) + finYear.slice(7, 9);
+    return { full: `${shortFinYear}/${String(num).padStart(4, '0')}`, display: String(num) };
+  });
 }
 
 const recalc = (items) => {
@@ -62,6 +81,31 @@ const postCosting = async (invoice) => {
   }
 };
 
+async function peekNextBillNo() {
+  const finYear = getFinancialYear();
+  const seq = db.sequelize;
+  const [rows] = await seq.query(
+    `SELECT last_number FROM t_sequence_counters WHERE prefix = 'BILL' AND financial_year = :finYear`,
+    { replacements: { finYear } }
+  );
+  let num = 0;
+  if (rows.length > 0) {
+    num = rows[0].last_number || 0;
+  }
+  const shortFinYear = finYear.slice(2, 4) + finYear.slice(7, 9);
+  return { full: `${shortFinYear}/${String(num + 1).padStart(4, '0')}`, display: String(num + 1) };
+}
+
+exports.getNextBillNo = async (req, res) => {
+  try {
+    const billNo = await peekNextBillNo();
+    res.json(billNo);
+  } catch (err) {
+    console.error('Error peeking next bill no:', err);
+    res.status(500).json({ error: 'Failed to get next bill number' });
+  }
+};
+
 exports.getList = async (req, res) => {
   try {
     const { search, status } = req.query;
@@ -92,9 +136,10 @@ exports.getOne = async (req, res) => {
 const buildInvoice = async (body) => {
   const items = Array.isArray(body.items) ? body.items : [];
   const { items: computed, subtotal, total_cgst, total_sgst, total_igst, grand_total } = recalc(items);
+  const billNo = await generateBillNo();
   const inv = await db.Invoice.create({
-    invoice_no: body.invoice_no || (await generateInvoiceNo()),
-    invoice_date: body.invoice_date,
+    invoice_no: billNo.full,
+    invoice_date: body.bill_date || body.invoice_date,
     party_id: body.party_id || null,
     party_name: body.party_name || null,
     party_gstin: body.party_gstin || null,

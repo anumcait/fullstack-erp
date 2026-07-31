@@ -9,10 +9,13 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import SearchIcon from "@mui/icons-material/Search";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../../../context/ToastContext";
-import { formatNumber } from "../../../../utils/format";
+import { formatNumber, formatQty } from "../../../../utils/format";
 
 const GRR_API = "/api/erp/stores/grn";
 
@@ -26,10 +29,16 @@ export default function BillingList() {
   const [search, setSearch] = useState("");
   const [partyFilter, setPartyFilter] = useState("");
   const [prFilter, setPrFilter] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const today = new Date();
+  const oneMonthAgo = new Date(today);
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const fmtDateInput = (d) => d.toISOString().split("T")[0];
+  const [dateFrom, setDateFrom] = useState(fmtDateInput(oneMonthAgo));
+  const [dateTo, setDateTo] = useState(fmtDateInput(today));
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [sortConfig, setSortConfig] = useState({ key: "grn_no", dir: "asc" });
+  const [globalSearch, setGlobalSearch] = useState("");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -87,6 +96,7 @@ export default function BillingList() {
         pty_dc: grn.invoice_no || "",
         dc_date: grn.invoice_date || "",
         po_no: po?.po_no || grn.po_no || "",
+        po_date: po?.po_date || "",
         wop: grn.ir_type || "GRR",
         item_code: "",
         item_name: "",
@@ -96,8 +106,11 @@ export default function BillingList() {
         kg_accp: 0,
         recv_qty: 0,
         recv_kg: 0,
+        supp_qty: 0,
+        received_by: grn.received_by || "",
         bill_no: grn.bill_no || "",
         bill_date: grn.bill_date || "",
+        displayStatus: grn.bill_no ? "Billed" : "Outstanding",
         item: null,
       });
     } else {
@@ -114,6 +127,7 @@ export default function BillingList() {
           pty_dc: grn.invoice_no || "",
           dc_date: grn.invoice_date || "",
           po_no: it.po_no || po?.po_no || grn.po_no || "",
+          po_date: po?.po_date || "",
           wop: grn.dept_cd === "PRODUCTION" ? "PROD" : grn.dept_cd === "EDP" ? "EDP" : (grn.ir_type || "GRR"),
           item_code: it.item_code || "",
           item_name: it.item_name || "",
@@ -123,16 +137,45 @@ export default function BillingList() {
           kg_accp: Number(it.accp || it.kg || 0),
           recv_qty: Number(it.received_qty || 0),
           recv_kg: Number(it.recv_kg || 0),
+          supp_qty: Number(it.supp_qty || 0),
+          received_by: grn.received_by || "",
           bill_no: grn.bill_no || "",
           bill_date: grn.bill_date || "",
+          displayStatus: grn.bill_no ? "Billed" : "Outstanding",
           item: it,
         });
       });
     }
   });
 
+  // Sort
+  flatRows.sort((a, b) => {
+    const dir = sortConfig.dir === "asc" ? 1 : -1;
+    let va = a[sortConfig.key], vb = b[sortConfig.key];
+    if (typeof va === "string") return dir * va.localeCompare(vb || "", undefined, { numeric: true });
+    return dir * ((va || 0) - (vb || 0));
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({ key, dir: prev.key === key && prev.dir === "asc" ? "desc" : "asc" }));
+  };
+
+  const sortIcon = (key) => {
+    if (sortConfig.key !== key) return React.createElement(UnfoldMoreIcon, { sx: { fontSize: 12, ml: 0.3, opacity: 0.4, verticalAlign: "middle" } });
+    return sortConfig.dir === "asc"
+      ? React.createElement(ArrowUpwardIcon, { sx: { fontSize: 12, ml: 0.3, verticalAlign: "middle", color: "#1565c0" } })
+      : React.createElement(ArrowDownwardIcon, { sx: { fontSize: 12, ml: 0.3, verticalAlign: "middle", color: "#1565c0" } });
+  };
+
   // Apply client-side filters
   let filtered = flatRows;
+  if (globalSearch) {
+    const q = globalSearch.toLowerCase();
+    filtered = filtered.filter((r) =>
+      [r.grn_no, r.pr_no, r.pty_name, r.pty_dc, r.po_no, r.item_code, r.item_name, r.received_by, r.bill_no]
+        .some((v) => (v || "").toLowerCase().includes(q))
+    );
+  }
   if (partyFilter) {
     filtered = filtered.filter((r) =>
       r.pty_name.toLowerCase().includes(partyFilter.toLowerCase())
@@ -150,39 +193,49 @@ export default function BillingList() {
     page * rowsPerPage + rowsPerPage
   );
 
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const fmtDateTime = (v) => {
+    if (!v) return "-";
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return String(v).split("T")[0];
+    const dd = pad2(d.getDate());
+    const mm = pad2(d.getMonth() + 1);
+    const yy = String(d.getFullYear()).slice(-2);
+    const hh = d.getHours();
+    const h12 = hh % 12 || 12;
+    const ampm = hh < 12 ? "AM" : "PM";
+    const dateStr = dd + "-" + mm + "-" + yy;
+    const timeStr = pad2(h12) + ":" + pad2(d.getMinutes()) + " " + ampm;
+    return React.createElement(React.Fragment, null, dateStr, React.createElement("br"), timeStr);
+  };
+
   const fmtDate = (v) => {
     if (!v) return "-";
     const d = new Date(v);
-    return isNaN(d.getTime())
-      ? String(v).split("T")[0]
-      : d.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
+    return isNaN(d.getTime()) ? String(v).split("T")[0] : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   };
 
   const uniqueParties = [...new Set(flatRows.map((r) => r.pty_name).filter(Boolean))];
 
   const thSx = {
     fontWeight: 700,
-    fontSize: "0.72rem",
-    py: 0.6,
-    px: 0.75,
-    color: "#334155",
-    borderBottom: "2px solid #e2e8f0",
+    fontSize: "0.82rem",
+    py: 0.55,
+    px: 0.7,
+    color: "#1e293b",
+    border: "1px solid #94a3b8",
     position: "sticky",
     top: 0,
     zIndex: 2,
-    bgcolor: "#f1f5f9",
+    bgcolor: "#e2e8f0",
     whiteSpace: "nowrap",
   };
 
   const tdSx = {
-    fontSize: "0.76rem",
-    py: 0.45,
-    px: 0.75,
-    borderBottom: "1px solid #f1f5f9",
+    fontSize: "0.82rem",
+    py: 0.4,
+    px: 0.6,
+    border: "1px solid #e2e8f0",
   };
 
   return (
@@ -205,21 +258,7 @@ export default function BillingList() {
           GRR Billing Details
         </Typography>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<ReceiptLongIcon />}
-            onClick={() => navigate("/stores/invoices/add")}
-          >
-            Bill GRRs
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={fetchData}
-          >
-            Refresh
-          </Button>
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
         </Box>
       </Box>
 
@@ -318,12 +357,9 @@ export default function BillingList() {
               onKeyDown={(e) => e.key === "Enter" && fetchData()}
               sx={{ width: 130 }}
             />
-            <TextField
-              size="small"
-              label="Pty DC#"
-              value=""
-              sx={{ width: 120 }}
-            />
+            <TextField size="small" label="Search all columns" value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)} sx={{ width: 180 }}
+              InputProps={{ startAdornment: React.createElement(SearchIcon, { sx: { fontSize: 18, mr: 0.5, color: "#94a3b8" } }) }} />
             <TextField
               size="small"
               select
@@ -383,21 +419,12 @@ export default function BillingList() {
           )}
           {filtered.length > 0 && (
             <>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  mb: 0.5,
-                  pr: 1,
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "#64748b", fontWeight: 600 }}
-                >
-                  {page * rowsPerPage + 1} -{" "}
-                  {Math.min((page + 1) * rowsPerPage, totalCount)} of{" "}
-                  {totalCount}
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5, px: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "#475569" }}>
+                  {tab === 0 ? "Pending GRRs awaiting billing" : "Billed GRRs"} — <Box component="span" sx={{ color: "#1565c0", fontWeight: 700 }}>{totalCount}</Box> record{totalCount !== 1 ? "s" : ""}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#64748b", fontWeight: 600 }}>
+                  Page {page + 1} ({page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, totalCount)} of {totalCount})
                 </Typography>
               </Box>
               <TableContainer sx={{ maxHeight: 560, overflow: "auto" }}>
@@ -412,56 +439,52 @@ export default function BillingList() {
                 >
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ ...thSx, width: 90 }}>
-                        Action
+                      <TableCell sx={{ ...thSx, width: 90 }}>Action</TableCell>
+                      <TableCell sx={{ ...thSx, width: 30 }}>Sl#</TableCell>
+                      <TableCell sx={{ ...thSx, width: 85, cursor: "pointer" }} onClick={() => handleSort("grn_no")}>
+                        GRR #{sortIcon("grn_no")}
                       </TableCell>
-                      <TableCell sx={{ ...thSx, width: 75 }}>GRR #</TableCell>
-                      <TableCell sx={{ ...thSx, width: 90 }}>GRR Date</TableCell>
-                      <TableCell sx={{ ...thSx, width: 60 }}>GRS #</TableCell>
-                      <TableCell sx={{ ...thSx, width: 70 }}>PR No</TableCell>
-                      <TableCell sx={{ ...thSx, width: 90 }}>PR Date</TableCell>
-                      <TableCell sx={{ ...thSx, width: 160 }}>Pty Name</TableCell>
-                      <TableCell sx={{ ...thSx, width: 80 }}>Pty DC</TableCell>
+                      <TableCell sx={{ ...thSx, width: 105, cursor: "pointer" }} onClick={() => handleSort("grn_date")}>
+                        GRR Date{sortIcon("grn_date")}
+                      </TableCell>
+                      <TableCell sx={{ ...thSx, width: 75, cursor: "pointer" }} onClick={() => handleSort("pr_no")}>
+                        PR #{sortIcon("pr_no")}
+                      </TableCell>
+                      <TableCell sx={{ ...thSx, width: 105, cursor: "pointer" }} onClick={() => handleSort("pr_date")}>
+                        PR Date{sortIcon("pr_date")}
+                      </TableCell>
+                      <TableCell sx={{ ...thSx, width: 160, cursor: "pointer" }} onClick={() => handleSort("pty_name")}>
+                        Pty Name{sortIcon("pty_name")}
+                      </TableCell>
+                      <TableCell sx={{ ...thSx, width: 80 }}>Pty DC #</TableCell>
                       <TableCell sx={{ ...thSx, width: 90 }}>DC Date</TableCell>
-                      <TableCell sx={{ ...thSx, width: 50 }}>Sl#</TableCell>
-                      <TableCell sx={{ ...thSx, width: 55, textAlign: "center" }}>
-                        W.O.P
+                      <TableCell sx={{ ...thSx, width: 85, cursor: "pointer" }} onClick={() => handleSort("po_no")}>
+                        Po No{sortIcon("po_no")}
                       </TableCell>
-                      <TableCell sx={{ ...thSx, width: 85 }}>Item Code</TableCell>
-                      <TableCell sx={{ ...thSx }}>Item Description</TableCell>
-                      <TableCell
-                        sx={{ ...thSx, width: 60, textAlign: "right" }}
-                      >
-                        Qty
+                      <TableCell sx={{ ...thSx, width: 105 }}>PO Date</TableCell>
+                      <TableCell sx={{ ...thSx, width: 55, textAlign: "center" }}>W.O.#</TableCell>
+                      <TableCell sx={{ ...thSx, width: 85, cursor: "pointer" }} onClick={() => handleSort("item_code")}>
+                        Item Code{sortIcon("item_code")}
                       </TableCell>
-                      <TableCell
-                        sx={{ ...thSx, width: 60, textAlign: "right" }}
-                      >
-                        Kg
+                      <TableCell sx={{ ...thSx, cursor: "pointer" }} onClick={() => handleSort("item_name")}>
+                        Item Description{sortIcon("item_name")}
                       </TableCell>
-                      <TableCell
-                        sx={{ ...thSx, width: 65, textAlign: "right" }}
-                      >
-                        Kg Accp
+                      <TableCell sx={{ ...thSx, width: 65, textAlign: "right", cursor: "pointer" }} onClick={() => handleSort("qty")}>
+                        Qty<br />Accp{sortIcon("qty")}
                       </TableCell>
-                      <TableCell
-                        sx={{ ...thSx, width: 65, textAlign: "right" }}
-                      >
-                        Recv Qty
-                      </TableCell>
-                      <TableCell
-                        sx={{ ...thSx, width: 65, textAlign: "right" }}
-                      >
-                        Recv Kg
+                      <TableCell sx={{ ...thSx, width: 65, textAlign: "right" }}>Qty<br />Supp</TableCell>
+                      <TableCell sx={{ ...thSx, width: 65, textAlign: "right" }}>Qty<br />Rec</TableCell>
+                      <TableCell sx={{ ...thSx, width: 65, textAlign: "right" }}>Kg<br />Rec</TableCell>
+                      <TableCell sx={{ ...thSx, width: 65, textAlign: "right" }}>Kg<br />Accp</TableCell>
+                      <TableCell sx={{ ...thSx, width: 90, cursor: "pointer" }} onClick={() => handleSort("received_by")}>
+                        Recvd By{sortIcon("received_by")}
                       </TableCell>
                       {tab === 1 && (
                         <>
-                          <TableCell sx={{ ...thSx, width: 85 }}>
-                            Bill No
+                          <TableCell sx={{ ...thSx, width: 85, cursor: "pointer" }} onClick={() => handleSort("bill_no")}>
+                            Bill No{sortIcon("bill_no")}
                           </TableCell>
-                          <TableCell sx={{ ...thSx, width: 90 }}>
-                            Bill Date
-                          </TableCell>
+                          <TableCell sx={{ ...thSx, width: 90 }}>Bill Date</TableCell>
                         </>
                       )}
                     </TableRow>
@@ -472,132 +495,53 @@ export default function BillingList() {
                         key={`${r.grnId}-${r.item?.id || idx}`}
                         hover
                         sx={{
-                          bgcolor: idx % 2 === 0 ? "#ffffff" : "#f8fafc",
-                          "&:hover": { bgcolor: "#eef2ff" },
+                          bgcolor: idx % 2 === 0 ? "#ffffff" : "#f1f5f9",
+                          "&:hover": { bgcolor: "#dbeafe", cursor: "pointer" },
                         }}
+
                       >
-                        <TableCell sx={tdSx}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() =>
-                              navigate("/stores/invoices/add", { state: { grn: r.grn } })
-                            }
-                            sx={{
-                              fontSize: "0.68rem",
-                              textTransform: "none",
-                              py: 0.15,
-                              px: 1,
-                              minWidth: 0,
-                              borderColor: "#1976d2",
-                              color: "#1976d2",
-                            }}
-                          >
-                            Create Billing
-                          </Button>
-                        </TableCell>
-                        <TableCell sx={{ ...tdSx, fontWeight: 600, color: "#1565c0" }}>
-                          {r.grn_no}
-                        </TableCell>
-                        <TableCell sx={tdSx}>{fmtDate(r.grn_date)}</TableCell>
-                        <TableCell sx={tdSx}>{r.grs_no || "-"}</TableCell>
-                        <TableCell
-                          sx={{
-                            ...tdSx,
-                            fontWeight: 600,
-                            color: r.pr_no ? "#7c3aed" : "#94a3b8",
-                          }}
-                        >
-                          {r.pr_no || "-"}
-                        </TableCell>
-                        <TableCell sx={tdSx}>{fmtDate(r.pr_date)}</TableCell>
-                        <TableCell
-                          sx={{
-                            ...tdSx,
-                            fontWeight: 600,
-                            maxWidth: 160,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          <Tooltip title={r.pty_name || "-"}>
-                            <span>{r.pty_name || "-"}</span>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell sx={tdSx}>{r.pty_dc || "-"}</TableCell>
-                        <TableCell sx={tdSx}>{fmtDate(r.dc_date)}</TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center" }}>
-                          {r.item ? 1 : "-"}
+                          {r.bill_no ? (
+                            <Chip label="Billed" size="small" color="success" sx={{ fontSize: "0.7rem", height: 24, fontWeight: 600 }} />
+                          ) : (
+                            <Button variant="contained" size="small" color="primary"
+                              onClick={() => navigate("/stores/invoices/add", { state: { grn: r.grn } })}
+                              sx={{ fontSize: "0.7rem", textTransform: "none", py: 0.2, px: 1.5, minWidth: 0, fontWeight: 600 }}>
+                              Create Billing
+                            </Button>
+                          )}
                         </TableCell>
-                        <TableCell
-                          sx={{
-                            ...tdSx,
-                            textAlign: "center",
-                            fontWeight: 600,
-                            color: r.wop === "PROD" ? "#2e7d32" : r.wop === "EDP" ? "#e65100" : "#1565c0",
-                          }}
-                        >
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#64748b" }}>{idx + 1}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#1565c0" }}>{r.grn_no}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDateTime(r.grn_date)}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: r.pr_no ? "#7c3aed" : "#94a3b8" }}>{r.pr_no || "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDateTime(r.pr_date)}</TableCell>
+                        <TableCell sx={{ ...tdSx, fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <Tooltip title={r.pty_name || "-"}><span>{r.pty_name || "-"}</span></Tooltip>
+                        </TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{r.pty_dc || "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDate(r.dc_date)}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: r.po_no ? "#1565c0" : "#94a3b8" }}>{r.po_no || "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDateTime(r.po_date)}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: r.wop === "PROD" ? "#2e7d32" : r.wop === "EDP" ? "#e65100" : "#1565c0" }}>
                           {r.wop}
                         </TableCell>
-                        <TableCell sx={{ ...tdSx, fontWeight: 600 }}>
-                          {r.item_code || "-"}
+                        <TableCell sx={{ ...tdSx, fontWeight: 600 }}>{r.item_code || "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <Tooltip title={r.item_name || "-"}><span>{r.item_name || "-"}</span></Tooltip>
                         </TableCell>
-                        <TableCell
-                          sx={{
-                            ...tdSx,
-                            maxWidth: 200,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          <Tooltip title={r.item_name || "-"}>
-                            <span>{r.item_name || "-"}</span>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            ...tdSx,
-                            textAlign: "right",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {r.qty > 0 ? formatNumber(r.qty) : "-"}
-                        </TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "right" }}>
-                          {r.kg > 0 ? formatNumber(r.kg, 3) : "-"}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            ...tdSx,
-                            textAlign: "right",
-                            fontWeight: 600,
-                            color: "success.dark",
-                          }}
-                        >
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600 }}>{r.qty > 0 ? formatQty(r.qty) : "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{r.supp_qty > 0 ? formatQty(r.supp_qty) : "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{r.recv_qty > 0 ? formatQty(r.recv_qty) : "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{r.recv_kg > 0 ? formatNumber(r.recv_kg, 3) : "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "success.dark" }}>
                           {r.kg_accp > 0 ? formatNumber(r.kg_accp, 3) : "-"}
                         </TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "right" }}>
-                          {r.recv_qty > 0 ? formatNumber(r.recv_qty) : "-"}
-                        </TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "right" }}>
-                          {r.recv_kg > 0 ? formatNumber(r.recv_kg, 3) : "-"}
-                        </TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{r.received_by || "-"}</TableCell>
                         {tab === 1 && (
                           <>
-                            <TableCell
-                              sx={{
-                                ...tdSx,
-                                fontWeight: 600,
-                                color: "#2e7d32",
-                              }}
-                            >
-                              {r.bill_no || "-"}
-                            </TableCell>
-                            <TableCell sx={tdSx}>
-                              {fmtDate(r.bill_date)}
-                            </TableCell>
+                            <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#2e7d32" }}>{r.bill_no || "-"}</TableCell>
+                            <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDate(r.bill_date)}</TableCell>
                           </>
                         )}
                       </TableRow>

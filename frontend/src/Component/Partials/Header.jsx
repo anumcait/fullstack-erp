@@ -146,8 +146,13 @@ const Header = () => {
 
   const navItems = [
     {
-      label: 'HR',
+      label: 'HOME',
       path: '/dashboard',
+      isHome: true,
+    },
+    {
+      label: 'HR',
+      path: '/hr',
       permission: 'MOD_HR',
       isMega: true,
       columns: [
@@ -467,7 +472,7 @@ const Header = () => {
     }
   ];
 
-  const filteredNavItems = navItems.filter(item => hasPermission(item.permission));
+  const filteredNavItems = navItems.filter(item => !item.permission || hasPermission(item.permission));
 
   return (
     <header className="dashboard-header">
@@ -653,8 +658,8 @@ const Header = () => {
           {filteredNavItems.map((item, idx) => (
             <div key={idx} className={`nav-item dropdown ${item.isMega ? 'mega' : ''} ${location.pathname === item.path ? 'active' : ''}`}>
               {item.path ? (
-                <Link to={item.path} className="nav-link">
-                  {item.label} {(item.children || item.columns) && <FaChevronDown className="chevron" />}
+                <Link to={item.path} className={`nav-link ${item.isHome ? 'home-link' : ''}`} title={item.isHome ? 'Home' : undefined}>
+                  {item.isHome ? <FaHome /> : <>{item.label} {(item.children || item.columns) && <FaChevronDown className="chevron" />}</>}
                 </Link>
               ) : (
                 <span className="nav-link">
