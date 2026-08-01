@@ -214,8 +214,15 @@ END $$;`,
         `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS cancel_remarks TEXT`,
         `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS cancel_by VARCHAR(50)`,
         `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS cancel_date TIMESTAMPTZ`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS approved_date TIMESTAMPTZ`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ALTER COLUMN dc_no DROP NOT NULL`,
+        `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS draft_no VARCHAR(30)`,
         `ALTER TABLE IF EXISTS t_delivery_challan ALTER COLUMN dc_date TYPE timestamptz USING dc_date::timestamp`,
         `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS unit VARCHAR(20)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS tag VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS opn1 VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS opn2 VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS opn3 VARCHAR(50)`,
         `UPDATE t_delivery_challan SET status = 'Approved' WHERE status = 'Issued'`,
       ];
       for (const sql of erpMigrations) {
@@ -239,14 +246,16 @@ END $$;`,
           DO $$
           DECLARE r RECORD;
           BEGIN
-            FOR r IN
-              SELECT conname, conrelid::regclass::text AS tbl
-              FROM pg_constraint
-              WHERE contype = 'f'
-                AND confrelid = 'm_supplier_master'::regclass
-            LOOP
-              EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', r.tbl, r.conname);
-            END LOOP;
+            IF to_regclass('m_supplier_master') IS NOT NULL THEN
+              FOR r IN
+                SELECT conname, conrelid::regclass::text AS tbl
+                FROM pg_constraint
+                WHERE contype = 'f'
+                  AND confrelid = 'm_supplier_master'::regclass
+              LOOP
+                EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', r.tbl, r.conname);
+              END LOOP;
+            END IF;
           END $$;
         `);
       } catch (_) { /* ignore */ }
@@ -430,6 +439,20 @@ END $$;`,
           if (!ex) await ItemType.create({ name, is_active: true });
         }
         console.log(`✅ Seeded ${TYPES.length} default item type(s).`);
+      } catch (_) { /* non-fatal */ }
+
+      // 9b. Seed default Warehouse(s)
+      try {
+        const { Warehouse } = erpDb;
+        const WAREHOUSES = [
+          { warehouse_code: 'WH-001', warehouse_name: 'Main Store', location: 'Main Facility' },
+          { warehouse_code: 'WH-002', warehouse_name: 'Raw Material Store', location: 'Main Facility' },
+        ];
+        for (const w of WAREHOUSES) {
+          const ex = await Warehouse.findOne({ where: { warehouse_code: w.warehouse_code } });
+          if (!ex) await Warehouse.create({ ...w, is_active: true });
+        }
+        console.log(`✅ Seeded ${WAREHOUSES.length} default warehouse(s).`);
       } catch (_) { /* non-fatal */ }
 
       // 10. Seed Accounts module defaults (voucher types + chart of accounts)

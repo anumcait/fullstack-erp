@@ -1,6 +1,7 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
 const { generateDocNumber } = require('../../utils/docNumber');
+const { postMovement, reverseMovements, getDefaultWarehouse, REF_TYPES } = require('../../utils/stockService');
 
 const GRN = db.GRN;
 const GRNItem = db.GRNItem;
@@ -14,22 +15,50 @@ const ItemMaster = db.ItemMaster;
 // Post purchase cost (moving average) and receipt into stock for a GRN.
 // Runs once per GRN (guarded by cost_posted) so it is safe to call on both
 // GRN entry and later GRN billing without double-counting.
-async function postGRNCost(grnId) {
-  const grn = await GRN.findByPk(grnId, { include: [{ model: GRNItem, as: 'items' }] });
-  if (!grn || grn.cost_posted) return;
-  for (const it of grn.items) {
-    if (!it.item_id || !(Number(it.accepted_qty) > 0) || !(Number(it.rate) > 0)) continue;
-    const item = await ItemMaster.findByPk(it.item_id);
-    if (!item) continue;
-    const stock = Number(item.current_stock || 0);
-    const oldRate = Number(item.rate || 0);
-    const qty = Number(it.accepted_qty);
-    const newRate = Number(it.rate);
-    const totalStock = stock + qty;
-    const avg = totalStock > 0 ? (stock * oldRate + qty * newRate) / totalStock : newRate;
-    await item.update({ rate: Number(avg.toFixed(2)), current_stock: Number((stock + qty).toFixed(2)) });
+async function postGRNCost(grnId, user) {
+  const t = await db.sequelize.transaction();
+  try {
+    const grn = await GRN.findByPk(grnId, { include: [{ model: GRNItem, as: 'items' }], transaction: t });
+    if (!grn || grn.cost_posted) {
+      await t.rollback();
+      return;
+    }
+    const wh = await getDefaultWarehouse();
+    for (const it of grn.items) {
+      if (!it.item_id || !(Number(it.accepted_qty) > 0)) continue;
+      const item = await ItemMaster.findByPk(it.item_id, { transaction: t });
+      if (!item) continue;
+      const stock = Number(item.current_stock || 0);
+      const oldRate = Number(item.rate || 0);
+      const qty = Number(it.accepted_qty);
+      const newRate = Number(it.rate);
+      const totalStock = stock + qty;
+      const avg = totalStock > 0 ? (stock * oldRate + qty * newRate) / totalStock : newRate;
+      await item.update({ rate: Number(avg.toFixed(2)) }, { transaction: t });
+      await postMovement(
+        {
+          item_id: it.item_id,
+          warehouse_id: wh?.id || null,
+          ledger_date: grn.grn_date || new Date(),
+          ref_type: REF_TYPES.PURCHASE,
+          doc_no: grn.grn_no,
+          ref_no: grn.grn_no,
+          reference: grn.invoice_no || null,
+          qty_in: qty,
+          qty_out: 0,
+          unit_cost: newRate,
+          remarks: it.remarks || `GRR ${grn.grn_no}`,
+          user,
+        },
+        t
+      );
+    }
+    await grn.update({ cost_posted: true }, { transaction: t });
+    await t.commit();
+  } catch (err) {
+    await t.rollback();
+    throw err;
   }
-  await grn.update({ cost_posted: true });
 }
 
 exports.getGRNs = async (req, res) => {
@@ -155,7 +184,7 @@ exports.createGRN = async (req, res) => {
       ],
     });
     // Only post cost when status is not Draft
-    if (header.status !== 'Draft') await postGRNCost(grn.id);
+    if (header.status !== 'Draft') await postGRNCost(grn.id, req.session?.user?.name || 'System');
     res.status(201).json(result);
   } catch (err) {
     console.error('Error creating GRN:', err);
@@ -223,7 +252,7 @@ exports.updateGRN = async (req, res) => {
     });
     // Post cost when becoming Received and not already posted
     if (becomingReceived && !grn.cost_posted) {
-      await postGRNCost(id);
+      await postGRNCost(id, req.session?.user?.name || 'System');
     }
     res.json(result);
   } catch (err) {
@@ -249,7 +278,7 @@ exports.approveGRN = async (req, res) => {
     await grn.update(updates);
     // Post cost on approval if not already posted
     if (!grn.cost_posted) {
-      await postGRNCost(id);
+      await postGRNCost(id, req.session?.user?.name || 'System');
     }
     res.json(grn);
   } catch (err) {
@@ -403,14 +432,33 @@ exports.deleteGRN = async (req, res) => {
 
     // Reverse PO item received quantities if status was Received
     if (grn.status === 'Received' && grn.items) {
-      for (const it of grn.items) {
-        if (it.po_item_id) {
-          const poItem = await PurchaseOrderItem.findByPk(it.po_item_id);
-          if (poItem) {
-            const newReceived = Math.max(0, parseFloat(poItem.received_quantity || 0) - parseFloat(it.accepted_qty || 0));
-            await poItem.update({ received_quantity: newReceived });
+      const t = await db.sequelize.transaction();
+      try {
+        for (const it of grn.items) {
+          if (it.po_item_id) {
+            const poItem = await PurchaseOrderItem.findByPk(it.po_item_id, { transaction: t });
+            if (poItem) {
+              const newReceived = Math.max(0, parseFloat(poItem.received_quantity || 0) - parseFloat(it.accepted_qty || 0));
+              await poItem.update({ received_quantity: newReceived }, { transaction: t });
+            }
+          }
+          // Reverse the stock posted into the ledger for this GRN item
+          if (it.item_id && grn.cost_posted) {
+            await reverseMovements(
+              {
+                item_id: it.item_id,
+                ref_type: REF_TYPES.PURCHASE,
+                ref_no: grn.grn_no,
+                user: req.session?.user?.name || 'System',
+              },
+              t
+            );
           }
         }
+        await t.commit();
+      } catch (err) {
+        await t.rollback();
+        throw err;
       }
     }
 

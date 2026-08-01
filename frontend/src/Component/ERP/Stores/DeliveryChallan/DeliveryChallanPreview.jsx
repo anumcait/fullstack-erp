@@ -58,6 +58,17 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
   const logoUrl = companySettings.logo_url || logo;
   const typeLabel = typeLabels[data.dc_type] || data.dc_type || "";
   const deptTypeText = [data.department, typeLabel].filter(Boolean).join(" : ");
+  // Drafts have no real number yet — print the derived draft reference (last real no + local HHMMSS of creation).
+  const dcNumber = (() => {
+    if (data.dc_no) return data.dc_no;
+    if (data.draft_no) return data.draft_no;
+    const raw = data.updated_at || data.dc_date;
+    const d = raw ? new Date(raw) : null;
+    if (data.last_number && d && !isNaN(d)) {
+      return `${data.last_number}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    }
+    return "-";
+  })();
 
   return (
     <div className="dc-overlay">
@@ -101,7 +112,7 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
             <div className="dc-details-title">DC Details</div>
             <div className="dc-detail-row">
               <span className="dc-detail-label">DC Number</span>
-              <span className="dc-detail-value dc-no-value">{data.dc_no || "-"}</span>
+              <span className="dc-detail-value dc-no-value">{dcNumber}</span>
             </div>
             <div className="dc-detail-row">
               <span className="dc-detail-label">DC Date</span>
@@ -118,8 +129,8 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
           <thead>
             <tr>
               <th style={{ width: "5%" }}>Sl#</th>
-              <th style={{ width: "11%" }}>Hs Code</th>
-              <th style={{ width: "13%" }}>Item code</th>
+              <th style={{ width: "11%" }} className="center">Hs Code</th>
+              <th style={{ width: "13%" }} className="center">Item code</th>
               <th style={{ width: "24%" }}>Description</th>
               <th style={{ width: "7%" }}>Uom</th>
               <th style={{ width: "8%" }}>Qty</th>
@@ -131,8 +142,8 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
             {items.map((it, i) => (
               <tr key={it.id || i}>
                 <td className="center">{i + 1}</td>
-                <td>{it.hs_code || ""}</td>
-                <td>{it.item_code || ""}</td>
+                <td className="center">{it.hs_code || ""}</td>
+                <td className="center">{it.item_code || ""}</td>
                 <td>{it.item_name || ""}</td>
                 <td className="center">{it.unit || it.uom || it.item?.unit?.short_name || ""}</td>
                 <td className="center">{fmtNum(it.quantity ?? it.qty)}</td>
@@ -149,6 +160,12 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
             </tr>
           </tbody>
         </table>
+
+        {data.status === "Cancelled" && data.cancel_remarks ? (
+          <div className="dc-cancel-block">
+            <span className="dc-cancel-label">Cancellation Remarks :</span> {data.cancel_remarks}
+          </div>
+        ) : null}
 
         <div className="dc-sig-footer">
           <div className="dc-sig-for">For {companyName}</div>
@@ -167,9 +184,9 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
             <div className="dc-sig-date">Date :</div>
           </div>
           <div className="dc-sig-col">
-            <div className="dc-sig-name"></div>
-            <div className="dc-sig-title">Received By</div>
-            <div className="dc-sig-date">Date :</div>
+            <div className="dc-sig-name">{data.status === "Cancelled" ? empName(data.cancel_by) : ""}</div>
+            <div className="dc-sig-title">{data.status === "Cancelled" ? "Cancelled By" : "Received By"}</div>
+            <div className="dc-sig-date">{data.status === "Cancelled" && data.cancel_date ? `Date : ${formatDcDate(data.cancel_date)}` : "Date :"}</div>
           </div>
         </div>
 

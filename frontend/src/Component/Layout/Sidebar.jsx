@@ -507,6 +507,8 @@ const Sidebar = () => {
                     <SubItem to="/stores/uom" label="UOM Master" icon={FiTag} />
                     <SubItem to="/stores/item-groups" label="Item Group Master" icon={FiLayers} />
                     <SubItem to="/stores/item-types" label="Item Type Master" icon={FiStar} />
+                    {hasPermission('STORES_WAREHOUSE') && <SubItem to="/stores/warehouses" label="Warehouse Master" icon={FiMapPin} />}
+                    {hasPermission('STORES_BATCH') && <SubItem to="/stores/batches" label="Batch Master" icon={FiLayers} />}
                   </ul>
                 )}
               </li>
@@ -525,6 +527,7 @@ const Sidebar = () => {
                 {openSubmenu === "storeInv" && (
                   <ul className="sidebar-submenu">
                     {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/inventory/ledger" label="Stock Ledger" icon={FiClipboard} />}
+                    {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/stores/stock-statement" label="Stock Statement" icon={FiFileText} />}
                     {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/stores/day-wise-stock" label="Day-wise Stock" icon={FiCalendar} />}
                     {hasPermission('STORES_PHYSICAL') && <SubItem to="/stores/stock-audit" label="Physical Verification" icon={FiCheckSquare} />}
                   </ul>

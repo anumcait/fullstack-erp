@@ -55,6 +55,13 @@ const fmtInput = (v) => {
   return isNaN(n) ? "" : String(n);
 };
 
+const pad2 = (n) => String(n).padStart(2, "0");
+// Draft reference number = last real DC number + current time HHMMSS (e.g. "5" + "114224" = "5114224").
+const draftRef = (lastNumber) => {
+  const d = new Date();
+  return `${lastNumber}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+};
+
 const validateItems = (items, showToast) => {
   const requiredFields = { item_grp: "Item Group", wo_no: "W.O#", hs_code: "HSN Code", item_code: "Item Code", qty: "Quantity", rate: "Rate" };
   for (let i = 0; i < items.length; i++) {
@@ -91,7 +98,7 @@ export default function MaintenanceChallanForm() {
     dc_no: "",
     requested_by: "",
     prepared_by: localStorage.getItem("empId") || "",
-    department: "",
+    department: "Maintenance",
     party_name: "",
     party_id: "",
     req_date: "",
@@ -108,11 +115,14 @@ export default function MaintenanceChallanForm() {
   useEffect(() => {
     const stored = localStorage.getItem("empName") || localStorage.getItem("userName") || "";
     setForm((f) => ({ ...f, requested_by: stored }));
-    Promise.all([
+    const reqs = [
       axios.get(ITEMS_API, { params: { is_active: true } }).then(({ data }) => setMasterItems(data)).catch(() => []),
       axios.get("/api/erp/purchase/suppliers").then(({ data }) => setSuppliers(data)).catch(() => []),
       axios.get("/api/employees").then(({ data }) => setEmployees(Array.isArray(data) ? data : [])).catch(() => []),
-    ]).finally(() => {
+    ];
+    // Only new (draft) challans preview the next DC number; it is issued at approval.
+    if (!id) reqs.push(axios.get(`${API}/next-number`).then(({ data }) => setForm((f) => ({ ...f, dc_no: draftRef(data.last_number ?? "0") }))).catch(() => {}));
+    Promise.all(reqs).finally(() => {
       if (!id) setInitialLoading(false);
     });
   }, []);
@@ -123,10 +133,10 @@ export default function MaintenanceChallanForm() {
       setForm({
         dc_type: "M",
         dc_date: data.dc_date ? toLocalInput(data.dc_date) : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
-        dc_no: data.dc_no || "",
+        dc_no: data.dc_no || data.draft_no || "",
         requested_by: data.requested_by || "",
         prepared_by: data.prepared_by || localStorage.getItem("empId") || "",
-        department: data.department || "",
+        department: "Maintenance",
         party_name: data.party_name || "",
         party_id: String(data.party_id || ""),
         req_date: data.req_date ? data.req_date.slice(0, 10) : "",
@@ -150,9 +160,20 @@ export default function MaintenanceChallanForm() {
         remarks: i.remarks || "",
         req_date: i.req_date || "",
       })) : [blankItem()]);
+      // Drafts carry no real number until approval. Use the stored draft reference (fixed at save)
+      // so it never changes when later DCs are approved; fall back to a local-time computation only
+      // for legacy drafts saved before the reference was persisted.
+      if (!data.dc_no && !data.draft_no) {
+        const last = data.last_number ?? "0";
+        const raw = data.updated_at || data.dc_date;
+        const d = raw ? new Date(raw) : new Date();
+        const src = isNaN(d) ? new Date() : d;
+        const ref = `${last}${pad2(src.getHours())}${pad2(src.getMinutes())}${pad2(src.getSeconds())}`;
+        setForm((f) => ({ ...f, dc_no: ref }));
+      }
     }).catch(() => {
       showToast("Failed to load Maintenance DC", "error");
-      navigate("/stores/delivery-challans");
+      navigate("/stores/delivery-challans?type=M");
     }).finally(() => setInitialLoading(false));
   }, [id]);
 
@@ -214,6 +235,7 @@ export default function MaintenanceChallanForm() {
         dc_date: toIsoUtc(form.dc_date),
         party_id: Number(form.party_id) || null,
         dc_no: form.dc_no || undefined,
+        draft_no: form.dc_no || undefined,
         maintenance_type: form.maintenance_type || null,
         reference_no: form.reference_no || null,
         remarks: form.remarks || null,
@@ -227,7 +249,7 @@ export default function MaintenanceChallanForm() {
         await axios.post(API, payload);
         showToast("Maintenance DC saved as Draft", "success");
       }
-      navigate("/stores/delivery-challans");
+      navigate("/stores/delivery-challans?type=M");
     } catch (e) {
       showToast(e.response?.data?.error || "Failed to save", "error");
     } finally { setSaving(false); }
@@ -248,12 +270,12 @@ export default function MaintenanceChallanForm() {
     <Box sx={{ p: 3, maxWidth: 1600 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton onClick={() => navigate("/stores/delivery-challans")}><ArrowBackIcon /></IconButton>
+          <IconButton onClick={() => navigate("/stores/delivery-challans?type=M")}><ArrowBackIcon /></IconButton>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>Maintenance DC</Typography>
           <Chip label="M" size="small" color="primary" />
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button variant="outlined" onClick={() => navigate("/stores/delivery-challans")}>Back</Button>
+          <Button variant="outlined" onClick={() => navigate("/stores/delivery-challans?type=M")}>Back</Button>
           {(isView || isEdit) && (
             <Button variant="outlined" startIcon={<PrintIcon />} onClick={() => setShowPrint(true)}>Print</Button>
           )}
@@ -282,8 +304,8 @@ export default function MaintenanceChallanForm() {
               <Autocomplete size="small" options={DEPARTMENTS} value={form.department || null}
                 onChange={(_, v) => setForm((f) => ({ ...f, department: v || "" }))}
                 onKeyDown={(e) => { onEnter(e); }}
-                disabled={isView}
-                renderInput={(p) => <TextField {...p} label="Department *" autoFocus sx={fsx} />} />
+                disabled
+                renderInput={(p) => <TextField {...p} label="Department" autoFocus sx={fsx} />} />
             </Box>
             <Box sx={{ flex: "1 1 220px", minWidth: 200 }}>
               <TextField size="small" fullWidth label="Supplier *" value={form.party_name}

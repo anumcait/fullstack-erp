@@ -147,6 +147,9 @@ import PurchaseSettings from "./Component/ERP/Purchase/PurchaseSettings.jsx";
 import StoresReports from "./Component/ERP/Stores/StoresReports.jsx";
 import StoresSettings from "./Component/ERP/Stores/StoresSettings.jsx";
 import StockLedger from "./Component/ERP/Stores/StockLedger/StockLedger.jsx";
+import StockStatement from "./Component/ERP/Stores/StockStatement/StockStatement.jsx";
+import WarehouseMaster from "./Component/ERP/Stores/WarehouseMaster/WarehouseMaster.jsx";
+import BatchMaster from "./Component/ERP/Stores/BatchMaster/BatchMaster.jsx";
 import DayWiseStock from "./Component/ERP/Stores/DayWiseStock/DayWiseStock.jsx";
 import StockAuditList from "./Component/ERP/Stores/StockAudit/StockAuditList.jsx";
 import StockAuditForm from "./Component/ERP/Stores/StockAudit/StockAuditForm.jsx";
@@ -312,6 +315,9 @@ function App() {
                     <Route path="/stores/material-issues/view/:id" element={<MaterialIssueForm />} />
                     <Route path="/stores/material-issues/edit/:id" element={<MaterialIssueForm />} />
                     <Route path="/inventory/ledger" element={<StockLedger />} />
+                    <Route path="/stores/stock-statement" element={<StockStatement />} />
+                    <Route path="/stores/warehouses" element={<WarehouseMaster />} />
+                    <Route path="/stores/batches" element={<BatchMaster />} />
                     <Route path="/stores/day-wise-stock" element={<DayWiseStock />} />
                     <Route path="/stores/stock-audit" element={<StockAuditList />} />
                     <Route path="/stores/stock-audit/add" element={<StockAuditForm />} />

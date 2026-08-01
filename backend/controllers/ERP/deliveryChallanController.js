@@ -1,38 +1,75 @@
 const { Op } = require('sequelize');
 const db = require('../../models/ERP');
 const ItemMaster = db.ItemMaster;
+const { postMovement, reverseMovements, getDefaultWarehouse, lockStock, negativeStockAllowed, REF_TYPES } = require('../../utils/stockService');
 
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
-
-const isSameDay = (a, b) => {
-  const da = new Date(a);
-  const db = new Date(b);
-  return !isNaN(da) && !isNaN(db) && da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
-};
 
 async function generateDcNo() {
   const [rows] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
   return String(Number(rows[0]?.max_no || 0) + 1);
 }
 
-exports.getNextNumber = async (req, res) => {
-  try {
-    const dcNo = await generateDcNo();
-    res.json({ dc_no: dcNo });
-  } catch (err) {
-    console.error("Error generating DC number:", err);
-    res.status(500).json({ error: "Failed to generate DC number" });
+// Return the first item that cannot be issued from available on-hand stock. Used to block
+// saving a DC — even a draft — when an item's quantity exceeds its current stock.
+async function firstInsufficientItem(itemRows) {
+  for (const it of itemRows || []) {
+    if (!it.item_id) continue;
+    const qty = Number(it.quantity || 0);
+    if (qty <= 0) continue;
+    const item = await ItemMaster.findByPk(it.item_id);
+    if (item && Number(item.current_stock || 0) < qty) {
+      return it.item_code || item.item_code || item.item_name || `#${it.item_id}`;
+    }
+  }
+  return null;
+}
+
+// Post DC dispatch (outward) or return (inward) to the stock ledger atomically.
+const postDcStock = async (items, doc, refType, t, user) => {
+  const wh = await getDefaultWarehouse();
+  const negAllowed = await negativeStockAllowed();
+  for (const it of items) {
+    if (!it.item_id) continue;
+    const qty = Number(it.quantity || 0);
+    if (qty <= 0) continue;
+    if (refType === REF_TYPES.DELIVERY_CHALLAN && !negAllowed) {
+      const locked = await lockStock(it.item_id, t);
+      if (Number(locked?.current_stock || 0) < qty) {
+        throw new Error(`Insufficient stock for ${it.item_code || it.item_name || it.item_id}`);
+      }
+    }
+    const item = await ItemMaster.findByPk(it.item_id, { transaction: t });
+    if (!item) continue;
+    await postMovement(
+      {
+        item_id: it.item_id,
+        warehouse_id: it.warehouse_id || wh?.id || null,
+        batch_id: it.batch_id || null,
+        ledger_date: doc.dc_date || new Date(),
+        ref_type: refType,
+        doc_no: doc.dc_no,
+        ref_no: doc.dc_no,
+        reference: doc.party_name || doc.reference_no || null,
+        qty_in: refType === REF_TYPES.DC_RETURN ? qty : 0,
+        qty_out: refType === REF_TYPES.DC_RETURN ? 0 : qty,
+        unit_cost: Number(item.moving_average_cost || 0),
+        remarks: it.remarks || `${doc.dc_type || 'S'} challan ${doc.dc_no}`,
+        user,
+      },
+      t
+    );
   }
 };
 
-const adjustStock = async (items, sign) => {
-  for (const it of items) {
-    if (!it.item_id) continue;
-    const item = await ItemMaster.findByPk(it.item_id);
-    if (!item) continue;
-    const delta = round2(parseFloat(it.quantity) * sign);
-    const newStock = Math.max(0, round2(parseFloat(item.current_stock || 0) + delta));
-    await item.update({ current_stock: newStock });
+exports.getNextNumber = async (req, res) => {
+  try {
+    const [rows] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
+    const last = Number(rows[0]?.max_no || 0);
+    res.json({ dc_no: String(last + 1), last_number: String(last) });
+  } catch (err) {
+    console.error("Error generating DC number:", err);
+    res.status(500).json({ error: "Failed to generate DC number" });
   }
 };
 
@@ -59,7 +96,16 @@ exports.getList = async (req, res) => {
     }
     if (search) where[Op.or] = [{ dc_no: { [Op.iLike]: `%${search}%` } }, { party_name: { [Op.iLike]: `%${search}%` } }];
     const rows = await db.DeliveryChallan.findAll({ where, order: [['dc_date', 'DESC']] });
-    res.json(rows);
+    const [lastRow] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
+    const lastNo = Number(lastRow[0]?.max_no || 0);
+    // Drafts carry no real number; expose the last real number so the UI can build a
+    // local-time draft reference (draft no = last real no + local HHMMSS of creation).
+    const withRef = rows.map((r) => {
+      const d = r.toJSON();
+      if (!d.dc_no) d.last_number = String(lastNo);
+      return d;
+    });
+    res.json(withRef);
   } catch (err) {
     console.error('Error fetching DC list:', err);
     res.status(500).json({ error: 'Failed to fetch delivery challans' });
@@ -129,7 +175,14 @@ exports.getOne = async (req, res) => {
       }],
     });
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
-    res.json(dc);
+    const d = dc.toJSON();
+    // Drafts carry no real number; expose the last real number so the UI can build a
+    // local-time draft reference (draft no = last real no + local HHMMSS of creation).
+    if (!d.dc_no) {
+      const [lastRow] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
+      d.last_number = String(lastRow[0]?.max_no || 0);
+    }
+    res.json(d);
   } catch (err) {
     console.error('Error fetching DC:', err);
     res.status(500).json({ error: 'Failed to fetch delivery challan' });
@@ -139,9 +192,16 @@ exports.getOne = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const body = req.body;
-    const dc_no = await generateDcNo();
+    // Block saving the DC when any item exceeds available stock (unless negative stock is allowed).
+    if (Array.isArray(body.items) && !(await negativeStockAllowed())) {
+      const missing = await firstInsufficientItem(body.items);
+      if (missing) return res.status(400).json({ error: `Insufficient stock for ${missing}` });
+    }
     const dc = await db.DeliveryChallan.create({
-      dc_no,
+      // DC number is assigned only when the challan is approved (sequential, at approval time).
+      dc_no: null,
+      // Draft reference is captured once at save time so it never changes when later DCs are approved.
+      draft_no: body.draft_no || null,
       dc_date: body.dc_date,
       party_id: body.party_id || null,
       party_name: body.party_name || null,
@@ -169,6 +229,10 @@ exports.create = async (req, res) => {
           item_grp: it.item_grp || null,
           wo_no: it.wo_no || null,
           hs_code: it.hs_code || null,
+          tag: it.tag || null,
+          opn1: it.opn1 || null,
+          opn2: it.opn2 || null,
+          opn3: it.opn3 || null,
           quantity: it.quantity || 0,
           rate: it.rate || null,
           unit_id: it.unit_id || null,
@@ -192,6 +256,11 @@ exports.update = async (req, res) => {
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
     if (dc.status !== 'Draft') return res.status(400).json({ error: 'Only draft challans can be edited' });
     const body = req.body;
+    // Block saving the DC when any item exceeds available stock (unless negative stock is allowed).
+    if (Array.isArray(body.items) && !(await negativeStockAllowed())) {
+      const missing = await firstInsufficientItem(body.items);
+      if (missing) return res.status(400).json({ error: `Insufficient stock for ${missing}` });
+    }
     await dc.update({
       dc_date: body.dc_date,
       party_id: body.party_id || null,
@@ -209,6 +278,9 @@ exports.update = async (req, res) => {
       req_date: body.req_date || null,
       remarks: body.remarks || null,
     });
+    // Keep the draft reference fixed once saved — it must not change when later DCs are approved.
+    if (!dc.draft_no && body.draft_no) dc.draft_no = body.draft_no;
+    await dc.save();
     await db.DeliveryChallanItem.destroy({ where: { dc_id: dc.id } });
     if (Array.isArray(body.items)) {
       for (const it of body.items) {
@@ -220,6 +292,10 @@ exports.update = async (req, res) => {
           item_grp: it.item_grp || null,
           wo_no: it.wo_no || null,
           hs_code: it.hs_code || null,
+          tag: it.tag || null,
+          opn1: it.opn1 || null,
+          opn2: it.opn2 || null,
+          opn3: it.opn3 || null,
           quantity: it.quantity || 0,
           rate: it.rate || null,
           unit_id: it.unit_id || null,
@@ -238,79 +314,107 @@ exports.update = async (req, res) => {
 };
 
 exports.approve = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
     const dc = await db.DeliveryChallan.findByPk(req.params.id, {
       include: [{ model: db.DeliveryChallanItem, as: 'items' }],
+      transaction: t,
     });
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
     if (dc.status !== 'Draft') return res.status(400).json({ error: 'Challan already approved' });
-    await adjustStock(dc.items, -1);
+    const user = req.session?.user?.name || 'System';
     dc.status = 'Approved';
     dc.approved_by = req.body.approved_by || null;
-    if (!isSameDay(dc.dc_date, new Date())) {
-      dc.dc_date = new Date();
+    // DC number is issued at approval time so drafts never consume a number.
+    if (dc.dc_no === null || dc.dc_no === undefined || dc.dc_no === '') {
       dc.dc_no = await generateDcNo();
     }
-    await dc.save();
+    // The challan is issued at the moment of approval — the DC date/time reflects the
+    // actual dispatch (not the draft's creation time) and is used for the ledger date.
+    dc.approved_date = new Date();
+    dc.dc_date = new Date();
+    await postDcStock(dc.items, dc, REF_TYPES.DELIVERY_CHALLAN, t, user);
+    await dc.save({ transaction: t });
+    await t.commit();
     res.json(dc);
   } catch (err) {
+    await t.rollback();
     console.error('Error approving DC:', err);
-    res.status(500).json({ error: 'Failed to approve delivery challan' });
+    res.status(500).json({ error: err.message || 'Failed to approve delivery challan' });
   }
 };
 
 exports.cancel = async (req, res) => {
+  const cancelRemarks = req.body.cancel_remarks;
+  if (!cancelRemarks || !String(cancelRemarks).trim()) {
+    return res.status(400).json({ error: 'Cancel remarks are required' });
+  }
+  const t = await db.sequelize.transaction();
   try {
     const dc = await db.DeliveryChallan.findByPk(req.params.id, {
       include: [{ model: db.DeliveryChallanItem, as: 'items' }],
+      transaction: t,
     });
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
     if (dc.status === 'Cancelled') return res.status(400).json({ error: 'Challan already cancelled' });
     if (!['Draft', 'Approved'].includes(dc.status)) return res.status(400).json({ error: 'Only draft or approved challans can be cancelled' });
     if (dc.status === 'Approved') {
-      await adjustStock(dc.items, 1);
+      const user = req.session?.user?.name || 'System';
+      const itemIds = [...new Set(dc.items.map((x) => x.item_id).filter(Boolean))];
+      for (const itemId of itemIds) {
+        await reverseMovements(
+          { item_id: itemId, ref_type: REF_TYPES.DELIVERY_CHALLAN, ref_no: dc.dc_no, user },
+          t
+        );
+      }
     }
     dc.status = 'Cancelled';
     dc.cancel_remarks = req.body.cancel_remarks || null;
     dc.cancel_by = req.body.cancel_by || null;
     dc.cancel_date = req.body.cancel_date || new Date();
-    await dc.save();
+    await dc.save({ transaction: t });
+    await t.commit();
     res.json(dc);
   } catch (err) {
+    await t.rollback();
     console.error('Error cancelling DC:', err);
     res.status(500).json({ error: 'Failed to cancel delivery challan' });
   }
 };
 
 exports.returnDc = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
     const dc = await db.DeliveryChallan.findByPk(req.params.id, {
       include: [{ model: db.DeliveryChallanItem, as: 'items' }],
+      transaction: t,
     });
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
     if (dc.dc_type !== 'S') return res.status(400).json({ error: 'Only Sale on Approval challans can be returned' });
     if (dc.status !== 'Approved') return res.status(400).json({ error: 'Only approved challans can be returned' });
     const returns = req.body.items || [];
+    const returnedRows = [];
     for (const r of returns) {
       const it = dc.items.find((x) => x.id === r.id);
       if (!it) continue;
       const returned = Math.min(parseFloat(r.returned_qty) || 0, parseFloat(it.quantity) - parseFloat(it.returned_qty || 0));
       if (returned > 0) {
-        const item = await ItemMaster.findByPk(it.item_id);
-        if (item) {
-          const newStock = Math.max(0, round2(parseFloat(item.current_stock || 0) + returned));
-          await item.update({ current_stock: newStock });
-        }
-        await it.update({ returned_qty: round2(parseFloat(it.returned_qty || 0) + returned) });
+        returnedRows.push({ ...it.toJSON(), quantity: returned });
+        await it.update({ returned_qty: round2(parseFloat(it.returned_qty || 0) + returned) }, { transaction: t });
       }
+    }
+    if (returnedRows.length > 0) {
+      await postDcStock(returnedRows, dc, REF_TYPES.DC_RETURN, t, req.session?.user?.name || 'System');
     }
     const allReturned = dc.items.every((x) => parseFloat(x.returned_qty || 0) >= parseFloat(x.quantity));
     dc.status = allReturned ? 'Returned' : 'Approved';
-    await dc.save();
+    await dc.save({ transaction: t });
+    await t.commit();
     res.json(dc);
   } catch (err) {
+    await t.rollback();
     console.error('Error returning DC:', err);
-    res.status(500).json({ error: 'Failed to process return' });
+    res.status(500).json({ error: err.message || 'Failed to process return' });
   }
 };
 

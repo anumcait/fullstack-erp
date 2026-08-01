@@ -53,6 +53,8 @@ export const PERMISSIONS = {
     { id: 'STORES_GRN', label: 'GRN / MRN' },
     { id: 'STORES_ISSUE', label: 'Material Issue' },
     { id: 'STORES_RETURN', label: 'Material Return' },
+    { id: 'STORES_WAREHOUSE', label: 'Warehouse Master' },
+    { id: 'STORES_BATCH', label: 'Batch Master' },
     { id: 'STORES_REPORTS', label: 'Reports' },
   ],
   PURCHASE: [

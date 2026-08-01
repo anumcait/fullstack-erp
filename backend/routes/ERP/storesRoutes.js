@@ -11,11 +11,15 @@ const stockAuditController = require('../../controllers/ERP/stockAuditController
 const gateEntryController = require('../../controllers/ERP/gateEntryController');
 const materialReturnController = require('../../controllers/ERP/materialReturnController');
 const deliveryChallanController = require('../../controllers/ERP/deliveryChallanController');
+const inwardRegisterController = require('../../controllers/ERP/inwardRegisterController');
 const billingController = require('../../controllers/ERP/billingController');
 const storesSettingsController = require('../../controllers/ERP/storesSettingsController');
 const storesReportController = require('../../controllers/ERP/storesReportController');
 const grrReportController = require('../../controllers/ERP/grrReportController');
 const approvalController = require('../../controllers/ERP/approvalController');
+const inventoryReportController = require('../../controllers/ERP/inventoryReportController');
+const warehouseController = require('../../controllers/ERP/warehouseController');
+const batchController = require('../../controllers/ERP/batchController');
 
 // ── Dashboard ──
 router.get('/dashboard', storesController.getDashboardStats);
@@ -32,6 +36,35 @@ router.get('/reports/abc', storesReportController.getAbcSummary);
 // ── Stock ──
 router.get('/stock', storesController.getStock);
 router.get('/material-requisitions/:id/stock-check', storesController.checkStockForMR);
+
+// ── Inventory Ledger & Reports (bank-account style) ──
+router.get('/inventory/statement', inventoryReportController.getStockStatement);
+router.get('/inventory/valuation', inventoryReportController.getValuation);
+router.get('/inventory/stock-ledger', inventoryReportController.getStockLedger);
+router.get('/inventory/aging', inventoryReportController.getStockAging);
+router.get('/inventory/slow-moving', inventoryReportController.getSlowMoving);
+router.get('/inventory/fast-moving', inventoryReportController.getFastMoving);
+router.get('/inventory/negative-stock', inventoryReportController.getNegativeStock);
+router.get('/inventory/dead-stock', inventoryReportController.getDeadStock);
+router.get('/inventory/batches', inventoryReportController.getBatchReport);
+router.get('/inventory/adjustments', inventoryReportController.getAdjustmentReport);
+router.get('/inventory/profit-loss', inventoryReportController.getProfitLoss);
+router.get('/inventory/audit-trail', inventoryReportController.getAuditTrail);
+router.get('/inventory/reconciliation', inventoryReportController.getReconciliation);
+router.get('/inventory/warehouse-wise', inventoryReportController.getWarehouseWise);
+
+// ── Warehouse Master ──
+router.get('/warehouses', warehouseController.getList);
+router.get('/warehouses/:id', warehouseController.getOne);
+router.post('/warehouses', warehouseController.create);
+router.put('/warehouses/:id', warehouseController.update);
+router.delete('/warehouses/:id', warehouseController.remove);
+
+// ── Batch Master ──
+router.get('/batches', batchController.getList);
+router.post('/batches', batchController.create);
+router.put('/batches/:id', batchController.update);
+router.delete('/batches/:id', batchController.remove);
 
 // ── Item Group / Sub Group / Type / Sub Type (4-level classification) ──
 router.get('/groups', itemController.getGroups);
@@ -157,6 +190,17 @@ router.post('/delivery-challans/:id/cancel', deliveryChallanController.cancel);
 router.post('/delivery-challans/:id/return', deliveryChallanController.returnDc);
 router.post('/delivery-challans/bill', deliveryChallanController.billDc);
 router.delete('/delivery-challans/:id', deliveryChallanController.remove);
+
+// ── Inward Register (IR) ──
+router.get('/inward-registers', inwardRegisterController.getList);
+router.get('/inward-registers/next-number', inwardRegisterController.getNextNumber);
+router.get('/inward-registers/pending-dcs', inwardRegisterController.getPendingDCs);
+router.get('/inward-registers/:id', inwardRegisterController.getOne);
+router.post('/inward-registers', inwardRegisterController.create);
+router.put('/inward-registers/:id', inwardRegisterController.update);
+router.post('/inward-registers/:id/approve', inwardRegisterController.approve);
+router.post('/inward-registers/:id/cancel', inwardRegisterController.cancel);
+router.delete('/inward-registers/:id', inwardRegisterController.remove);
 
 // ── Billing (Tax Invoice) ──
 router.get('/bills/next-number', billingController.getNextBillNo);

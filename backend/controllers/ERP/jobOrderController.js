@@ -1,6 +1,7 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
 const { getNextSequence } = require('../../utils/docNumber');
+const { postMovement, getDefaultWarehouse, lockStock, negativeStockAllowed, REF_TYPES } = require('../../utils/stockService');
 
 const JobOrder = db.JobOrder;
 const JobOrderItem = db.JobOrderItem;
@@ -256,66 +257,114 @@ exports.update = async (req, res) => {
 };
 
 exports.updateStatus = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
     const doc = await JobOrder.findByPk(req.params.id, {
       include: [{ model: JobOrderItem, as: 'items' }],
+      transaction: t,
     });
     if (!doc) return res.status(404).json({ error: 'Not found' });
 
     const { status, produced_quantity } = req.body;
 
     if (status === 'Completed') {
-      const product = await ItemMaster.findByPk(doc.product_item_id);
+      const product = await ItemMaster.findByPk(doc.product_item_id, { transaction: t });
       if (product) {
         const qty = Number(produced_quantity || doc.produced_quantity || doc.planned_quantity);
-        await product.update({ current_stock: Number(product.current_stock || 0) + qty });
+        const wh = await getDefaultWarehouse();
+        await postMovement(
+          {
+            item_id: doc.product_item_id,
+            warehouse_id: wh?.id || null,
+            ledger_date: new Date(),
+            ref_type: REF_TYPES.PRODUCTION_IN,
+            doc_no: doc.order_no,
+            ref_no: doc.order_no,
+            qty_in: qty,
+            qty_out: 0,
+            unit_cost: Number(product.moving_average_cost || 0) || Number(product.standard_cost || 0),
+            remarks: `Production completed - ${doc.order_no}`,
+            user: req.session?.user?.name || 'System',
+          },
+          t
+        );
       }
-      await doc.update({ status, produced_quantity: produced_quantity || doc.planned_quantity, end_date: new Date() });
+      await doc.update({ status, produced_quantity: produced_quantity || doc.planned_quantity, end_date: new Date() }, { transaction: t });
     } else if (status === 'Released') {
-      await doc.update({ status, start_date: new Date() });
+      await doc.update({ status, start_date: new Date() }, { transaction: t });
     } else {
-      await doc.update({ status, ...(produced_quantity ? { produced_quantity } : {}) });
+      await doc.update({ status, ...(produced_quantity ? { produced_quantity } : {}) }, { transaction: t });
     }
 
+    await t.commit();
     const result = await JobOrder.findByPk(doc.id, {
       include: [{ model: JobOrderItem, as: 'items' }],
     });
     res.json(result);
   } catch (err) {
+    await t.rollback();
     console.error('Error updating production order:', err);
     res.status(500).json({ error: 'Failed to update' });
   }
 };
 
 exports.issueMaterial = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
     const doc = await JobOrder.findByPk(req.params.id, {
       include: [{ model: JobOrderItem, as: 'items' }],
+      transaction: t,
     });
     if (!doc) return res.status(404).json({ error: 'Not found' });
 
     const { items } = req.body;
+    const wh = await getDefaultWarehouse();
+    const negAllowed = await negativeStockAllowed();
 
     for (const issued of items) {
       const orderItem = doc.items.find((i) => i.item_id === issued.item_id);
       if (!orderItem) continue;
 
-      const newIssued = Number(orderItem.issued_quantity || 0) + Number(issued.issued_quantity || 0);
-      await orderItem.update({ issued_quantity: newIssued });
+      const qty = Number(issued.issued_quantity || 0);
+      const newIssued = Number(orderItem.issued_quantity || 0) + qty;
+      await orderItem.update({ issued_quantity: newIssued }, { transaction: t });
 
-      const stockItem = await ItemMaster.findByPk(issued.item_id);
+      if (qty > 0 && !negAllowed) {
+        const locked = await lockStock(issued.item_id, t);
+        if (Number(locked?.current_stock || 0) < qty) {
+          throw new Error(`Insufficient stock for ${orderItem.item_code || orderItem.item_name}`);
+        }
+      }
+      const stockItem = await ItemMaster.findByPk(issued.item_id, { transaction: t });
       if (stockItem) {
-        await stockItem.update({ current_stock: Math.max(0, Number(stockItem.current_stock || 0) - Number(issued.issued_quantity || 0)) });
+        await postMovement(
+          {
+            item_id: issued.item_id,
+            warehouse_id: wh?.id || null,
+            ledger_date: new Date(),
+            ref_type: REF_TYPES.PRODUCTION_CONSUMPTION,
+            doc_no: doc.order_no,
+            ref_no: doc.order_no,
+            qty_in: 0,
+            qty_out: qty,
+            unit_cost: Number(stockItem.moving_average_cost || 0),
+            remarks: `Material issued to production - ${doc.order_no}`,
+            user: req.session?.user?.name || 'System',
+          },
+          t
+        );
       }
     }
 
+    await t.commit();
     const result = await JobOrder.findByPk(doc.id, {
       include: [{ model: JobOrderItem, as: 'items' }],
     });
     res.json(result);
   } catch (err) {
+    await t.rollback();
     console.error('Error issuing material:', err);
-    res.status(500).json({ error: 'Failed to issue material' });
+    res.status(500).json({ error: err.message || 'Failed to issue material' });
   }
 };
 

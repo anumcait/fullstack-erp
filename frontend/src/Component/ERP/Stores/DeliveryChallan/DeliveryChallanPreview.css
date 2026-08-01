@@ -299,21 +299,22 @@
   font-size: 11px !important;
 }
 
-.dc-sigs > .dc-sig-col:nth-child(2) {
-  text-align: center;
+.dc-cancel-block {
+  margin-top: 10px;
+  padding: 5px 8px;
+  border: 1px solid #000;
+  border-radius: 3px;
+  font-size: 11px !important;
+  font-weight: 600;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
-.dc-sigs > .dc-sig-col:nth-child(2) .dc-sig-name,
-.dc-sigs > .dc-sig-col:nth-child(2) .dc-sig-title,
-.dc-sigs > .dc-sig-col:nth-child(2) .dc-sig-date {
-  text-align: center;
+.dc-cancel-label {
+  font-weight: 700;
 }
 
-.dc-sigs > .dc-sig-col:nth-child(3) .dc-sig-name,
-.dc-sigs > .dc-sig-col:nth-child(3) .dc-sig-title,
-.dc-sigs > .dc-sig-col:nth-child(3) .dc-sig-date {
-  text-align: center;
-}
+
 
 /* ── Regd office ──────────────────────────── */
 .dc-regd {

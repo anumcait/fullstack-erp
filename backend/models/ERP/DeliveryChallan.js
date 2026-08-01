@@ -5,7 +5,8 @@ module.exports = (sequelize) => {
     'DeliveryChallan',
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      dc_no: { type: DataTypes.STRING(30), allowNull: false, unique: true },
+      dc_no: { type: DataTypes.STRING(30), allowNull: true, unique: true },
+      draft_no: { type: DataTypes.STRING(30), allowNull: true },
       dc_date: { type: DataTypes.DATE, allowNull: false },
       party_id: { type: DataTypes.INTEGER, allowNull: true },
       party_name: { type: DataTypes.STRING(200), allowNull: true },
@@ -24,6 +25,7 @@ module.exports = (sequelize) => {
       requested_by: { type: DataTypes.STRING(100), allowNull: true },
       prepared_by: { type: DataTypes.STRING(50), allowNull: true },
       approved_by: { type: DataTypes.STRING(50), allowNull: true },
+      approved_date: { type: DataTypes.DATE, allowNull: true },
       cancel_remarks: { type: DataTypes.TEXT, allowNull: true },
       cancel_by: { type: DataTypes.STRING(50), allowNull: true },
       cancel_date: { type: DataTypes.DATE, allowNull: true },
@@ -49,6 +51,12 @@ module.exports = (sequelize) => {
   DeliveryChallan.associate = (models) => {
     DeliveryChallan.hasMany(models.DeliveryChallanItem, { foreignKey: 'dc_id', as: 'items' });
     DeliveryChallan.belongsTo(models.SupplierMaster, { foreignKey: 'party_id', as: 'supplier' });
+    DeliveryChallan.belongsToMany(models.InwardRegister, {
+      through: 't_inward_register_dc',
+      foreignKey: 'dc_id',
+      otherKey: 'ir_id',
+      as: 'inwardRegisters',
+    });
   };
 
   return DeliveryChallan;

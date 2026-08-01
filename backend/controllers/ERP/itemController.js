@@ -241,11 +241,16 @@ exports.getItem = async (req, res) => {
 };
 
 exports.createItem = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
     const { item_code, item_name, group_id, subgroup_id, type_id, subtype_id, unit_id, category_id, ...rest } = req.body;
     if (!item_code || !item_name) return res.status(400).json({ error: 'Item code and name are required' });
     if (await ItemMaster.findOne({ where: { item_code } })) return res.status(409).json({ error: `Item code '${item_code}' already exists` });
 
+    // Support both opening_stock (form field) and a raw current_stock as the
+    // initial quantity. The ledger posting below is the single source of truth,
+    // so the row is created at zero to avoid double-counting.
+    const openingQty = Number(rest.opening_stock || (rest.current_stock ? rest.current_stock : 0) || 0);
     const item = await ItemMaster.create({
       item_code, item_name,
       group_id: group_id || category_id || null,
@@ -254,9 +259,38 @@ exports.createItem = async (req, res) => {
       subtype_id: subtype_id || null,
       unit_id: unit_id || null,
       ...rest,
-    });
+      current_stock: 0,
+    }, { transaction: t });
+
+    // Post an opening-stock ledger entry so historical valuation works from day one.
+    if (openingQty > 0) {
+      const { postMovement, getDefaultWarehouse, REF_TYPES } = require('../../utils/stockService');
+      const wh = await getDefaultWarehouse();
+      await postMovement(
+        {
+          item_id: item.id,
+          warehouse_id: rest.warehouse_id || wh?.id || null,
+          ledger_date: new Date(),
+          ref_type: REF_TYPES.OPENING,
+          doc_no: `OPEN-${item.item_code}`,
+          ref_no: `OPEN-${item.item_code}`,
+          qty_in: openingQty,
+          qty_out: 0,
+          unit_cost: Number(rest.standard_cost || 0) || null,
+          selling_price: Number(rest.rate || 0) || null,
+          remarks: 'Opening stock on item creation',
+          user: req.session?.user?.name || 'System',
+        },
+        t
+      );
+    }
+
+    await t.commit();
     res.status(201).json(item);
-  } catch (err) { console.error('createItem', err); res.status(500).json({ error: 'Failed to create item' }); }
+  } catch (err) {
+    await t.rollback();
+    console.error('createItem', err); res.status(500).json({ error: 'Failed to create item' });
+  }
 };
 
 exports.updateItem = async (req, res) => {

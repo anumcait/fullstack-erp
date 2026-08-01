@@ -1,9 +1,16 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
+const { postMovement, REF_TYPES } = require('../../utils/stockService');
 
 const StockAudit = db.StockAudit;
 const StockAuditItem = db.StockAuditItem;
 const ItemMaster = db.ItemMaster;
+
+async function resolveWarehouseId(name) {
+  if (!name) return null;
+  const w = await db.Warehouse.findOne({ where: { warehouse_name: name } });
+  return w?.id || null;
+}
 
 exports.getList = async (req, res) => {
   try {
@@ -93,25 +100,45 @@ exports.update = async (req, res) => {
 };
 
 exports.approve = async (req, res) => {
+  const t = await db.sequelize.transaction();
   try {
     const doc = await StockAudit.findByPk(req.params.id, {
       include: [{ model: StockAuditItem, as: 'items' }],
+      transaction: t,
     });
     if (!doc) return res.status(404).json({ error: 'Not found' });
-    await doc.update({ status: 'Approved' });
+    await doc.update({ status: 'Approved' }, { transaction: t });
+    const warehouseId = await resolveWarehouseId(doc.warehouse);
+    const user = req.session?.user?.name || 'System';
     for (const it of doc.items) {
       const variance = parseFloat(it.variance_qty || 0);
       if (variance !== 0 && it.item_id) {
-        const item = await ItemMaster.findByPk(it.item_id);
+        const item = await ItemMaster.findByPk(it.item_id, { transaction: t });
         if (item) {
-          await item.update({
-            current_stock: Math.max(0, parseFloat(item.current_stock || 0) + variance),
-          });
+          await postMovement(
+            {
+              item_id: it.item_id,
+              warehouse_id: warehouseId || it.warehouse_id || null,
+              batch_id: it.batch_id || null,
+              ledger_date: doc.audit_date || new Date(),
+              ref_type: REF_TYPES.STOCK_ADJUSTMENT,
+              doc_no: doc.audit_no,
+              ref_no: doc.audit_no,
+              qty_in: variance > 0 ? Math.abs(variance) : 0,
+              qty_out: variance < 0 ? Math.abs(variance) : 0,
+              unit_cost: Number(item.moving_average_cost || 0),
+              remarks: `Audit ${doc.audit_no} (system ${it.system_qty} / physical ${it.physical_qty})`,
+              user,
+            },
+            t
+          );
         }
       }
     }
+    await t.commit();
     res.json(doc);
   } catch (err) {
+    await t.rollback();
     console.error('Error approving stock audit:', err);
     res.status(500).json({ error: 'Failed to approve' });
   }
