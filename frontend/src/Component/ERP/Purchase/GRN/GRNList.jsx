@@ -75,8 +75,8 @@ function ApproveDialog({ row, open, onClose, onConfirm }) {
           Please verify all details before {row.status === "Draft" ? "submitting" : "approving"}:
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5, mb: 2 }}>
-          <Box><Typography variant="caption" color="text.secondary">GRR No</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{row.grn_no}</Typography></Box>
-          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.grn_date ? formatDate(row.grn_date) : "—"}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">GRR No</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{row.ir_no}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.ir_date ? formatDate(row.ir_date) : "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">IR Type</Typography><Typography variant="body2">{row.ir_type || "GRR"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Supplier</Typography><Typography variant="body2">{row.supplier?.supplier_name || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">PO No</Typography><Typography variant="body2">{row.purchaseOrder?.po_no || "—"}</Typography></Box>
@@ -128,10 +128,10 @@ function RejectDialog({ row, open, onClose, remarks, onRemarksChange, onConfirm 
       <Divider />
       <DialogContent sx={{ pt: 2 }}>
         <Typography variant="body2" sx={{ mb: 1.5, color: "text.secondary" }}>
-          You are about to reject <strong>{row.grn_no}</strong>. Please provide a reason:
+          You are about to reject <strong>{row.ir_no}</strong>. Please provide a reason:
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, mb: 2 }}>
-          <Box><Typography variant="caption" color="text.secondary">GRR No</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{row.grn_no}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">GRR No</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{row.ir_no}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Supplier</Typography><Typography variant="body2">{row.supplier?.supplier_name || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">PO No</Typography><Typography variant="body2">{row.purchaseOrder?.po_no || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Items</Typography><Typography variant="body2">{row.items?.length || 0}</Typography></Box>
@@ -186,8 +186,8 @@ function GRRTable({ rows, expandedId, setExpandedId, onApproveClick, onRejectCli
             <React.Fragment key={row.id}>
               <TableRow hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#f8fafc", "&:hover": { bgcolor: "#eef2ff" }, "& td": { fontSize: "0.9rem", py: 0.75, borderBottom: "1px solid #f1f5f9" } }}>
                 <TableCell sx={{ color: "#94a3b8" }}>{idx + 1}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{row.grn_no}</TableCell>
-                <TableCell>{row.grn_date ? formatDate(row.grn_date) : ""}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{row.ir_no}</TableCell>
+                <TableCell>{row.ir_date ? formatDate(row.ir_date) : ""}</TableCell>
                 <TableCell><Chip label={row.ir_type || "GRR"} size="small" variant="outlined" sx={{ fontSize: "0.72rem" }} /></TableCell>
                 <TableCell>{uniquePoNos(row.items) || stripPrefix(row.purchaseOrder?.po_no) || "—"}</TableCell>
                 <TableCell>{uniquePrNos(row.items) || stripPrefix(row.purchaseRequisition?.req_no) || "—"}</TableCell>
@@ -228,7 +228,7 @@ function GRRTable({ rows, expandedId, setExpandedId, onApproveClick, onRejectCli
               {expandedId === row.id && (
                 <TableRow>
                   <TableCell colSpan={tableHeaders.length} sx={{ py: 1, px: 2, bgcolor: "#fafcff", borderBottom: "2px solid #e2e8f0" }}>
-                    <ItemsTable items={row.items} grrNo={row.grn_no} />
+                    <ItemsTable items={row.items} grrNo={row.ir_no} />
                   </TableCell>
                 </TableRow>
               )}

@@ -39,8 +39,8 @@ export default function GRRPrintView() {
 
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, px: 1 }}>
           <Box>
-            <Typography variant="body2"><strong>GRR No:</strong> {data.grn_no}</Typography>
-            <Typography variant="body2"><strong>Date:</strong> {data.grn_date}</Typography>
+            <Typography variant="body2"><strong>GRR No:</strong> {data.ir_no}</Typography>
+            <Typography variant="body2"><strong>Date:</strong> {data.ir_date}</Typography>
             <Typography variant="body2"><strong>PO No:</strong> {data.purchaseOrder?.po_no || "—"}</Typography>
             <Typography variant="body2"><strong>PR No:</strong> {data.purchaseRequisition?.req_no || "—"}</Typography>
           </Box>

@@ -53,7 +53,7 @@ exports.getDayWiseStock = async (req, res) => {
     const itemIds = items.map((i) => i.id);
 
     const [received, consumed, rejected] = await Promise.all([
-      bucketMovements(db.GRNItem, db.GRN, 'grn', 'grn_date', 'accepted_qty', 'Received', itemIds, date),
+      bucketMovements(db.GRNItem, db.GRN, 'grn', 'ir_date', 'accepted_qty', 'Received', itemIds, date),
       bucketMovements(db.MaterialIssueItem, db.MaterialIssue, 'issue', 'issue_date', 'quantity', 'Issued', itemIds, date),
       bucketMovements(db.MaterialReturnItem, db.MaterialReturn, 'returnRef', 'return_date', 'quantity', 'Returned', itemIds, date),
     ]);

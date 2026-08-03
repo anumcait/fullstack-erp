@@ -79,10 +79,10 @@ exports.getStockMovement = async (req, res) => {
       SELECT gi.item_id, i.item_code, i.item_name,
              COALESCE(SUM(gi.accepted_qty), 0) AS inward_qty,
              COALESCE(SUM(gi.amount), 0) AS inward_value
-      FROM t_ir grn
+      FROM ir grn
       JOIN t_ir_item gi ON gi.grn_id = grn.id
       LEFT JOIN m_item_master i ON i.id = gi.item_id
-      WHERE grn.grn_date BETWEEN :from AND :to
+      WHERE grn.ir_date BETWEEN :from AND :to
         AND grn.status = 'Received'
       GROUP BY gi.item_id, i.item_code, i.item_name
     `;

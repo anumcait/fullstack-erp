@@ -25,7 +25,7 @@ exports.getDashboardStats = async (req, res) => {
       PurchaseRequisition.count({ where: { status: { [Op.ne]: 'Approved' } } }),
       PurchaseOrder.count({ where: { status: { [Op.in]: ['Draft', 'Pending'] } } }),
       PurchaseOrder.count({ where: { status: 'Approved' } }),
-      GRN.count({ where: { grn_date: new Date().toISOString().split('T')[0] } }),
+      GRN.count({ where: { ir_date: new Date().toISOString().split('T')[0] } }),
       SupplierMaster.count({ where: { is_active: true } }),
       PurchaseOrder.count({ where: { created_date: { [Op.gte]: monthStart } } }),
       PurchaseRequisition.count({ where: { created_date: { [Op.gte]: monthStart } } }),
@@ -33,7 +33,7 @@ exports.getDashboardStats = async (req, res) => {
       PurchaseOrder.sum('grand_total', { where: { status: { [Op.in]: ['Draft', 'Pending'] } } }),
       PurchaseOrder.sum('grand_total', { where: { status: 'Approved' } }),
       db.sequelize.query(
-        `SELECT COALESCE(SUM(gi.amount),0) AS v FROM t_ir grn JOIN t_ir_item gi ON gi.grn_id = grn.id WHERE grn.grn_date >= :m`,
+        `SELECT COALESCE(SUM(gi.amount),0) AS v FROM ir grn JOIN t_ir_item gi ON gi.grn_id = grn.id WHERE grn.ir_date >= :m`,
         { replacements: { m: monthStart.toISOString().slice(0, 10) }, type: db.Sequelize.QueryTypes.SELECT }
       ).then((r) => r[0]?.v || 0),
     ]);

@@ -48,16 +48,10 @@ module.exports = (sequelize) => {
     }
   );
 
-  DeliveryChallan.associate = (models) => {
-    DeliveryChallan.hasMany(models.DeliveryChallanItem, { foreignKey: 'dc_id', as: 'items' });
-    DeliveryChallan.belongsTo(models.SupplierMaster, { foreignKey: 'party_id', as: 'supplier' });
-    DeliveryChallan.belongsToMany(models.InwardRegister, {
-      through: 't_inward_register_dc',
-      foreignKey: 'dc_id',
-      otherKey: 'ir_id',
-      as: 'inwardRegisters',
-    });
-  };
+DeliveryChallan.associate = (models) => {
+  DeliveryChallan.hasMany(models.DeliveryChallanItem, { foreignKey: 'dc_id', as: 'items' });
+  DeliveryChallan.belongsTo(models.SupplierMaster, { foreignKey: 'party_id', as: 'supplier' });
+};
 
   return DeliveryChallan;
 };

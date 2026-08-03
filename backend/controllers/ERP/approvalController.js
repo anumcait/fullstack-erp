@@ -85,7 +85,7 @@ async function buildApprovalList() {
   for (const r of grns) {
     out.push({
       type: 'GRN', typeLabel: 'Goods Receipt', id: r.id,
-      docNo: r.grn_no, date: r.grn_date, party: r.supplier ? r.supplier.supplier_name : '',
+      docNo: r.ir_no, date: r.ir_date, party: r.supplier ? r.supplier.supplier_name : '',
       department: '', amount: null, status: r.approval_status,
       approveEndpoint: `/api/erp/stores/grn/${r.id}/approve`,
       viewPath: `/stores/grr/view/${r.id}`,

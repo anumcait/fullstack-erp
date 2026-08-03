@@ -71,8 +71,8 @@ const COLUMNS = {
     { field: 'remarks', header: 'Remarks' },
   ],
   received: [
-    { field: 'grn_no', header: 'GRN No' },
-    { field: 'grn_date', header: 'Date', render: (r) => r.grn_date ? formatDate(r.grn_date) : '-' },
+    { field: 'ir_no', header: 'GRN No' },
+    { field: 'ir_date', header: 'Date', render: (r) => r.ir_date ? formatDate(r.ir_date) : '-' },
     { field: 'supplier_name', header: 'Vendor' },
     { field: 'item_name', header: 'Item' },
     { field: 'accepted_qty', header: 'Accepted', align: 'right', numeric: true, render: (r) => formatNumber(r.accepted_qty) },
@@ -233,6 +233,7 @@ export default function DailyReports() {
     </TableContainer>
   );
 
+  // eslint-disable-next-line no-unused-vars -- used as JSX component <Icon/> below
   const Ribbon = ({ count, label, color, bgcolor, icon: Icon, onClick }) => (
     <Paper onClick={count > 0 ? onClick : undefined}
       sx={{ p: 1.5, borderRadius: 2, width: '100%', border: `1px solid ${color}${count > 0 ? '' : '40'}`, bgcolor: count > 0 ? bgcolor : '#f8fafc', cursor: count > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 1.5, opacity: count > 0 ? 1 : 0.55 }}>

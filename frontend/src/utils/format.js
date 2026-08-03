@@ -40,6 +40,16 @@ export const formatDateTime = (value) => {
   return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
+// Shows time only when the value carries a time component (date-only stays date-only).
+export const formatSmartDateTime = (value) => {
+  if (!value) return '—';
+  const raw = String(value).trim();
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw.slice(0, 10)) && raw.length === 10;
+  return isDateOnly ? formatDate(value) : formatDateTime(value);
+};
+
 // Compact currency for KPI cards (e.g. ₹12.4L, ₹1.2Cr)
 export const formatCompactCurrency = (value, currency = 'INR') => {
   const n = Number(value || 0);

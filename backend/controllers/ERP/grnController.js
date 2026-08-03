@@ -39,15 +39,15 @@ async function postGRNCost(grnId, user) {
         {
           item_id: it.item_id,
           warehouse_id: wh?.id || null,
-          ledger_date: grn.grn_date || new Date(),
+          ledger_date: grn.ir_date || new Date(),
           ref_type: REF_TYPES.PURCHASE,
-          doc_no: grn.grn_no,
-          ref_no: grn.grn_no,
+          doc_no: grn.ir_no,
+          ref_no: grn.ir_no,
           reference: grn.invoice_no || null,
           qty_in: qty,
           qty_out: 0,
           unit_cost: newRate,
-          remarks: it.remarks || `GRR ${grn.grn_no}`,
+          remarks: it.remarks || `GRR ${grn.ir_no}`,
           user,
         },
         t
@@ -76,11 +76,11 @@ exports.getGRNs = async (req, res) => {
         dateWhere[Op.gte] = `${year}-01-01`;
         dateWhere[Op.lte] = `${year}-12-31`;
       }
-      where.grn_date = dateWhere;
+      where.ir_date = dateWhere;
     }
     if (search) {
       where[Op.or] = [
-        { grn_no: { [Op.iLike]: `%${search}%` } },
+        { ir_no: { [Op.iLike]: `%${search}%` } },
         { invoice_no: { [Op.iLike]: `%${search}%` } },
       ];
     }
@@ -105,7 +105,7 @@ exports.getNextGRNNumber = async (req, res) => {
   try {
     const count = await GRN.count();
     const nextNumber = String(count + 1);
-    res.json({ grn_no: nextNumber, sequence: count + 1 });
+    res.json({ ir_no: nextNumber, sequence: count + 1 });
   } catch (err) {
     console.error('Error getting next GRN number:', err);
     res.status(500).json({ error: 'Failed to get next GRN number' });
@@ -139,17 +139,17 @@ exports.createGRN = async (req, res) => {
       if (header[field] === '') header[field] = null;
     }
 
-    if (!header.grn_no) {
+    if (!header.ir_no) {
       const settings = await PurchaseSettings.findByPk(1);
       if (settings?.auto_generate_grn) {
-        header.grn_no = await generateDocNumber('GRN', 'grn_prefix', 'grn_no', settings);
+        header.ir_no = await generateDocNumber('GRN', 'grn_prefix', 'ir_no', settings);
       } else {
         return res.status(400).json({ error: 'GRN number is required. Enable auto-generation in Settings.' });
       }
     }
 
-    const existing = await GRN.findOne({ where: { grn_no: header.grn_no } });
-    if (existing) return res.status(409).json({ error: `GRN '${header.grn_no}' already exists` });
+    const existing = await GRN.findOne({ where: { ir_no: header.ir_no } });
+    if (existing) return res.status(409).json({ error: `GRN '${header.ir_no}' already exists` });
 
     // Default to Draft unless explicitly submitted
     if (!header.status || header.status === 'Received') {
@@ -305,7 +305,7 @@ exports.getPendingBilling = async (req, res) => {
         },
         { model: PurchaseRequisition, as: 'purchaseRequisition', attributes: ['id', 'req_no', 'req_date'] },
       ],
-      order: [['grn_no', 'ASC']],
+      order: [['ir_no', 'ASC']],
     });
     res.json(data);
   } catch (err) {
@@ -374,7 +374,7 @@ exports.batchMarkGRRBilled = async (req, res) => {
     if (docs.length !== ids.length) return res.status(404).json({ error: 'One or more GRRs not found' });
 
     const alreadyBilled = docs.filter(function (d) { return d.bill_no; });
-    if (alreadyBilled.length > 0) return res.status(400).json({ error: 'GRR(s) already billed: ' + alreadyBilled.map(function (d) { return d.grn_no; }).join(', ') });
+    if (alreadyBilled.length > 0) return res.status(400).json({ error: 'GRR(s) already billed: ' + alreadyBilled.map(function (d) { return d.ir_no; }).join(', ') });
 
     const r2 = function (v) { return Number(Number(v || 0).toFixed(2)); };
     for (const doc of docs) {
@@ -448,7 +448,7 @@ exports.deleteGRN = async (req, res) => {
               {
                 item_id: it.item_id,
                 ref_type: REF_TYPES.PURCHASE,
-                ref_no: grn.grn_no,
+                ref_no: grn.ir_no,
                 user: req.session?.user?.name || 'System',
               },
               t

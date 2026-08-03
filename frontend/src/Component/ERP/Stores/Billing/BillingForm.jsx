@@ -14,7 +14,6 @@ import DoubleArrowIcon from "@mui/icons-material/DoubleArrow";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "../../../../context/ToastContext";
-import { formatNumber } from "../../../../utils/format";
 
 const GRR_API = "/api/erp/stores/grn";
 const r2 = (v) => Number(Number(v || 0).toFixed(2));
@@ -43,7 +42,7 @@ export default function BillingForm() {
   var location = useLocation();
   var { showToast } = useToast();
   var isView = location.pathname.includes("/view");
-  var [loading, setLoading] = useState(false);
+  var [, setLoading] = useState(false);
   var [saving, setSaving] = useState(false);
   var [colWidths, setColWidths] = useState(INITIAL_COL_WIDTHS);
   var [hiddenGroups, setHiddenGroups] = useState({ g1: true, g2: true });
@@ -209,7 +208,7 @@ export default function BillingForm() {
     try {
       var { data } = await axios.get("/api/erp/purchase/orders");
       setAllPos(data);
-    } catch (e) { /* non-critical */ }
+    } catch { /* non-critical */ }
     finally {
       setPosLoaded(true);
     }
@@ -337,8 +336,8 @@ export default function BillingForm() {
         var computed = computeItemDetails(it, grn);
         allKeys.push(getItemKey(grn.id, it.id || it.item_id));
         items.push({
-          grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
-          grn_date: grn.grn_date,
+          grn_id: grn.id, ir_no: grn.ir_no, id: it.id,
+          ir_date: grn.ir_date,
           pr_date: grn.purchaseRequisition?.req_date,
           supp_dc_no: grn.invoice_no,
           supp_dc_date: grn.invoice_date,
@@ -373,8 +372,8 @@ export default function BillingForm() {
       var computed = si.computed;
       var grn = si.grn;
       newItems.push({
-        grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
-        grn_date: grn.grn_date,
+        grn_id: grn.id, ir_no: grn.ir_no, id: it.id,
+        ir_date: grn.ir_date,
         pr_date: grn.purchaseRequisition?.req_date,
         supp_dc_no: grn.invoice_no,
         supp_dc_date: grn.invoice_date,
@@ -590,13 +589,13 @@ export default function BillingForm() {
                 setSelectedGrnIds(newVal.map(function (g) { return g.id; }));
                 setShuttleChecked([]);
               }}
-              getOptionLabel={function (option) { return option.grn_no + " (" + (option.supplier?.supplier_name || "-") + ")"; }}
+              getOptionLabel={function (option) { return option.ir_no + " (" + (option.supplier?.supplier_name || "-") + ")"; }}
               renderInput={function (params) {
                 return <TextField {...params} label="Search & Select GRR Numbers" placeholder="Type to search..." sx={{ "& .MuiInputBase-root": { fontSize: "0.78rem" } }} />;
               }}
               renderTags={function (tagValue, getTagProps) {
                 return tagValue.map(function (option, index) {
-                  return <Chip label={option.grn_no} size="small" {...getTagProps({ index })} />;
+                  return <Chip label={option.ir_no} size="small" {...getTagProps({ index })} />;
                 });
               }}
               sx={{ flex: 1, maxWidth: 420 }}
@@ -741,8 +740,8 @@ export default function BillingForm() {
                           )}
                         </TableCell>
                         <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, px: 0.5, color: "#64748b", ...wTd(1) }}>{idx + 1}</TableCell>
-                        <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, px: 0.5, ...wTd(2) }}>{it.grn_no}</TableCell>
-                        <TableCell sx={{ textAlign: "center", py: 0.3, px: 0.5, ...wTd(3) }}>{fmtDate(it.grn_date, true)}</TableCell>
+                        <TableCell sx={{ textAlign: "center", fontWeight: 600, py: 0.3, px: 0.5, ...wTd(2) }}>{it.ir_no}</TableCell>
+                        <TableCell sx={{ textAlign: "center", py: 0.3, px: 0.5, ...wTd(3) }}>{fmtDate(it.ir_date, true)}</TableCell>
                         <TableCell sx={{ textAlign: "center", py: 0.3, px: 0.5, ...wTd(4) }}>{it.po_no || ""}</TableCell>
                         <TableCell sx={{ textAlign: "center", py: 0.3, px: 0.5, ...wTd(5) }}>{it.pr_no || ""}</TableCell>
                         <TableCell sx={{ textAlign: "center", py: 0.3, px: 0.5, ...wTd(6) }}>{fmtDate(it.pr_date, true)}</TableCell>
@@ -967,14 +966,14 @@ function GrnItemShuttle({ items, shuttleChecked, loadedKeys, toggleShuttle }) {
   var leftItems = useMemo(function () {
     var q = leftSearch.toLowerCase();
     return items.filter(function (s) {
-      return !checkedSet.has(s.key) && !loadedKeys.has(s.key) && (!q || (s.item.item_name || "").toLowerCase().includes(q) || (s.item.item_code || "").toLowerCase().includes(q) || (s.grn.grn_no || "").toLowerCase().includes(q));
+      return !checkedSet.has(s.key) && !loadedKeys.has(s.key) && (!q || (s.item.item_name || "").toLowerCase().includes(q) || (s.item.item_code || "").toLowerCase().includes(q) || (s.grn.ir_no || "").toLowerCase().includes(q));
     });
   }, [items, checkedSet, loadedKeys, leftSearch]);
 
   var rightItems = useMemo(function () {
     var q = rightSearch.toLowerCase();
     return items.filter(function (s) {
-      return (checkedSet.has(s.key) || loadedKeys.has(s.key)) && (!q || (s.item.item_name || "").toLowerCase().includes(q) || (s.item.item_code || "").toLowerCase().includes(q) || (s.grn.grn_no || "").toLowerCase().includes(q));
+      return (checkedSet.has(s.key) || loadedKeys.has(s.key)) && (!q || (s.item.item_name || "").toLowerCase().includes(q) || (s.item.item_code || "").toLowerCase().includes(q) || (s.grn.ir_no || "").toLowerCase().includes(q));
     });
   }, [items, checkedSet, loadedKeys, rightSearch]);
 
@@ -1056,7 +1055,7 @@ function GrnItemShuttle({ items, shuttleChecked, loadedKeys, toggleShuttle }) {
                   <Box component="span" sx={{ fontWeight: 700, color: "#475569", mr: 0.5 }}>{s.item.item_code || "---"}</Box>
                   <Box component="span" sx={{ fontWeight: 600 }}>{s.item.item_name}</Box>
                   <Box component="span" sx={{ color: "#64748b", ml: 0.5 }}>
-                    &middot; {s.grn.grn_no} &middot; Qty: {num(s.item.accepted_qty)} &middot; &#x20B9;{num(s.computed.rate)}
+                    &middot; {s.grn.ir_no} &middot; Qty: {num(s.item.accepted_qty)} &middot; &#x20B9;{num(s.computed.rate)}
                   </Box>
                 </Typography>
               </Box>
@@ -1119,7 +1118,7 @@ function GrnItemShuttle({ items, shuttleChecked, loadedKeys, toggleShuttle }) {
                   <Box component="span" sx={{ fontWeight: 700, color: "#475569", mr: 0.5 }}>{s.item.item_code || "---"}</Box>
                   <Box component="span" sx={{ fontWeight: 600 }}>{s.item.item_name}</Box>
                   <Box component="span" sx={{ color: "#64748b", ml: 0.5 }}>
-                    &middot; {s.grn.grn_no} &middot; Qty: {num(s.item.accepted_qty)} &middot; &#x20B9;{num(s.computed.rate)}
+                    &middot; {s.grn.ir_no} &middot; Qty: {num(s.item.accepted_qty)} &middot; &#x20B9;{num(s.computed.rate)}
                   </Box>
                 </Typography>
                 {alreadyLoaded && <Chip size="small" label="Loaded" color="success" variant="outlined" sx={{ fontSize: "0.65rem", height: 18, ml: "auto" }} />}

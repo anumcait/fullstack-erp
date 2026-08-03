@@ -13,6 +13,10 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      sl_no: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+      },
       po_item_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -34,6 +38,13 @@ module.exports = (sequelize) => {
         allowNull: false,
       },
       uom: { type: DataTypes.STRING(20), allowNull: true },
+      dc_id: { type: DataTypes.INTEGER, allowNull: true },
+      dc_item_id: { type: DataTypes.INTEGER, allowNull: true },
+      unit_id: { type: DataTypes.INTEGER, allowNull: true },
+      qty_supplied: { type: DataTypes.DECIMAL(18, 4), defaultValue: 0 },
+      dc_qty: { type: DataTypes.DECIMAL(18, 4), defaultValue: 0 },
+      work_order: { type: DataTypes.STRING(50), allowNull: true },
+      opening: { type: DataTypes.DECIMAL(12, 3), defaultValue: 0 },
       rep: { type: DataTypes.STRING(30), allowNull: true },
       dia: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
       len: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -93,6 +104,10 @@ module.exports = (sequelize) => {
 
   GRNItem.associate = (models) => {
     GRNItem.belongsTo(models.GRN, { foreignKey: 'grn_id', as: 'grn' });
+    GRNItem.belongsTo(models.ItemMaster, { foreignKey: 'item_id', as: 'item' });
+    GRNItem.belongsTo(models.Unit, { foreignKey: 'unit_id', as: 'unit' });
+    GRNItem.belongsTo(models.DeliveryChallan, { foreignKey: 'dc_id', as: 'deliveryChallan' });
+    GRNItem.belongsTo(models.DeliveryChallanItem, { foreignKey: 'dc_item_id', as: 'dcItem' });
   };
 
   return GRNItem;

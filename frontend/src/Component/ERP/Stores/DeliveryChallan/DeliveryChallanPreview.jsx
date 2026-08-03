@@ -58,14 +58,14 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
   const logoUrl = companySettings.logo_url || logo;
   const typeLabel = typeLabels[data.dc_type] || data.dc_type || "";
   const deptTypeText = [data.department, typeLabel].filter(Boolean).join(" : ");
-  // Drafts have no real number yet — print the derived draft reference (last real no + local HHMMSS of creation).
+  // Drafts have no real number yet — print the derived draft reference (next real no + local HHMMSS of creation).
   const dcNumber = (() => {
     if (data.dc_no) return data.dc_no;
     if (data.draft_no) return data.draft_no;
     const raw = data.updated_at || data.dc_date;
     const d = raw ? new Date(raw) : null;
     if (data.last_number && d && !isNaN(d)) {
-      return `${data.last_number}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+      return `${Number(data.last_number) + 1}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
     }
     return "-";
   })();

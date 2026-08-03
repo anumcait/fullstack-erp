@@ -32,10 +32,11 @@ const toIsoUtc = (localStr) => {
 };
 
 const pad2 = (n) => String(n).padStart(2, "0");
-// Draft reference number = last real DC number + current time HHMMSS (e.g. "5" + "114224" = "5114224").
+// Draft reference number = next real DC number (last + 1) + current time HHMMSS
+// (e.g. last real "7" + "114224" = "8114224") so it previews the number it gets on approval.
 const draftRef = (lastNumber) => {
   const d = new Date();
-  return `${lastNumber}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+  return `${Number(lastNumber) + 1}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
 };
 
 const toLocalInput = (iso) => {
@@ -166,7 +167,7 @@ export default function DcPreparationForm() {
       // so it never changes when later DCs are approved; fall back to a local-time computation only
       // for legacy drafts saved before the reference was persisted.
       if (!data.dc_no && !data.draft_no) {
-        const last = data.last_number ?? "0";
+        const last = Number(data.last_number ?? "0") + 1;
         const raw = data.updated_at || data.dc_date;
         const d = raw ? new Date(raw) : new Date();
         const src = isNaN(d) ? new Date() : d;

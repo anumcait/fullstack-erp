@@ -19,6 +19,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import PrintIcon from "@mui/icons-material/Print";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import axios from "axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../../../../context/ToastContext";
@@ -100,7 +101,7 @@ const fmtDateTime = (v) => {
 };
 
 // Display a challan's number: real number if issued, else the derived draft reference
-// (last real number + local HHMMSS of the draft's creation) built in browser-local time.
+// (next real number = last + 1, plus local HHMMSS of the draft's creation) built in browser-local time.
 const pad2 = (n) => String(n).padStart(2, "0");
 const dcRef = (r) => {
   if (r?.dc_no) return r.dc_no;
@@ -108,7 +109,7 @@ const dcRef = (r) => {
   if (!r) return "DRAFT";
   const d = (r.updated_at || r.dc_date) ? new Date(r.updated_at || r.dc_date) : new Date();
   if (!isNaN(d)) {
-    return `${r.last_number ?? "0"}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+    return `${Number(r.last_number ?? "0") + 1}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
   }
   return "DRAFT";
 };
@@ -519,9 +520,15 @@ export default function DeliveryChallanList() {
                               <Tooltip title="Approve / Cancel"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#1565c0" } }} onClick={() => openApprove(r.id)}><SendIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
                             </>
                           )}
-                          {r.status === "Approved" && (
-                            <Tooltip title="Cancel"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#dc2626" } }} onClick={() => openApprove(r.id)}><BlockIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
-                          )}
+                           {r.status === "Approved" && (
+                             <>
+                               <Tooltip title="Make IR"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#059669" } }}
+                                 onClick={(e) => { e.stopPropagation(); navigate(`/stores/inward-registers/add?type=${r.dc_type || "L"}&prefill_dc=${r.id}`); }}>
+                                 <AddShoppingCartIcon sx={{ fontSize: 15 }} />
+                               </IconButton></Tooltip>
+                               <Tooltip title="Cancel"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#dc2626" } }} onClick={() => openApprove(r.id)}><BlockIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
+                             </>
+                           )}
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#94a3b8", fontSize: "0.72rem" }}>{idx + 1}</TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, color: activeTypeColor, fontFamily: "monospace", fontSize: "0.82rem" }}>{dcRef(r)}</TableCell>

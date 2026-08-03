@@ -133,8 +133,8 @@ export default function PurchaseReports() {
       { field: 'po_value', header: 'PO Value', align: 'right', numeric: true, render: (r) => formatCurrency(r.po_value) },
     ],
     'rm-inspection': [
-      { field: 'grn_no', header: 'GRN No' },
-      { field: 'grn_date', header: 'Date', render: (r) => formatDate(r.grn_date) },
+      { field: 'ir_no', header: 'GRN No' },
+      { field: 'ir_date', header: 'Date', render: (r) => formatDate(r.ir_date) },
       { field: 'qa_status', header: 'QA Status' },
       { field: 'supplier_name', header: 'Vendor' },
       { field: 'item_name', header: 'Item' },
@@ -149,8 +149,8 @@ export default function PurchaseReports() {
       { field: 'total_value', header: filters.taxes === 'with' ? 'Value (with tax)' : 'Value (ex-tax)', align: 'right', numeric: true, render: (r) => formatCurrency(r.total_value) },
     ],
     'rm-purchase': [
-      { field: 'grn_no', header: 'GRN No' },
-      { field: 'grn_date', header: 'Date', render: (r) => formatDate(r.grn_date) },
+      { field: 'ir_no', header: 'GRN No' },
+      { field: 'ir_date', header: 'Date', render: (r) => formatDate(r.ir_date) },
       { field: 'supplier_name', header: 'Vendor' },
       { field: 'item_name', header: 'Item' },
       { field: 'accepted_qty', header: 'Qty', align: 'right', numeric: true, render: (r) => formatNumber(r.accepted_qty) },
@@ -279,8 +279,6 @@ export default function PurchaseReports() {
     return { cols: dates, suppliers, lookup, partyTotals, colTotals, idToName };
   }, [tab, rows, filters.from, filters.to, matrixView]);
 
-  const blankMatrix = { cols: [], suppliers: [], lookup: {}, partyTotals: {}, colTotals: {}, idToName: {} };
-
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <PageHeader title="Purchase Reports" subtitle="Procurement analytics, spend analysis & compliance reporting" icon={<FiBarChart2 size={22} />} />
@@ -371,7 +369,7 @@ export default function PurchaseReports() {
   );
 }
 
-function POMatrixTable({ matrix, loading, fmt, rows: apiRows, filters, title = "Daily", onViewChange, view }) {
+function POMatrixTable({ matrix, loading, fmt, filters, title = "Daily", onViewChange, view }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailData, setDetailData] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);

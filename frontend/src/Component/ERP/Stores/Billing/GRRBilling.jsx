@@ -128,7 +128,7 @@ export default function GRRBilling() {
 
         var defaultGst = Number(it.gst_rate || 0) / 2;
         items.push({
-          grn_id: grn.id, grn_no: grn.grn_no, id: it.id,
+          grn_id: grn.id, ir_no: grn.ir_no, id: it.id,
           po_no: poi ? (poi.po_no || grn.purchaseOrder?.po_no || "") : (it.po_no || ""),
           pr_no: it.pr_no || "",
           item_code: it.item_code, item_name: it.item_name, uom: it.uom,
@@ -330,8 +330,8 @@ export default function GRRBilling() {
                       <React.Fragment key={grn.id}>
                         <TableRow hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#f8fafc", "&:hover": { bgcolor: "#eef2ff" }, "& td": { fontSize: "0.88rem", py: 0.75, borderBottom: "1px solid #f1f5f9" } }}>
                           <TableCell><Checkbox size="small" checked={Boolean(selected[grn.id])} onChange={function () { toggleSelect(grn.id); }} /></TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>{grn.grn_no}</TableCell>
-                          <TableCell>{fmtDate(grn.grn_date)}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>{grn.ir_no}</TableCell>
+                          <TableCell>{fmtDate(grn.ir_date)}</TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>{grn.supplier?.supplier_name || "-"}</Typography>
                             {grn.supplier?.gstin && <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "0.7rem" }}>GSTIN: {grn.supplier.gstin}</Typography>}
@@ -349,7 +349,7 @@ export default function GRRBilling() {
                             <TableCell colSpan={11} sx={{ py: 1, px: 2, bgcolor: "#fafcff", borderBottom: "2px solid #e2e8f0" }}>
                               <Box sx={{ border: "1px solid #e2e8f0", borderRadius: 2, overflow: "hidden" }}>
                                 <Box sx={{ px: 2, py: 0.75, bgcolor: "#f1f5f9", display: "flex", alignItems: "center", gap: 1 }}>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "var(--heading-color)", fontSize: "0.9rem" }}>Items — {grn.grn_no}</Typography>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "var(--heading-color)", fontSize: "0.9rem" }}>Items — {grn.ir_no}</Typography>
                                   <Chip label={items.length + " item(s)"} size="small" sx={{ fontSize: "0.78rem" }} />
                                 </Box>
                                 <Box sx={{ maxHeight: 260, overflow: "auto" }}>
@@ -407,7 +407,7 @@ export default function GRRBilling() {
         {billDlg.data.length > 0 && (
           <DialogContent dividers>
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2, p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
-              <Typography variant="body2"><strong>GRRs:</strong> {billDlg.data.map(function (g) { return g.grn_no; }).join(", ")}</Typography>
+              <Typography variant="body2"><strong>GRRs:</strong> {billDlg.data.map(function (g) { return g.ir_no; }).join(", ")}</Typography>
               <Typography variant="body2"><strong>Items:</strong> {billItems.length}</Typography>
               <Typography variant="body2"><strong>Qty:</strong> {formatNumber(totals.qty)}</Typography>
               <Typography variant="body2"><strong>Grand Total:</strong> ₹{fmt(totals.grand)}</Typography>
@@ -448,7 +448,7 @@ export default function GRRBilling() {
                     var c = computeRow(it);
                     return (
                       <TableRow key={it.id || i} hover>
-                        <TableCell sx={{ fontWeight: 600, color: "#1565c0" }}>{it.grn_no}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: "#1565c0" }}>{it.ir_no}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{it.item_code || "-"}</TableCell>
                         <TableCell sx={{ fontSize: "0.68rem" }}>{it.item_name}</TableCell>
                         <TableCell sx={{ textAlign: "center", fontSize: "0.68rem", fontWeight: 600, color: it.po_no ? "#7c3aed" : "#94a3b8" }}>{it.po_no || "—"}</TableCell>

@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card, CardContent, Box, Typography, Stack, Button, Divider,
   LinearProgress, TextField, Tabs, Tab, Chip, Avatar, List,
-  ListItem, Skeleton, Tooltip, IconButton,
+  ListItem, Skeleton, Tooltip, IconButton, alpha,
 } from '@mui/material';
 import {
   FiBox, FiAlertTriangle, FiLayers, FiArrowUpRight, FiActivity,
   FiTruck, FiArchive, FiPlus, FiRefreshCw, FiChevronRight,
-  FiArrowRight,
+  FiArrowRight, FiClipboard, FiCheckCircle, FiXCircle,
 } from 'react-icons/fi';
 import axios from 'axios';
 import PageHeader from '../../Common/PageHeader';
 import DataTable from '../../Common/DataTable';
 import StatusChip from '../../Common/StatusChip';
-import { formatCompactCurrency, formatCurrency, formatDate } from '../../../utils/format';
+import { formatCompactCurrency, formatCurrency, formatDate, formatSmartDateTime } from '../../../utils/format';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -97,6 +97,9 @@ const StoresDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actTab, setActTab] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [irRows, setIrRows] = useState([]);
+  const [irPendingDcs, setIrPendingDcs] = useState([]);
+  const [irLoading, setIrLoading] = useState(true);
 
   const fetchData = () => {
     setLoading(true);
@@ -111,11 +114,40 @@ const StoresDashboard = () => {
 
   useEffect(() => { fetchData(); }, [date, refreshKey]);
 
+  useEffect(() => {
+    let active = true;
+    setIrLoading(true);
+    const from = new Date(date);
+    from.setMonth(from.getMonth() - 3);
+    Promise.all([
+      axios.get('/api/erp/stores/inward-registers', { params: { date_from: from.toISOString().slice(0, 10), date_to: date } }).catch(() => ({ data: [] })),
+      axios.get('/api/erp/stores/inward-registers/pending-dcs').catch(() => ({ data: [] })),
+    ]).then(([irRes, dcRes]) => {
+      if (!active) return;
+      setIrRows(Array.isArray(irRes.data) ? irRes.data : []);
+      setIrPendingDcs(Array.isArray(dcRes.data) ? dcRes.data : []);
+    }).finally(() => active && setIrLoading(false));
+    return () => { active = false; };
+  }, [date, refreshKey]);
+
+  const irStats = useMemo(() => {
+    const s = { total: irRows.length, received: 0, approved: 0, cancelled: 0, value: 0 };
+    irRows.forEach((r) => {
+      if (r.status === 'Received') s.received++;
+      else if (r.status === 'Approved') s.approved++;
+      else if (r.status === 'Cancelled') s.cancelled++;
+      s.value += (r.items || []).reduce((sum, i) => sum + (Number(i.qty_supplied || 0) * Number(i.rate || 0)), 0);
+    });
+    return s;
+  }, [irRows]);
+
+  const irPendingBalance = useMemo(() => irPendingDcs.reduce((sum, d) => sum + (d.items || []).reduce((s, it) => s + Number(it.qty_pending >= 0 ? it.qty_pending : 0), 0), 0), [irPendingDcs]);
+
   const s = daily.summary || {};
 
   const actColumns = [
     [
-      { field: 'grn_no', header: 'GRN No' },
+      { field: 'ir_no', header: 'GRN No' },
       { field: 'supplier_name', header: 'Vendor' },
       { field: 'ir_type', header: 'Type' },
       { field: 'qa_status', header: 'QA' },
@@ -379,6 +411,142 @@ const StoresDashboard = () => {
               </Button>
             </Box>
           )}
+
+          {/* ════ Inward Registers ════ */}
+          <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, pt: 1.25, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Inward Registers</Typography>
+                <Typography variant="caption" color="text.secondary">Receipts against delivery challans · Last 3 months</Typography>
+              </Box>
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                {irPendingDcs.length > 0 && (
+                  <Chip label={`${irPendingBalance} qty awaiting IR`} size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: '0.62rem' }} />
+                )}
+                <Button size="small" endIcon={<FiArrowRight size={12} />} onClick={() => navigate('/stores/inward-registers')} sx={{ textTransform: 'none', fontSize: '0.73rem' }}>
+                  View All
+                </Button>
+              </Stack>
+            </Box>
+
+            {/* IR KPI strip */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }, gap: 1, px: 2, pt: 1.5 }}>
+              {[
+                { label: 'Total IRs', value: irStats.total, sub: 'Last 3 months', color: '#2563eb', icon: FiClipboard },
+                { label: 'Received', value: irStats.received, sub: 'Pending approval', color: '#ea580c', icon: FiTruck },
+                { label: 'Approved', value: irStats.approved, sub: 'Stock posted', color: '#059669', icon: FiCheckCircle },
+                { label: 'Cancelled', value: irStats.cancelled, sub: 'Reversed', color: '#dc2626', icon: FiXCircle },
+                { label: 'Receipt Value', value: irLoading ? '—' : formatCompactCurrency(irStats.value), sub: 'Qty × rate', color: '#7c3aed', icon: FiArrowUpRight },
+              ].map((k) => {
+                const Icon = k.icon;
+                return (
+                  <Box key={k.label} sx={{ px: 1, py: 0.9, borderRadius: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+                    <Stack direction="row" alignItems="center" spacing={0.75}>
+                      <Avatar variant="rounded" sx={{ width: 26, height: 26, bgcolor: `${k.color}1a`, color: k.color }}>
+                        <Icon size={13} />
+                      </Avatar>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{k.label}</Typography>
+                        {irLoading ? <Skeleton width={40} height={20} /> : (
+                          <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, lineHeight: 1.15, color: '#0f172a', letterSpacing: '-0.3px' }}>{k.value ?? '—'}</Typography>
+                        )}
+                      </Box>
+                    </Stack>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {/* IR two-column: pending DCs + recent IRs */}
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', p: 2, flexDirection: { xs: 'column', lg: 'row' } }}>
+              {/* Pending DCs */}
+              <Box sx={{ width: { lg: 320 }, flexShrink: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+                <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', fontSize: '10px' }}>DCs Awaiting IR</Typography>
+                </Box>
+                <Box sx={{ p: 1.25 }}>
+                  {irLoading ? (
+                    <Stack spacing={1}>{[1, 2, 3].map((i) => <Skeleton key={i} height={40} />)}</Stack>
+                  ) : irPendingDcs.length === 0 ? (
+                    <Typography variant="caption" color="text.secondary">No approved DCs with pending balance.</Typography>
+                  ) : (
+                    <Stack spacing={0.5}>
+                      {irPendingDcs.slice(0, 6).map((d) => {
+                        const balance = (d.items || []).reduce((s, it) => s + Number(it.qty_pending >= 0 ? it.qty_pending : 0), 0);
+                        return (
+                          <Box key={d.id}
+                            onClick={() => navigate(`/stores/inward-registers/add?type=${d.dc_type || 'L'}&prefill_dc=${d.id}`)}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.75, borderRadius: 1.5, border: '1px solid', borderColor: 'divider', cursor: 'pointer', transition: 'all .15s', '&:hover': { borderColor: '#f59e0b', bgcolor: alpha('#f59e0b', 0.05) } }}>
+                            <Box sx={{ width: 3, height: 26, borderRadius: 2, bgcolor: '#f59e0b', flexShrink: 0 }} />
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.76rem', color: '#0f172a' }}>{d.dc_no || d.draft_no}</Typography>
+                              <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.party_name || '-'} · {formatSmartDateTime(d.dc_date)}</Typography>
+                            </Box>
+                            <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: '#d97706' }}>{balance}</Typography>
+                              <Typography sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>qty</Typography>
+                            </Box>
+                            <FiArrowRight size={13} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  )}
+                  {!irLoading && irPendingDcs.length > 0 && (
+                    <Button size="small" endIcon={<FiArrowRight size={12} />} onClick={() => navigate('/stores/inward-registers')} sx={{ mt: 1.5, textTransform: 'none', fontSize: '0.73rem', p: 0 }}>
+                      View all pending DCs
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+
+              {/* Recent IRs */}
+              <Box sx={{ flex: 1, minWidth: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+                <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', fontSize: '10px' }}>Recent Inward Registers</Typography>
+                </Box>
+                {irLoading ? (
+                  <Box sx={{ p: 2 }}><LinearProgress sx={{ borderRadius: 1 }} /></Box>
+                ) : irRows.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 5, color: '#94a3b8' }}>
+                    <FiClipboard size={22} style={{ opacity: 0.4, marginBottom: 8 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#64748b', fontSize: '0.85rem' }}>No IRs yet</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.25 }}>Create an IR from an approved delivery challan.</Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ overflowX: 'auto' }}>
+                    <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+                      <Box component="thead">
+                        <Box component="tr" sx={{ bgcolor: 'grey.50' }}>
+                          {['IR #', 'Date', 'Party', 'Qty', 'Value', 'Status'].map((h) => (
+                            <Box component="th" key={h} sx={{ textAlign: 'left', fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary', px: 1.5, py: 0.9, borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap' }}>{h}</Box>
+                          ))}
+                        </Box>
+                      </Box>
+                      <Box component="tbody">
+                        {irRows.slice(0, 6).map((r) => {
+                          const statusC = r.status === 'Approved' ? '#059669' : r.status === 'Cancelled' ? '#dc2626' : '#d97706';
+                          const statusB = r.status === 'Approved' ? '#dcfce7' : r.status === 'Cancelled' ? '#fee2e2' : '#fef3c7';
+                          return (
+                            <Box component="tr" key={r.id} onClick={() => navigate(`/stores/inward-registers/view/${r.id}?type=${r.dc_type || 'L'}`)} sx={{ cursor: 'pointer', transition: 'background 0.12s', '&:hover': { bgcolor: 'action.hover' } }}>
+                              <Box component="td" sx={{ px: 1.5, py: 0.8, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', color: '#1565c0' }}>{r.ir_no || '-'}</Box>
+                              <Box component="td" sx={{ px: 1.5, py: 0.8, borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{formatSmartDateTime(r.ir_date)}</Box>
+                              <Box component="td" sx={{ px: 1.5, py: 0.8, borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.75rem', fontWeight: 600 }}>{r.party_name || '-'}</Box>
+                              <Box component="td" sx={{ px: 1.5, py: 0.8, borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.75rem', textAlign: 'center' }}>{(r.items || []).reduce((s, i) => s + Number(i.qty_supplied || 0), 0)}</Box>
+                              <Box component="td" sx={{ px: 1.5, py: 0.8, borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>{formatCompactCurrency((r.items || []).reduce((s, i) => s + (Number(i.qty_supplied || 0) * Number(i.rate || 0)), 0))}</Box>
+                              <Box component="td" sx={{ px: 1.5, py: 0.8, borderBottom: '1px solid', borderColor: 'divider' }}>
+                                <Box component="span" sx={{ px: 0.9, py: 0.15, borderRadius: 1.5, fontSize: '0.65rem', fontWeight: 700, bgcolor: statusB, color: statusC }}>{r.status}</Box>
+                              </Box>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </Card>
 
         </Box>{/* end right */}
       </Box>{/* end two-col */}

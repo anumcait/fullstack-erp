@@ -25,7 +25,6 @@ export default function BillingList() {
   const [tab, setTab] = useState(0); // 0 = Outstanding, 1 = Completed
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
   const [search, setSearch] = useState("");
   const [partyFilter, setPartyFilter] = useState("");
   const [prFilter, setPrFilter] = useState("");
@@ -37,7 +36,7 @@ export default function BillingList() {
   const [dateTo, setDateTo] = useState(fmtDateInput(today));
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
-  const [sortConfig, setSortConfig] = useState({ key: "grn_no", dir: "asc" });
+  const [sortConfig, setSortConfig] = useState({ key: "ir_no", dir: "asc" });
   const [globalSearch, setGlobalSearch] = useState("");
 
   const fetchData = useCallback(async () => {
@@ -87,8 +86,8 @@ export default function BillingList() {
       flatRows.push({
         grn,
         grnId: grn.id,
-        grn_no: grn.grn_no,
-        grn_date: grn.grn_date,
+        ir_no: grn.ir_no,
+        ir_date: grn.ir_date,
         grs_no: grn.gate_entry_no || "",
         pr_no: pr?.req_no || grn.pr_no || "",
         pr_date: pr?.req_date || "",
@@ -118,8 +117,8 @@ export default function BillingList() {
         flatRows.push({
           grn,
           grnId: grn.id,
-          grn_no: grn.grn_no,
-          grn_date: grn.grn_date,
+          ir_no: grn.ir_no,
+          ir_date: grn.ir_date,
           grs_no: grn.gate_entry_no || "",
           pr_no: it.pr_no || pr?.req_no || grn.pr_no || "",
           pr_date: pr?.req_date || "",
@@ -172,7 +171,7 @@ export default function BillingList() {
   if (globalSearch) {
     const q = globalSearch.toLowerCase();
     filtered = filtered.filter((r) =>
-      [r.grn_no, r.pr_no, r.pty_name, r.pty_dc, r.po_no, r.item_code, r.item_name, r.received_by, r.bill_no]
+      [r.ir_no, r.pr_no, r.pty_name, r.pty_dc, r.po_no, r.item_code, r.item_name, r.received_by, r.bill_no]
         .some((v) => (v || "").toLowerCase().includes(q))
     );
   }
@@ -441,11 +440,11 @@ export default function BillingList() {
                     <TableRow>
                       <TableCell sx={{ ...thSx, width: 90 }}>Action</TableCell>
                       <TableCell sx={{ ...thSx, width: 30 }}>Sl#</TableCell>
-                      <TableCell sx={{ ...thSx, width: 85, cursor: "pointer" }} onClick={() => handleSort("grn_no")}>
-                        GRR #{sortIcon("grn_no")}
+                      <TableCell sx={{ ...thSx, width: 85, cursor: "pointer" }} onClick={() => handleSort("ir_no")}>
+                        GRR #{sortIcon("ir_no")}
                       </TableCell>
-                      <TableCell sx={{ ...thSx, width: 105, cursor: "pointer" }} onClick={() => handleSort("grn_date")}>
-                        GRR Date{sortIcon("grn_date")}
+                      <TableCell sx={{ ...thSx, width: 105, cursor: "pointer" }} onClick={() => handleSort("ir_date")}>
+                        GRR Date{sortIcon("ir_date")}
                       </TableCell>
                       <TableCell sx={{ ...thSx, width: 75, cursor: "pointer" }} onClick={() => handleSort("pr_no")}>
                         PR #{sortIcon("pr_no")}
@@ -512,8 +511,8 @@ export default function BillingList() {
                           )}
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#64748b" }}>{idx + 1}</TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#1565c0" }}>{r.grn_no}</TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDateTime(r.grn_date)}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#1565c0" }}>{r.ir_no}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDateTime(r.ir_date)}</TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: r.pr_no ? "#7c3aed" : "#94a3b8" }}>{r.pr_no || "-"}</TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDateTime(r.pr_date)}</TableCell>
                         <TableCell sx={{ ...tdSx, fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

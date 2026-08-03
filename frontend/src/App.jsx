@@ -159,6 +159,8 @@ import DeliveryChallanForm from "./Component/ERP/Stores/DeliveryChallan/Delivery
 import DcPreparationForm from "./Component/ERP/Stores/DeliveryChallan/DcPreparationForm.jsx";
 import RepairChallanForm from "./Component/ERP/Stores/DeliveryChallan/RepairChallanForm.jsx";
 import MaintenanceChallanForm from "./Component/ERP/Stores/DeliveryChallan/MaintenanceChallanForm.jsx";
+import InwardRegisterList from "./Component/ERP/Stores/InwardRegister/InwardRegisterList.jsx";
+import InwardRegisterForm from "./Component/ERP/Stores/InwardRegister/InwardRegisterForm.jsx";
 import DcBillingList from "./Component/ERP/Stores/SaleOnApproval/DcBillingList.jsx";
 import BillingList from "./Component/ERP/Stores/Billing/BillingList.jsx";
 import BillingForm from "./Component/ERP/Stores/Billing/BillingForm.jsx";
@@ -344,6 +346,12 @@ function App() {
                     <Route path="/stores/delivery-challans/maintenance/new" element={<MaintenanceChallanForm />} />
                     <Route path="/stores/delivery-challans/maintenance/view/:id" element={<MaintenanceChallanForm />} />
                     <Route path="/stores/delivery-challans/maintenance/edit/:id" element={<MaintenanceChallanForm />} />
+
+                    {/* Inward Register */}
+                    <Route path="/stores/inward-registers" element={<InwardRegisterList />} />
+                    <Route path="/stores/inward-registers/add" element={<InwardRegisterForm />} />
+                    <Route path="/stores/inward-registers/edit/:id" element={<InwardRegisterForm />} />
+                    <Route path="/stores/inward-registers/view/:id" element={<InwardRegisterForm />} />
 
                     {/* Sale on Approval */}
                     <Route path="/stores/sale-approval" element={<DcBillingList />} />

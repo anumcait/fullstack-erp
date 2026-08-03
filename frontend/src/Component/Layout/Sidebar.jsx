@@ -73,7 +73,7 @@ const SUBMENUS = {
   hrReports: ["/hr/reports", "/pf-accounting"],
   storeMaster: ["/stores/item-master", "/stores/uom", "/stores/item-groups", "/stores/item-types"],
   storeInv: ["/inventory/ledger", "/stores/day-wise-stock", "/stores/stock-audit"],
-  storeTrans: ["/stores/gate-entry", "/stores/grr", "/stores/grr-billing", "/stores/material-issues", "/stores/material-requisitions", "/stores/material-returns", "/stores/delivery-challans", "/stores/sale-approval", "/stores/invoices"],
+  storeTrans: ["/stores/gate-entry", "/stores/grr", "/stores/grr-billing", "/stores/material-issues", "/stores/material-requisitions", "/stores/material-returns", "/stores/delivery-challans", "/stores/inward-registers", "/stores/sale-approval", "/stores/invoices"],
   purPR: ["/purchase/requisitions"],
   purProc: ["/purchase/rfq", "/purchase/orders"],
   purVend: ["/purchase/vendors", "/purchase/prices", "/purchase/rating"],
@@ -553,6 +553,7 @@ const Sidebar = () => {
                     {hasPermission('STORES_MR') && <SubItem to="/stores/material-requisitions" label="Material Requisition" icon={FiFilePlus} />}
                     {hasPermission('STORES_RETURN') && <SubItem to="/stores/material-returns" label="Material Return" icon={FiRotateCcw} />}
                     {hasPermission('STORES_ISSUE') && <SubItem to="/stores/delivery-challans" label="Delivery Challan" icon={FiTruck} />}
+                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/inward-registers" label="Inward Register" icon={FiClipboard} />}
                     {hasPermission('STORES_ISSUE') && <SubItem to="/stores/grr-billing" label="GRR Billing" icon={FiCreditCard} />}
                   </ul>
                 )}

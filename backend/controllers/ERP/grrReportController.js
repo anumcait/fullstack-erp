@@ -10,13 +10,13 @@ exports.getGRRRegister = async (req, res) => {
     if (ir_type) where.ir_type = ir_type;
     if (supplier_id) where.supplier_id = supplier_id;
     if (from || to) {
-      where.grn_date = {};
-      if (from) where.grn_date[Op.gte] = from;
-      if (to) where.grn_date[Op.lte] = to;
+      where.ir_date = {};
+      if (from) where.ir_date[Op.gte] = from;
+      if (to) where.ir_date[Op.lte] = to;
     }
     if (search) {
       where[Op.or] = [
-        { grn_no: { [Op.iLike]: `%${search}%` } },
+        { ir_no: { [Op.iLike]: `%${search}%` } },
         { invoice_no: { [Op.iLike]: `%${search}%` } },
       ];
     }
@@ -28,7 +28,7 @@ exports.getGRRRegister = async (req, res) => {
         { model: db.PurchaseRequisition, as: 'purchaseRequisition', attributes: ['req_no'] },
         { model: db.GRNItem, as: 'items' },
       ],
-      order: [['grn_date', 'DESC']],
+      order: [['ir_date', 'DESC']],
     });
     res.json(rows);
   } catch (err) {
@@ -61,8 +61,8 @@ exports.getGRRSummaryBySupplier = async (req, res) => {
     const { from, to } = req.query;
     const clauses = [];
     const replacements = {};
-    if (from) { clauses.push('grn.grn_date >= :from'); replacements.from = from; }
-    if (to) { clauses.push('grn.grn_date <= :to'); replacements.to = to; }
+    if (from) { clauses.push('grn.ir_date >= :from'); replacements.from = from; }
+    if (to) { clauses.push('grn.ir_date <= :to'); replacements.to = to; }
     const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
 
     const sql = `
@@ -72,7 +72,7 @@ exports.getGRRSummaryBySupplier = async (req, res) => {
              COALESCE(SUM(gi.rejected_qty), 0) AS total_rejected_qty,
              COALESCE(SUM(gi.amount), 0) AS total_value,
              COALESCE(SUM(gi.gst_amount), 0) AS total_gst
-      FROM t_ir grn
+      FROM ir grn
       LEFT JOIN m_party_master s ON s.id = grn.supplier_id
       LEFT JOIN t_ir_item gi ON gi.grn_id = grn.id
       ${where}
@@ -92,13 +92,13 @@ exports.getGRRItemDetails = async (req, res) => {
     const { from, to, supplier_id } = req.query;
     const clauses = [];
     const replacements = {};
-    if (from) { clauses.push('grn.grn_date >= :from'); replacements.from = from; }
-    if (to) { clauses.push('grn.grn_date <= :to'); replacements.to = to; }
+    if (from) { clauses.push('grn.ir_date >= :from'); replacements.from = from; }
+    if (to) { clauses.push('grn.ir_date <= :to'); replacements.to = to; }
     if (supplier_id) { clauses.push('grn.supplier_id = :sid'); replacements.sid = supplier_id; }
     const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
 
     const sql = `
-      SELECT grn.grn_no, grn.grn_date, grn.ir_type, grn.status, grn.approval_status,
+      SELECT grn.ir_no, grn.ir_date, grn.ir_type, grn.status, grn.approval_status,
              grn.qa_status, grn.po_id, grn.pr_id,
              po.po_no, pr.req_no,
              s.supplier_code, s.supplier_name,
@@ -106,13 +106,13 @@ exports.getGRRItemDetails = async (req, res) => {
              gi.ordered_qty, gi.received_qty, gi.accepted_qty, gi.rejected_qty,
              gi.reject_reason, gi.rate, gi.gst_rate, gi.gst_amount, gi.amount,
              grn.invoice_no, grn.gate_entry_no
-      FROM t_ir grn
+      FROM ir grn
       LEFT JOIN m_party_master s ON s.id = grn.supplier_id
       LEFT JOIN t_purchase_order po ON po.id = grn.po_id
       LEFT JOIN t_purchase_requisition pr ON pr.id = grn.pr_id
       LEFT JOIN t_ir_item gi ON gi.grn_id = grn.id
       ${where}
-      ORDER BY grn.grn_date DESC, grn.grn_no
+      ORDER BY grn.ir_date DESC, grn.ir_no
     `;
     const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
     res.json(rows);
@@ -127,22 +127,22 @@ exports.getGRRQASummary = async (req, res) => {
     const { from, to, qa_status } = req.query;
     const clauses = [];
     const replacements = {};
-    if (from) { clauses.push('grn.grn_date >= :from'); replacements.from = from; }
-    if (to) { clauses.push('grn.grn_date <= :to'); replacements.to = to; }
+    if (from) { clauses.push('grn.ir_date >= :from'); replacements.from = from; }
+    if (to) { clauses.push('grn.ir_date <= :to'); replacements.to = to; }
     if (qa_status) { clauses.push('grn.qa_status = :qa'); replacements.qa = qa_status; }
     const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
 
     const sql = `
-      SELECT grn.grn_no, grn.grn_date, grn.qa_status, grn.qa_by, grn.qa_date, grn.qa_remarks,
+      SELECT grn.ir_no, grn.ir_date, grn.qa_status, grn.qa_by, grn.qa_date, grn.qa_remarks,
              s.supplier_name, po.po_no, pr.req_no,
              gi.item_code, gi.item_name, gi.accepted_qty, gi.rejected_qty, gi.reject_reason
-      FROM t_ir grn
+      FROM ir grn
       LEFT JOIN m_party_master s ON s.id = grn.supplier_id
       LEFT JOIN t_purchase_order po ON po.id = grn.po_id
       LEFT JOIN t_purchase_requisition pr ON pr.id = grn.pr_id
       LEFT JOIN t_ir_item gi ON gi.grn_id = grn.id
       ${where}
-      ORDER BY grn.grn_date DESC
+      ORDER BY grn.ir_date DESC
     `;
     const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
     res.json(rows);

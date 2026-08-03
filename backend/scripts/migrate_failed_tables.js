@@ -15,7 +15,7 @@ const erpdbSeq = new Sequelize(
 const TABLES = [
   'm_item_type', 'm_item_subtype', 'm_item_subgroup', 'm_item_group',
   'm_item_master', 'm_product_category', 'm_product_master', 'm_product_item_master',
-  't_purchase_order', 't_purchase_order_item', 't_ir', 't_ir_item',
+  't_purchase_order', 't_purchase_order_item', 'ir', 't_ir_item',
   't_bom', 't_bom_item', 't_pr_amendment', 't_pr_sanction',
   't_subcontract_issue', 't_subcontract_issue_item',
   'm_supplier_master',

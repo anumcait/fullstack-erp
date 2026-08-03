@@ -92,7 +92,7 @@ exports.getVendorSpend = async (req, res) => {
              COALESCE(SUM(gi.amount), 0) AS received_value
       FROM m_party_master s
       LEFT JOIN t_purchase_order po ON po.supplier_id = s.id ${where.replace(/^WHERE/, 'AND')}
-      LEFT JOIN t_ir grn ON grn.supplier_id = s.id
+      LEFT JOIN ir grn ON grn.supplier_id = s.id
       LEFT JOIN t_ir_item gi ON gi.grn_id = grn.id
       WHERE s.party_type = 'Supplier'
       GROUP BY s.id, s.supplier_code, s.supplier_name, s.city, s.state
@@ -146,7 +146,7 @@ exports.getGrnSummary = async (req, res) => {
     const { from, to, supplier_id } = req.query;
     const clauses = [];
     const replacements = {};
-    addDateRange(clauses, replacements, 'grn.grn_date', from, to);
+    addDateRange(clauses, replacements, 'grn.ir_date', from, to);
     addFilter(clauses, replacements, 'grn.supplier_id', supplier_id);
     const where = buildWhere(clauses, replacements);
 
@@ -156,7 +156,7 @@ exports.getGrnSummary = async (req, res) => {
              COALESCE(SUM(gi.accepted_qty), 0) AS accepted_qty,
              COALESCE(SUM(gi.rejected_qty), 0) AS rejected_qty,
              COALESCE(SUM(gi.amount), 0) AS grn_value
-      FROM t_ir grn
+      FROM ir grn
       LEFT JOIN m_party_master s ON s.id = grn.supplier_id
       LEFT JOIN t_ir_item gi ON gi.grn_id = grn.id
       ${where}
@@ -188,7 +188,7 @@ exports.getRecentActivity = async (req, res) => {
         limit: 6,
         order: [['created_date', 'DESC']],
         include: [{ model: Supplier, as: 'supplier', attributes: ['supplier_name'] }],
-        attributes: ['id', 'grn_no', 'grn_date', 'status', 'ir_type'],
+        attributes: ['id', 'ir_no', 'ir_date', 'status', 'ir_type'],
       }),
       PR.findAll({
         limit: 6,
@@ -264,22 +264,22 @@ exports.getReceivedMaterial = async (req, res) => {
     const { from, to, supplier_id } = req.query;
     const clauses = [];
     const replacements = {};
-    addDateRange(clauses, replacements, 'grn.grn_date', from, to);
+    addDateRange(clauses, replacements, 'grn.ir_date', from, to);
     addFilter(clauses, replacements, 'grn.supplier_id', supplier_id);
     const where = buildWhere(clauses, replacements);
 
     const sql = `
-      SELECT grn.grn_no, grn.grn_date, grn.ir_type, grn.approval_status,
+      SELECT grn.ir_no, grn.ir_date, grn.ir_type, grn.approval_status,
              s.supplier_code, s.supplier_name,
               gi.item_code, im.item_name,
               gi.accepted_qty, gi.rejected_qty, gi.rate, gi.amount,
              grn.invoice_no
-      FROM t_ir grn
+      FROM ir grn
       LEFT JOIN m_party_master s ON s.id = grn.supplier_id
       LEFT JOIN t_ir_item gi ON gi.grn_id = grn.id
       LEFT JOIN m_item_master im ON im.id = gi.item_id
       ${where}
-      ORDER BY grn.grn_date DESC, grn.grn_no
+      ORDER BY grn.ir_date DESC, grn.ir_no
     `;
     const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
     res.json(rows);
@@ -312,19 +312,19 @@ exports.getRawMaterialInspection = async (req, res) => {
     const { from, to } = req.query;
     const clauses = ['g.name = :rm'];
     const replacements = { rm: 'Raw Material' };
-    addDateRange(clauses, replacements, 'grn.grn_date', from, to);
+    addDateRange(clauses, replacements, 'grn.ir_date', from, to);
     const where = `WHERE ${clauses.join(' AND ')}`;
 
     const sql = `
-      SELECT grn.grn_no, grn.grn_date, grn.qa_status, grn.qa_by, grn.qa_date,
+      SELECT grn.ir_no, grn.ir_date, grn.qa_status, grn.qa_by, grn.qa_date,
              s.supplier_name, gi.item_code, im.item_name, gi.accepted_qty, gi.rejected_qty
-      FROM t_ir grn
+      FROM ir grn
       JOIN t_ir_item gi ON gi.grn_id = grn.id
       JOIN m_item_master im ON im.id = gi.item_id
       JOIN m_item_group g ON g.id = im.group_id
       LEFT JOIN m_party_master s ON s.id = grn.supplier_id
       ${where}
-      ORDER BY grn.grn_date DESC
+      ORDER BY grn.ir_date DESC
     `;
     const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
     res.json(rows);
@@ -381,20 +381,20 @@ exports.getRawMaterialPurchase = async (req, res) => {
     const { from, to, supplier_id } = req.query;
     const clauses = ['g.name = :rm'];
     const replacements = { rm: 'Raw Material' };
-    addDateRange(clauses, replacements, 'grn.grn_date', from, to);
+    addDateRange(clauses, replacements, 'grn.ir_date', from, to);
     addFilter(clauses, replacements, 'grn.supplier_id', supplier_id);
     const where = `WHERE ${clauses.join(' AND ')}`;
 
     const sql = `
-      SELECT grn.grn_no, grn.grn_date, s.supplier_name,
+      SELECT grn.ir_no, grn.ir_date, s.supplier_name,
               gi.item_code, im.item_name, gi.accepted_qty, gi.rate, gi.amount
-      FROM t_ir grn
+      FROM ir grn
       JOIN t_ir_item gi ON gi.grn_id = grn.id
       JOIN m_item_master im ON im.id = gi.item_id
       JOIN m_item_group g ON g.id = im.group_id
       LEFT JOIN m_party_master s ON s.id = grn.supplier_id
       ${where}
-      ORDER BY grn.grn_date DESC
+      ORDER BY grn.ir_date DESC
     `;
     const rows = await db.sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
     res.json(rows);

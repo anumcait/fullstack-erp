@@ -89,22 +89,66 @@ async function startServer(retries = MAX_RETRIES) {
         `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS node_type VARCHAR(20) NOT NULL DEFAULT 'SKU'`,
         `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS parent_id INTEGER`,
         `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS color VARCHAR(50)`,
-        // ── Inward Register: rename legacy t_grn -> t_ir (GRR + Jobwork/Resharpening/Loan/Maintenance) ──
-        `ALTER TABLE IF EXISTS t_grn RENAME TO t_ir`,
+        // ── Inward Register: rename legacy t_grn -> ir (GRR + Jobwork/Resharpening/Loan/Maintenance) ──
+        `ALTER TABLE IF EXISTS t_grn RENAME TO ir`,
         `ALTER TABLE IF EXISTS t_grn_item RENAME TO t_ir_item`,
+        // ── IR naming: unify table `ir` and column `ir_no` (idempotent) ──
+        `DO $$ BEGIN IF to_regclass('t_ir') IS NOT NULL AND to_regclass('ir') IS NULL THEN ALTER TABLE t_ir RENAME TO ir; END IF; END $$`,
+        `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'ir' AND column_name = 'grn_no') THEN ALTER TABLE ir RENAME COLUMN grn_no TO ir_no; END IF; END $$`,
+        `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'ir' AND column_name = 'grn_date') THEN ALTER TABLE ir RENAME COLUMN grn_date TO ir_date; END IF; END $$`,
+        // ── IR naming: re-point item/link FKs to `ir` if they still reference the old `t_ir` table ──
+        `DO $$
+         DECLARE ref TEXT;
+         BEGIN
+           SELECT confrelid::regclass::text INTO ref FROM pg_constraint WHERE conname = 't_ir_item_grn_id_fkey';
+           IF ref = 't_ir' THEN
+             ALTER TABLE t_ir_item DROP CONSTRAINT t_ir_item_grn_id_fkey;
+             ALTER TABLE t_ir_item ADD CONSTRAINT t_ir_item_grn_id_fkey FOREIGN KEY (grn_id) REFERENCES ir(id) ON UPDATE CASCADE ON DELETE CASCADE;
+           END IF;
+         END $$;`,
+        `DO $$
+         DECLARE ref TEXT;
+         BEGIN
+           SELECT confrelid::regclass::text INTO ref FROM pg_constraint WHERE conname = 't_ir_dc_ir_id_fkey';
+           IF ref = 't_ir' THEN
+             ALTER TABLE t_ir_dc DROP CONSTRAINT t_ir_dc_ir_id_fkey;
+             ALTER TABLE t_ir_dc ADD CONSTRAINT t_ir_dc_ir_id_fkey FOREIGN KEY (ir_id) REFERENCES ir(id) ON DELETE CASCADE;
+           END IF;
+         END $$;`,
+        // ── Inward Register (DC-based): add dc_type + DC link columns to existing ir ──
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS dc_type VARCHAR(20) NOT NULL DEFAULT 'L'`,
+        `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS dc_id INTEGER`,
+        `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS dc_item_id INTEGER`,
+        `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS qty_supplied DECIMAL(18,4) DEFAULT 0`,
+        `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS dc_qty DECIMAL(18,4) DEFAULT 0`,
+        `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS unit_id INTEGER`,
+        `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS uom VARCHAR(20)`,
+        `CREATE TABLE IF NOT EXISTS t_ir_dc (
+          ir_id INTEGER NOT NULL,
+          dc_id INTEGER NOT NULL,
+          PRIMARY KEY (ir_id, dc_id),
+          FOREIGN KEY (ir_id) REFERENCES ir(id) ON DELETE CASCADE,
+          FOREIGN KEY (dc_id) REFERENCES t_delivery_challan(id) ON DELETE CASCADE
+        )`,
         `ALTER TABLE IF EXISTS t_stock_audit_item ALTER COLUMN item_id DROP NOT NULL`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS cost_posted BOOLEAN NOT NULL DEFAULT FALSE`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) NOT NULL DEFAULT 'Pending'`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100)`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS approved_date DATE`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS approval_remarks TEXT`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS qa_status VARCHAR(20) NOT NULL DEFAULT 'Pending'`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS qa_by VARCHAR(100)`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS qa_date DATE`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS qa_remarks TEXT`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS bill_no VARCHAR(20)`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS bill_date DATE`,
-        `ALTER TABLE IF EXISTS t_ir ADD COLUMN IF NOT EXISTS ir_type VARCHAR(20) NOT NULL DEFAULT 'GRR'`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS cost_posted BOOLEAN NOT NULL DEFAULT FALSE`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) NOT NULL DEFAULT 'Pending'`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS approved_date DATE`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS cancel_remarks TEXT`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS cancel_by VARCHAR(100)`,
+         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS cancel_date TIMESTAMPTZ`,
+         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS inward_date DATE`,
+         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS approval_remarks TEXT`,
+         `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS work_order VARCHAR(50)`,
+         `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS opening DECIMAL(12,3) DEFAULT 0`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS qa_status VARCHAR(20) NOT NULL DEFAULT 'Pending'`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS qa_by VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS qa_date DATE`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS qa_remarks TEXT`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS bill_no VARCHAR(20)`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS bill_date DATE`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS ir_type VARCHAR(20) NOT NULL DEFAULT 'GRR'`,
         `ALTER TABLE IF EXISTS t_invoice ADD COLUMN IF NOT EXISTS paid_status VARCHAR(20) NOT NULL DEFAULT 'Unpaid'`,
         // ── PR Amendment audit trail (idempotent) ──
         `CREATE TABLE IF NOT EXISTS t_pr_amendment (
@@ -218,6 +262,7 @@ END $$;`,
         `ALTER TABLE IF EXISTS t_delivery_challan ALTER COLUMN dc_no DROP NOT NULL`,
         `ALTER TABLE IF EXISTS t_delivery_challan ADD COLUMN IF NOT EXISTS draft_no VARCHAR(30)`,
         `ALTER TABLE IF EXISTS t_delivery_challan ALTER COLUMN dc_date TYPE timestamptz USING dc_date::timestamp`,
+        `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS unit_id INTEGER`,
         `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS unit VARCHAR(20)`,
         `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS tag VARCHAR(50)`,
         `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS opn1 VARCHAR(50)`,

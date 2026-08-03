@@ -14,7 +14,7 @@ const ERP_PREFIXES = [
   'm_cost_center', 'm_customer_', 'm_stores_', 'm_purchase_', 'm_engineering_',
   'm_maintenance_', 'm_marketing_', 'm_planning_', 'm_production_', 'm_quality_',
   'm_subcontract_',
-  't_bom', 't_delivery_', 't_gate_', 't_invoice', 't_ir', 't_leads',
+  't_bom', 't_delivery_', 't_gate_', 't_invoice', 'ir', 't_leads',
   't_material_', 't_maintenance_', 't_non_', 't_planning_', 't_pr_',
   't_production_', 't_purchase_', 't_quality_', 't_quotation', 't_rfq',
   't_sales_', 't_sequence_', 't_stock_', 't_subcontract_', 't_vendor_',

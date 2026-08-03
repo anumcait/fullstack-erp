@@ -290,7 +290,7 @@ export default function GRNForm() {
   const [poFilter, setPoFilter] = useState("");
 
   const [header, setHeader] = useState({
-    grn_no: "", grn_date: nowLocal(), year: String(new Date().getFullYear()),
+    ir_no: "", ir_date: nowLocal(), year: String(new Date().getFullYear()),
     dept_cd: "", supplier_id: "", pr_id: "", po_id: "",
     invoice_no: "", invoice_date: "", inward_date: "",
     status: "Draft", received_by: "", notes: "",
@@ -378,7 +378,7 @@ export default function GRNForm() {
   var fetchNextGRN = useCallback(function () {
     if (id) return;
     axios.get(API + "/next-number").then(function (resp) {
-      setHeader(function (h) { return { ...h, grn_no: resp.data.grn_no || "" }; });
+      setHeader(function (h) { return { ...h, ir_no: resp.data.ir_no || "" }; });
     }).catch(function () { });
   }, [id]);
 
@@ -392,7 +392,7 @@ export default function GRNForm() {
       axios.get(API + "/" + id).then(function (resp) {
         var data = resp.data;
         setHeader({
-          grn_no: data.grn_no || "", grn_date: data.grn_date ? data.grn_date.slice(0, 16) : nowLocal(),
+          ir_no: data.ir_no || "", ir_date: data.ir_date ? data.ir_date.slice(0, 16) : nowLocal(),
           year: data.year || String(new Date().getFullYear()),
           dept_cd: data.dept_cd || "", supplier_id: data.supplier_id || "",
           pr_id: data.pr_id || "", po_id: data.po_id || "",
@@ -465,8 +465,8 @@ export default function GRNForm() {
 
   var validate = useCallback(function () {
     var errs = {};
-    if (!header.grn_no) errs.grn_no = "Required";
-    if (!header.grn_date) errs.grn_date = "Required";
+    if (!header.ir_no) errs.ir_no = "Required";
+    if (!header.ir_date) errs.ir_date = "Required";
     if (!header.supplier_id) errs.supplier_id = "Select a party";
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -483,7 +483,7 @@ export default function GRNForm() {
     var saveWithNumber = function (grnNumber) {
       var payload = {
         ...header, ir_type: "GRR", status,
-        grn_no: grnNumber || header.grn_no,
+        ir_no: grnNumber || header.ir_no,
 
         received_by: header.received_by || localStorage.getItem("empName") || "",
         supplier_id: parseInt(header.supplier_id) || null,
@@ -522,10 +522,10 @@ export default function GRNForm() {
     };
     if (!id && !isEdit) {
       axios.get(API + "/next-number").then(function (resp) {
-        saveWithNumber(resp.data.grn_no);
-      }).catch(function () { saveWithNumber(header.grn_no); });
+        saveWithNumber(resp.data.ir_no);
+      }).catch(function () { saveWithNumber(header.ir_no); });
     } else {
-      saveWithNumber(header.grn_no);
+      saveWithNumber(header.ir_no);
     }
   }, [header, items, isEdit, id, validate, showToast, navigate]);
 
@@ -760,13 +760,13 @@ export default function GRNForm() {
             </Box>
             <Box sx={{ display: "flex", gap: 1.5, mb: 1.5, flexWrap: "wrap", alignItems: "flex-start" }}>
               <Box sx={{ width: 160 }}>
-                <TextField label="GRR #" size="small" fullWidth value={header.grn_no}
-                  disabled error={Boolean(errors.grn_no)} helperText={errors.grn_no}
+                <TextField label="GRR #" size="small" fullWidth value={header.ir_no}
+                  disabled error={Boolean(errors.ir_no)} helperText={errors.ir_no}
                   InputLabelProps={{ shrink: true }} sx={fsx} />
               </Box>
               <Box sx={{ width: 200 }}>
-                <TextField label="GRR Date" type="datetime-local" size="small" fullWidth value={header.grn_date}
-                  disabled error={Boolean(errors.grn_date)} helperText={errors.grn_date}
+                <TextField label="GRR Date" type="datetime-local" size="small" fullWidth value={header.ir_date}
+                  disabled error={Boolean(errors.ir_date)} helperText={errors.ir_date}
                   InputLabelProps={{ shrink: true }} sx={fsx} />
               </Box>
               <Box sx={{ width: 135 }}>
