@@ -18,7 +18,8 @@ async function generateIrNo() {
 async function getPendingDCs(req, res) {
   try {
     const { search, party_id, dc_type, date_from, date_to } = req.query;
-    const where = { status: 'Approved' };
+    // Non Returnable DCs (N) never come back, so they are never pending for an IR receipt.
+    const where = { status: 'Approved', dc_type: { [Op.ne]: 'N' } };
     if (dc_type) where.dc_type = dc_type;
     if (party_id) where.party_id = party_id;
     if (search) where[Op.or] = [{ dc_no: { [Op.iLike]: `%${search}%` } }, { party_name: { [Op.iLike]: `%${search}%` } }];

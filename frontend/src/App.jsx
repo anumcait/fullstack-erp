@@ -159,6 +159,8 @@ import DeliveryChallanForm from "./Component/ERP/Stores/DeliveryChallan/Delivery
 import DcPreparationForm from "./Component/ERP/Stores/DeliveryChallan/DcPreparationForm.jsx";
 import RepairChallanForm from "./Component/ERP/Stores/DeliveryChallan/RepairChallanForm.jsx";
 import MaintenanceChallanForm from "./Component/ERP/Stores/DeliveryChallan/MaintenanceChallanForm.jsx";
+import NonReturnableChallanForm from "./Component/ERP/Stores/DeliveryChallan/NonReturnableChallanForm.jsx";
+import NonReturnableChallanList from "./Component/ERP/Stores/DeliveryChallan/NonReturnableChallanList.jsx";
 import InwardRegisterList from "./Component/ERP/Stores/InwardRegister/InwardRegisterList.jsx";
 import InwardRegisterForm from "./Component/ERP/Stores/InwardRegister/InwardRegisterForm.jsx";
 import DcBillingList from "./Component/ERP/Stores/SaleOnApproval/DcBillingList.jsx";
@@ -346,6 +348,12 @@ function App() {
                     <Route path="/stores/delivery-challans/maintenance/new" element={<MaintenanceChallanForm />} />
                     <Route path="/stores/delivery-challans/maintenance/view/:id" element={<MaintenanceChallanForm />} />
                     <Route path="/stores/delivery-challans/maintenance/edit/:id" element={<MaintenanceChallanForm />} />
+
+                    {/* Non Returnable Gate Pass (separate menu from Delivery Challans) */}
+                    <Route path="/stores/non-returnable-gate-passes" element={<NonReturnableChallanList />} />
+                    <Route path="/stores/non-returnable-gate-passes/new" element={<NonReturnableChallanForm />} />
+                    <Route path="/stores/non-returnable-gate-passes/view/:id" element={<NonReturnableChallanForm />} />
+                    <Route path="/stores/non-returnable-gate-passes/edit/:id" element={<NonReturnableChallanForm />} />
 
                     {/* Inward Register */}
                     <Route path="/stores/inward-registers" element={<InwardRegisterList />} />

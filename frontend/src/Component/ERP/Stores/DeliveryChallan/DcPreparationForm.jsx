@@ -20,7 +20,7 @@ import DeliveryChallanPreview from "./DeliveryChallanPreview";
 const API = "/api/erp/stores/delivery-challans";
 const ITEMS_API = "/api/erp/stores/items";
 
-const dcTypeLabels = { L: "Replacement", R: "Repair", M: "Maintenance", J: "Jobwork", S: "Sale on Approval" };
+const dcTypeLabels = { L: "Replacement", R: "Repair", M: "Maintenance", J: "Jobwork", S: "Sale on Approval", N: "Non Returnable" };
 const DEPARTMENTS = ["Production", "Maintenance", "Quality", "Stores", "Engineering", "Planning", "Marketing", "HR", "Accounts", "Purchase", "Other"];
 
 const blankItem = () => ({ tempId: Date.now() + Math.random(), item_grp: "", wo_no: "", hs_code: "", tag: "", opn1: "", opn2: "", opn3: "", item_id: "", item_code: "", item_name: "", uom: "", unit_id: "", qty: "", rate: "", remarks: "", req_date: "" });
@@ -34,9 +34,11 @@ const toIsoUtc = (localStr) => {
 const pad2 = (n) => String(n).padStart(2, "0");
 // Draft reference number = next real DC number (last + 1) + current time HHMMSS
 // (e.g. last real "7" + "114224" = "8114224") so it previews the number it gets on approval.
-const draftRef = (lastNumber) => {
+// Sale on Approval and Non Returnable types use a prefixed series (SA / none).
+const TYPE_PREFIX = { S: "SA", N: "" };
+const draftRef = (lastNumber, dcType) => {
   const d = new Date();
-  return `${Number(lastNumber) + 1}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+  return `${TYPE_PREFIX[dcType] || ""}${Number(lastNumber) + 1}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
 };
 
 const toLocalInput = (iso) => {
@@ -122,7 +124,7 @@ export default function DcPreparationForm() {
       axios.get("/api/employees").then(({ data }) => setEmployees(Array.isArray(data) ? data : [])).catch(() => []),
     ];
     // Only new (draft) challans preview the next DC number; it is issued at approval.
-    if (!id) reqs.push(axios.get(`${API}/next-number`).then(({ data }) => setForm((f) => ({ ...f, dc_no: draftRef(data.last_number ?? "0") }))).catch(() => {}));
+    if (!id) reqs.push(axios.get(`${API}/next-number`, { params: { dc_type: dcCode || 'S' } }).then(({ data }) => setForm((f) => ({ ...f, dc_no: draftRef(data.last_number ?? "0", dcCode || 'S') }))).catch(() => {}));
     Promise.all(reqs).finally(() => {
       if (!id) setInitialLoading(false);
     });
@@ -171,7 +173,8 @@ export default function DcPreparationForm() {
         const raw = data.updated_at || data.dc_date;
         const d = raw ? new Date(raw) : new Date();
         const src = isNaN(d) ? new Date() : d;
-        const ref = `${last}${pad2(src.getHours())}${pad2(src.getMinutes())}${pad2(src.getSeconds())}`;
+        const dcType = data.dc_type || "S";
+        const ref = `${TYPE_PREFIX[dcType] || ""}${last}${pad2(src.getHours())}${pad2(src.getMinutes())}${pad2(src.getSeconds())}`;
         setForm((f) => ({ ...f, dc_no: ref }));
       }
     }).catch(() => {

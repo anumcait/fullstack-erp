@@ -17,6 +17,7 @@ module.exports = (sequelize) => {
       opn2: { type: DataTypes.STRING(50), allowNull: true },
       opn3: { type: DataTypes.STRING(50), allowNull: true },
       quantity: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+      order_prod_qty: { type: DataTypes.DECIMAL(12, 2), allowNull: true },
       rate: { type: DataTypes.DECIMAL(12, 2), allowNull: true },
       unit_id: { type: DataTypes.INTEGER, allowNull: true },
       unit: { type: DataTypes.STRING(20), allowNull: true },

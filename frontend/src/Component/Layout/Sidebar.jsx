@@ -73,7 +73,8 @@ const SUBMENUS = {
   hrReports: ["/hr/reports", "/pf-accounting"],
   storeMaster: ["/stores/item-master", "/stores/uom", "/stores/item-groups", "/stores/item-types"],
   storeInv: ["/inventory/ledger", "/stores/day-wise-stock", "/stores/stock-audit"],
-  storeTrans: ["/stores/gate-entry", "/stores/grr", "/stores/grr-billing", "/stores/material-issues", "/stores/material-requisitions", "/stores/material-returns", "/stores/delivery-challans", "/stores/inward-registers", "/stores/sale-approval", "/stores/invoices"],
+  storeDc: ["/stores/delivery-challans", "/stores/non-returnable-gate-passes"],
+  storeTrans: ["/stores/gate-entry", "/stores/grr", "/stores/grr-billing", "/stores/material-issues", "/stores/material-requisitions", "/stores/material-returns", "/stores/inward-registers", "/stores/sale-approval", "/stores/invoices"],
   purPR: ["/purchase/requisitions"],
   purProc: ["/purchase/rfq", "/purchase/orders"],
   purVend: ["/purchase/vendors", "/purchase/prices", "/purchase/rating"],
@@ -173,6 +174,12 @@ const Sidebar = () => {
       const base = path.split("?")[0];
       return base === p || base.startsWith(p + "/");
     });
+
+  // Match a path ignoring query string (the Delivery Challans list uses ?type=).
+  const dcActive = (p) => {
+    const base = path.split("?")[0];
+    return base === p || base.startsWith(p + "/");
+  };
 
   let activeModule = "HR";
 
@@ -534,6 +541,35 @@ const Sidebar = () => {
                 )}
               </li>
             )}
+            {hasPermission('STORES_ISSUE') && (
+              <li className={`sidebar-menu-item ${openSubmenu === "storeDc" ? "open" : ""} ${isSubmenuActive("storeDc") ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeDc")}>
+                  <FiTruck />
+                  {!collapsed && (
+                    <>
+                      <span>Delivery Challans</span>
+                      <span className="expand-icon">{openSubmenu === "storeDc" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                    </>
+                  )}
+                </div>
+                {openSubmenu === "storeDc" && (
+                  <ul className="sidebar-submenu">
+                    <li>
+                      <NavLink to="/stores/delivery-challans" onClick={(e) => handleNavClick("/stores/delivery-challans", e)}
+                        className={`sidebar-menu-link ${dcActive("/stores/delivery-challans") ? "sidebar-active" : ""}`}>
+                        <FiRotateCcw size={collapsed ? 20 : 16} />{!collapsed && <span>Returnable</span>}
+                      </NavLink>
+                    </li>
+                    <li>
+                      <NavLink to="/stores/non-returnable-gate-passes" onClick={(e) => handleNavClick("/stores/non-returnable-gate-passes", e)}
+                        className={`sidebar-menu-link ${dcActive("/stores/non-returnable-gate-passes") ? "sidebar-active" : ""}`}>
+                        <FiBox size={collapsed ? 20 : 16} />{!collapsed && <span>Non Returnable</span>}
+                      </NavLink>
+                    </li>
+                  </ul>
+                )}
+              </li>
+            )}
             {(hasPermission('STORES_GATE') || hasPermission('STORES_GRN') || hasPermission('STORES_ISSUE') || hasPermission('STORES_RETURN')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "storeTrans" ? "open" : ""} ${isSubmenuActive("storeTrans") ? "sidebar-active-parent" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeTrans")}>
@@ -552,7 +588,6 @@ const Sidebar = () => {
                     {hasPermission('STORES_ISSUE') && <SubItem to="/stores/material-issues" label="Material Issue" icon={FiShare} />}
                     {hasPermission('STORES_MR') && <SubItem to="/stores/material-requisitions" label="Material Requisition" icon={FiFilePlus} />}
                     {hasPermission('STORES_RETURN') && <SubItem to="/stores/material-returns" label="Material Return" icon={FiRotateCcw} />}
-                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/delivery-challans" label="Delivery Challan" icon={FiTruck} />}
                     {hasPermission('STORES_ISSUE') && <SubItem to="/stores/inward-registers" label="Inward Register" icon={FiClipboard} />}
                     {hasPermission('STORES_ISSUE') && <SubItem to="/stores/grr-billing" label="GRR Billing" icon={FiCreditCard} />}
                   </ul>

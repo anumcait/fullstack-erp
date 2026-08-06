@@ -5,7 +5,8 @@ import logo from "../../../../assets/images/EQIC_Image.jpg";
 import { useCompany } from "../../../../context/CompanyContext";
 
 const FORM_NO = "Str./F06/L/Rev.02/Dec'18";
-const typeLabels = { L: "Replacement", R: "Repair", M: "Maintenance", J: "Jobwork", S: "Sale on Approval" };
+const typeLabels = { L: "Replacement", R: "Repair", M: "Maintenance", J: "Jobwork", S: "Sale on Approval", N: "Non Returnable" };
+const TYPE_PREFIX = { S: "SA", N: "" };
 
 const pad = (n) => String(n).padStart(2, "0");
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
@@ -65,7 +66,7 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
     const raw = data.updated_at || data.dc_date;
     const d = raw ? new Date(raw) : null;
     if (data.last_number && d && !isNaN(d)) {
-      return `${Number(data.last_number) + 1}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+      return `${TYPE_PREFIX[data.dc_type] || ""}${Number(data.last_number) + 1}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
     }
     return "-";
   })();
@@ -95,7 +96,11 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
               {companySettings.show_format_no !== false ? <div className="dc-format-no">{FORM_NO}</div> : null}
             </div>
           </div>
-          <div className="dc-title-strip">Returnable Gate Pass Cum Delivery Challan</div>
+          <div className="dc-title-strip">
+            {data.dc_type === 'N' ? 'Non Returnable Gate Pass Cum Delivery Challan'
+              : data.dc_type === 'S' ? 'Sale on Approval Gate Pass Cum Delivery Challan'
+                : 'Returnable Gate Pass Cum Delivery Challan'}
+          </div>
           {deptTypeText ? <div className="dc-dept-strip">{deptTypeText}</div> : null}
         </div>
 
@@ -118,11 +123,37 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
               <span className="dc-detail-label">DC Date</span>
               <span className="dc-detail-value">{formatDcDate(data.dc_date) || "-"}</span>
             </div>
+            {data.dc_type === 'N' && data.non_returnable_type ? (
+              <div className="dc-detail-row">
+                <span className="dc-detail-label">Purpose</span>
+                <span className="dc-detail-value">{data.non_returnable_type}</span>
+              </div>
+            ) : null}
+            {data.through ? (
+              <div className="dc-detail-row">
+                <span className="dc-detail-label">Through</span>
+                <span className="dc-detail-value">{data.through}</span>
+              </div>
+            ) : null}
+            {data.authorization_ref ? (
+              <div className="dc-detail-row">
+                <span className="dc-detail-label">Auth Ref</span>
+                <span className="dc-detail-value">{data.authorization_ref}</span>
+              </div>
+            ) : null}
+            {data.transfer_location ? (
+              <div className="dc-detail-row">
+                <span className="dc-detail-label">Transfer To</span>
+                <span className="dc-detail-value">{data.transfer_location}</span>
+              </div>
+            ) : null}
           </div>
         </div>
 
         <div className="dc-note">
-          The following goods are sent for jobwork purpose to do the operations mentioned against each item and return the same after completion of jobwork.
+          {data.dc_type === 'N'
+            ? `The following goods are dispatched on a non-returnable basis${data.non_returnable_type ? ` for ${data.non_returnable_type} purpose` : ''} and are not required to be returned.`
+            : 'The following goods are sent for jobwork purpose to do the operations mentioned against each item and return the same after completion of jobwork.'}
         </div>
 
         <table className="dc-items">

@@ -5,9 +5,53 @@ const { postMovement, reverseMovements, getDefaultWarehouse, lockStock, negative
 
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
 
-async function generateDcNo() {
-  const [rows] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
-  return String(Number(rows[0]?.max_no || 0) + 1);
+// Every non-returnable DC sub-type posts a distinct stock-ledger entry at approval,
+// so reports can tell exactly what discharged the stock. "Other" (and a missing type)
+// falls back to the generic Delivery Challan entry.
+const NON_RETURNABLE_REF = {
+  Sale: REF_TYPES.SALES,
+  Scrap: REF_TYPES.SCRAP,
+  'Purchase Return': REF_TYPES.PURCHASE_RETURN,
+  Sample: REF_TYPES.SAMPLE,
+  Donation: REF_TYPES.DONATION,
+  'Write-off': REF_TYPES.WRITE_OFF,
+  'Internal Transfer': REF_TYPES.INTERNAL_TRANSFER,
+  CSP: REF_TYPES.CSP,
+  Jobwork: REF_TYPES.INTERNAL_TRANSFER,
+};
+
+// Resolve the stock-ledger reference type for a DC. Non-returnable DCs use their purpose;
+// every other DC uses the generic Delivery Challan entry.
+const dcRefType = (dc) =>
+  dc?.dc_type === 'N' ? NON_RETURNABLE_REF[dc.non_returnable_type] : REF_TYPES.DELIVERY_CHALLAN;
+
+// Each prefixed DC type keeps its own numbering series, while L/R/M/J share one plain
+// numeric series. Prefixes are used for series that are billed/returned or never received
+// back (Sale on Approval = SA, Non Returnable = NR).
+const DC_TYPE_PREFIX = { S: 'SA', N: '' };
+
+// Fixed SQL per series (no user input interpolated) to avoid any injection risk.
+const SERIES_SQL = {
+  S: `SELECT COALESCE(MAX(CAST(SUBSTRING(dc_no FROM '^SA([0-9]+)') AS INTEGER)), 0) AS max_no
+        FROM t_delivery_challan WHERE dc_type = 'S' AND dc_no ~ '^SA[0-9]+$'`,
+  N: `SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no
+         FROM t_delivery_challan WHERE dc_type = 'N' AND dc_no ~ '^[0-9]+$'`,
+  PLAIN: `SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no
+           FROM t_delivery_challan WHERE dc_type NOT IN ('S','N') AND dc_no ~ '^[0-9]+$'`,
+};
+
+// Resolve the next challan number and the last issued number for a given DC type.
+async function nextDcNumber(dcType) {
+  const sql = SERIES_SQL[dcType] || SERIES_SQL.PLAIN;
+  const [rows] = await db.sequelize.query(sql);
+  const last = Number(rows[0]?.max_no || 0);
+  const prefix = DC_TYPE_PREFIX[dcType] || '';
+  return { next: prefix + (last + 1), last };
+}
+
+async function generateDcNo(dcType) {
+  const { next } = await nextDcNumber(dcType);
+  return next;
 }
 
 // Return the first item that cannot be issued from available on-hand stock. Used to block
@@ -64,9 +108,9 @@ const postDcStock = async (items, doc, refType, t, user) => {
 
 exports.getNextNumber = async (req, res) => {
   try {
-    const [rows] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
-    const last = Number(rows[0]?.max_no || 0);
-    res.json({ dc_no: String(last + 1), last_number: String(last) });
+    const { dc_type } = req.query;
+    const { next, last } = await nextDcNumber(dc_type);
+    res.json({ dc_no: next, last_number: String(last) });
   } catch (err) {
     console.error("Error generating DC number:", err);
     res.status(500).json({ error: "Failed to generate DC number" });
@@ -96,13 +140,16 @@ exports.getList = async (req, res) => {
     }
     if (search) where[Op.or] = [{ dc_no: { [Op.iLike]: `%${search}%` } }, { party_name: { [Op.iLike]: `%${search}%` } }];
     const rows = await db.DeliveryChallan.findAll({ where, order: [['dc_date', 'DESC']] });
-    const [lastRow] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
-    const lastNo = Number(lastRow[0]?.max_no || 0);
-    // Drafts carry no real number; expose the last real number so the UI can build a
-    // local-time draft reference (draft no = last real no + local HHMMSS of creation).
+    // Drafts carry no real number; expose the last real number per series so the UI can
+    // build a local-time draft reference (draft no = last real no + local HHMMSS of creation).
+    const lastByType = {};
+    for (const type of ['S', 'N', 'PLAIN']) {
+      const [lastRow] = await db.sequelize.query(SERIES_SQL[type]);
+      lastByType[type] = Number(lastRow[0]?.max_no || 0);
+    }
     const withRef = rows.map((r) => {
       const d = r.toJSON();
-      if (!d.dc_no) d.last_number = String(lastNo);
+      if (!d.dc_no) d.last_number = String(lastByType[d.dc_type === 'S' || d.dc_type === 'N' ? d.dc_type : 'PLAIN']);
       return d;
     });
     res.json(withRef);
@@ -176,10 +223,10 @@ exports.getOne = async (req, res) => {
     });
     if (!dc) return res.status(404).json({ error: 'Delivery Challan not found' });
     const d = dc.toJSON();
-    // Drafts carry no real number; expose the last real number so the UI can build a
-    // local-time draft reference (draft no = last real no + local HHMMSS of creation).
+    // Drafts carry no real number; expose the last real number in the row's series so the
+    // UI can build a local-time draft reference (draft no = last real no + local HHMMSS).
     if (!d.dc_no) {
-      const [lastRow] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no FROM t_delivery_challan');
+      const [lastRow] = await db.sequelize.query(SERIES_SQL[d.dc_type === 'S' || d.dc_type === 'N' ? d.dc_type : 'PLAIN']);
       d.last_number = String(lastRow[0]?.max_no || 0);
     }
     res.json(d);
@@ -207,12 +254,14 @@ exports.create = async (req, res) => {
       party_name: body.party_name || null,
       returnable: body.dc_type === 'S' ? Boolean(body.returnable) : false,
       dc_type: body.dc_type || 'S',
+      non_returnable_type: body.non_returnable_type || null,
       expected_return_date: body.expected_return_date || null,
       reference_no: body.reference_no || null,
       maintenance_type: body.maintenance_type || null,
       vehicle_no: body.vehicle_no || null,
       driver_name: body.driver_name || null,
       department: body.department || null,
+      through: body.through || null,
       requested_by: body.requested_by || null,
       prepared_by: body.prepared_by || null,
       req_date: body.req_date || null,
@@ -234,6 +283,7 @@ exports.create = async (req, res) => {
           opn2: it.opn2 || null,
           opn3: it.opn3 || null,
           quantity: it.quantity || 0,
+          order_prod_qty: it.order_prod_qty || null,
           rate: it.rate || null,
           unit_id: it.unit_id || null,
           unit: it.unit || null,
@@ -267,12 +317,14 @@ exports.update = async (req, res) => {
       party_name: body.party_name || null,
       returnable: body.dc_type === 'S' ? Boolean(body.returnable) : false,
       dc_type: body.dc_type || dc.dc_type,
+      non_returnable_type: body.non_returnable_type || null,
       expected_return_date: body.expected_return_date || null,
       reference_no: body.reference_no || null,
       maintenance_type: body.maintenance_type || null,
       vehicle_no: body.vehicle_no || null,
       driver_name: body.driver_name || null,
       department: body.department || null,
+      through: body.through || null,
       requested_by: body.requested_by || null,
       prepared_by: body.prepared_by || dc.prepared_by || null,
       req_date: body.req_date || null,
@@ -297,6 +349,7 @@ exports.update = async (req, res) => {
           opn2: it.opn2 || null,
           opn3: it.opn3 || null,
           quantity: it.quantity || 0,
+          order_prod_qty: it.order_prod_qty || null,
           rate: it.rate || null,
           unit_id: it.unit_id || null,
           unit: it.unit || null,
@@ -327,13 +380,13 @@ exports.approve = async (req, res) => {
     dc.approved_by = req.body.approved_by || null;
     // DC number is issued at approval time so drafts never consume a number.
     if (dc.dc_no === null || dc.dc_no === undefined || dc.dc_no === '') {
-      dc.dc_no = await generateDcNo();
+      dc.dc_no = await generateDcNo(dc.dc_type);
     }
     // The challan is issued at the moment of approval — the DC date/time reflects the
     // actual dispatch (not the draft's creation time) and is used for the ledger date.
     dc.approved_date = new Date();
     dc.dc_date = new Date();
-    await postDcStock(dc.items, dc, REF_TYPES.DELIVERY_CHALLAN, t, user);
+    await postDcStock(dc.items, dc, dcRefType(dc), t, user);
     await dc.save({ transaction: t });
     await t.commit();
     res.json(dc);
@@ -363,7 +416,7 @@ exports.cancel = async (req, res) => {
       const itemIds = [...new Set(dc.items.map((x) => x.item_id).filter(Boolean))];
       for (const itemId of itemIds) {
         await reverseMovements(
-          { item_id: itemId, ref_type: REF_TYPES.DELIVERY_CHALLAN, ref_no: dc.dc_no, user },
+          { item_id: itemId, ref_type: dcRefType(dc), ref_no: dc.dc_no, user },
           t
         );
       }

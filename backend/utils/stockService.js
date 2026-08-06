@@ -23,6 +23,12 @@ const REF_TYPES = {
   INWARD_REGISTER: 'Inward Register',
   DAMAGE: 'Damage',
   WASTAGE: 'Wastage',
+  SCRAP: 'Scrap',
+  CSP: 'Customer Supplied Parts',
+  SAMPLE: 'Sample',
+  DONATION: 'Donation',
+  WRITE_OFF: 'Write-off',
+  INTERNAL_TRANSFER: 'Internal Transfer',
 };
 
 /**

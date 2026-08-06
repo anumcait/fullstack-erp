@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Box, Typography, Card, CardContent, TextField, Button, Chip, LinearProgress,
   Table, TableHead, TableRow, TableCell, TableBody, TableContainer, IconButton,
-  Tooltip, TablePagination, Tabs, Tab, alpha, Dialog, DialogTitle, DialogContent,
+  Tooltip, TablePagination, alpha, Dialog, DialogTitle, DialogContent,
   DialogActions, Select, MenuItem,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -19,27 +19,16 @@ import BlockIcon from "@mui/icons-material/Block";
 import PrintIcon from "@mui/icons-material/Print";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import axios from "axios";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "../../../../context/ToastContext";
-import DeliveryChallanPreview from "./DeliveryChallanPreview";
+import DeliveryChallanPreview from "../DeliveryChallan/DeliveryChallanPreview";
 
 const API = "/api/erp/stores/delivery-challans";
 
-const statusColor = { Draft: "default", Approved: "primary", Returned: "success", Cancelled: "error", Billed: "success" };
-const statusBg = { Draft: "#f1f5f9", Approved: "#eef2ff", Returned: "#e8f5e9", Cancelled: "#fef2f2", Billed: "#e8f5e9" };
-const typeLabels = { L: "Replacement", R: "Repair", M: "Maintenance", J: "Jobwork", S: "Sale on Approval", N: "Non Returnable" };
-const typeColors = { L: "#0f766e", R: "#be185d", M: "#155e75", J: "#4338ca", S: "#1565c0", N: "#6d28d9" };
-const TYPE_TABS = [
-  { label: "Replacement", code: "L" },
-  { label: "Repair", code: "R" },
-  { label: "Maintenance", code: "M" },
-  { label: "Jobwork", code: "J" },
-  { label: "Sale on Approval", code: "S" },
-];
-// Sale on Approval and Non Returnable use prefixed numbering series.
-const TYPE_PREFIX = { S: "SA", N: "" };
+const statusColor = { Draft: "default", Approved: "primary", Cancelled: "error" };
+const statusBg = { Draft: "#f1f5f9", Approved: "#eef2ff", Cancelled: "#fef2f2" };
+const TYPECOLOR = "#6d28d9";
 
 const fmtNum = (v) => {
   const n = Number(v);
@@ -102,8 +91,6 @@ const fmtDateTime = (v) => {
   return `${dd}-${mm}-${yyyy} ${hh}.${mi}`;
 };
 
-// Display a challan's number: real number if issued, else the derived draft reference
-// (next real number = last + 1, plus local HHMMSS of the draft's creation) built in browser-local time.
 const pad2 = (n) => String(n).padStart(2, "0");
 const dcRef = (r) => {
   if (r?.dc_no) return r.dc_no;
@@ -111,13 +98,11 @@ const dcRef = (r) => {
   if (!r) return "DRAFT";
   const d = (r.updated_at || r.dc_date) ? new Date(r.updated_at || r.dc_date) : new Date();
   if (!isNaN(d)) {
-    const prefix = TYPE_PREFIX[r.dc_type] || "";
-    return prefix + `${Number(r.last_number ?? "0") + 1}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+    return `${Number(r.last_number ?? "0") + 1}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
   }
   return "DRAFT";
 };
 
-// Distinct values for a column, used by the column-wise filter row.
 const distinctValues = (rows, key) => {
   const set = new Set();
   rows.forEach((r) => {
@@ -125,36 +110,22 @@ const distinctValues = (rows, key) => {
     if (key === "ref") v = dcRef(r);
     else if (key === "status") v = r.status;
     else if (key === "party_name") v = r.party_name;
+    else if (key === "purpose") v = r.non_returnable_type;
     else if (key === "requested_by") v = r.requested_by;
     else if (key === "prepared_by") v = r.prepared_by;
-    else if (key === "bill_no") v = r.bill_no;
     else v = r[key];
     if (v !== null && v !== undefined && String(v).trim() !== "") set.add(String(v));
   });
   return [...set].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 };
 
-export default function DeliveryChallanList() {
+export default function NonReturnableChallanList() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [searchParams] = useSearchParams();
-  const typeTabs = TYPE_TABS;
-  // Open the list on the tab matching the ?type= param (e.g. saving a Jobwork DC lands on
-  // Jobwork tab). Initialized from the URL so the very first fetch uses the right tab —
-  // this avoids the Replacement flash/race that occurred when the tab was set in an effect.
-  const [dcTypeTab, setDcTypeTab] = useState(() => {
-    const idx = TYPE_TABS.findIndex((x) => x.code === searchParams.get("type"));
-    return idx >= 0 ? idx : 0;
-  });
-  // React to ?type= changes while the list is already mounted.
-  useEffect(() => {
-    const idx = TYPE_TABS.findIndex((x) => x.code === searchParams.get("type"));
-    if (idx >= 0) setDcTypeTab(idx);
-  }, [searchParams]);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [colFilters, setColFilters] = useState({});
@@ -193,35 +164,27 @@ export default function DeliveryChallanList() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    const params = {};
+    const params = { dc_type: "N" };
     if (search) params.search = search;
     if (status) params.status = status;
-    if (typeTabs[dcTypeTab].code) params.dc_type = typeTabs[dcTypeTab].code;
     if (dateFrom) params.date_from = dateFrom;
     if (dateTo) params.date_to = dateTo;
     axios.get(API, { params })
       .then(({ data }) => setRows(data))
       .catch(() => showToast("Failed to load", "error"))
       .finally(() => setLoading(false));
-  }, [search, status, dcTypeTab, dateFrom, dateTo]);
+  }, [search, status, dateFrom, dateTo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const stats = useMemo(() => ({
     total: rows.length, draft: rows.filter((r) => r.status === "Draft").length,
     approved: rows.filter((r) => r.status === "Approved").length,
-    billed: rows.filter((r) => r.status === "Billed").length,
-    returned: rows.filter((r) => r.status === "Returned").length,
     cancelled: rows.filter((r) => r.status === "Cancelled").length,
   }), [rows]);
 
   const statusCounts = useMemo(() => ({
-    "": stats.total,
-    Draft: stats.draft,
-    Approved: stats.approved,
-    Billed: stats.billed,
-    Returned: stats.returned,
-    Cancelled: stats.cancelled,
+    "": stats.total, Draft: stats.draft, Approved: stats.approved, Cancelled: stats.cancelled,
   }), [stats]);
 
   const openApprove = async (id) => {
@@ -294,6 +257,7 @@ export default function DeliveryChallanList() {
       setApproveLoading(false);
     }
   };
+
   const filteredRows = useMemo(() => {
     const active = Object.entries(colFilters).filter(([, v]) => v);
     if (active.length === 0) return rows;
@@ -303,9 +267,9 @@ export default function DeliveryChallanList() {
         if (key === "ref") return ref === val;
         if (key === "status") return r.status === val;
         if (key === "party_name") return (r.party_name || "") === val;
+        if (key === "purpose") return (r.non_returnable_type || "") === val;
         if (key === "requested_by") return (r.requested_by || "") === val;
         if (key === "prepared_by") return (r.prepared_by || "") === val;
-        if (key === "bill_no") return (r.bill_no || "") === val;
         return String(r[key] ?? "") === String(val);
       });
     });
@@ -329,41 +293,31 @@ export default function DeliveryChallanList() {
   const totalCount = sorted.length;
   const pagedRows = sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  const activeTypeColor = typeColors[typeTabs[dcTypeTab]?.code] || "#1565c0";
-  const thSx = { fontWeight: 700, fontSize: "0.85rem", color: "#0f172a", border: "1px solid #cbd5e1", position: "sticky", top: 0, zIndex: 2, bgcolor: alpha(activeTypeColor, 0.1), whiteSpace: "nowrap", py: 0.7, px: 0.8, lineHeight: 1.2 };
+  const thSx = { fontWeight: 700, fontSize: "0.85rem", color: "#0f172a", border: "1px solid #cbd5e1", position: "sticky", top: 0, zIndex: 2, bgcolor: alpha(TYPECOLOR, 0.1), whiteSpace: "nowrap", py: 0.7, px: 0.8, lineHeight: 1.2 };
   const thFilterSx = { ...thSx, fontWeight: 600, fontSize: "0.72rem", bgcolor: "#fff", borderTop: "2px solid #e2e8f0", py: 0.5 };
   const tdSx = { fontSize: "0.8rem", py: 0.5, px: 0.7, border: "1px solid #eef2f7" };
-  const typeRoute = (code) => code === "R" ? "repair" : code === "M" ? "maintenance" : code === "N" ? "non-returnable" : null;
-  const newPath = (() => {
-    const t = typeRoute(typeTabs[dcTypeTab].code);
-    return t ? `/stores/delivery-challans/${t}/new` : "/stores/delivery-challans/prepare/" + typeTabs[dcTypeTab].code;
-  })();
-  const viewPath = (r) => {
-    const t = typeRoute(r.dc_type);
-    return t ? `/stores/delivery-challans/${t}/view/${r.id}` : `/stores/delivery-challans/view/${r.id}`;
-  };
-  const editPath = (r) => {
-    const t = typeRoute(r.dc_type);
-    return t ? `/stores/delivery-challans/${t}/edit/${r.id}` : `/stores/delivery-challans/edit/${r.id}`;
-  };
+
+  const newPath = "/stores/non-returnable-gate-passes/new";
+  const viewPath = (r) => `/stores/non-returnable-gate-passes/view/${r.id}`;
+  const editPath = (r) => `/stores/non-returnable-gate-passes/edit/${r.id}`;
 
   return (
     <Box sx={{ p: 3, minHeight: "100vh", background: "linear-gradient(180deg, #f0f4fa 0%, #f8fafc 30%, #fbfcfe 100%)" }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box sx={{ width: 44, height: 44, borderRadius: 3, bgcolor: alpha(activeTypeColor, 0.12), display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 6px 16px ${alpha(activeTypeColor, 0.18)}` }}>
-            <DescriptionOutlinedIcon sx={{ fontSize: 24, color: activeTypeColor }} />
+          <Box sx={{ width: 44, height: 44, borderRadius: 3, bgcolor: alpha(TYPECOLOR, 0.12), display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 6px 16px ${alpha(TYPECOLOR, 0.18)}` }}>
+            <DescriptionOutlinedIcon sx={{ fontSize: 24, color: TYPECOLOR }} />
           </Box>
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px", lineHeight: 1.2 }}>Delivery Challans</Typography>
-            <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, fontSize: "0.72rem" }}>{typeTabs[dcTypeTab].label} · {totalCount} records</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px", lineHeight: 1.2 }}>Non Returnable Gate Pass (NRGP)</Typography>
+            <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, fontSize: "0.72rem" }}>Non Returnable · {totalCount} records</Typography>
           </Box>
         </Box>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           <Button variant="contained" startIcon={<AddIcon />}
             onClick={() => navigate(newPath)}
-            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700, px: 2.5, bgcolor: activeTypeColor, "&:hover": { bgcolor: alpha(activeTypeColor, 0.85), transform: "translateY(-1px)" }, boxShadow: `0 6px 16px ${alpha(activeTypeColor, 0.3)}`, transition: "all 0.15s" }}>
-            {typeTabs[dcTypeTab].label}
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700, px: 2.5, bgcolor: TYPECOLOR, "&:hover": { bgcolor: alpha(TYPECOLOR, 0.85), transform: "translateY(-1px)" }, boxShadow: `0 6px 16px ${alpha(TYPECOLOR, 0.3)}`, transition: "all 0.15s" }}>
+            Non Returnable
           </Button>
           <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData} sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, borderColor: "#cbd5e1", color: "#475569", bgcolor: "#fff", minWidth: 40, "&:hover": { bgcolor: "#f8fafc", borderColor: "#94a3b8" } }} />
         </Box>
@@ -378,12 +332,12 @@ export default function DeliveryChallanList() {
                 <Chip key={p.label} label={p.label} size="small"
                   variant={isActive ? "filled" : "outlined"}
                   onClick={() => applyPreset(p.days)}
-                  sx={{ fontWeight: 700, cursor: "pointer", borderRadius: 1.5, fontSize: "0.7rem", bgcolor: isActive ? alpha(activeTypeColor, 0.1) : "transparent", borderColor: isActive ? alpha(activeTypeColor, 0.3) : "#e2e8f0", color: isActive ? activeTypeColor : "#64748b", "&:hover": { bgcolor: alpha(activeTypeColor, 0.06) } }} />
+                  sx={{ fontWeight: 700, cursor: "pointer", borderRadius: 1.5, fontSize: "0.7rem", bgcolor: isActive ? alpha(TYPECOLOR, 0.1) : "transparent", borderColor: isActive ? alpha(TYPECOLOR, 0.3) : "#e2e8f0", color: isActive ? TYPECOLOR : "#64748b", "&:hover": { bgcolor: alpha(TYPECOLOR, 0.06) } }} />
               );
             })}
             <Box sx={{ flex: 1 }} />
             <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-              {["", "Draft", "Approved", "Billed", "Returned", "Cancelled"].map((s) => (
+              {["", "Draft", "Approved", "Cancelled"].map((s) => (
                 <Chip key={s || "all"} size="small"
                   variant={status === s ? "filled" : "outlined"}
                   color={status === s ? (statusColor[s] || "default") : "default"}
@@ -392,7 +346,7 @@ export default function DeliveryChallanList() {
                     {s || "All"}
                     <Box component="span" sx={{
                       px: 0.55, py: 0.05, borderRadius: 1, fontSize: "0.6rem", fontWeight: 800, lineHeight: 1.3,
-                      bgcolor: status === s ? "rgba(255,255,255,0.28)" : alpha(activeTypeColor, 0.1), color: status === s ? "inherit" : activeTypeColor,
+                      bgcolor: status === s ? "rgba(255,255,255,0.28)" : alpha(TYPECOLOR, 0.1), color: status === s ? "inherit" : TYPECOLOR,
                     }}>{statusCounts[s] ?? 0}</Box>
                   </Box>}
                   sx={{ fontWeight: 600, cursor: "pointer", borderRadius: 1.5, fontSize: "0.68rem", py: 0.4, "&:hover": { opacity: 0.85 } }} />
@@ -404,8 +358,8 @@ export default function DeliveryChallanList() {
               onChange={(e) => setDateFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 150, "& .MuiInputBase-root": { fontSize: "0.78rem", borderRadius: 1.5 } }} />
             <TextField size="small" label="To" type="date" value={dateTo}
               onChange={(e) => setDateTo(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 150, "& .MuiInputBase-root": { fontSize: "0.78rem", borderRadius: 1.5 } }} />
-            <TextField size="small" placeholder="Search DC#, Party..." value={search}
-              onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchData()} sx={{ width: 200, "& .MuiInputBase-root": { fontSize: "0.78rem", borderRadius: 1.5 } }}
+            <TextField size="small" placeholder="Search NRGP#, Party..." value={search}
+              onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchData()} sx={{ width: 220, "& .MuiInputBase-root": { fontSize: "0.78rem", borderRadius: 1.5 } }}
               InputProps={{ startAdornment: React.createElement(SearchIcon, { sx: { fontSize: 17, mr: 0.5, color: "#94a3b8" } }) }} />
             <Button variant="outlined" startIcon={<SearchIcon />} onClick={fetchData}
               sx={{ borderRadius: 1.5, textTransform: "none", fontWeight: 600, height: 40, borderColor: "#cbd5e1", color: "#475569" }}>Search</Button>
@@ -413,80 +367,68 @@ export default function DeliveryChallanList() {
         </CardContent>
       </Card>
 
-      <Box sx={{ mb: 0.5, borderBottom: 1, borderColor: "#e2e8f0" }}>
-        <Tabs value={dcTypeTab} onChange={(_, v) => { setDcTypeTab(v); setPage(0); }} variant="scrollable" scrollButtons="auto"
-          sx={{ "& .MuiTab-root": { fontWeight: 600, fontSize: "0.8rem", textTransform: "none", minHeight: 38, py: 0.5, color: "#64748b", transition: "color 0.2s" },
-            "& .Mui-selected": { color: activeTypeColor, fontWeight: 700 },
-            "& .MuiTabs-indicator": { backgroundColor: activeTypeColor, height: 2.5 } }}>
-          {typeTabs.map((t, i) => (
-            <Tab key={i} label={<Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
-              {t.label}
-              <Box sx={{ px: 0.7, py: 0.15, borderRadius: 1, fontSize: "0.62rem", fontWeight: 800, bgcolor: dcTypeTab === i ? typeColors[t.code] : "#f1f5f9", color: dcTypeTab === i ? "#fff" : "#64748b" }}>{t.code}</Box>
-            </Box>} />
-          ))}
-        </Tabs>
-      </Box>
-
       <Card sx={{ borderRadius: 3, boxShadow: "0 6px 20px rgba(15,23,42,0.06)", border: "1px solid #e8edf4", bgcolor: "rgba(255,255,255,0.9)", overflow: "hidden" }}>
         <CardContent sx={{ p: { xs: 1.5, md: 2 }, "&:last-child": { pb: 2 } }}>
           {loading && <LinearProgress sx={{ mb: 1, borderRadius: 1, height: 3 }} />}
           {!loading && totalCount === 0 && (
             <Box sx={{ textAlign: "center", py: 8, color: "#94a3b8" }}>
-              <Box sx={{ width: 72, height: 72, borderRadius: 4, bgcolor: alpha(activeTypeColor, 0.06), display: "flex", alignItems: "center", justifyContent: "center", mx: "auto", mb: 2 }}>
+              <Box sx={{ width: 72, height: 72, borderRadius: 4, bgcolor: alpha(TYPECOLOR, 0.06), display: "flex", alignItems: "center", justifyContent: "center", mx: "auto", mb: 2 }}>
                 <DescriptionOutlinedIcon sx={{ fontSize: 36, opacity: 0.3 }} />
               </Box>
-              <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#64748b" }}>No challans found</Typography>
-              <Typography sx={{ fontSize: "0.85rem", mt: 0.5, color: "#94a3b8" }}>Adjust filters or create a new {typeTabs[dcTypeTab].label} challan.</Typography>
-              <Button variant="contained" startIcon={<AddIcon />} sx={{ mt: 2.5, borderRadius: 2, textTransform: "none", fontWeight: 700, px: 3, bgcolor: activeTypeColor, "&:hover": { bgcolor: alpha(activeTypeColor, 0.85) } }}
-                onClick={() => navigate(newPath)}>Create {typeTabs[dcTypeTab].label}</Button>
+              <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#64748b" }}>No non returnable gate passes found</Typography>
+              <Typography sx={{ fontSize: "0.85rem", mt: 0.5, color: "#94a3b8" }}>Create a non returnable gate pass to dispatch goods permanently.</Typography>
+              <Button variant="contained" startIcon={<AddIcon />} sx={{ mt: 2.5, borderRadius: 2, textTransform: "none", fontWeight: 700, px: 3, bgcolor: TYPECOLOR, "&:hover": { bgcolor: alpha(TYPECOLOR, 0.85) } }}
+                onClick={() => navigate(newPath)}>Create Non Returnable</Button>
             </Box>
           )}
           {totalCount > 0 && (
             <>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, px: 0.5 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: "#475569", fontSize: "0.78rem" }}>
-                  <Box component="span" sx={{ color: activeTypeColor, fontWeight: 800 }}>{totalCount}</Box> records
+                  <Box component="span" sx={{ color: TYPECOLOR, fontWeight: 800 }}>{totalCount}</Box> records
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#94a3b8", fontWeight: 500, fontSize: "0.75rem" }}>
                   Page {page + 1} · {page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, totalCount)}
                 </Typography>
               </Box>
               <TableContainer sx={{ maxHeight: 520, overflow: "auto", borderRadius: 1.5, border: "1px solid #e8edf4" }}>
-                <Table size="small" stickyHeader sx={{ minWidth: 1120, borderCollapse: "separate", borderSpacing: 0 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1040, borderCollapse: "separate", borderSpacing: 0 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ ...thSx, width: 28, textAlign: "center" }}></TableCell>
                       <TableCell sx={{ ...thSx, width: 95, textAlign: "center" }}>Actions</TableCell>
                       <TableCell sx={{ ...thSx, width: 28, textAlign: "center" }}>#</TableCell>
-                      <TableCell sx={{ ...thSx, width: 115, textAlign: "center", cursor: "pointer" }} onClick={() => handleSort("dc_no")}>DC # {sortIcon("dc_no")}</TableCell>
+                      <TableCell sx={{ ...thSx, width: 110, textAlign: "center", cursor: "pointer" }} onClick={() => handleSort("dc_no")}>NRGP # {sortIcon("dc_no")}</TableCell>
                       <TableCell sx={{ ...thSx, width: 170, textAlign: "center", cursor: "pointer" }} onClick={() => handleSort("dc_date")}>Date{sortIcon("dc_date")}</TableCell>
-                      <TableCell sx={{ ...thSx, width: 160, cursor: "pointer" }} onClick={() => handleSort("party_name")}>Party{sortIcon("party_name")}</TableCell>
-                      <TableCell sx={{ ...thSx, width: 95, textAlign: "center" }}>Type</TableCell>
+                      <TableCell sx={{ ...thSx, width: 150, cursor: "pointer" }} onClick={() => handleSort("party_name")}>Party{sortIcon("party_name")}</TableCell>
+                      <TableCell sx={{ ...thSx, width: 130, textAlign: "center" }}>Purpose</TableCell>
                       <TableCell sx={{ ...thSx, width: 85, textAlign: "center", cursor: "pointer" }} onClick={() => handleSort("status")}>Status{sortIcon("status")}</TableCell>
-                      <TableCell sx={{ ...thSx, width: 105, textAlign: "center" }}>Requestor</TableCell>
+                      <TableCell sx={{ ...thSx, width: 100, textAlign: "center" }}>Requestor</TableCell>
                       <TableCell sx={{ ...thSx, width: 100, textAlign: "center" }}>Prepared By</TableCell>
                       <TableCell sx={{ ...thSx, width: 90, textAlign: "center" }}>Req. Date</TableCell>
-                      <TableCell sx={{ ...thSx, width: 90, textAlign: "center" }}>Bill #</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell sx={{ ...thFilterSx, width: 28 }}></TableCell>
                       <TableCell sx={{ ...thFilterSx, width: 95 }}></TableCell>
                       <TableCell sx={{ ...thFilterSx, width: 28 }}></TableCell>
-                      <TableCell sx={{ ...thFilterSx, width: 115 }}>
+                      <TableCell sx={{ ...thFilterSx, width: 110 }}>
                         <FilterSelect value={colFilters.ref || ""} options={distinctValues(rows, "ref")}
-                          onChange={(v) => setColFilters((f) => ({ ...f, ref: v }))} placeholder="All DC #" />
+                          onChange={(v) => setColFilters((f) => ({ ...f, ref: v }))} placeholder="All NRGP #" />
                       </TableCell>
                       <TableCell sx={{ ...thFilterSx, width: 170 }}></TableCell>
-                      <TableCell sx={{ ...thFilterSx, width: 160 }}>
+                      <TableCell sx={{ ...thFilterSx, width: 150 }}>
                         <FilterSelect value={colFilters.party_name || ""} options={distinctValues(rows, "party_name")}
                           onChange={(v) => setColFilters((f) => ({ ...f, party_name: v }))} placeholder="All Parties" />
                       </TableCell>
-                      <TableCell sx={{ ...thFilterSx, width: 95 }}></TableCell>
+                      <TableCell sx={{ ...thFilterSx, width: 130 }}>
+                        <FilterSelect value={colFilters.purpose || ""} options={distinctValues(rows, "purpose")}
+                          onChange={(v) => setColFilters((f) => ({ ...f, purpose: v }))} placeholder="All" />
+                      </TableCell>
                       <TableCell sx={{ ...thFilterSx, width: 85 }}>
                         <FilterSelect value={colFilters.status || ""} options={distinctValues(rows, "status")}
                           onChange={(v) => setColFilters((f) => ({ ...f, status: v }))} placeholder="All Status" />
                       </TableCell>
-                      <TableCell sx={{ ...thFilterSx, width: 105 }}>
+                      <TableCell sx={{ ...thFilterSx, width: 100 }}>
                         <FilterSelect value={colFilters.requested_by || ""} options={distinctValues(rows, "requested_by")}
                           onChange={(v) => setColFilters((f) => ({ ...f, requested_by: v }))} placeholder="All" />
                       </TableCell>
@@ -495,10 +437,6 @@ export default function DeliveryChallanList() {
                           onChange={(v) => setColFilters((f) => ({ ...f, prepared_by: v }))} placeholder="All" />
                       </TableCell>
                       <TableCell sx={{ ...thFilterSx, width: 90 }}></TableCell>
-                      <TableCell sx={{ ...thFilterSx, width: 90 }}>
-                        <FilterSelect value={colFilters.bill_no || ""} options={distinctValues(rows, "bill_no")}
-                          onChange={(v) => setColFilters((f) => ({ ...f, bill_no: v }))} placeholder="All" />
-                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -506,42 +444,36 @@ export default function DeliveryChallanList() {
                       <React.Fragment key={r.id}>
                       <TableRow hover
                         onDoubleClick={() => navigate(viewPath(r))}
-                        sx={{ bgcolor: idx % 2 === 0 ? "#fff" : "#f8fafc", "&:hover": { bgcolor: alpha(activeTypeColor, 0.05) }, transition: "background 0.15s", cursor: "pointer" }}>
+                        sx={{ bgcolor: idx % 2 === 0 ? "#fff" : "#f8fafc", "&:hover": { bgcolor: alpha(TYPECOLOR, 0.05) }, transition: "background 0.15s", cursor: "pointer" }}>
                         <TableCell sx={{ ...tdSx, textAlign: "center" }}>
                           <Tooltip title={expandedId === r.id ? "Collapse" : "Expand details"}>
-                            <IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: activeTypeColor } }} onClick={(e) => { e.stopPropagation(); toggleExpand(r.id); }}>
+                            <IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: TYPECOLOR } }} onClick={(e) => { e.stopPropagation(); toggleExpand(r.id); }}>
                               {expandedId === r.id ? <ExpandMoreIcon sx={{ fontSize: 17 }} /> : <ChevronRightIcon sx={{ fontSize: 17 }} />}
                             </IconButton>
                           </Tooltip>
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", whiteSpace: "nowrap" }}>
                           <Tooltip title="Preview / Print"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#0f172a" } }} onClick={() => openPreview(r.id)}><PrintIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
-                          <Tooltip title="View"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: activeTypeColor } }} onClick={() => navigate(viewPath(r))}><VisibilityIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
+                          <Tooltip title="View"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: TYPECOLOR } }} onClick={() => navigate(viewPath(r))}><VisibilityIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
                           {r.status === "Draft" && (
                             <>
                               <Tooltip title="Edit"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#f59e0b" } }} onClick={() => navigate(editPath(r))}><EditIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
                               <Tooltip title="Approve / Cancel"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#1565c0" } }} onClick={() => openApprove(r.id)}><SendIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
                             </>
                           )}
-                           {r.status === "Approved" && r.dc_type !== "N" && (
-                             <>
-                               <Tooltip title="Make IR"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#059669" } }}
-                                 onClick={(e) => { e.stopPropagation(); navigate(`/stores/inward-registers/add?type=${r.dc_type || "L"}&prefill_dc=${r.id}`); }}>
-                                 <AddShoppingCartIcon sx={{ fontSize: 15 }} />
-                               </IconButton></Tooltip>
-                               <Tooltip title="Cancel"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#dc2626" } }} onClick={() => openApprove(r.id)}><BlockIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
-                             </>
-                           )}
+                          {r.status === "Approved" && (
+                            <Tooltip title="Cancel"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#dc2626" } }} onClick={() => openApprove(r.id)}><BlockIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
+                          )}
                         </TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#94a3b8", fontSize: "0.72rem" }}>{idx + 1}</TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, color: activeTypeColor, fontFamily: "monospace", fontSize: "0.82rem" }}>{dcRef(r)}</TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center", whiteSpace: "nowrap", fontSize: "0.78rem" }}>{fmtDateTime(r.dc_date)}</TableCell>
-                        <TableCell sx={{ ...tdSx, fontWeight: 600, maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.78rem" }}>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, color: "#0f172a", fontSize: "0.72rem" }}>{idx + 1}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 800, color: TYPECOLOR, fontFamily: "monospace", fontSize: "0.82rem" }}>{dcRef(r)}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center", whiteSpace: "nowrap", fontSize: "0.78rem", fontWeight: 600, color: "#0f172a" }}>{fmtDateTime(r.dc_date)}</TableCell>
+                        <TableCell sx={{ ...tdSx, fontWeight: 700, color: "#0f172a", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.78rem" }}>
                           <Tooltip title={r.party_name || "-"}><span>{r.party_name || "-"}</span></Tooltip>
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center" }}>
-                          <Box sx={{ px: 0.9, py: 0.2, borderRadius: 1, fontSize: "0.65rem", fontWeight: 800, display: "inline-block", bgcolor: alpha(typeColors[r.dc_type] || "#94a3b8", 0.16), color: typeColors[r.dc_type] || "#64748b", border: `1px solid ${alpha(typeColors[r.dc_type] || "#94a3b8", 0.4)}` }}>
-                            {typeLabels[r.dc_type] || r.dc_type || "SA"}
+                          <Box sx={{ px: 0.9, py: 0.2, borderRadius: 1, fontSize: "0.65rem", fontWeight: 800, display: "inline-block", bgcolor: alpha(TYPECOLOR, 0.12), color: TYPECOLOR, border: `1px solid ${alpha(TYPECOLOR, 0.35)}` }}>
+                            {r.non_returnable_type || r.dc_type || "NR"}
                           </Box>
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center" }}>
@@ -551,24 +483,19 @@ export default function DeliveryChallanList() {
                               r.cancel_by && `By: ${r.cancel_by}`,
                               r.cancel_date && `On: ${fmtDateTime(r.cancel_date)}`,
                             ].filter(Boolean).join("\n")}>
-                              <Box sx={{ px: 1, py: 0.2, borderRadius: 1.5, fontSize: "0.65rem", fontWeight: 700, display: "inline-block", bgcolor: alpha(statusBg[r.status] || "#f1f5f9", 0.8), color: statusColor[r.status] === "success" ? "#2e7d32" : statusColor[r.status] === "primary" ? "#1565c0" : statusColor[r.status] === "error" ? "#dc2626" : "#475569" }}>
-                                {r.status}
-                              </Box>
+                              <Box sx={{ px: 1, py: 0.2, borderRadius: 1.5, fontSize: "0.65rem", fontWeight: 700, display: "inline-block", bgcolor: "#fef2f2", color: "#dc2626" }}>{r.status}</Box>
                             </Tooltip>
                           ) : (
-                            <Box sx={{ px: 1, py: 0.2, borderRadius: 1.5, fontSize: "0.65rem", fontWeight: 700, display: "inline-block", bgcolor: alpha(statusBg[r.status] || "#f1f5f9", 0.8), color: statusColor[r.status] === "success" ? "#2e7d32" : statusColor[r.status] === "primary" ? "#1565c0" : statusColor[r.status] === "error" ? "#dc2626" : "#475569" }}>
-                              {r.status}
-                            </Box>
+                            <Box sx={{ px: 1, py: 0.2, borderRadius: 1.5, fontSize: "0.65rem", fontWeight: 700, display: "inline-block", bgcolor: r.status === "Approved" ? "#eef2ff" : "#f1f5f9", color: r.status === "Approved" ? "#1565c0" : "#475569" }}>{r.status || "Draft"}</Box>
                           )}
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", fontSize: "0.78rem" }}>{r.requested_by || "-"}</TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", fontSize: "0.78rem" }}>{r.prepared_by || "-"}</TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", whiteSpace: "nowrap", fontSize: "0.78rem" }}>{fmtDDMMYYYY(r.req_date)}</TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, fontSize: "0.78rem", color: r.bill_no ? "#2e7d32" : "#cbd5e1" }}>{r.bill_no || "-"}</TableCell>
                       </TableRow>
                       {expandedId === r.id && (
                         <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                          <TableCell colSpan={12} sx={{ p: 0, border: "1px solid #e2e8f0", borderTop: "2px solid #cbd5e1" }}>
+                          <TableCell colSpan={11} sx={{ p: 0, border: "1px solid #e2e8f0", borderTop: "2px solid #cbd5e1" }}>
                             <Box sx={{ p: 1.5 }}>
                               {expandLoading ? <LinearProgress sx={{ height: 3, borderRadius: 1 }} /> : (
                                 <TableContainer sx={{ border: "1px solid #e2e8f0", borderRadius: 1 }}>
@@ -593,9 +520,6 @@ export default function DeliveryChallanList() {
                                           <TableCell sx={{ fontSize: "0.75rem", border: "1px solid #e2e8f0" }}>{it.remarks || ""}</TableCell>
                                         </TableRow>
                                       ))}
-                                      {(expandedData?.items || []).length === 0 && !expandLoading && (
-                                        <TableRow><TableCell colSpan={8} sx={{ fontSize: "0.75rem", textAlign: "center", color: "#94a3b8", py: 2 }}>No items</TableCell></TableRow>
-                                      )}
                                     </TableBody>
                                   </Table>
                                 </TableContainer>
@@ -621,7 +545,7 @@ export default function DeliveryChallanList() {
 
       <Dialog open={Boolean(approveDc)} onClose={() => !approveLoading && (setApproveDc(null), setCancelMode(false), setCancelRemarks(""))} maxWidth="md" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, fontSize: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center", pr: 3 }}>
-          <Box>Delivery Challan — {dcRef(approveDc)}</Box>
+          <Box>Non Returnable Gate Pass — {dcRef(approveDc)}</Box>
           {approveDc && <Chip label={approveDc.status} size="small" color={approveDc.status === "Approved" ? "primary" : statusColor[approveDc.status] || "default"} sx={{ fontSize: "0.7rem", height: 22, fontWeight: 600 }} />}
         </DialogTitle>
         <DialogContent dividers>
@@ -630,17 +554,16 @@ export default function DeliveryChallanList() {
           ) : approveDc ? (
             <Box>
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 1.5, mb: 2 }}>
-                <SummaryField label="DC #" value={dcRef(approveDc)} />
+                <SummaryField label="NRGP #" value={dcRef(approveDc)} />
                 <SummaryField label="Date" value={fmtDateTime(approveDc.dc_date)} />
-                <SummaryField label="Type" value={typeLabels[approveDc.dc_type] || approveDc.dc_type || "-"} />
+                <SummaryField label="Purpose" value={approveDc.non_returnable_type} />
                 <SummaryField label="Party" value={approveDc.party_name} />
                 <SummaryField label="Department" value={approveDc.department} />
+                <SummaryField label="Through" value={approveDc.through} />
                 <SummaryField label="Requested By" value={approveDc.requested_by} />
                 <SummaryField label="Prepared By" value={approveDc.prepared_by} />
                 <SummaryField label="Req. Date" value={fmtDDMMYYYY(approveDc.req_date)} />
-                {approveDc.reference_no ? <SummaryField label="Job Reference" value={approveDc.reference_no} /> : null}
-                {approveDc.maintenance_type ? <SummaryField label="Maintenance Type" value={approveDc.maintenance_type} /> : null}
-                {approveDc.expected_return_date ? <SummaryField label="Expected Return" value={fmtDDMMYYYY(approveDc.expected_return_date)} /> : null}
+                {approveDc.reference_no ? <SummaryField label="Reference" value={approveDc.reference_no} /> : null}
                 {approveDc.remarks ? <SummaryField label="Remarks" value={approveDc.remarks} wide /> : null}
                 {approveDc.cancel_remarks ? <SummaryField label="Cancel Remarks" value={approveDc.cancel_remarks} wide /> : null}
                 {approveDc.cancel_by ? <SummaryField label="Cancelled By" value={approveDc.cancel_by} /> : null}
@@ -673,23 +596,15 @@ export default function DeliveryChallanList() {
               </TableContainer>
               {!cancelMode && approveDc.status === "Draft" && (
                 <Typography variant="caption" sx={{ color: "#dc2626", fontWeight: 600, display: "block", mt: 1.5 }}>
-                  Approving this challan will reduce stock for the listed items.
+                  Approving this gate pass will permanently reduce stock for the listed items and cannot be received back.
                 </Typography>
               )}
               {cancelMode && (
                 <>
                   {approveDc.status === "Approved" && (
                     <Typography variant="caption" sx={{ color: "#dc2626", fontWeight: 600, display: "block", mt: 1.5 }}>
-                      Cancelling this approved challan will restore stock for the listed items.
+                      Cancelling this approved gate pass will restore stock for the listed items.
                     </Typography>
-                  )}
-                  {approveDc.status === "Cancelled" && (
-                    <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "#fef2f2", borderRadius: 1, border: "1px solid #fecaca" }}>
-                      <Typography variant="caption" sx={{ color: "#b91c1c", fontWeight: 600, display: "block", mb: 0.5 }}>Already Cancelled</Typography>
-                      <Typography variant="body2" sx={{ color: "#7f1d1d" }}>Remarks: {approveDc.cancel_remarks || "-"}</Typography>
-                      <Typography variant="body2" sx={{ color: "#7f1d1d" }}>Cancelled By: {approveDc.cancel_by || "-"}</Typography>
-                      <Typography variant="body2" sx={{ color: "#7f1d1d" }}>Cancelled On: {approveDc.cancel_date ? fmtDateTime(approveDc.cancel_date) : "-"}</Typography>
-                    </Box>
                   )}
                   <TextField size="small" fullWidth multiline minRows={2} label="Cancel Remarks" value={cancelRemarks}
                     onChange={(e) => setCancelRemarks(e.target.value)} sx={{ mt: 1.5 }} error={cancelMode && approveDc.status !== "Cancelled" && !cancelRemarks.trim()} helperText={cancelMode && approveDc.status !== "Cancelled" && !cancelRemarks.trim() ? "Cancel remarks are required" : `${cancelRemarks.length}/500`} inputProps={{ maxLength: 500 }} />
@@ -702,7 +617,7 @@ export default function DeliveryChallanList() {
           {!cancelMode ? (
             <>
               <Button onClick={() => (setApproveDc(null), setCancelMode(false), setCancelRemarks(""))} disabled={approveLoading}>Close</Button>
-              <Button variant="outlined" color="error" startIcon={<BlockIcon />} onClick={() => setCancelMode(true)} disabled={approveLoading}>Cancel Challan</Button>
+              <Button variant="outlined" color="error" startIcon={<BlockIcon />} onClick={() => setCancelMode(true)} disabled={approveLoading}>Cancel Gate Pass</Button>
               {approveDc?.status === "Draft" && (
                 <Button variant="contained" color="primary" startIcon={<SendIcon />} onClick={confirmApprove} disabled={approveLoading || !approveDc}>
                   {approveLoading ? "Approving..." : "Approve"}

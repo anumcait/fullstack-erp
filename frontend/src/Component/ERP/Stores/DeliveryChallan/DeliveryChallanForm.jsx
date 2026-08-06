@@ -20,7 +20,7 @@ import CountedTextArea from '../../../Common/CountedTextArea';
 const API = '/api/erp/stores/delivery-challans';
 const ITEMS_API = '/api/erp/stores/items';
 
-const dcTypeLabels = { L: "Replacement", R: "Repair", M: "Maintenance", J: "Jobwork", S: "Sale on Approval" };
+const dcTypeLabels = { L: "Replacement", R: "Repair", M: "Maintenance", J: "Jobwork", S: "Sale on Approval", N: "Non Returnable" };
 
 const cellInputSx = {
   '& .MuiInputBase-root': { fontSize: '0.75rem' },
@@ -202,6 +202,7 @@ export default function DeliveryChallanForm() {
                 <MenuItem value="M">Maintenance</MenuItem>
                 <MenuItem value="J">Jobwork</MenuItem>
                 <MenuItem value="L">Replacement</MenuItem>
+                <MenuItem value="N">Non Returnable</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={6} md={1}>

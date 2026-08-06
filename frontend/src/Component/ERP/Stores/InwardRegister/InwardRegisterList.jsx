@@ -368,7 +368,7 @@ export default function InwardRegisterList() {
 
   const thSx = { fontWeight: 700, fontSize: "0.9rem", color: "#0f172a", border: "1px solid #cbd5e1", position: "sticky", top: 0, zIndex: 2, bgcolor: alpha(activeTypeColor, 0.1), whiteSpace: "nowrap", py: 0.7, px: 0.8, lineHeight: 1.2 };
   const thFilterSx = { ...thSx, fontWeight: 600, fontSize: "0.78rem", bgcolor: "#fff", borderTop: "2px solid #e2e8f0", py: 0.5 };
-  const tdSx = { fontSize: "0.85rem", py: 0.5, px: 0.7, border: "1px solid #eef2f7" };
+  const tdSx = { fontSize: "0.85rem", py: 0.5, px: 0.7, border: "1px solid #eef2f7", color: "#1e293b", fontWeight: 500 };
 
   const viewPath = (r) => `/stores/inward-registers/view/${r.id}?type=${r.dc_type || dcTypeTab}`;
   const editPath = (r) => `/stores/inward-registers/edit/${r.id}?type=${r.dc_type || dcTypeTab}`;
@@ -549,16 +549,16 @@ export default function InwardRegisterList() {
                                 Make IR
                               </Button></Tooltip>
                             </TableCell>
-                            <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#94a3b8", fontSize: "0.8rem" }}>{idx + 1}</TableCell>
-                            <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, color: activeTypeColor, fontFamily: "monospace", fontSize: "0.82rem" }}>{dc.dc_no || dc.draft_no}</TableCell>
-                            <TableCell sx={{ ...tdSx, textAlign: "center", whiteSpace: "nowrap", fontSize: "0.78rem" }}>{fmtSmartDateTime(dc.dc_date)}</TableCell>
-                            <TableCell sx={{ ...tdSx, fontWeight: 600, maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.78rem" }}>
+                            <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, color: "#0f172a", fontSize: "0.8rem" }}>{idx + 1}</TableCell>
+                            <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 800, color: activeTypeColor, fontFamily: "monospace", fontSize: "0.82rem" }}>{dc.dc_no || dc.draft_no}</TableCell>
+                            <TableCell sx={{ ...tdSx, textAlign: "center", whiteSpace: "nowrap", fontSize: "0.82rem", fontWeight: 700, color: "#0b1120", fontFamily: "monospace" }}>{fmtSmartDateTime(dc.dc_date)}</TableCell>
+                            <TableCell sx={{ ...tdSx, fontWeight: 700, color: "#0f172a", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.78rem" }}>
                               <Tooltip title={dc.party_name || "-"}><span>{dc.party_name || "-"}</span></Tooltip>
                             </TableCell>
-                            <TableCell sx={{ ...tdSx, textAlign: "center", fontSize: "0.78rem" }}>{(dc.items || []).length}</TableCell>
-                            <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, fontSize: "0.78rem", color: "#64748b" }}>{fmtNum(dcTotalQty(dc))}</TableCell>
+                            <TableCell sx={{ ...tdSx, textAlign: "center", fontSize: "0.78rem", fontWeight: 700, color: "#0f172a" }}>{(dc.items || []).length}</TableCell>
+                            <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, fontSize: "0.78rem", color: "#0f172a" }}>{fmtNum(dcTotalQty(dc))}</TableCell>
                             <TableCell sx={{ ...tdSx, textAlign: "center" }}>
-                              <Box sx={{ px: 0.9, py: 0.15, borderRadius: 1.5, fontSize: "0.68rem", fontWeight: 800, display: "inline-block", bgcolor: pending > 0 ? "#fef3c7" : "#f1f5f9", color: pending > 0 ? "#b45309" : "#94a3b8" }}>{fmtNum(pending)}</Box>
+                              <Box sx={{ px: 0.9, py: 0.15, borderRadius: 1.5, fontSize: "0.68rem", fontWeight: 800, display: "inline-block", bgcolor: pending > 0 ? "#fef3c7" : "#e2e8f0", color: pending > 0 ? "#92400e" : "#334155" }}>{fmtNum(pending)}</Box>
                             </TableCell>
                             <TableCell sx={{ ...tdSx, textAlign: "center" }}>
                               <Box sx={{ px: 1, py: 0.2, borderRadius: 1.5, fontSize: "0.65rem", fontWeight: 700, display: "inline-block", bgcolor: "#dcfce7", color: "#2e7d32" }}>Approved</Box>
@@ -585,11 +585,11 @@ export default function InwardRegisterList() {
                                           return (
                                             <TableRow key={it.id || i}>
                                               <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", border: "1px solid #e2e8f0" }}>{i + 1}</TableCell>
-                                              <TableCell sx={{ fontSize: "0.84rem", fontWeight: 600, border: "1px solid #e2e8f0" }}>{it.item_code}</TableCell>
-                                              <TableCell sx={{ fontSize: "0.84rem", border: "1px solid #e2e8f0" }}>{it.item_name}</TableCell>
-                                              <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", border: "1px solid #e2e8f0" }}>{it.unit || it.item?.unit?.short_name || ""}</TableCell>
-                                              <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", border: "1px solid #e2e8f0" }}>{fmtNum(qty)}</TableCell>
-                                              <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", color: "#64748b", border: "1px solid #e2e8f0" }}>{fmtNum(recv)}</TableCell>
+                                              <TableCell sx={{ fontSize: "0.84rem", fontWeight: 700, color: "#0f172a", border: "1px solid #e2e8f0" }}>{it.item_code}</TableCell>
+                                              <TableCell sx={{ fontSize: "0.84rem", color: "#1e293b", border: "1px solid #e2e8f0" }}>{it.item_name}</TableCell>
+                                              <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", fontWeight: 600, color: "#0f172a", border: "1px solid #e2e8f0" }}>{it.unit || it.item?.unit?.short_name || ""}</TableCell>
+                                              <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", color: "#0f172a", border: "1px solid #e2e8f0" }}>{fmtNum(qty)}</TableCell>
+                                              <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", color: "#0f172a", fontWeight: 600, border: "1px solid #e2e8f0" }}>{fmtNum(recv)}</TableCell>
                                               <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", fontWeight: 700, color: pend > 0 ? "#b45309" : "#16a34a", border: "1px solid #e2e8f0" }}>{fmtNum(pend)}</TableCell>
                                             </TableRow>
                                           );
@@ -699,20 +699,20 @@ export default function InwardRegisterList() {
                                   <Tooltip title="Delete"><IconButton size="small" sx={{ p: 0.3, color: "#64748b", "&:hover": { color: "#dc2626" } }} onClick={() => setConfirmDel(r)}><BlockIcon sx={{ fontSize: 15 }} /></IconButton></Tooltip>
                                 )}
                               </TableCell>
-                              <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#94a3b8", fontSize: "0.8rem" }}>{idx + 1 + page * rowsPerPage}</TableCell>
-                              <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, color: activeTypeColor, fontFamily: "monospace", fontSize: "0.82rem" }}>{r.ir_no || "-"}</TableCell>
-                              <TableCell sx={{ ...tdSx, textAlign: "center", whiteSpace: "nowrap", fontSize: "0.78rem" }}>{fmtSmartDateTime(r.ir_date)}</TableCell>
-                              <TableCell sx={{ ...tdSx, fontWeight: 600, maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.78rem" }}>
+                              <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, color: "#0f172a", fontSize: "0.8rem" }}>{idx + 1 + page * rowsPerPage}</TableCell>
+                              <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 800, color: activeTypeColor, fontFamily: "monospace", fontSize: "0.82rem" }}>{r.ir_no || "-"}</TableCell>
+                              <TableCell sx={{ ...tdSx, textAlign: "center", whiteSpace: "nowrap", fontSize: "0.82rem", fontWeight: 700, color: "#0b1120", fontFamily: "monospace" }}>{fmtSmartDateTime(r.ir_date)}</TableCell>
+                              <TableCell sx={{ ...tdSx, fontWeight: 700, color: "#0f172a", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.78rem" }}>
                                 <Tooltip title={r.supplier?.supplier_name || r.party_name || "-"}><span>{r.supplier?.supplier_name || r.party_name || "-"}</span></Tooltip>
                               </TableCell>
-                              <TableCell sx={{ ...tdSx, textAlign: "center", fontSize: "0.78rem" }}>{r.items?.length || 0}</TableCell>
-                              <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, fontSize: "0.78rem" }}>{fmtNum(r.items?.reduce((s, i) => s + Number(i.qty_supplied || 0), 0) || 0)}</TableCell>
+                              <TableCell sx={{ ...tdSx, textAlign: "center", fontSize: "0.78rem", fontWeight: 700, color: "#0f172a" }}>{r.items?.length || 0}</TableCell>
+                              <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 700, fontSize: "0.78rem", color: "#0f172a" }}>{fmtNum(r.items?.reduce((s, i) => s + Number(i.qty_supplied || 0), 0) || 0)}</TableCell>
                               <TableCell sx={{ ...tdSx, textAlign: "center" }}>
                                 <Box sx={{ px: 1, py: 0.2, borderRadius: 1.5, fontSize: "0.65rem", fontWeight: 700, display: "inline-block", bgcolor: alpha(statusBg[r.status] || "#f1f5f9", 0.8), color: r.status === "Approved" ? "#2e7d32" : r.status === "Cancelled" ? "#dc2626" : "#0369a1" }}>
                                   {r.status}
                                 </Box>
                               </TableCell>
-                              <TableCell sx={{ ...tdSx, textAlign: "center", fontSize: "0.78rem" }}>{r.prepared_by || "-"}</TableCell>
+                              <TableCell sx={{ ...tdSx, textAlign: "center", fontSize: "0.78rem", fontWeight: 600, color: "#0f172a" }}>{r.prepared_by || "-"}</TableCell>
                             </TableRow>
                             {expandedId === r.id && (
                               <TableRow sx={{ bgcolor: "#f8fafc" }}>
@@ -734,12 +734,12 @@ export default function InwardRegisterList() {
                                               return (
                                                 <TableRow key={it.id || i}>
                                                   <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", border: "1px solid #e2e8f0" }}>{i + 1}</TableCell>
-                                                  <TableCell sx={{ fontSize: "0.84rem", fontWeight: 600, border: "1px solid #e2e8f0", fontFamily: "monospace" }}>{dc?.dc_no || dc?.draft_no || "-"}</TableCell>
-                                                  <TableCell sx={{ fontSize: "0.84rem", border: "1px solid #e2e8f0" }}>{it.item_code || "-"}</TableCell>
-                                                  <TableCell sx={{ fontSize: "0.84rem", border: "1px solid #e2e8f0" }}>{it.item_name || "-"}</TableCell>
-                                                  <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", border: "1px solid #e2e8f0" }}>{it.uom || "-"}</TableCell>
-                                                  <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", border: "1px solid #e2e8f0" }}>{fmtNum(it.dc_qty || it.orderd_qty || it.quantity)}</TableCell>
-                                                  <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", fontWeight: 600, color: "#059669", border: "1px solid #e2e8f0" }}>{fmtNum(it.qty_supplied)}</TableCell>
+                                                  <TableCell sx={{ fontSize: "0.84rem", fontWeight: 700, border: "1px solid #e2e8f0", fontFamily: "monospace", color: "#0f172a" }}>{dc?.dc_no || dc?.draft_no || "-"}</TableCell>
+                                                  <TableCell sx={{ fontSize: "0.84rem", fontWeight: 600, color: "#0f172a", border: "1px solid #e2e8f0" }}>{it.item_code || "-"}</TableCell>
+                                                  <TableCell sx={{ fontSize: "0.84rem", color: "#1e293b", border: "1px solid #e2e8f0" }}>{it.item_name || "-"}</TableCell>
+                                                  <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", fontWeight: 600, color: "#0f172a", border: "1px solid #e2e8f0" }}>{it.uom || "-"}</TableCell>
+                                                  <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", fontWeight: 600, color: "#0f172a", border: "1px solid #e2e8f0" }}>{fmtNum(it.dc_qty || it.orderd_qty || it.quantity)}</TableCell>
+                                                  <TableCell sx={{ fontSize: "0.84rem", textAlign: "center", fontWeight: 700, color: "#059669", border: "1px solid #e2e8f0" }}>{fmtNum(it.qty_supplied)}</TableCell>
                                                   <TableCell sx={{ fontSize: "0.84rem", border: "1px solid #e2e8f0" }}>{it.remarks || "-"}</TableCell>
                                                 </TableRow>
                                               );

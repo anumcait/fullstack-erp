@@ -730,12 +730,12 @@ export default function InwardRegisterForm() {
                             sx={{ ...fsx, "& .MuiInputBase-input": { fontSize: "0.88rem", textAlign: "center", p: "3px" } }} />
                         </TableCell>
                         <TableCell sx={{ border: "1.5px solid #dce1ea", textAlign: "center", fontSize: "0.86rem", fontFamily: "monospace", fontWeight: 700, color: activeColor, py: 0.25, width: colWidthOf("dc"), minWidth: colMin.dc }}>{it.dc_no_display || "-"}</TableCell>
-                        <TableCell sx={{ border: "1.5px solid #dce1ea", textAlign: "center", fontSize: "0.82rem", whiteSpace: "nowrap", color: "#64748b", py: 0.25, width: colWidthOf("date") }}>{it.dc_date ? fmtDcDateTime(it.dc_date) : "-"}</TableCell>
-                        <TableCell sx={{ border: "1.5px solid #dce1ea", fontSize: "0.82rem", fontWeight: 600, color: "#475569", py: 0.25, width: colWidthOf("item") }}>{it.item_code || "-"}</TableCell>
-                        <TableCell sx={{ border: "1.5px solid #dce1ea", fontSize: "0.82rem", color: "#64748b", py: 0.25, width: colWidthOf("wo") }}>{it.work_order || "-"}</TableCell>
-                        <TableCell sx={{ border: "1.5px solid #dce1ea", fontSize: "0.84rem", color: "#334155", py: 0.25, width: colWidthOf("desc"), minWidth: colMin.desc }}>{it.item_name || "-"}</TableCell>
-                        <TableCell sx={{ border: "1.5px solid #dce1ea", textAlign: "center", fontSize: "0.82rem", color: "#64748b", py: 0.25, width: colWidthOf("uom") }}>{it.uom || "-"}</TableCell>
-                        <TableCell sx={{ border: "1.5px solid #dce1ea", textAlign: "center", fontSize: "0.82rem", color: "#475569", fontWeight: 600, py: 0.25, width: colWidthOf("dc_qty") }}>{fmtNum(it.dc_qty)}</TableCell>
+                        <TableCell sx={{ border: "1.5px solid #dce1ea", textAlign: "center", fontSize: "0.84rem", whiteSpace: "nowrap", fontWeight: 700, color: "#0b1120", fontFamily: "monospace", py: 0.25, width: colWidthOf("date") }}>{it.dc_date ? fmtDcDateTime(it.dc_date) : "-"}</TableCell>
+                        <TableCell sx={{ border: "1.5px solid #dce1ea", fontSize: "0.82rem", fontWeight: 700, color: "#0f172a", py: 0.25, width: colWidthOf("item") }}>{it.item_code || "-"}</TableCell>
+                        <TableCell sx={{ border: "1.5px solid #dce1ea", fontSize: "0.82rem", fontWeight: 600, color: "#0f172a", py: 0.25, width: colWidthOf("wo") }}>{it.work_order || "-"}</TableCell>
+                        <TableCell sx={{ border: "1.5px solid #dce1ea", fontSize: "0.84rem", fontWeight: 600, color: "#0f172a", py: 0.25, width: colWidthOf("desc"), minWidth: colMin.desc }}>{it.item_name || "-"}</TableCell>
+                        <TableCell sx={{ border: "1.5px solid #dce1ea", textAlign: "center", fontSize: "0.82rem", fontWeight: 600, color: "#0f172a", py: 0.25, width: colWidthOf("uom") }}>{it.uom || "-"}</TableCell>
+                        <TableCell sx={{ border: "1.5px solid #dce1ea", textAlign: "center", fontSize: "0.82rem", fontWeight: 700, color: "#0f172a", py: 0.25, width: colWidthOf("dc_qty") }}>{fmtNum(it.dc_qty)}</TableCell>
                         <TableCell sx={{ border: "1.5px solid #dce1ea", textAlign: "center", py: 0.25, width: colWidthOf("pending") }}>
                           <Box sx={{ px: 0.8, py: 0.1, borderRadius: 1.2, fontSize: "0.76rem", fontWeight: 800, display: "inline-block", bgcolor: Number(it.qty_pending) > 0 ? "#fef3c7" : "#f1f5f9", color: Number(it.qty_pending) > 0 ? "#b45309" : "#94a3b8" }}>{fmtNum(it.qty_pending)}</Box>
                         </TableCell>
