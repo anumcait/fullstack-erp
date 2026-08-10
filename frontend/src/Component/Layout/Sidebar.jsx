@@ -72,9 +72,12 @@ const SUBMENUS = {
   hrRecruit: ["/recruitment"],
   hrReports: ["/hr/reports", "/pf-accounting"],
   storeMaster: ["/stores/item-master", "/stores/uom", "/stores/item-groups", "/stores/item-types"],
-  storeInv: ["/inventory/ledger", "/stores/day-wise-stock", "/stores/stock-audit"],
+  storeReports: ["/stores/reports", "/inventory/ledger", "/stores/stock-statement", "/stores/day-wise-stock", "/stores/stock-audit"],
   storeDc: ["/stores/delivery-challans", "/stores/non-returnable-gate-passes"],
-  storeTrans: ["/stores/gate-entry", "/stores/grr", "/stores/grr-billing", "/stores/material-issues", "/stores/material-requisitions", "/stores/material-returns", "/stores/inward-registers", "/stores/sale-approval", "/stores/invoices"],
+  storeInward: ["/stores/inward-registers", "/stores/grr"],
+  storeIssues: ["/stores/material-issues"],
+  storeTrans: ["/stores/material-requisitions", "/stores/material-returns"],
+  storeBilling: ["/stores/invoices", "/stores/sale-approval", "/stores/repair-billing", "/stores/maintenance-billing", "/stores/misc-voucher-billing"],
   purPR: ["/purchase/requisitions"],
   purProc: ["/purchase/rfq", "/purchase/orders"],
   purVend: ["/purchase/vendors", "/purchase/prices", "/purchase/rating"],
@@ -121,11 +124,15 @@ const Sidebar = () => {
   // URL load or after navigating via a child link).
   useEffect(() => {
     const active = Object.keys(SUBMENUS).find((k) => isSubmenuActive(k));
-    if (active) setOpenSubmenu((prev) => (prev === active ? prev : active));
+    setOpenSubmenu((prev) => (prev === active ? prev : active || ""));
     const base = path.split("?")[0];
     const inPur = base.startsWith("/purchase/requisitions");
+    const invControlPaths = ["/inventory/ledger", "/stores/stock-statement", "/stores/day-wise-stock", "/stores/stock-audit"];
+    const inInvControl = invControlPaths.some((p) => base === p || base.startsWith(p + "/"));
     if (inPur && (base === "/purchase/requisitions/add" || location.search.includes("status=Draft"))) {
       setOpenChild("prDraft");
+    } else if (inInvControl) {
+      setOpenChild("invControl");
     } else {
       setOpenChild("");
     }
@@ -465,21 +472,11 @@ const Sidebar = () => {
               )}
             </li>
 
-            <li className={`sidebar-menu-item ${openSubmenu === "hrReports" ? "open" : ""} ${isSubmenuActive("hrReports") ? "sidebar-active-parent" : ""}`}>
-              <div className="sidebar-menu-link">
-                <FiPieChart />
-                {!collapsed && (
-                  <>
-                    <SideNavLink to="/hr/reports" label="Reports" icon={FiPieChart} exact />
-                    <span className="expand-icon" onClick={() => toggleSubmenu("hrReports")} style={{ cursor: 'pointer' }}>{openSubmenu === "hrReports" ? <FiChevronDown /> : <FiChevronRight />}</span>
-                  </>
-                )}
-              </div>
-              {openSubmenu === "hrReports" && (
-                <ul className="sidebar-submenu">
-                  <SubItem to="/pf-accounting" label="PF Accounting" icon={FiFileText} />
-                </ul>
-              )}
+            <li className="sidebar-menu-item">
+              <SideNavLink to="/hr/reports" label="Reports" icon={FiPieChart} exact />
+            </li>
+            <li className="sidebar-menu-item">
+              <SideNavLink to="/pf-accounting" label="PF Accounting" icon={FiFileText} />
             </li>
           </>
         )}
@@ -490,11 +487,6 @@ const Sidebar = () => {
             {hasPermission('STORES_DASHBOARD') && (
               <li className="sidebar-menu-item">
                 <SideNavLink to="/stores" label="Dashboard" icon={FiHome} exact />
-              </li>
-            )}
-            {hasPermission('STORES_DASHBOARD') && (
-              <li className="sidebar-menu-item">
-                <SideNavLink to="/stores/approvals" label="Approvals" icon={FiCheckSquare} exact />
               </li>
             )}
             {hasPermission('STORES_ITEM_MASTER') && (
@@ -520,23 +512,21 @@ const Sidebar = () => {
                 )}
               </li>
             )}
-            {(hasPermission('STORES_ITEM_MASTER') || hasPermission('STORES_STOCK_LEDGER') || hasPermission('STORES_PHYSICAL')) && (
-              <li className={`sidebar-menu-item ${openSubmenu === "storeInv" ? "open" : ""} ${isSubmenuActive("storeInv") ? "sidebar-active-parent" : ""}`}>
-                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeInv")}>
-                  <FiBox />
+            {(hasPermission('STORES_MR') || hasPermission('STORES_RETURN')) && (
+              <li className={`sidebar-menu-item ${openSubmenu === "storeTrans" ? "open" : ""} ${isSubmenuActive("storeTrans") ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeTrans")}>
+                  <FiShuffle />
                   {!collapsed && (
                     <>
-                      <span>Inventory Control</span>
-                      <span className="expand-icon">{openSubmenu === "storeInv" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                      <span>Transactions</span>
+                      <span className="expand-icon">{openSubmenu === "storeTrans" ? <FiChevronDown /> : <FiChevronRight />}</span>
                     </>
                   )}
                 </div>
-                {openSubmenu === "storeInv" && (
+                {openSubmenu === "storeTrans" && (
                   <ul className="sidebar-submenu">
-                    {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/inventory/ledger" label="Stock Ledger" icon={FiClipboard} />}
-                    {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/stores/stock-statement" label="Stock Statement" icon={FiFileText} />}
-                    {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/stores/day-wise-stock" label="Day-wise Stock" icon={FiCalendar} />}
-                    {hasPermission('STORES_PHYSICAL') && <SubItem to="/stores/stock-audit" label="Physical Verification" icon={FiCheckSquare} />}
+                    {hasPermission('STORES_MR') && <SubItem to="/stores/material-requisitions" label="Material Requisition" icon={FiFilePlus} />}
+                    {hasPermission('STORES_RETURN') && <SubItem to="/stores/material-returns" label="Material Return" icon={FiRotateCcw} />}
                   </ul>
                 )}
               </li>
@@ -570,26 +560,125 @@ const Sidebar = () => {
                 )}
               </li>
             )}
-            {(hasPermission('STORES_GATE') || hasPermission('STORES_GRN') || hasPermission('STORES_ISSUE') || hasPermission('STORES_RETURN')) && (
-              <li className={`sidebar-menu-item ${openSubmenu === "storeTrans" ? "open" : ""} ${isSubmenuActive("storeTrans") ? "sidebar-active-parent" : ""}`}>
-                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeTrans")}>
-                  <FiRefreshCw />
+            {hasPermission('STORES_ISSUE') && (
+              <li className={`sidebar-menu-item ${openSubmenu === "storeInward" ? "open" : ""} ${isSubmenuActive("storeInward") ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link">
+                  <NavLink
+                    to="/stores/inward-registers"
+                    onClick={(e) => handleNavClick("/stores/inward-registers", e)}
+                    className={`sidebar-parent-nav ${isActive("/stores/inward-registers", true) ? "sidebar-active" : ""}`}
+                    style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}
+                  >
+                    <FiClipboard size={collapsed ? 20 : 16} />
+                    {!collapsed && <span>Inward Register</span>}
+                  </NavLink>
+                  {!collapsed && (
+                    <span className="expand-icon" onClick={(e) => { e.stopPropagation(); toggleSubmenu("storeInward"); }}>{openSubmenu === "storeInward" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                  )}
+                </div>
+                {openSubmenu === "storeInward" && (
+                  <ul className="sidebar-submenu">
+                    {hasPermission('STORES_GRN') && <SubItem to="/stores/grr" label="GRR" icon={FiFileText} />}
+                  </ul>
+                )}
+              </li>
+            )}
+            {hasPermission('STORES_ISSUE') && (
+              <li className={`sidebar-menu-item ${openSubmenu === "storeIssues" ? "open" : ""} ${isSubmenuActive("storeIssues") ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeIssues")}>
+                  <FiShare />
                   {!collapsed && (
                     <>
-                      <span>Transactions</span>
-                      <span className="expand-icon">{openSubmenu === "storeTrans" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                      <span>Issues</span>
+                      <span className="expand-icon">{openSubmenu === "storeIssues" ? <FiChevronDown /> : <FiChevronRight />}</span>
                     </>
                   )}
                 </div>
-                {openSubmenu === "storeTrans" && (
+                {openSubmenu === "storeIssues" && (
                   <ul className="sidebar-submenu">
-                    {/* {hasPermission('STORES_GATE') && <SubItem to="/stores/gate-entry" label="Gate Entry" icon={FiLogOut} />} */}
-                    {hasPermission('STORES_GRN') && <SubItem to="/stores/grr" label="GRR" icon={FiFileText} />}
-                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/material-issues" label="Material Issue" icon={FiShare} />}
-                    {hasPermission('STORES_MR') && <SubItem to="/stores/material-requisitions" label="Material Requisition" icon={FiFilePlus} />}
-                    {hasPermission('STORES_RETURN') && <SubItem to="/stores/material-returns" label="Material Return" icon={FiRotateCcw} />}
-                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/inward-registers" label="Inward Register" icon={FiClipboard} />}
-                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/grr-billing" label="GRR Billing" icon={FiCreditCard} />}
+                    <SubItem to="/stores/material-issues?type=GRR" label="GRR Issue" icon={FiArrowDown} />
+                    <SubItem to="/stores/material-issues?type=PR" label="PR Issue" icon={FiFilePlus} />
+                    <SubItem to="/stores/material-issues" label="General Issue" icon={FiShare} />
+                  </ul>
+                )}
+              </li>
+            )}
+            {hasPermission('STORES_ISSUE') && (
+              <li className={`sidebar-menu-item ${openSubmenu === "storeBilling" ? "open" : ""} ${isSubmenuActive("storeBilling") ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link" onClick={() => toggleSubmenu("storeBilling")}>
+                  <FiCreditCard />
+                  {!collapsed && (
+                    <>
+                      <span>Billing</span>
+                      <span className="expand-icon">{openSubmenu === "storeBilling" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                    </>
+                  )}
+                </div>
+                {openSubmenu === "storeBilling" && (
+                  <ul className="sidebar-submenu">
+                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/invoices" label="GRR Billing" icon={FiCreditCard} />}
+                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/repair-billing" label="Repair Billing" icon={FiTool} />}
+                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/maintenance-billing" label="Maintenance Billing" icon={FiSettings} />}
+                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/sale-approval" label="Jobwork Billing" icon={FiShoppingBag} />}
+                    {hasPermission('STORES_ISSUE') && <SubItem to="/stores/misc-voucher-billing" label="Miscellaneous / Voucher" icon={FiDollarSign} />}
+                  </ul>
+                )}
+              </li>
+            )}
+            {hasPermission('STORES_DASHBOARD') && (
+              <li className="sidebar-menu-item">
+                <SideNavLink to="/stores/approvals" label="Approvals" icon={FiCheckSquare} exact />
+              </li>
+            )}
+            {hasPermission('STORES_DASHBOARD') && (
+              <li className="sidebar-menu-item">
+                <SideNavLink to="/stores/cancellations" label="Cancellations" icon={FiXCircle} exact />
+              </li>
+            )}
+            {(hasPermission('STORES_REPORTS') || hasPermission('STORES_STOCK_LEDGER') || hasPermission('STORES_PHYSICAL')) && (
+              <li className={`sidebar-menu-item ${openSubmenu === "storeReports" ? "open" : ""} ${isSubmenuActive("storeReports") ? "sidebar-active-parent" : ""}`}>
+                <div className="sidebar-menu-link">
+                  <NavLink
+                    to="/stores/reports"
+                    onClick={(e) => handleNavClick("/stores/reports", e)}
+                    className={`sidebar-parent-nav ${isActive("/stores/reports", true) ? "sidebar-active" : ""}`}
+                    style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}
+                  >
+                    <FiPieChart size={collapsed ? 20 : 16} />
+                    {!collapsed && <span>Reports</span>}
+                  </NavLink>
+                  {!collapsed && (
+                    <span className="expand-icon" onClick={(e) => { e.stopPropagation(); toggleSubmenu("storeReports"); }}>{openSubmenu === "storeReports" ? <FiChevronDown /> : <FiChevronRight />}</span>
+                  )}
+                </div>
+                {openSubmenu === "storeReports" && (
+                  <ul className="sidebar-submenu">
+                    <li className={`sidebar-menu-item ${openChild === "invControl" ? "open" : ""}`}>
+                      <NavLink
+                        to="#"
+                        onClick={(e) => { e.preventDefault(); setOpenChild(openChild === "invControl" ? "" : "invControl"); }}
+                        className="sidebar-menu-link"
+                        style={{ justifyContent: "space-between", textDecoration: "none" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <FiBox size={collapsed ? 20 : 16} />
+                          {!collapsed && <span>Inventory Control</span>}
+                        </div>
+                        {!collapsed && (
+                          <span className="expand-icon" style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                            {openChild === "invControl" ? <FiChevronDown /> : <FiChevronRight />}
+                          </span>
+                        )}
+                      </NavLink>
+                      {openChild === "invControl" && (
+                        <ul className="sidebar-submenu">
+                          {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/inventory/ledger" label="Stock Ledger" icon={FiClipboard} />}
+                          {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/stores/stock-statement" label="Stock Statement" icon={FiFileText} />}
+                          {hasPermission('STORES_STOCK_LEDGER') && <SubItem to="/stores/day-wise-stock" label="Day-wise Stock" icon={FiCalendar} />}
+                          {hasPermission('STORES_PHYSICAL') && <SubItem to="/stores/stock-audit" label="Physical Verification" icon={FiCheckSquare} />}
+                        </ul>
+                      )}
+                    </li>
                   </ul>
                 )}
               </li>
@@ -946,7 +1035,7 @@ const Sidebar = () => {
         )}
 
         {/* Global Bottom Links - Apply general module-level reports/settings permissions if needed */}
-        {activeModule !== "HR" && hasPermission(`${activeModule}_REPORTS`) && (
+        {activeModule !== "HR" && activeModule !== "STORES" && hasPermission(`${activeModule}_REPORTS`) && (
           <li className="sidebar-menu-item" style={{ marginTop: "auto" }}>
             <SideNavLink to={`/${activeModule.toLowerCase()}/reports`} label="Reports" icon={FiPieChart} exact />
           </li>

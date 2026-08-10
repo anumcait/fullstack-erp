@@ -55,11 +55,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     last_upd_id: DataTypes.INTEGER,
     last_upd_dt: DataTypes.DATE,
-    gempid: DataTypes.STRING(40),
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
-    }
+    gempid: DataTypes.STRING(40)
   }, {
     tableName: 'emp_attendance',
     timestamps: false,

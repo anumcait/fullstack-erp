@@ -1,4 +1,4 @@
-const { Attendance, EmployeeMaster, LeaveApplication, LeaveDetails, LeaveApproval, WoffApplication, OnDutyApplication, ShiftSchedule, Holiday, LeaveMaster, EmpSalary, ExtOt, EmpOfficial, MusterRollSummary, Payslip } = require('../../models');
+const { Attendance, EmployeeMaster, LeaveApplication, LeaveDetails, LeaveApproval, WoffApplication, OnDutyApplication, ShiftSchedule, Holiday, LeaveMaster, EmpSalary, ExtOt, EmpOfficial, MusterRollSummary, Payslip, ShiftMaster } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
 
 const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -49,6 +49,15 @@ exports.saveAttendance = async (req, res) => {
       return res.status(400).json({ message: 'Cannot modify attendance — salary already finalized for this month.' });
     }
 
+    // Absent status: no in/out times, no late/OT hours
+    if (attendanceData.status === 'A') {
+      attendanceData.in_time = null;
+      attendanceData.out_time = null;
+      attendanceData.late_hrs = 0;
+      attendanceData.late_exempt = false;
+      attendanceData.ot_hrs = 0;
+    }
+
     if (attendanceData.in_time && attendanceData.empid && attDate) {
       const shiftSchedule = await ShiftSchedule.findOne({
         where: {
@@ -82,6 +91,9 @@ exports.saveAttendance = async (req, res) => {
         attendanceData.late_hrs = 0;
         attendanceData.late_exempt = false;
       }
+    } else {
+      attendanceData.late_hrs = 0;
+      attendanceData.late_exempt = false;
     }
 
     if (attendanceData.out_time && attendanceData.empid && attDate) {
@@ -102,6 +114,8 @@ exports.saveAttendance = async (req, res) => {
         // Fallback to 17:30 if no schedule end time
         attendanceData.ot_hrs = calculateOTHrs(attendanceData.out_time, '17:30', '09:00:00', attendanceData.in_time);
       }
+    } else {
+      attendanceData.ot_hrs = 0;
     }
     await Attendance.upsert(attendanceData);
     res.json({ message: 'Attendance saved successfully' });
@@ -121,6 +135,15 @@ exports.updateAttendance = async (req, res) => {
 
     if (existing && (await isPayrollFinalized(attDate))) {
       return res.status(400).json({ message: 'Cannot modify attendance — salary already finalized for this month.' });
+    }
+
+    // Absent status: no in/out times, no late/OT hours
+    if (attendanceData.status === 'A') {
+      attendanceData.in_time = null;
+      attendanceData.out_time = null;
+      attendanceData.late_hrs = 0;
+      attendanceData.late_exempt = false;
+      attendanceData.ot_hrs = 0;
     }
 
     if (existing && attendanceData.in_time) {
@@ -157,6 +180,9 @@ exports.updateAttendance = async (req, res) => {
         attendanceData.late_hrs = 0;
         attendanceData.late_exempt = false;
       }
+    } else {
+      attendanceData.late_hrs = 0;
+      attendanceData.late_exempt = false;
     }
 
     if (attendanceData.out_time) {
@@ -169,7 +195,7 @@ exports.updateAttendance = async (req, res) => {
       });
       if (shiftSchedule?.shift_end_time) {
         let shiftEndTime = shiftSchedule.shift_end_time;
-        // Auto-fix legacy 18:00 records
+        // Auto-fix legacy 18:00 records to 17:30
         if (getTimeMins(shiftEndTime) === 1080) shiftEndTime = '17:30';
 
         const shiftStart = shiftSchedule.shift_start_time || '09:00:00';
@@ -177,6 +203,8 @@ exports.updateAttendance = async (req, res) => {
       } else {
         attendanceData.ot_hrs = calculateOTHrs(attendanceData.out_time, '17:30', '09:00:00', attendanceData.in_time);
       }
+    } else {
+      attendanceData.ot_hrs = 0;
     }
     await Attendance.update(attendanceData, { where: { id } });
     res.json({ message: 'Attendance updated successfully' });
@@ -297,13 +325,19 @@ exports.saveBulkAttendance = async (req, res) => {
 
         if (att.out_time && shiftSchedule?.shift_end_time) {
           att.ot_hrs = calculateOTHrs(att.out_time, shiftSchedule.shift_end_time, shiftStart, att.in_time);
+        } else {
+          att.ot_hrs = 0;
         }
       } else if (att.out_time && att.empid && attDateFormatted) {
         let shiftEndTime = shiftSchedule?.shift_end_time || '17:30';
         if (getTimeMins(shiftEndTime) === 1080) shiftEndTime = '17:30';
 
         const shiftStartTime = shiftSchedule?.shift_start_time || '09:00:00';
-        att.ot_hrs = calculateOTHrs(att.out_time, shiftEndTime, shiftStartTime, null);
+        att.ot_hrs = calculateOTHrs(att.out_time, shiftEndTime, '09:00:00', null);
+      } else {
+        att.late_hrs = 0;
+        att.late_exempt = false;
+        att.ot_hrs = 0;
       }
       await Attendance.upsert(att, { transaction: t });
     }
@@ -460,7 +494,7 @@ exports.getShiftScheduleForAttendance = async (req, res) => {
 
     const scheduleMap = {};
     schedules.forEach(s => {
-      const dateKey = s.shift_date.toString().split('T')[0];
+      const dateKey = toLocalDateStr(s.shift_date);
       if (!scheduleMap[s.empid]) scheduleMap[s.empid] = {};
       scheduleMap[s.empid][dateKey] = {
         shift_cd: s.shift_cd,
@@ -518,6 +552,30 @@ const getTimeMins = (time) => {
   }
 
   return null;
+};
+
+/**
+ * Classify a swiped day by comparing in/out against shift start,
+ * lunch start, lunch end and shift end times.
+ *
+ * Rules:
+ *  - out_time <= lunch_end                  -> 'Half Day' (worked first half, left at/before lunch end)
+ *  - in_time  >= lunch_start                -> 'Half Day' (worked second half, arrived at/after lunch start)
+ *  - out_time <  shift_end (even 1 min before shift end) -> 'Half Day'
+ *  - otherwise                              -> 'Present'
+ */
+const classifySwipedDay = (inTime, outTime, shiftStart, lunchStart, lunchEnd, shiftEnd) => {
+  const inMins = getTimeMins(inTime);
+  const outMins = getTimeMins(outTime);
+  if (inMins === null || outMins === null) return 'Present';
+  const lunchStartMins = getTimeMins(lunchStart);
+  const lunchEndMins = getTimeMins(lunchEnd);
+  const shiftEndMins = getTimeMins(shiftEnd);
+
+  if (lunchEndMins !== null && outMins <= lunchEndMins) return 'Half Day';
+  if (lunchStartMins !== null && inMins >= lunchStartMins) return 'Half Day';
+  if (shiftEndMins !== null && outMins < shiftEndMins) return 'Half Day';
+  return 'Present';
 };
 
 const calculateOTHrs = (outTime, shiftEnd, shiftStart, inTime) => {
@@ -693,9 +751,15 @@ exports.getMusterRoll = async (req, res) => {
     });
     const scheduleMap = {};
     shiftSchedules.forEach(s => {
-      const dateKey = s.shift_date.toString().split('T')[0];
+      const dateKey = toLocalDateStr(s.shift_date);
       if (!scheduleMap[s.empid]) scheduleMap[s.empid] = {};
       scheduleMap[s.empid][dateKey] = s;
+    });
+
+    const shiftMasters = await ShiftMaster.findAll();
+    const shiftLunchMap = {};
+    shiftMasters.forEach(sm => {
+      shiftLunchMap[sm.shift_cd] = { start: sm.lunch_start_time, end: sm.lunch_end_time };
     });
 
     const extOtDataList = await ExtOt.findAll({
@@ -856,19 +920,21 @@ exports.getMusterRoll = async (req, res) => {
             // No leave info
             if (hasSwipes) {
               if (inTime && outTime) {
-                const workedMins = getTimeMins(outTime) - getTimeMins(inTime);
-                const shiftMins = getTimeMins(shiftEnd) - getTimeMins(shiftStart);
-                const halfShiftMins = shiftMins / 2;
-
-                if (workedMins > 0 && workedMins <= halfShiftMins) {
+                const lunch = schedule ? shiftLunchMap[schedule.shift_cd] : null;
+                const swipedStatus = classifySwipedDay(inTime, outTime, shiftStart, lunch?.start, lunch?.end, shiftEnd);
+                if (swipedStatus === 'Half Day') {
                   dayStatus = 'Half Day';
                   totalPresent += 0.5;
                   lopDays = 0.5;
-            } else {
-              dayStatus = 'Present';
-              totalPresent++;
-              if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
-            }
+                } else if (swipedStatus === 'Absent') {
+                  dayStatus = 'Absent';
+                  totalAbsent++;
+                  lopDays = 1;
+                } else {
+                  dayStatus = 'Present';
+                  totalPresent++;
+                  if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+                }
               } else {
                 dayStatus = 'Present';
                 totalPresent++;
@@ -891,7 +957,8 @@ exports.getMusterRoll = async (req, res) => {
           shift: shiftCd,
           in_time: inTime,
           out_time: outTime,
-          late_hrs: Math.round(lateHrs * 100) / 100,
+          // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
+          late_hrs: Math.round((lateHrs >= 4 ? 0 : lateHrs) * 100) / 100,
           ot_hrs: Math.round(otHrs * 100) / 100,
           lop: lopDays
         });
@@ -984,10 +1051,12 @@ exports.getMusterRoll = async (req, res) => {
         let lateCost = 0;
         let firstLateDone = false;
         for (const d of monthlyData.days) {
-          if (parseFloat(d.late_hrs) > 0) {
+          const decLate = hhmmToDecimal(d.late_hrs);
+          // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
+          if (parseFloat(d.late_hrs) > 0 && decLate < 4) {
             if (!firstLateDone) { firstLateDone = true; continue; } // first late exempt
-            const minsLate = Math.round(hhmmToDecimal(d.late_hrs) * 60);
-            if (minsLate <= 10) lateCost += perHourBasic;
+            const minsLate = Math.round(decLate * 60);
+            if (minsLate <= 30) lateCost += perHourBasic; // within 30 min of shift start: 1-hour salary deduction
             else lateCost += perDayBasic / 2;
           }
         }
@@ -1124,9 +1193,15 @@ exports.saveMusterRollSummary = async (req, res) => {
     });
     const scheduleMap = {};
     shiftSchedules.forEach(s => {
-      const dateKey = s.shift_date.toString().split('T')[0];
+      const dateKey = toLocalDateStr(s.shift_date);
       if (!scheduleMap[s.empid]) scheduleMap[s.empid] = {};
       scheduleMap[s.empid][dateKey] = s;
+    });
+
+    const shiftMasters = await ShiftMaster.findAll();
+    const shiftLunchMap = {};
+    shiftMasters.forEach(sm => {
+      shiftLunchMap[sm.shift_cd] = { start: sm.lunch_start_time, end: sm.lunch_end_time };
     });
 
     const extOtDataList = await ExtOt.findAll({
@@ -1151,7 +1226,7 @@ exports.saveMusterRollSummary = async (req, res) => {
         scheduleMap[empId] || {}, attendanceMap[empId] || {},
         woffDatesByEmp[empId] || [], woffExcludeByEmp[empId] || [],
         leaveDatesByEmp[empId] || {},
-        extOtMap[empId] || {}, holidayDates, doj
+        extOtMap[empId] || {}, holidayDates, doj, shiftLunchMap
       );
 
       let clDays = 0, elDays = 0;
@@ -1191,7 +1266,7 @@ exports.saveMusterRollSummary = async (req, res) => {
   }
 };
 
-function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, startDate, endDate, empSchedule, empAttendance, empWoffs, empWoffExclude, empLeaves, empExtOt, holidayDates, doj) {
+function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, startDate, endDate, empSchedule, empAttendance, empWoffs, empWoffExclude, empLeaves, empExtOt, holidayDates, doj, shiftLunchMap = {}) {
   const monthlyData = { days: [] };
   let totalPresent = 0, totalAbsent = 0, totalLeave = 0, totalWoff = 0, totalHoliday = 0, totalLop = 0, totalLateHrs = 0, totalOTHrs = 0;
 
@@ -1288,13 +1363,14 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
       } else {
         if (hasSwipes) {
           if (inTime && outTime) {
-            const workedMins = getTimeMins(outTime) - getTimeMins(inTime);
             const shiftEnd = schedule?.shift_end_time || '17:30';
             const shiftStart = schedule?.shift_start_time || '09:00';
-            const shiftMins = getTimeMins(shiftEnd) - getTimeMins(shiftStart);
-            const halfShiftMins = shiftMins / 2;
-            if (workedMins > 0 && workedMins <= halfShiftMins) {
+            const lunch = schedule ? shiftLunchMap[schedule.shift_cd] : null;
+            const swipedStatus = classifySwipedDay(inTime, outTime, shiftStart, lunch?.start, lunch?.end, shiftEnd);
+            if (swipedStatus === 'Half Day') {
               dayStatus = 'Half Day'; totalPresent += 0.5; lopDays = 0.5;
+            } else if (swipedStatus === 'Absent') {
+              dayStatus = 'Absent'; totalAbsent++; lopDays = 1;
             } else {
               dayStatus = 'Present'; totalPresent++;
               if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
@@ -1314,7 +1390,8 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
       date: currentDate, dayOfWeek: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek],
       day, status: dayStatus, shift: schedule?.shift_cd || '-',
       in_time: inTime, out_time: outTime,
-      late_hrs: Math.round(lateHrs * 100) / 100,
+      // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
+      late_hrs: Math.round((lateHrs >= 4 ? 0 : lateHrs) * 100) / 100,
       ot_hrs: Math.round(otHrs * 100) / 100,
       lop: lopDays
     });
@@ -1611,7 +1688,8 @@ exports.getLateReport = async (req, res) => {
     };
 
     if (lateOnly) {
-      where.late_hrs = { [Op.gt]: 0 };
+      // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
+      where.late_hrs = { [Op.gt]: 0, [Op.lt]: 4 };
     }
 
     const attendanceData = await Attendance.findAll({

@@ -1,0 +1,149 @@
+🔍 Checking database connectivity at localhost:5432...
+✅ Database is ready and reachable.
+⏳ DB ready, waiting 5s for stabilization...
+Loading model: advance.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: attendance.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: attendanceCollector.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: company-settings.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: disciplinary.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: emp-experience-master.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: emp-ext-ot.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: emp-family-master.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: emp-official-details.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: emp-qualification-master.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: emp-salary-details.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: employee-master.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: employeeTax.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: esi-leave.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: exitSettlement.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: g-attendance.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: holiday.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: leave-application.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: leave-approval.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: leave-details.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: leave-master.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: leave-position.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: muster-roll-summary.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: notification.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: onduty.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: payslip.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: pfAccounting.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: pms.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: profile-update-request.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: recruitment.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: salary-register.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: shift-change.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: shift-master.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: shift-shedule.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: tour-application.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: training.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: woff-application.js from D:\fullstack-erp-app\backend\models\HR
+Loading model: User.js from D:\fullstack-erp-app\backend\models
+✅ Loaded Models: [
+  'AdvanceApplication', 'Attendance',
+  'undefined',          'CompanySettings',
+  'EmpExperience',      'ExtOt',
+  'EmpFamily',          'EmpOfficial',
+  'EmpQualification',   'EmpSalary',
+  'EmployeeMaster',     'ESILeaveApplication',
+  'GAttendance',        'Holiday',
+  'LeaveApplication',   'LeaveApproval',
+  'LeaveDetails',       'LeaveMaster',
+  'LeavePosition',      'MusterRollSummary',
+  'Notification',       'OnDutyApplication',
+  'Payslip',            'ProfileUpdateRequest',
+  'SalaryRegister',     'ShiftChange',
+  'ShiftMaster',        'ShiftSchedule',
+  'TourApplication',    'WoffApplication',
+  'User'
+]
+Epoch 1 loss 0.06402178604029675 time 0ms
+Epoch 2 loss 0.04525990596606691 time 0ms
+Epoch 3 loss 0.030755728916334463 time 0ms
+Epoch 4 loss 0.021548340062603862 time 0ms
+Epoch 5 loss 0.015679484366090596 time 0ms
+Epoch 6 loss 0.011815247388082347 time 0ms
+Epoch 7 loss 0.009136496879800735 time 0ms
+Epoch 8 loss 0.0071986615797460215 time 0ms
+Epoch 9 loss 0.005823836070201345 time 0ms
+Epoch 10 loss 0.004800008948745349 time 0ms
+Epoch 11 loss 0.00402076109185262 time 0ms
+Epoch 12 loss 0.003413296221530092 time 0ms
+Epoch 13 loss 0.0029325853960268976 time 0ms
+Epoch 14 loss 0.002547779585915684 time 0ms
+Epoch 15 loss 0.002234235548774228 time 0ms
+Epoch 16 loss 0.0019776608935291274 time 0ms
+Epoch 17 loss 0.0017640422892897104 time 0ms
+Epoch 18 loss 0.001584337720048093 time 0ms
+Epoch 19 loss 0.0014322062882954323 time 0ms
+Epoch 20 loss 0.001301922924746859 time 0ms
+Epoch 21 loss 0.0011887213635237864 time 0ms
+Epoch 22 loss 0.0010912419418241666 time 0ms
+Epoch 23 loss 0.0010055739895013915 time 0ms
+Epoch 24 loss 0.0009297701424919667 time 0ms
+Epoch 25 loss 0.0008618785891546495 time 0ms
+Epoch 26 loss 0.000801453422703076 time 0ms
+Epoch 27 loss 0.0007468340523005694 time 0ms
+Epoch 28 loss 0.0006975384054778059 time 0ms
+Epoch 29 loss 0.0006526220990073652 time 0ms
+Epoch 30 loss 0.0006114955926263359 time 0ms
+Epoch 31 loss 0.0005737173399060799 time 0ms
+Epoch 32 loss 0.0005389013435334327 time 0ms
+Epoch 33 loss 0.0005067179673662951 time 0ms
+Epoch 34 loss 0.0004768877007804482 time 0ms
+Epoch 35 loss 0.00044917351944692105 time 0ms
+Epoch 36 loss 0.00042337191189629656 time 0ms
+Epoch 37 loss 0.00039930700411607234 time 0ms
+Epoch 38 loss 0.0003768255314550257 time 0ms
+Epoch 39 loss 0.0003557933558634081 time 0ms
+Epoch 40 loss 0.00033609264453243076 time 0ms
+Epoch 41 loss 0.00031761786462386867 time 0ms
+Epoch 42 loss 0.00030028462310543617 time 0ms
+Epoch 43 loss 0.0002839687853091267 time 0ms
+Epoch 44 loss 0.00026865983427290204 time 0ms
+Epoch 45 loss 0.00025424035262751625 time 0ms
+Epoch 46 loss 0.0002406652026161936 time 0ms
+Epoch 47 loss 0.00022788186471303567 time 0ms
+Epoch 48 loss 0.0002158307448828981 time 0ms
+Epoch 49 loss 0.000204460976460613 time 0ms
+Epoch 50 loss 0.00019372935660430656 time 0ms
+Epoch 51 loss 0.00018359684880954398 time 0ms
+Epoch 52 loss 0.0001740271978262547 time 0ms
+Epoch 53 loss 0.00016498649846272888 time 0ms
+Epoch 54 loss 0.00015644297990580395 time 0ms
+Epoch 55 loss 0.00014836690615271407 time 0ms
+Epoch 56 loss 0.0001407307993757067 time 0ms
+Epoch 57 loss 0.00013350863381310149 time 0ms
+Epoch 58 loss 0.0001266762484118891 time 0ms
+Epoch 59 loss 0.00012021115530727624 time 0ms
+Epoch 60 loss 0.00011409226621126087 time 0ms
+Epoch 61 loss 0.00010829976661261871 time 0ms
+Epoch 62 loss 0.00010281511984030491 time 0ms
+Epoch 63 loss 0.00009762104665569959 time 0ms
+Epoch 64 loss 0.00009270120114052644 time 0ms
+Epoch 65 loss 0.00008804025155375826 time 0ms
+Epoch 66 loss 0.00008362389371295733 time 0ms
+Epoch 67 loss 0.00007943855987091561 time 0ms
+Epoch 68 loss 0.00007547149018420973 time 0ms
+Epoch 69 loss 0.00007171082668204591 time 0ms
+Epoch 70 loss 0.0000681452090754268 time 0ms
+Epoch 71 loss 0.00006476405026916647 time 0ms
+Epoch 72 loss 0.00006155736777229506 time 0ms
+Epoch 73 loss 0.000058515682356776054 time 0ms
+Epoch 74 loss 0.00005563019439517108 time 0ms
+Epoch 75 loss 0.00005289248789251431 time 0ms
+Epoch 76 loss 0.00005029462622272078 time 0ms
+Epoch 77 loss 0.00004782917963487287 time 0ms
+✅ Local AI (NLP.js) trained and ready.
+✅ Connected to development database (HR)
+Executing (default): SELECT 1+1 AS result
+✅ Connected to development database (ERP)
+✅ HR database synced.
+✅ ERP database synced.
+✅ Accounts database synced.
+✅ Normalized 12 ProductMaster row(s) to PROD sequence + product_code.
+✅ Seeded Item Master 4-level classification.
+✅ Seeded 16 default UOM(s).
+✅ Seeded 2 default warehouse(s).
+⚠️ Accounts seed skipped (may already exist).
+✅ Server running at http://localhost:5000

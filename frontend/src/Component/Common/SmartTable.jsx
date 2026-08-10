@@ -10,7 +10,7 @@ import { saveAs } from "file-saver";
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 import { useCompany } from "../../context/CompanyContext";
 
-const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, headerAction }) => {
+const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, renderExpanded, headerAction }) => {
   const { companyName } = useCompany();
   const [visibleColumns, setVisibleColumns] = useState(columns.map(col => col.field));
   const [tempVisibleColumns, setTempVisibleColumns] = useState([...visibleColumns]);
@@ -328,7 +328,16 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, h
                     </div>
                   </td>
                 </tr>
-                {row._expanded && row.leaveDetails && row.leaveDetails.length > 1 && (
+                {row._expanded && (
+                  <>
+                    {renderExpanded && (
+                      <tr className="expanded-detail-row">
+                        <td colSpan={visibleColumns.length + 2} className="expanded-detail-cell">
+                          {renderExpanded(row)}
+                        </td>
+                      </tr>
+                    )}
+                    {!renderExpanded && row.leaveDetails && row.leaveDetails.length > 1 && (
                   <tr className="expanded-detail-row">
                     <td colSpan={visibleColumns.length + 2} className="expanded-detail-cell">
                       <div className="nested-grid-container">
@@ -357,6 +366,8 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, h
                       </div>
                     </td>
                   </tr>
+                )}
+                  </>
                 )}
               </React.Fragment>
             ))}

@@ -6,13 +6,14 @@ const DeliveryChallan = db.DeliveryChallan;
 const DeliveryChallanItem = db.DeliveryChallanItem;
 const ItemMaster = db.ItemMaster;
 const SupplierMaster = db.SupplierMaster;
-const { postMovement, reverseMovements, getDefaultWarehouse, lockStock, negativeStockAllowed, REF_TYPES } = require('../../utils/stockService');
+const { postMovement, reverseMovements, getDefaultWarehouse, lockStock, negativeStockAllowed, getStoresSettings, REF_TYPES } = require('../../utils/stockService');
+const { nextDocNumber } = require('../../utils/docNumber');
 
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
 
 async function generateIrNo() {
-  const [rows] = await db.sequelize.query("SELECT COALESCE(MAX(CAST(ir_no AS INTEGER)), 0) AS max_no FROM ir WHERE ir_type = 'GRR'");
-  return String(Number(rows[0]?.max_no || 0) + 1);
+  const settings = await getStoresSettings();
+  return nextDocNumber(GRN, 'ir_no', Number(settings?.ir_start_no) || 1, settings?.ir_prefix);
 }
 
 async function getPendingDCs(req, res) {
@@ -75,11 +76,89 @@ async function getPendingDCs(req, res) {
 
 exports.getPendingDCs = getPendingDCs;
 
+exports.getPendingBilling = async (req, res) => {
+  try {
+    const { dc_type, year, billed, search, date_from, date_to } = req.query;
+    const where = {
+      status: 'Approved',
+      dc_type: dc_type ? dc_type : { [Op.in]: ['R', 'M'] },
+    };
+    if (billed === 'true' || billed === '1') {
+      where.bill_no = { [Op.ne]: null };
+    } else {
+      where.bill_no = { [Op.is]: null };
+    }
+    if (year) {
+      where[Op.and] = [
+        db.sequelize.where(db.sequelize.fn('EXTRACT', db.sequelize.literal('YEAR FROM "ir_date"')), year),
+      ];
+    }
+    if (search) {
+      where[Op.or] = [
+        { ir_no: { [Op.iLike]: `%${search}%` } },
+        { party_name: { [Op.iLike]: `%${search}%` } },
+        { bill_no: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+    if (date_from && date_to) {
+      const toEnd = new Date(new Date(date_to).getTime() + 86400000).toISOString().slice(0, 10);
+      where.ir_date = { [Op.between]: [date_from, toEnd] };
+    } else if (date_from) {
+      where.ir_date = { [Op.gte]: date_from };
+    } else if (date_to) {
+      where.ir_date = { [Op.lte]: date_to };
+    }
+    const rows = await GRN.findAll({
+      where,
+      include: [
+        { model: GRNItem, as: 'items', include: [{ model: ItemMaster, as: 'item', attributes: ['id', 'item_code', 'item_name'] }] },
+        { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name', 'gstin'] },
+        { model: DeliveryChallan, as: 'deliveryChallans' },
+      ],
+      order: [['ir_date', 'DESC']],
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching IR billing:', err);
+    res.status(500).json({ error: 'Failed to fetch IR billing' });
+  }
+};
+
+exports.billIr = async (req, res) => {
+  try {
+    const { ids, bill_no, bill_date, invoice_no, invoice_date, remarks } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'IR IDs required' });
+    if (!bill_no) return res.status(400).json({ error: 'Bill number required' });
+    const bDate = bill_date || new Date().toISOString().split('T')[0];
+
+    const docs = await GRN.findAll({ where: { id: { [Op.in]: ids } } });
+    if (docs.length !== ids.length) return res.status(404).json({ error: 'One or more IRs not found' });
+    const alreadyBilled = docs.filter((d) => d.bill_no);
+    if (alreadyBilled.length > 0) {
+      return res.status(400).json({ error: 'IR(s) already billed: ' + alreadyBilled.map((d) => d.ir_no).join(', ') });
+    }
+
+    for (const doc of docs) {
+      await doc.update({
+        invoice_no: invoice_no || doc.invoice_no,
+        invoice_date: invoice_date || doc.invoice_date,
+        bill_no,
+        bill_date: bDate,
+        notes: remarks ? `${doc.notes || ''} | Billing: ${remarks}`.trim() : doc.notes,
+      });
+    }
+    res.json({ message: `Billed ${docs.length} IR(s)` });
+  } catch (err) {
+    console.error('Error billing IRs:', err);
+    res.status(500).json({ error: 'Failed to bill IRs' });
+  }
+};
+
 exports.getNextNumber = async (req, res) => {
   try {
-    const [rows] = await db.sequelize.query('SELECT COALESCE(MAX(CAST(ir_no AS INTEGER)), 0) AS max_no FROM ir WHERE ir_type = \'GRR\'');
-    const last = Number(rows[0]?.max_no || 0);
-    res.json({ ir_no: String(last + 1), last_number: String(last) });
+    const settings = await getStoresSettings();
+    const next = await nextDocNumber(GRN, 'ir_no', Number(settings?.ir_start_no) || 1, settings?.ir_prefix);
+    res.json({ ir_no: next, last_number: next });
   } catch (err) {
     console.error('Error generating IR number:', err);
     res.status(500).json({ error: 'Failed to generate IR number' });

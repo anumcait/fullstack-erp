@@ -1,6 +1,7 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
-const { generateDocNumber } = require('../../utils/docNumber');
+const { generateDocNumber, nextDocNumber } = require('../../utils/docNumber');
+const { getStoresSettings } = require('../../utils/stockService');
 
 const sequelize = db.sequelize;
 const MaterialRequisition = db.MaterialRequisition;
@@ -8,12 +9,12 @@ const MaterialRequisitionItem = db.MaterialRequisitionItem;
 const ItemMaster = db.ItemMaster;
 const PurchaseRequisition = db.PurchaseRequisition;
 const PurchaseRequisitionItem = db.PurchaseRequisitionItem;
-const PurchaseSettings = db.PurchaseSettings;
 
 exports.getNextNumber = async (req, res) => {
   try {
-    const seq = await MaterialRequisition.count() + 1;
-    res.json({ req_no: String(seq), sequence: seq });
+    const settings = await getStoresSettings();
+    const req_no = await nextDocNumber(MaterialRequisition, 'req_no', Number(settings?.mr_start_no) || 1, settings?.mr_prefix);
+    res.json({ req_no, sequence: req_no });
   } catch (err) {
     console.error('Error getting next MR number:', err);
     res.status(500).json({ error: 'Failed' });
@@ -60,8 +61,8 @@ exports.create = async (req, res) => {
   try {
     let { items, ...header } = req.body;
     if (!header.req_no) {
-      const seq = await MaterialRequisition.count() + 1;
-      header.req_no = String(seq);
+      const settings = await getStoresSettings();
+      header.req_no = await nextDocNumber(MaterialRequisition, 'req_no', Number(settings?.mr_start_no) || 1, settings?.mr_prefix);
     }
     const doc = await MaterialRequisition.create(header);
     if (items && items.length > 0) {
@@ -150,8 +151,8 @@ exports.convertToPR = async (req, res) => {
       return res.status(400).json({ error: 'All items have sufficient stock. No purchase needed.' });
     }
 
-    const settings = await PurchaseSettings.findByPk(1);
-    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_prefix', 'req_no', settings || {});
+    const settings = await getStoresSettings();
+    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_start_no', 'pr_prefix', 'req_no', settings || {});
 
     const pr = await PurchaseRequisition.create({
       req_no: prNo,
@@ -254,8 +255,8 @@ exports.createPRFromMR = async (req, res) => {
       return res.status(400).json({ error: 'No items provided for PR' });
     }
 
-    const settings = await PurchaseSettings.findByPk(1);
-    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_prefix', 'req_no', settings || {});
+    const settings = await getStoresSettings();
+    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_start_no', 'pr_prefix', 'req_no', settings || {});
 
     const pr = await PurchaseRequisition.create({
       req_no: prNo,

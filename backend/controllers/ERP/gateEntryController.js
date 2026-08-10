@@ -1,5 +1,7 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
+const { nextDocNumber } = require('../../utils/docNumber');
+const { getStoresSettings } = require('../../utils/stockService');
 
 const GateEntry = db.GateEntry;
 const GateEntryItem = db.GateEntryItem;
@@ -44,9 +46,9 @@ exports.create = async (req, res) => {
   try {
     let { items, ...header } = req.body;
     if (!header.entry_no) {
-      const prefix = header.entry_type === 'Outward' ? 'GE-OUT' : 'GE-IN';
-      const seq = await GateEntry.count() + 1;
-      header.entry_no = `${prefix}-${String(seq).padStart(4, '0')}`;
+      const settings = await getStoresSettings();
+      const prefix = header.entry_type === 'Outward' ? settings?.ge_prefix_out : settings?.ge_prefix_in;
+      header.entry_no = await nextDocNumber(GateEntry, 'entry_no', Number(settings?.ge_start_no) || 1, prefix);
     }
     const doc = await GateEntry.create(header);
     if (items && items.length > 0) {

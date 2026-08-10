@@ -33,7 +33,10 @@ const ShiftSchedule = () => {
   const [weekForm, setWeekForm] = useState({ startDate: "", selectAll: true, employeeIds: [] });
   const [weekShifts, setWeekShifts] = useState({ sun: "", mon: "", tue: "", wed: "", thu: "", fri: "", sat: "" });
   const [bulkMatrixDialog, setBulkMatrixDialog] = useState(false);
+  const [bulkSchedules, setBulkSchedules] = useState([]);
   const [bulkData, setBulkData] = useState({}); // { empid: { date: shift_cd } }
+  const [existingShifts, setExistingShifts] = useState(new Set()); // set of "empid|date" strings with existing schedules
+  const [saving, setSaving] = useState(false);
   const [woffs, setWoffs] = useState([]);
   const [filters, setFilters] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear(), empid: "" });
   const getCurrentWeekOffset = () => {
@@ -167,10 +170,10 @@ const ShiftSchedule = () => {
     return weekDates;
   };
 
-  const getShiftForEmployeeDate = (empid, date) => {
-    if (!schedules || schedules.length === 0) return null;
+  const getShiftForEmployeeDate = (empid, date, schedulesToUse = schedules) => {
+    if (!schedulesToUse || schedulesToUse.length === 0) return null;
 
-    const result = schedules.find(s => {
+    const result = schedulesToUse.find(s => {
       const sEmpId = Number(s.empid);
       const searchEmpId = Number(empid);
       if (sEmpId !== searchEmpId) return false;
@@ -235,48 +238,84 @@ const ShiftSchedule = () => {
     }
   };
 
+  // Fetch schedules for the bulk matrix dialog's date range
+  useEffect(() => {
+    if (bulkMatrixDialog && weekForm.startDate) {
+      const [y, m, d] = weekForm.startDate.split('-').map(Number);
+      const start = new Date(y, m - 1, d);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+
+      const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+      const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+
+      axios.get(`${import.meta.env.VITE_API_URL}/api/shift/schedule/all`, {
+        params: { startDate: startStr, endDate: endStr }
+      }).then(res => {
+        setBulkSchedules(res.data);
+      }).catch(err => {
+        console.error("Error fetching bulk dialog schedules:", err);
+      });
+    }
+  }, [bulkMatrixDialog, weekForm.startDate]);
+
   // Auto-populate bulk data based on holidays and woff applications
   useEffect(() => {
     if (bulkMatrixDialog && weekForm.startDate) {
+      const combinedSchedules = [...schedules, ...bulkSchedules];
       const initialData = {};
+      const existingSet = new Set();
       const weekDates = getDialogWeekDates();
       
       employees.forEach(emp => {
         initialData[emp.empid] = {};
         weekDates.forEach(d => {
           const dateStr = d.date;
-          
+
           // 1. Check Holiday
           const holiday = getHolidayForDate(dateStr);
           if (holiday) {
             initialData[emp.empid][dateStr] = 'H';
             return;
           }
-          
+
           // 2. Check Woff (Approved applications)
-          const hasWoff = woffs.find(w => 
-            Number(w.empid) === Number(emp.empid) && 
+          const hasWoff = woffs.find(w =>
+            Number(w.empid) === Number(emp.empid) &&
             w.status === 'Approved' &&
-            dateStr >= (w.woff_from_date?.split('T')[0] || '') && 
+            dateStr >= (w.woff_from_date?.split('T')[0] || '') &&
             dateStr <= (w.woff_to_date?.split('T')[0] || '')
           );
           if (hasWoff) {
             initialData[emp.empid][dateStr] = 'W';
             return;
           }
-          
-          // 3. Check existing schedule if any
-          const existing = getShiftForEmployeeDate(emp.empid, dateStr);
+
+          // 3. Check Sunday (Weekly Off)
+          if (d.dayName === 'sun') {
+            initialData[emp.empid][dateStr] = 'W';
+            return;
+          }
+
+          // 4. Check existing schedule if any (from both states)
+          const existing = getShiftForEmployeeDate(emp.empid, dateStr, combinedSchedules);
           if (existing) {
             initialData[emp.empid][dateStr] = existing.shift_cd;
+            existingSet.add(`${emp.empid}|${dateStr}`);
           }
         });
       });
       setBulkData(initialData);
+      setExistingShifts(existingSet);
     }
-  }, [bulkMatrixDialog, weekForm.startDate, woffs.length, holidays.length, schedules.length]);
+  }, [bulkMatrixDialog, weekForm.startDate, woffs.length, holidays.length, schedules.length, bulkSchedules.length]);
 
   const handleBulkDataChange = (empid, date, shiftCd) => {
+    setExistingShifts(prev => {
+      const next = new Set(prev);
+      next.delete(`${empid}|${date}`);
+      return next;
+    });
     setBulkData(prev => ({
       ...prev,
       [empid]: {
@@ -292,16 +331,32 @@ const ShiftSchedule = () => {
     if (validShifts.includes(key)) {
       e.preventDefault();
       e.stopPropagation();
-      handleBulkDataChange(empid, date, key);
-      
-      // Focus next cell in same row or first cell in next row
+
+      const [y, m, d] = date.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const isSunday = dateObj.getDay() === 0;
+      const holiday = getHolidayForDate(date);
+      const isExisting = existingShifts.has(`${empid}|${date}`);
+      const existing = isExisting ? getShiftForEmployeeDate(empid, date, [...schedules, ...bulkSchedules]) : null;
+
+      let effectiveShift = key;
+      if (isSunday) {
+        effectiveShift = 'W';
+      } else if (holiday) {
+        effectiveShift = 'H';
+      } else if (existing) {
+        effectiveShift = existing.shift_cd;
+      }
+
+      handleBulkDataChange(empid, date, effectiveShift);
+
       let nextIndex = index + 1;
       let nextEmpIndex = empIndex;
       if (nextIndex > 6) {
         nextIndex = 0;
         nextEmpIndex++;
       }
-      
+
       const nextSelect = document.querySelector(`[data-bulk-emp="${nextEmpIndex}"][data-bulk-day="${nextIndex}"] div[role="combobox"]`);
       if (nextSelect) {
         setTimeout(() => nextSelect.focus(), 0);
@@ -331,19 +386,60 @@ const ShiftSchedule = () => {
 
     if (schedulesToSave.length === 0) { showToast("No changes to save", "info"); return; }
     
+    setSaving(true);
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/shift/schedule/save-bulk`, schedulesToSave);
       showToast(`✅ Successfully saved ${schedulesToSave.length} shift assignments`, "success");
       setBulkMatrixDialog(false);
+      setBulkData({});
+      setExistingShifts(new Set());
+      setBulkSchedules([]);
       fetchSchedules();
     } catch (err) {
+      console.error("Error saving bulk schedules:", err);
       showToast("❌ Error saving bulk schedules", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   const fillAllDays = (shiftCd) => {
     if (!shiftCd) return;
     setWeekShifts({ sun: shiftCd, mon: shiftCd, tue: shiftCd, wed: shiftCd, thu: shiftCd, fri: shiftCd, sat: shiftCd });
+  };
+
+  const fillBulkColumn = (dateStr, shiftCd) => {
+    if (!shiftCd) return;
+    // If regular shift and Sunday, use W (Weekly Off)
+    if (['G', 'A', 'B', 'C', '1', '2', '3'].includes(shiftCd)) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      if (dateObj.getDay() === 0) {
+        shiftCd = 'W';
+      }
+    }
+    setBulkData(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(empid => {
+        if (!updated[empid][dateStr]) {
+          updated[empid] = { ...updated[empid], [dateStr]: shiftCd };
+        }
+      });
+      return updated;
+    });
+  };
+
+  const clearAllBulkData = () => {
+    setBulkData(prev => {
+      const updated = {};
+      Object.keys(prev).forEach(empid => {
+        updated[empid] = {};
+        Object.keys(prev[empid]).forEach(date => {
+          updated[empid][date] = '';
+        });
+      });
+      return updated;
+    });
   };
 
   const handleSave = async () => {
@@ -388,7 +484,7 @@ const ShiftSchedule = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this schedule?")) return;
     try { await axios.delete(`${import.meta.env.VITE_API_URL}/api/shift/schedule/${id}`); showToast("✅ Schedule deleted", "success"); fetchSchedules(); }
-    catch (err) { showToast("❌ Error deleting schedule", "error"); }
+    catch { showToast("❌ Error deleting schedule", "error"); }
   };
 
   const months = [{ value: 1, label: "January" }, { value: 2, label: "February" }, { value: 3, label: "March" }, { value: 4, label: "April" }, { value: 5, label: "May" }, { value: 6, label: "June" }, { value: 7, label: "July" }, { value: 8, label: "August" }, { value: 9, label: "September" }, { value: 10, label: "October" }, { value: 11, label: "November" }, { value: 12, label: "December" }];
@@ -628,71 +724,130 @@ const ShiftSchedule = () => {
         <DialogActions><Button onClick={() => setWeekAssignDialog(false)}>Cancel</Button><Button variant="contained" startIcon={<SaveIcon />} onClick={handleWeekAssign}>Assign {weekForm.selectAll ? 'All' : `${weekForm.employeeIds.length}`} Employees</Button></DialogActions>
       </Dialog>
       {/* Bulk Matrix Entry Dialog */}
-      <Dialog open={bulkMatrixDialog} onClose={() => setBulkMatrixDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog open={bulkMatrixDialog} onClose={() => { if (bulkMatrixDialog) { setBulkMatrixDialog(false); setBulkData({}); setExistingShifts(new Set()); setBulkSchedules([]); } }} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: '#f5f5f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Bulk Shift Matrix Entry
+          <Typography variant="h6" fontWeight="bold">Bulk Shift Matrix Entry</Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <TextField size="small" type="date" label="Start Date" InputLabelProps={{ shrink: true }} value={weekForm.startDate} onChange={(e) => setWeekForm({ ...weekForm, startDate: e.target.value })} />
             <TextField size="small" placeholder="Search employee..." value={empSearch} onChange={(e) => setEmpSearch(e.target.value)} />
           </Box>
         </DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ minWidth: 200, bgcolor: '#e3f2fd', fontWeight: 'bold' }}>Employee</TableCell>
-                {getDialogWeekDates().map((d, idx) => (
-                  <TableCell key={idx} align="center" sx={{ bgcolor: '#e3f2fd', minWidth: 100 }}>
-                    <strong>{d.dayLabel}</strong><br /><small>{formatDateOnly(d.date)}</small>
-                  </TableCell>
+        <DialogContent dividers sx={{ p: 0, maxHeight: '70vh' }}>
+          {!weekForm.startDate && (
+            <Typography align="center" sx={{ py: 6, color: '#999' }}>Select a start date to begin.</Typography>
+          )}
+
+          {weekForm.startDate && (
+            <>
+              {/* Quick Actions Toolbar */}
+              <Box sx={{ mb: 0, p: 1.5, bgcolor: '#e3f2fd', borderBottom: '1px solid #bbdefb', display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0', mr: 1 }}>⚡ Quick Fill:</Typography>
+                {shifts.map((sh) => (
+                  <Button key={sh.shift_cd} size="small" variant="outlined" color="primary" onClick={() => {
+                    getDialogWeekDates().forEach(d => fillBulkColumn(d.date, sh.shift_cd));
+                  }}>
+                    All {sh.shift_cd} ({sh.shift_name})
+                  </Button>
                 ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {dialogFilteredEmployees.map((emp, empIdx) => (
-                <TableRow key={emp.empid} hover>
-                  <TableCell sx={{ fontWeight: 'bold' }}>
-                    {emp.empid}<br /><Typography variant="caption" color="textSecondary">{emp.ename}</Typography>
-                  </TableCell>
-                  {getDialogWeekDates().map((d, dayIdx) => (
-                    <TableCell key={dayIdx} sx={{ p: '2px' }}>
-                      <FormControl size="small" fullWidth data-bulk-emp={empIdx} data-bulk-day={dayIdx}>
-                        <Select
-                          value={bulkData[emp.empid]?.[d.date] || ""}
-                          onChange={(e) => handleBulkDataChange(emp.empid, d.date, e.target.value)}
-                          onKeyDownCapture={(e) => handleBulkKeyDown(emp.empid, d.date, dayIdx, empIdx, e)}
-                          displayEmpty
-                          sx={{ 
-                            fontSize: '0.8rem',
-                            bgcolor: bulkData[emp.empid]?.[d.date] === 'W' ? '#c8e6c9' : 
-                                     bulkData[emp.empid]?.[d.date] === 'H' ? '#ffcdd2' : 'inherit'
-                          }}
-                        >
-                          <MenuItem value="">-</MenuItem>
-                          <MenuItem value="G" sx={{ bgcolor: '#bbdefb' }}>G</MenuItem>
-                          <MenuItem value="A" sx={{ bgcolor: '#e1bee7' }}>A</MenuItem>
-                          <MenuItem value="B" sx={{ bgcolor: '#ffe0b2' }}>B</MenuItem>
-                          <MenuItem value="C" sx={{ bgcolor: '#b2dfdb' }}>C</MenuItem>
-                          <MenuItem value="1" sx={{ bgcolor: '#f8bbd0' }}>1</MenuItem>
-                          <MenuItem value="2" sx={{ bgcolor: '#d1c4e9' }}>2</MenuItem>
-                          <MenuItem value="3" sx={{ bgcolor: '#ffccbc' }}>3</MenuItem>
-                          <MenuItem value="W" sx={{ bgcolor: '#c8e6c9' }}>W</MenuItem>
-                          <MenuItem value="H" sx={{ bgcolor: '#ffcdd2' }}>H</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </TableCell>
+                <Button size="small" variant="outlined" color="success" onClick={() => getDialogWeekDates().forEach(d => fillBulkColumn(d.date, 'W'))}>
+                  All Weekly Off
+                </Button>
+                <Button size="small" variant="outlined" color="error" onClick={() => getDialogWeekDates().forEach(d => fillBulkColumn(d.date, 'H'))}>
+                  All Holiday
+                </Button>
+                <Button size="small" variant="text" color="inherit" onClick={clearAllBulkData}>
+                  Clear All
+                </Button>
+              </Box>
+
+              {/* Summary */}
+              <Box sx={{ p: 1.5, bgcolor: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                  Employees: {dialogFilteredEmployees.length}
+                </Typography>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+                  Existing Schedules: {existingShifts.size} <span style={{ fontSize: '0.7rem' }}>🟢 = pre-existing</span>
+                </Typography>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                  Week of: {weekForm.startDate}
+                </Typography>
+                <Box sx={{ ml: 'auto' }}>
+                  <Typography variant="caption" sx={{ color: '#666' }}>
+                    Tip: Type shift code (G, A, B, C, 1, 2, 3, W, H) for fast entry. Focus auto-moves to next cell.
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ minWidth: 220, bgcolor: '#e3f2fd', fontWeight: 'bold', position: 'sticky', top: 0 }}>Employee</TableCell>
+                    {getDialogWeekDates().map((d, idx) => (
+                      <TableCell key={idx} align="center" sx={{ bgcolor: '#e3f2fd', minWidth: 100, position: 'sticky', top: 0 }}>
+                        <strong>{d.dayLabel}</strong><br /><small>{formatDateOnly(d.date)}</small>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {dialogFilteredEmployees.map((emp, empIdx) => (
+                    <TableRow key={emp.empid} hover>
+                      <TableCell sx={{ fontWeight: 'bold' }}>
+                        {emp.empid}<br /><Typography variant="caption" color="textSecondary">{emp.ename}</Typography>
+                      </TableCell>
+                      {getDialogWeekDates().map((d, dayIdx) => {
+                        const hasExisting = existingShifts.has(`${emp.empid}|${d.date}`);
+                        const cellValue = bulkData[emp.empid]?.[d.date] || "";
+                        return (
+                          <TableCell key={dayIdx} sx={{ p: '2px' }}>
+                            <FormControl size="small" fullWidth data-bulk-emp={empIdx} data-bulk-day={dayIdx}>
+                              <Select
+                                value={cellValue}
+                                onChange={(e) => handleBulkDataChange(emp.empid, d.date, e.target.value)}
+                                onKeyDownCapture={(e) => handleBulkKeyDown(emp.empid, d.date, dayIdx, empIdx, e)}
+                                displayEmpty
+                                sx={{ 
+                                  fontSize: '0.8rem',
+                                  bgcolor: hasExisting
+                                    ? '#e8f5e9'
+                                    : cellValue === 'W' ? '#c8e6c9' :
+                                      cellValue === 'H' ? '#ffcdd2' : 'inherit',
+                                  border: hasExisting ? '2px solid #4caf50' : '1px solid transparent',
+                                  fontWeight: hasExisting ? 'bold' : 'normal',
+                                }}
+                              >
+                                <MenuItem value="">-</MenuItem>
+                                <MenuItem value="G" sx={{ bgcolor: '#bbdefb' }}>G</MenuItem>
+                                <MenuItem value="A" sx={{ bgcolor: '#e1bee7' }}>A</MenuItem>
+                                <MenuItem value="B" sx={{ bgcolor: '#ffe0b2' }}>B</MenuItem>
+                                <MenuItem value="C" sx={{ bgcolor: '#b2dfdb' }}>C</MenuItem>
+                                <MenuItem value="1" sx={{ bgcolor: '#f8bbd0' }}>1</MenuItem>
+                                <MenuItem value="2" sx={{ bgcolor: '#d1c4e9' }}>2</MenuItem>
+                                <MenuItem value="3" sx={{ bgcolor: '#ffccbc' }}>3</MenuItem>
+                                <MenuItem value="W" sx={{ bgcolor: '#c8e6c9' }}>W</MenuItem>
+                                <MenuItem value="H" sx={{ bgcolor: '#ffcdd2' }}>H</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                </TableBody>
+              </Table>
+            </>
+          )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-          <Typography variant="caption" sx={{ mr: 'auto' }}>
-            Tip: Use keyboard (G, A, B, W, H, etc.) for rapid entry. Focus jumps to next cell automatically.
+        <DialogActions sx={{ p: 2, bgcolor: '#f5f5f5', justifyContent: 'space-between' }}>
+          <Typography variant="body2" sx={{ color: '#666' }}>
+            {existingShifts.size > 0 && `${existingShifts.size} existing schedule(s) highlighted in green`}
           </Typography>
-          <Button onClick={() => setBulkMatrixDialog(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" startIcon={<SaveIcon />} onClick={handleBulkSave}>Save All Changes</Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button onClick={() => { setBulkMatrixDialog(false); setBulkData({}); setExistingShifts(new Set()); setBulkSchedules([]); }} disabled={saving}>Cancel</Button>
+            <Button variant="contained" color="primary" startIcon={<SaveIcon />} onClick={handleBulkSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save All Changes'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </Card>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress,
-  Table, TableHead, TableRow, TableCell, TableBody, TableContainer,
+  Table, TableHead, TableRow, TableCell, TableBody, TableContainer, IconButton,
   MenuItem, Tabs, Tab, Tooltip, TablePagination, Dialog, DialogTitle,
   DialogContent, DialogActions,
 } from "@mui/material";
@@ -15,16 +15,11 @@ import { useToast } from "../../../../context/ToastContext";
 import { formatNumber, formatQty } from "../../../../utils/format";
 
 const API = "/api/erp/stores/inward-registers";
+const dcTypeLabel = { R: "Repair", M: "Maintenance" };
 
-const typeTabs = [
-  { label: "Jobwork", code: "J" },
-  { label: "Sale on Approval", code: "S" },
-];
-const dcTypeLabel = { J: "Jobwork", S: "Sale on Approval" };
-
-export default function DcBillingList() {
+export default function IrTypeBilling({ dcType, title }) {
   const { showToast } = useToast();
-  const [typeTab, setTypeTab] = useState(0);
+  const [tab, setTab] = useState(0); // 0 = Outstanding, 1 = Completed
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -45,18 +40,19 @@ export default function DcBillingList() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { dc_type: typeTabs[typeTab].code };
+      const params = { dc_type: dcType };
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       if (search) params.search = search;
+      params.billed = tab === 1 ? "true" : "false";
       const { data } = await axios.get(`${API}/pending-billing`, { params });
       setRows(data);
     } catch {
-      showToast("Failed to load billing data", "error");
+      showToast("Failed to load IR billing data", "error");
     } finally {
       setLoading(false);
     }
-  }, [typeTab, dateFrom, dateTo, search, showToast]);
+  }, [dcType, tab, dateFrom, dateTo, search, showToast]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -179,23 +175,30 @@ export default function DcBillingList() {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Typography variant="h4" sx={{ fontWeight: "bold", color: "var(--heading-color)" }}>
-          {typeTabs[typeTab].label} Billing
+          {title}
         </Typography>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
         </Box>
       </Box>
 
-      {/* DC Type Tabs */}
+      {/* Tabs */}
       <Box sx={{ mb: 2 }}>
-        <Tabs value={typeTab} onChange={(_, v) => { setTypeTab(v); setPage(0); }}
+        <Tabs value={tab} onChange={(_, v) => { setTab(v); setPage(0); }}
           sx={{ "& .MuiTab-root": { fontWeight: 700, fontSize: "0.85rem", textTransform: "none", minHeight: 40 },
             "& .Mui-selected": { color: "#1565c0" }, "& .MuiTabs-indicator": { backgroundColor: "#1565c0", height: 3 } }}>
-          {typeTabs.map((t) => (
-            <Tab key={t.code} label={<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {t.label}<Chip label={t.code} size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: "0.65rem", fontWeight: 700 }} />
-            </Box>} />
-          ))}
+          <Tab label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {title} : Outstanding
+              {tab === 0 && rows.length > 0 && <Chip label={rows.length} size="small" color="warning" sx={{ height: 20, fontSize: "0.72rem" }} />}
+            </Box>
+          } />
+          <Tab label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {title} : Completed
+              {tab === 1 && rows.length > 0 && <Chip label={rows.length} size="small" color="success" sx={{ height: 20, fontSize: "0.72rem" }} />}
+            </Box>
+          } />
         </Tabs>
       </Box>
 
@@ -228,14 +231,14 @@ export default function DcBillingList() {
           {loading && <LinearProgress sx={{ mb: 1 }} />}
           {!loading && filtered.length === 0 && (
             <Typography sx={{ textAlign: "center", py: 6, color: "#94a3b8", fontStyle: "italic" }}>
-              No records found.
+              {tab === 0 ? `No pending ${dcTypeLabel[dcType]?.toLowerCase() || ""} IRs for billing.` : "No completed billing records found."}
             </Typography>
           )}
           {filtered.length > 0 && (
             <>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5, px: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: "#475569" }}>
-                  Pending IRs awaiting billing — <Box component="span" sx={{ color: "#1565c0", fontWeight: 700 }}>{totalCount}</Box> record{totalCount !== 1 ? "s" : ""}
+                  {tab === 0 ? "Pending IRs awaiting billing" : "Billed IRs"} — <Box component="span" sx={{ color: "#1565c0", fontWeight: 700 }}>{totalCount}</Box> record{totalCount !== 1 ? "s" : ""}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#64748b", fontWeight: 600 }}>
                   Page {page + 1} ({page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, totalCount)} of {totalCount})
@@ -272,10 +275,14 @@ export default function DcBillingList() {
                       <TableCell sx={{ ...thSx, width: 90, cursor: "pointer" }} onClick={() => handleSort("received_by")}>
                         Recvd By{sortIcon("received_by")}
                       </TableCell>
-                      <TableCell sx={{ ...thSx, width: 90, cursor: "pointer" }} onClick={() => handleSort("bill_no")}>
-                        Bill No{sortIcon("bill_no")}
-                      </TableCell>
-                      <TableCell sx={{ ...thSx, width: 90 }}>Bill Date</TableCell>
+                      {tab === 1 && (
+                        <>
+                          <TableCell sx={{ ...thSx, width: 90, cursor: "pointer" }} onClick={() => handleSort("bill_no")}>
+                            Bill No{sortIcon("bill_no")}
+                          </TableCell>
+                          <TableCell sx={{ ...thSx, width: 90 }}>Bill Date</TableCell>
+                        </>
+                      )}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -283,7 +290,7 @@ export default function DcBillingList() {
                       <TableRow key={`${r.irId}-${r.item?.id || idx}`} hover
                         sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#f1f5f9", "&:hover": { bgcolor: "#dbeafe" } }}>
                         <TableCell sx={{ ...tdSx, textAlign: "center" }}>
-                          {r.bill_no ? (
+                          {tab === 1 ? (
                             <Chip label="Billed" size="small" color="success" sx={{ fontSize: "0.7rem", height: 24, fontWeight: 600 }} />
                           ) : (
                             <Button variant="contained" size="small" color="primary"
@@ -308,10 +315,12 @@ export default function DcBillingList() {
                           {r.kg_accp > 0 ? formatNumber(r.kg_accp, 3) : "-"}
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center" }}>{r.received_by || "-"}</TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: r.bill_no ? "#2e7d32" : "#94a3b8" }}>
-                          {r.bill_no || "-"}
-                        </TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDate(r.bill_date)}</TableCell>
+                        {tab === 1 && (
+                          <>
+                            <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#2e7d32" }}>{r.bill_no || "-"}</TableCell>
+                            <TableCell sx={{ ...tdSx, textAlign: "center" }}>{fmtDate(r.bill_date)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -334,7 +343,7 @@ export default function DcBillingList() {
             <TextField size="small" label="Party" value={billIr?.party_name || ""} InputProps={{ readOnly: true }} />
             <TextField size="small" label="IR Type" value={dcTypeLabel[billIr?.dc_type] || billIr?.dc_type || "-"} InputProps={{ readOnly: true }} />
             <TextField size="small" label="Bill Number" value={billNo} onChange={(e) => setBillNo(e.target.value)} autoFocus
-              helperText="Enter the bill or invoice number" />
+              helperText={`Enter the ${dcTypeLabel[dcType]?.toLowerCase() || ""} bill or invoice number`} />
           </Box>
         </DialogContent>
         <DialogActions>

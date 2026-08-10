@@ -27,10 +27,6 @@ module.exports = (sequelize, DataTypes) => {
     reason: DataTypes.TEXT,
     remarks: DataTypes.TEXT,
     created_by: DataTypes.STRING(50),
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
-    },
     status: {
       type: DataTypes.STRING(20)
     },

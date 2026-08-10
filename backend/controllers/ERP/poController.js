@@ -1,11 +1,11 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
 const { generateDocNumber } = require('../../utils/docNumber');
+const { getStoresSettings } = require('../../utils/stockService');
 
 const PurchaseOrder = db.PurchaseOrder;
 const PurchaseOrderItem = db.PurchaseOrderItem;
 const SupplierMaster = db.SupplierMaster;
-const PurchaseSettings = db.PurchaseSettings;
 
 exports.getPurchaseOrders = async (req, res) => {
   try {
@@ -110,9 +110,9 @@ exports.createPurchaseOrder = async (req, res) => {
 
     // Auto-generate PO number if not provided or auto-generation is enabled
     if (!header.po_no) {
-      const settings = await PurchaseSettings.findByPk(1);
+      const settings = await getStoresSettings();
       if (settings?.auto_generate_po) {
-        header.po_no = await generateDocNumber('PurchaseOrder', 'po_prefix', 'po_no', settings);
+        header.po_no = await generateDocNumber('PurchaseOrder', 'po_start_no', 'po_prefix', 'po_no', settings);
       } else {
         return res.status(400).json({ error: 'PO number is required. Enable auto-generation in Settings.' });
       }

@@ -1,5 +1,7 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
+const { nextDocNumber } = require('../../utils/docNumber');
+const { getStoresSettings } = require('../../utils/stockService');
 const { QualityInspection, QualityInspectionItem, NonConformance } = db;
 
 exports.list = async (req, res) => {
@@ -32,9 +34,14 @@ exports.get = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { items, ...header } = req.body;
-    const count = await QualityInspection.count();
-    const prefix = header.inspection_type === 'Incoming' ? 'IQC' : header.inspection_type === 'In-Process' ? 'IPC' : 'FQC';
-    header.inspection_no = `${prefix}-${String(count + 1).padStart(4, '0')}`;
+    if (!header.inspection_no) {
+      const settings = await getStoresSettings();
+      const type = header.inspection_type || 'Incoming';
+      const prefix = type === 'In-Process'
+        ? settings?.qc_prefix_ipc
+        : type === 'Final' ? settings?.qc_prefix_fqc : settings?.qc_prefix_iqc;
+      header.inspection_no = await nextDocNumber(QualityInspection, 'inspection_no', 1, prefix);
+    }
     const row = await QualityInspection.create(header);
     if (items && items.length > 0) {
       const inspectionItems = items.map(i => ({ ...i, inspection_id: row.id }));

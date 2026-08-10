@@ -15,14 +15,17 @@ import { useToast } from "../../../context/ToastContext";
 
 const AttendanceModificationEntry = () => {
   const { showToast } = useToast();
-  const [filterType, setFilterType] = useState("date");
+  const [filterType, setFilterType] = useState("month");
   const [dataDate, setDataDate] = useState(new Date().toISOString().split("T")[0]);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [modType, setModType] = useState("Manual Attendance");
   
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterEmpId, setFilterEmpId] = useState("");
   const [filterShift, setFilterShift] = useState("");
+  const [employeeList, setEmployeeList] = useState([]);
 
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -47,8 +50,22 @@ const AttendanceModificationEntry = () => {
   ];
 
   useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  useEffect(() => {
+    if (filterType === "range" && (!fromDate || !toDate)) return;
     fetchData();
-  }, [filterType, dataDate, month, year, filterShift]);
+  }, [filterType, dataDate, fromDate, toDate, month, year, filterShift]);
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
+      setEmployeeList(res.data);
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -57,6 +74,9 @@ const AttendanceModificationEntry = () => {
       if (filterType === "date") {
         params.startDate = dataDate;
         params.endDate = dataDate;
+      } else if (filterType === "range") {
+        params.startDate = fromDate;
+        params.endDate = toDate;
       } else if (filterType === "month") {
         params.month = month;
         params.year = year;
@@ -65,7 +85,7 @@ const AttendanceModificationEntry = () => {
 
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/attendance`, { params });
       
-      let data = res.data;
+      let data = res.data.records || res.data || [];
       if (filterShift) {
         data = data.filter(d => d.shift === filterShift);
       }
@@ -119,7 +139,7 @@ const AttendanceModificationEntry = () => {
       });
       showToast("Attendance successfully modified", "success");
       fetchData();
-    } catch (err) {
+    } catch {
       showToast("Error saving modification", "error");
     }
   };
@@ -130,7 +150,7 @@ const AttendanceModificationEntry = () => {
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/attendance/${id}`);
       showToast("Record deleted", "success");
       fetchData();
-    } catch (err) {
+    } catch {
       showToast("Error deleting", "error");
     }
   };
@@ -139,6 +159,8 @@ const AttendanceModificationEntry = () => {
     setFilterEmpId("");
     setFilterShift("");
     setDataDate(new Date().toISOString().split("T")[0]);
+    setFromDate("");
+    setToDate("");
     setMonth(new Date().getMonth() + 1);
     setYear(new Date().getFullYear());
   };
@@ -157,6 +179,15 @@ const AttendanceModificationEntry = () => {
             startIcon={<CalendarMonthIcon />}
           >
             By Date
+          </Button>
+          <Button 
+            variant={filterType === "range" ? "contained" : "outlined"}
+            color={filterType === "range" ? "secondary" : "inherit"}
+            size="small"
+            onClick={() => setFilterType("range")}
+            startIcon={<FilterListIcon />}
+          >
+            Range
           </Button>
           <Button 
             variant={filterType === "month" ? "contained" : "outlined"}
@@ -216,6 +247,33 @@ const AttendanceModificationEntry = () => {
               </Grid>
             )}
 
+            {filterType === "range" && (
+              <>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="date"
+                    label="From Date"
+                    InputLabelProps={{ shrink: true }}
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="date"
+                    label="To Date"
+                    InputLabelProps={{ shrink: true }}
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                  />
+                </Grid>
+              </>
+            )}
+
             {filterType === "month" && (
               <>
                 <Grid item xs={12} md={2}>
@@ -255,15 +313,22 @@ const AttendanceModificationEntry = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Employee ID"
-                placeholder="Enter Emp ID"
-                value={filterEmpId}
-                onChange={(e) => setFilterEmpId(e.target.value)}
-              />
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Employee</InputLabel>
+                <Select
+                  value={filterEmpId}
+                  label="Employee"
+                  onChange={(e) => setFilterEmpId(e.target.value)}
+                >
+                  <MenuItem value="">All Employees</MenuItem>
+                  {employeeList.map((emp) => (
+                    <MenuItem key={emp.empid} value={emp.empid}>
+                      {emp.empid} - {emp.ename}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
 
             <Grid item xs={12} md={1}>

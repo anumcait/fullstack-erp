@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  Box, Card, CardContent, Typography, Grid, Button, Dialog, DialogTitle,
-  DialogContent, FormControl, InputLabel, Select, MenuItem, TextField,
+  Box, Card, CardContent, Typography, Grid, Button,
+  FormControl, InputLabel, Select, MenuItem, TextField,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, IconButton,
   Chip, Tabs, Tab
 } from "@mui/material";
@@ -10,7 +10,6 @@ import { useToast } from "../../context/ToastContext";
 import { formatDateTimeAMPM } from "../../utils/dateUtils";
 import PrintIcon from "@mui/icons-material/Print";
 import DownloadIcon from "@mui/icons-material/Download";
-import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
@@ -41,7 +40,6 @@ const Reports = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [tabValue, setTabValue] = useState(0);
   const [filters, setFilters] = useState({
@@ -65,7 +63,7 @@ const Reports = () => {
 
   const handleReportClick = (report) => {
     setSelectedReport(report);
-    setDialogOpen(true);
+    setReportData([]);
     fetchReportData(report.id);
   };
 
@@ -302,15 +300,6 @@ const Reports = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    if (!status) return "default";
-    const s = String(status).toLowerCase();
-    if (s.includes("approved") || s.includes("active") || s.includes("present")) return "success";
-    if (s.includes("pending")) return "warning";
-    if (s.includes("rejected") || s.includes("absent")) return "error";
-    return "default";
-  };
-
   return (
     <Box sx={{ m: 2 }}>
       <Card>
@@ -371,128 +360,130 @@ const Reports = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "#1976d2", color: "white" }}>
-          <Typography variant="h6">{selectedReport?.title}</Typography>
-          <IconButton onClick={() => setDialogOpen(false)} sx={{ color: "white" }}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mb: 2, mt: 1 }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>From Date</InputLabel>
-                  <TextField type="date" size="small" label="From Date" 
-                    value={filters.fromDate} onChange={(e) => setFilters({...filters, fromDate: e.target.value})}
-                    InputLabelProps={{ shrink: true }} />
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>To Date</InputLabel>
-                  <TextField type="date" size="small" label="To Date" 
-                    value={filters.toDate} onChange={(e) => setFilters({...filters, toDate: e.target.value})}
-                    InputLabelProps={{ shrink: true }} />
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Month</InputLabel>
-                  <Select value={filters.month} label="Month" onChange={(e) => setFilters({...filters, month: e.target.value})}>
-                    {months.map(m => (
-                      <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Year</InputLabel>
-                  <Select value={filters.year} label="Year" onChange={(e) => setFilters({...filters, year: e.target.value})}>
-                    {[2023, 2024, 2025, 2026].map(y => (
-                      <MenuItem key={y} value={y}>{y}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <Button variant="contained" fullWidth onClick={refreshData}>Apply</Button>
-              </Grid>
-            </Grid>
-          </Box>
-
-          <Box sx={{ mb: 2, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-            <TextField
-              size="small"
-              placeholder="Search in table..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1 }} />
-              }}
-            />
-            <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={refreshData}>
-              Refresh
-            </Button>
-            <Button variant="outlined" size="small" color="secondary" startIcon={<ClearIcon />} onClick={clearFilters}>
-              Clear
-            </Button>
-            <Button variant="contained" size="small" startIcon={<DownloadIcon />} onClick={() => handleExport("csv")}>
-              Export CSV
-            </Button>
-            <Button variant="outlined" size="small" startIcon={<PrintIcon />} onClick={() => handleExport("print")}>
-              Print
+      {selectedReport && (
+        <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", mt: 2 }}>
+          <Box sx={{ bgcolor: "#1976d2", color: "white", p: 2, borderTopLeftRadius: 12, borderTopRightRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="h6">{selectedReport.title}</Typography>
+            <Button onClick={() => { setSelectedReport(null); setReportData([]); setSearchText(""); clearFilters(); }} size="small" sx={{ color: "white", bgcolor: "rgba(255,255,255,0.2)", "&:hover": { bgcolor: "rgba(255,255,255,0.3)" } }}>
+              Back to List
             </Button>
           </Box>
+          <CardContent>
+            <Box sx={{ mb: 2, mt: 1 }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} sm={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>From Date</InputLabel>
+                    <TextField type="date" size="small" label="From Date"
+                      value={filters.fromDate} onChange={(e) => setFilters({...filters, fromDate: e.target.value})}
+                      InputLabelProps={{ shrink: true }} />
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>To Date</InputLabel>
+                    <TextField type="date" size="small" label="To Date"
+                      value={filters.toDate} onChange={(e) => setFilters({...filters, toDate: e.target.value})}
+                      InputLabelProps={{ shrink: true }} />
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Month</InputLabel>
+                    <Select value={filters.month} label="Month" onChange={(e) => setFilters({...filters, month: e.target.value})}>
+                      {months.map(m => (
+                        <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Year</InputLabel>
+                    <Select value={filters.year} label="Year" onChange={(e) => setFilters({...filters, year: e.target.value})}>
+                      {[2023, 2024, 2025, 2026].map(y => (
+                        <MenuItem key={y} value={y}>{y}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <Button variant="contained" fullWidth onClick={refreshData}>Apply</Button>
+                </Grid>
+              </Grid>
+            </Box>
 
-          {loading ? (
-            <Typography align="center" sx={{ py: 4 }}>Loading...</Typography>
-          ) : filteredData.length === 0 ? (
-            <Typography align="center" color="textSecondary" sx={{ py: 4 }}>
-              No data found for the selected filters
-            </Typography>
-          ) : (
-            <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: "auto" }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: "#1976d2" }}>
-                    {getColumns(selectedReport?.id).map((col, idx) => (
-                      <TableCell key={idx} sx={{ color: "white", fontWeight: "bold", whiteSpace: "nowrap" }}>{col}</TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredData.map((row, rowIdx) => (
-                    <TableRow key={rowIdx} hover>
-                      {formatRowData(selectedReport?.id, row).map((cell, cellIdx) => (
-                        <TableCell key={cellIdx}>
-                          {cell && typeof cell === 'string' && cell.includes("Approved") ? (
-                            <Chip label={cell} color="success" size="small" />
-                          ) : cell && typeof cell === 'string' && cell.includes("Pending") ? (
-                            <Chip label={cell} color="warning" size="small" />
-                          ) : cell && typeof cell === 'string' && cell.includes("Rejected") ? (
-                            <Chip label={cell} color="error" size="small" />
-                          ) : (
-                            String(cell ?? "-")
-                          )}
-                        </TableCell>
+            <Box sx={{ mb: 2, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+              <TextField
+                size="small"
+                placeholder="Search in table..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1 }} />
+                }}
+              />
+              <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={refreshData}>
+                Refresh
+              </Button>
+              <Button variant="outlined" size="small" color="secondary" startIcon={<ClearIcon />} onClick={clearFilters}>
+                Clear
+              </Button>
+              <Button variant="contained" size="small" startIcon={<DownloadIcon />} onClick={() => handleExport("csv")}>
+                Export CSV
+              </Button>
+              <Button variant="outlined" size="small" startIcon={<PrintIcon />} onClick={() => handleExport("print")}>
+                Print
+              </Button>
+            </Box>
+
+            {loading ? (
+              <Typography align="center" sx={{ py: 4 }}>Loading...</Typography>
+            ) : filteredData.length === 0 ? (
+              <Typography align="center" color="textSecondary" sx={{ py: 4 }}>
+                No data found for the selected filters
+              </Typography>
+            ) : (
+              <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: "auto" }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "#1976d2" }}>
+                      {getColumns(selectedReport?.id).map((col, idx) => (
+                        <TableCell key={idx} sx={{ color: "white", fontWeight: "bold", whiteSpace: "nowrap" }}>{col}</TableCell>
                       ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-          
-          {!loading && filteredData.length > 0 && (
-            <Typography variant="body2" sx={{ mt: 2, textAlign: "right" }}>
-              Total Records: {filteredData.length}
-            </Typography>
-          )}
-        </DialogContent>
-      </Dialog>
+                  </TableHead>
+                  <TableBody>
+                    {filteredData.map((row, rowIdx) => (
+                      <TableRow key={rowIdx} hover>
+                        {formatRowData(selectedReport?.id, row).map((cell, cellIdx) => (
+                          <TableCell key={cellIdx}>
+                            {cell && typeof cell === 'string' && cell.includes("Approved") ? (
+                              <Chip label={cell} color="success" size="small" />
+                            ) : cell && typeof cell === 'string' && cell.includes("Pending") ? (
+                              <Chip label={cell} color="warning" size="small" />
+                            ) : cell && typeof cell === 'string' && cell.includes("Rejected") ? (
+                              <Chip label={cell} color="error" size="small" />
+                            ) : (
+                              String(cell ?? "-")
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            {!loading && filteredData.length > 0 && (
+              <Typography variant="body2" sx={{ mt: 2, textAlign: "right" }}>
+                Total Records: {filteredData.length}
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 };

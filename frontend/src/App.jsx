@@ -166,7 +166,10 @@ import InwardRegisterForm from "./Component/ERP/Stores/InwardRegister/InwardRegi
 import DcBillingList from "./Component/ERP/Stores/SaleOnApproval/DcBillingList.jsx";
 import BillingList from "./Component/ERP/Stores/Billing/BillingList.jsx";
 import BillingForm from "./Component/ERP/Stores/Billing/BillingForm.jsx";
-import GRRBilling from "./Component/ERP/Stores/Billing/GRRBilling.jsx";
+import RepairBilling from "./Component/ERP/Stores/Billing/RepairBilling.jsx";
+import MaintenanceBilling from "./Component/ERP/Stores/Billing/MaintenanceBilling.jsx";
+import MiscVoucherBilling from "./Component/ERP/Stores/Billing/MiscVoucherBilling.jsx";
+import Cancellations from "./Component/ERP/Stores/Cancellations/Cancellations.jsx";
 import GateEntryForm from "./Component/ERP/Stores/GateEntry/GateEntryForm.jsx";
 import MaterialReturnList from "./Component/ERP/Stores/MaterialReturn/MaterialReturnList.jsx";
 import MaterialReturnForm from "./Component/ERP/Stores/MaterialReturn/MaterialReturnForm.jsx";
@@ -361,7 +364,7 @@ function App() {
                     <Route path="/stores/inward-registers/edit/:id" element={<InwardRegisterForm />} />
                     <Route path="/stores/inward-registers/view/:id" element={<InwardRegisterForm />} />
 
-                    {/* Sale on Approval */}
+                    {/* Jobwork & Sale on Approval Billing */}
                     <Route path="/stores/sale-approval" element={<DcBillingList />} />
 
                     {/* Billing (Tax Invoice) */}
@@ -369,7 +372,10 @@ function App() {
                     <Route path="/stores/invoices/add" element={<BillingForm />} />
                     <Route path="/stores/invoices/view/:id" element={<BillingForm />} />
                     <Route path="/stores/invoices/edit/:id" element={<BillingForm />} />
-                    <Route path="/stores/grr-billing" element={<GRRBilling />} />
+                    <Route path="/stores/repair-billing" element={<RepairBilling />} />
+                    <Route path="/stores/maintenance-billing" element={<MaintenanceBilling />} />
+                    <Route path="/stores/misc-voucher-billing" element={<MiscVoucherBilling />} />
+                    <Route path="/stores/cancellations" element={<Cancellations />} />
                     <Route path="/production" element={<ProductionDashboard />} />
                     <Route path="/production/orders" element={<ProductionOrderList />} />
                     <Route path="/production/machines" element={<MachineList />} />

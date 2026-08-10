@@ -23,9 +23,9 @@ module.exports = (sequelize, DataTypes) => {
     destination: DataTypes.STRING(200),
     estimated_amount: DataTypes.DECIMAL(10, 2),
     created_by: DataTypes.STRING(50),
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
+    created_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
     },
     status: {
       type: DataTypes.STRING(20)

@@ -682,6 +682,7 @@ exports.getDailyReport = async (req, res) => {
     const prWhere = from && to ? 'pr.created_date BETWEEN :from AND :to' : 'DATE(pr.created_date) = :day';
     const poWhere = from && to ? 'po.created_date BETWEEN :from AND :to' : 'DATE(po.created_date) = :day';
     const joWhere = from && to ? 'jo.jo_date BETWEEN :from AND :to' : 'jo.jo_date = :day::DATE';
+    const grnWhere = from && to ? 'grn.ir_date BETWEEN :from AND :to' : 'DATE(grn.ir_date) = :day';
     const replacements = from && to ? { from, to } : { day: req.query.date || new Date().toISOString().slice(0, 10) };
 
     const prSql = `
@@ -710,17 +711,34 @@ exports.getDailyReport = async (req, res) => {
       WHERE ${joWhere}
       ORDER BY jo.order_no, joi.id
     `;
+    const grnSql = `
+      SELECT grn.id AS grn_id, grn.ir_no, grn.ir_date, grn.ir_type, grn.dc_type,
+             grn.invoice_no, grn.invoice_date, grn.gate_entry_no,
+             grn.qa_status, grn.approval_status, grn.status, grn.received_by,
+             s.supplier_name,
+             gi.id AS item_id, gi.item_code, im.item_name,
+             gi.accepted_qty, gi.rejected_qty, gi.rate, gi.amount
+      FROM ir grn
+      LEFT JOIN m_party_master s ON s.id = grn.supplier_id
+      LEFT JOIN t_ir_item gi ON gi.grn_id = grn.id
+      LEFT JOIN m_item_master im ON im.id = gi.item_id
+      WHERE ${grnWhere}
+      ORDER BY grn.ir_no, gi.id
+    `;
 
-    const [prs, pos, jos] = await Promise.all([
+    const [prs, pos, jos, grns] = await Promise.all([
       db.sequelize.query(prSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
       db.sequelize.query(poSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
       db.sequelize.query(joSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
+      db.sequelize.query(grnSql, { replacements, type: Sequelize.QueryTypes.SELECT }),
     ]);
 
     rep.prs = prs;
     rep.pos = pos;
     rep.jos = jos;
+    rep.grns = grns;
     rep.summary = {
+      grn_count: new Set(grns.map((g) => g.grn_id)).size,
       pr_count: prs.length,
       po_count: pos.length,
       po_value: pos.reduce((a, p) => a + Number(p.grand_total || 0), 0),

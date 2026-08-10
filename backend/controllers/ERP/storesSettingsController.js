@@ -1,4 +1,5 @@
 const db = require('../../models/ERP');
+const { clearSettingsCache } = require('../../utils/stockService');
 const StoresSettings = db.StoresSettings;
 
 exports.getSettings = async (req, res) => {
@@ -22,6 +23,7 @@ exports.updateSettings = async (req, res) => {
     } else {
       await settings.update(req.body);
     }
+    clearSettingsCache();
     res.json(settings);
   } catch (err) {
     console.error('Error updating stores settings:', err);

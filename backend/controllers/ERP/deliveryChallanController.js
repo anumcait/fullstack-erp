@@ -1,7 +1,7 @@
 const { Op } = require('sequelize');
 const db = require('../../models/ERP');
 const ItemMaster = db.ItemMaster;
-const { postMovement, reverseMovements, getDefaultWarehouse, lockStock, negativeStockAllowed, REF_TYPES } = require('../../utils/stockService');
+const { postMovement, reverseMovements, getDefaultWarehouse, lockStock, negativeStockAllowed, REF_TYPES, getStoresSettings } = require('../../utils/stockService');
 
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
 
@@ -25,27 +25,51 @@ const NON_RETURNABLE_REF = {
 const dcRefType = (dc) =>
   dc?.dc_type === 'N' ? NON_RETURNABLE_REF[dc.non_returnable_type] : REF_TYPES.DELIVERY_CHALLAN;
 
-// Each prefixed DC type keeps its own numbering series, while L/R/M/J share one plain
-// numeric series. Prefixes are used for series that are billed/returned or never received
-// back (Sale on Approval = SA, Non Returnable = NR).
-const DC_TYPE_PREFIX = { S: 'SA', N: '' };
+// Prefix config for DC series, loaded from StoresSettings (cached via stockService).
+// Only DC keeps configurable prefixes; all other docs use plain sequential numbers.
+async function getDcPrefixConfig() {
+  const settings = await getStoresSettings();
+  return {
+    S: settings?.dc_prefix_sale_approval || 'SA',  // Sale on Approval
+    N: settings?.dc_prefix_nonreturn || 'DCN',      // Non-returnable
+    L: settings?.dc_prefix_labour || 'DCL',         // Labour
+    R: settings?.dc_prefix_repair || 'DCR',         // Repair
+    M: settings?.dc_prefix_maintenance || 'DCM',    // Maintenance
+    J: settings?.dc_prefix_jobwork || 'DCJ',        // Jobwork
+    PLAIN: '', // default for other types
+  };
+}
 
-// Fixed SQL per series (no user input interpolated) to avoid any injection risk.
-const SERIES_SQL = {
-  S: `SELECT COALESCE(MAX(CAST(SUBSTRING(dc_no FROM '^SA([0-9]+)') AS INTEGER)), 0) AS max_no
-        FROM t_delivery_challan WHERE dc_type = 'S' AND dc_no ~ '^SA[0-9]+$'`,
-  N: `SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no
-         FROM t_delivery_challan WHERE dc_type = 'N' AND dc_no ~ '^[0-9]+$'`,
-  PLAIN: `SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no
-           FROM t_delivery_challan WHERE dc_type NOT IN ('S','N') AND dc_no ~ '^[0-9]+$'`,
-};
+// Build SERIES_SQL dynamically from the configured prefixes (regex-escaped, fixed SQL)
+async function buildSeriesSQL() {
+  const cfg = await getDcPrefixConfig();
+  const esc = (p) => (p || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const series = {};
+
+  const sP = esc(cfg.S || 'SA');
+  series.S = `SELECT COALESCE(MAX(CAST(SUBSTRING(dc_no FROM '^${sP}([0-9]+)') AS INTEGER)), 0) AS max_no
+        FROM t_delivery_challan WHERE dc_type = 'S' AND dc_no ~ '^${sP}[0-9]+$'`;
+
+  const nP = esc(cfg.N || '');
+  series.N = nP
+    ? `SELECT COALESCE(MAX(CAST(SUBSTRING(dc_no FROM '^${nP}([0-9]+)') AS INTEGER)), 0) AS max_no
+         FROM t_delivery_challan WHERE dc_type = 'N' AND dc_no ~ '^${nP}[0-9]+$'`
+    : `SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no
+         FROM t_delivery_challan WHERE dc_type = 'N' AND dc_no ~ '^[0-9]+$'`;
+
+  series.PLAIN = `SELECT COALESCE(MAX(CAST(dc_no AS INTEGER)), 0) AS max_no
+           FROM t_delivery_challan WHERE dc_type NOT IN ('S','N') AND dc_no ~ '^[0-9]+$'`;
+
+  return { series, cfg };
+}
 
 // Resolve the next challan number and the last issued number for a given DC type.
 async function nextDcNumber(dcType) {
-  const sql = SERIES_SQL[dcType] || SERIES_SQL.PLAIN;
+  const { series, cfg } = await buildSeriesSQL();
+  const sql = series[dcType] || series.PLAIN;
   const [rows] = await db.sequelize.query(sql);
   const last = Number(rows[0]?.max_no || 0);
-  const prefix = DC_TYPE_PREFIX[dcType] || '';
+  const prefix = cfg[dcType] || '';
   return { next: prefix + (last + 1), last };
 }
 
@@ -143,8 +167,9 @@ exports.getList = async (req, res) => {
     // Drafts carry no real number; expose the last real number per series so the UI can
     // build a local-time draft reference (draft no = last real no + local HHMMSS of creation).
     const lastByType = {};
+    const { series } = await buildSeriesSQL();
     for (const type of ['S', 'N', 'PLAIN']) {
-      const [lastRow] = await db.sequelize.query(SERIES_SQL[type]);
+      const [lastRow] = await db.sequelize.query(series[type]);
       lastByType[type] = Number(lastRow[0]?.max_no || 0);
     }
     const withRef = rows.map((r) => {
@@ -226,7 +251,9 @@ exports.getOne = async (req, res) => {
     // Drafts carry no real number; expose the last real number in the row's series so the
     // UI can build a local-time draft reference (draft no = last real no + local HHMMSS).
     if (!d.dc_no) {
-      const [lastRow] = await db.sequelize.query(SERIES_SQL[d.dc_type === 'S' || d.dc_type === 'N' ? d.dc_type : 'PLAIN']);
+      const { series } = await buildSeriesSQL();
+      const type = d.dc_type === 'S' || d.dc_type === 'N' ? d.dc_type : 'PLAIN';
+      const [lastRow] = await db.sequelize.query(series[type]);
       d.last_number = String(lastRow[0]?.max_no || 0);
     }
     res.json(d);

@@ -1,12 +1,12 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
 const { generateDocNumber } = require('../../utils/docNumber');
+const { getStoresSettings } = require('../../utils/stockService');
 
 const RFQ = db.RFQ;
 const RFQItem = db.RFQItem;
 const RFQVendor = db.RFQVendor;
 const SupplierMaster = db.SupplierMaster;
-const PurchaseSettings = db.PurchaseSettings;
 
 exports.getRFQs = async (req, res) => {
   try {
@@ -71,9 +71,9 @@ exports.createRFQ = async (req, res) => {
     let { items, vendors, ...header } = req.body;
 
     if (!header.rfq_no) {
-      const settings = await PurchaseSettings.findByPk(1);
+      const settings = await getStoresSettings();
       if (settings?.auto_generate_rfq) {
-        header.rfq_no = await generateDocNumber('RFQ', 'rfq_prefix', 'rfq_no', settings);
+        header.rfq_no = await generateDocNumber('RFQ', 'rfq_start_no', 'rfq_prefix', 'rfq_no', settings);
       } else {
         return res.status(400).json({ error: 'RFQ number is required. Enable auto-generation in Settings.' });
       }

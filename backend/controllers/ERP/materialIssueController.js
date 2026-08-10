@@ -1,7 +1,7 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
-const { generateDocNumber } = require('../../utils/docNumber');
-const { postMovement, reverseMovements, getDefaultWarehouse, lockStock, negativeStockAllowed, REF_TYPES } = require('../../utils/stockService');
+const { generateDocNumber, nextDocNumber } = require('../../utils/docNumber');
+const { postMovement, reverseMovements, getDefaultWarehouse, lockStock, negativeStockAllowed, REF_TYPES, getStoresSettings } = require('../../utils/stockService');
 
 const sequelize = db.sequelize;
 const MaterialIssue = db.MaterialIssue;
@@ -11,12 +11,12 @@ const MaterialRequisitionItem = db.MaterialRequisitionItem;
 const ItemMaster = db.ItemMaster;
 const PurchaseRequisition = db.PurchaseRequisition;
 const PurchaseRequisitionItem = db.PurchaseRequisitionItem;
-const PurchaseSettings = db.PurchaseSettings;
 
 exports.getNextNumber = async (req, res) => {
   try {
-    const seq = await MaterialIssue.count() + 1;
-    res.json({ issue_no: String(seq), sequence: seq });
+    const settings = await getStoresSettings();
+    const issue_no = await nextDocNumber(MaterialIssue, 'issue_no', Number(settings?.mi_start_no) || 1, settings?.mi_prefix);
+    res.json({ issue_no, sequence: issue_no });
   } catch (err) {
     console.error('Error getting next issue number:', err);
     res.status(500).json({ error: 'Failed to get next issue number' });
@@ -25,9 +25,10 @@ exports.getNextNumber = async (req, res) => {
 
 exports.getList = async (req, res) => {
   try {
-    const { search, status } = req.query;
+    const { search, status, issue_type } = req.query;
     const where = {};
     if (status) where.status = status;
+    if (issue_type) where.issue_type = issue_type;
     if (search) {
       where[Op.or] = [
         { issue_no: { [Op.iLike]: `%${search}%` } },
@@ -68,9 +69,10 @@ exports.create = async (req, res) => {
   const t = await sequelize.transaction();
   try {
     let { items, ...header } = req.body;
+    header.issue_type = header.issue_type || 'General';
     if (!header.issue_no) {
-      const seq = await MaterialIssue.count() + 1;
-      header.issue_no = String(seq);
+      const settings = await getStoresSettings();
+      header.issue_no = await nextDocNumber(MaterialIssue, 'issue_no', Number(settings?.mi_start_no) || 1, settings?.mi_prefix);
     }
     const doc = await MaterialIssue.create(header, { transaction: t });
     if (items && items.length > 0) {
@@ -271,8 +273,8 @@ exports.convertToPR = async (req, res) => {
       return res.status(400).json({ error: 'All items have sufficient stock. No purchase needed.' });
     }
 
-    const settings = await PurchaseSettings.findByPk(1);
-    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_prefix', 'req_no', settings || {});
+    const settings = await getStoresSettings();
+    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_start_no', 'pr_prefix', 'req_no', settings || {});
 
     const docRef = doc.issue_no || `MI#${doc.id}`;
     const pr = await PurchaseRequisition.create({
@@ -379,8 +381,8 @@ exports.createPRFromIssue = async (req, res) => {
       return res.status(400).json({ error: 'No items provided for PR' });
     }
 
-    const settings = await PurchaseSettings.findByPk(1);
-    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_prefix', 'req_no', settings || {});
+    const settings = await getStoresSettings();
+    const prNo = await generateDocNumber('PurchaseRequisition', 'pr_start_no', 'pr_prefix', 'req_no', settings || {});
 
     const docRef = doc.issue_no || `MI#${doc.id}`;
     const pr = await PurchaseRequisition.create({

@@ -156,15 +156,23 @@ export default function NonReturnableChallanForm() {
       const isInput = active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable || active.getAttribute('tabindex') === '0';
       const dialogOpen = supplierPicker || empPicker || Boolean(picker) || Boolean(orderPicker);
 
-      // Check if active element is an Autocomplete input
-      const isAutocomplete = active?.classList.contains('MuiAutocomplete-input') || active?.getAttribute('role') === 'combobox';
-      const isAutocompleteOpen = isAutocomplete && active?.getAttribute('aria-expanded') === 'true';
+      // Check if any Autocomplete dropdown is open - MUI uses portals with various selectors
+      const autocompleteOpen = document.querySelector('[role="listbox"]') !== null ||
+                               document.querySelector('.MuiAutocomplete-listbox') !== null ||
+                               document.querySelector('.MuiAutocomplete-popper') !== null ||
+                               document.querySelector('[data-mui-autocomplete-listbox]') !== null;
+
+      // Check if active element is an Autocomplete input (more robust)
+      const isAutocompleteInput = active?.closest('.MuiAutocomplete-root') !== null ||
+                                  active?.getAttribute('role') === 'combobox' ||
+                                  active?.classList.contains('MuiAutocomplete-input') ||
+                                  active?.closest('[data-mui-autocomplete]') !== null;
 
       if (dialogOpen) return;
-      if (isAutocompleteOpen) return; // Let Autocomplete handle keys for its open menu
+      if (autocompleteOpen) return; // Let Autocomplete handle keys for its open menu
 
-      // If active is autocomplete, let it handle ArrowUp/Down to avoid interfering with option navigation
-      if (isAutocomplete && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      // If active is autocomplete input, let it handle ArrowUp/Down to avoid interfering with option navigation
+      if (isAutocompleteInput && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
         return;
       }
 
@@ -192,12 +200,15 @@ export default function NonReturnableChallanForm() {
 
       // Enter - move to next field (like Tab)
       if (e.key === 'Enter' && !e.shiftKey && isInput) {
+        // Skip if active element is Autocomplete input - let it handle Enter for option selection
+        if (isAutocompleteInput) return;
+        
         e.preventDefault();
         const focusables = pageRef.current?.querySelectorAll(
-          'input:not([disabled]):not([type="hidden"]), select:not([disabled]), button:not([disabled]):not([data-enter-skip]), [tabindex]:not([tabindex^="-"]):not([data-enter-skip])'
+          'input:not([disabled]):not([type="hidden"]), select:not([disabled]), button:not([disabled]):not([data-enter-skip]), [tabindex]:not([tabindex^="-"]):not([data-enter-skip]), textarea:not([disabled])'
         );
         if (focusables) {
-          const idx = Array.from(focusables).findIndex(el => el === active || el.contains(active));
+          const idx = Array.from(focusables).findIndex(el => el === active || el.contains(active) || (el.shadowRoot && el.shadowRoot.contains(active)));
           if (idx >= 0 && idx < focusables.length - 1) {
             (focusables[idx + 1]).focus();
           }
@@ -206,12 +217,14 @@ export default function NonReturnableChallanForm() {
 
       // Shift+Enter - move to previous field
       if (e.key === 'Enter' && e.shiftKey && isInput) {
+        if (isAutocompleteInput) return;
+        
         e.preventDefault();
         const focusables = pageRef.current?.querySelectorAll(
-          'input:not([disabled]):not([type="hidden"]), select:not([disabled]), button:not([disabled]):not([data-enter-skip]), [tabindex]:not([tabindex^="-"]):not([data-enter-skip])'
+          'input:not([disabled]):not([type="hidden"]), select:not([disabled]), button:not([disabled]):not([data-enter-skip]), [tabindex]:not([tabindex^="-"]):not([data-enter-skip]), textarea:not([disabled])'
         );
         if (focusables) {
-          const idx = Array.from(focusables).findIndex(el => el === active || el.contains(active));
+          const idx = Array.from(focusables).findIndex(el => el === active || el.contains(active) || (el.shadowRoot && el.shadowRoot.contains(active)));
           if (idx > 0) {
             (focusables[idx - 1]).focus();
           }
@@ -220,6 +233,14 @@ export default function NonReturnableChallanForm() {
 
       // Grid row navigation with Arrow Down/Up (preserves column selection index)
       if (gridRef.current && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && focusedRow) {
+        const active = document.activeElement;
+        const isInGrid = active.closest('tbody') !== null;
+        const autocompleteOpen = document.querySelector('[role="listbox"]') !== null ||
+                                 document.querySelector('.MuiAutocomplete-listbox') !== null ||
+                                 document.querySelector('.MuiAutocomplete-popper') !== null ||
+                                 document.querySelector('[data-mui-autocomplete-listbox]') !== null;
+        if (!isInGrid || autocompleteOpen) return;
+        
         const rows = gridRef.current.querySelectorAll('tbody tr[data-row-id]');
         if (rows.length) {
           e.preventDefault();
@@ -272,8 +293,8 @@ export default function NonReturnableChallanForm() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true); // capture phase
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [supplierPicker, empPicker, picker, orderPicker, focusedRow, focusedCol, isView, items, form.non_returnable_type]);
 
   useEffect(() => {
@@ -301,12 +322,13 @@ export default function NonReturnableChallanForm() {
         item_id: i.item_id || "",
         item_code: i.item_code || "",
         item_name: i.item_name || "",
-        uom: i.unit || i.item?.unit?.short_name || i.item?.unit?.name || "",
+        uom: i.unit?.short_name || i.unit?.name || i.item?.unit?.short_name || i.item?.unit?.name || "",
         unit_id: i.unit_id || null,
         qty: fmtInput(i.quantity),
         order_prod_qty: fmtInput(i.order_prod_qty),
         rate: fmtInput(i.rate),
         remarks: i.remarks || "",
+        auth_ref: i.auth_ref || i.authorization_ref || "",
       })) : [blankItem()]);
       if (!data.dc_no && !data.draft_no) {
         const last = Number(data.last_number ?? "0") + 1;
@@ -363,11 +385,12 @@ export default function NonReturnableChallanForm() {
       item_code: it.item_code || "",
       hs_code: it.hs_code || it.hsn_code || "",
       item_name: it.item_name || it.item_description || "",
-      uom: it.unit || "",
+      uom: it.unit?.short_name || it.unit?.name || it.unit || "",
       unit_id: it.unit_id || null,
       qty: fmtInput(it.quantity ?? it.rejected_qty ?? it.sample_qty ?? 0),
       order_prod_qty: fmtInput(it.quantity ?? it.rejected_qty ?? it.sample_qty ?? 0),
       rate: fmtInput(it.rate ?? it.unit_price ?? it.net_price ?? 0),
+      auth_ref: (form.non_returnable_type === "Donation" || form.non_returnable_type === "Write-off") ? num : "",
     }));
     setItems(rows.length ? rows : [blankItem()]);
     setForm((f) => ({ ...f, reference_no: num }));
@@ -450,7 +473,47 @@ export default function NonReturnableChallanForm() {
               })),
             columns: [{ key: "order_no", label: "Inspection No" }, { key: "detail", label: "Details" }],
           }
-          : form.non_returnable_type === "CSP"
+          : form.non_returnable_type === "Donation"
+          ? {
+              title: "Select Donation Approval",
+              rows: marketingOrders
+                .filter((o) => o.customer_supplied_parts || o.csp_flag)
+                .map((o) => ({
+                  ...o,
+                  order_no: o.order_no,
+                  detail: `${o.customer?.customer_name || o.customer?.name || ""} · Donation Approved`,
+                  items: (o.items || []).map((it) => ({
+                    item_id: it.item_id || "",
+                    item_code: it.item_code || "",
+                    item_name: it.item_description || it.item_name || "",
+                    unit: it.unit || "",
+                    quantity: it.quantity,
+                    hs_code: it.hsn_code || "",
+                  })),
+                })),
+              columns: [{ key: "order_no", label: "Approval No" }, { key: "detail", label: "Customer / Details" }],
+            }
+          : form.non_returnable_type === "Write-off"
+            ? {
+                title: "Select Write-off Approval",
+                rows: marketingOrders
+                  .filter((o) => o.customer_supplied_parts || o.csp_flag)
+                  .map((o) => ({
+                    ...o,
+                    order_no: o.order_no,
+                    detail: `${o.customer?.customer_name || o.customer?.name || ""} · Write-off Approved`,
+                    items: (o.items || []).map((it) => ({
+                      item_id: it.item_id || "",
+                      item_code: it.item_code || "",
+                      item_name: it.item_description || it.item_name || "",
+                      unit: it.unit || "",
+                      quantity: it.quantity,
+                      hs_code: it.hsn_code || "",
+                    })),
+                  })),
+                columns: [{ key: "order_no", label: "Approval No" }, { key: "detail", label: "Customer / Details" }],
+              }
+            : form.non_returnable_type === "CSP"
             ? {
               title: "Select Customer-Supplied Parts Source (Sales Orders)",
               rows: marketingOrders
@@ -504,7 +567,7 @@ export default function NonReturnableChallanForm() {
     if (!form.non_returnable_type) { showToast("Select Type", "warning"); return; }
     if (form.non_returnable_type === "Sale" && !form.reference_no) { showToast("Select Marketing PO / Order for Sale type", "warning"); return; }
     if ((form.non_returnable_type === "CSP" || form.non_returnable_type === "Jobwork") && !form.reference_no) { showToast(`Select ${form.non_returnable_type === "CSP" ? "Sales Order" : "Subcontract Order"} for ${form.non_returnable_type} type`, "warning"); return; }
-    if ((form.non_returnable_type === "Donation" || form.non_returnable_type === "Write-off") && !form.authorization_ref) { showToast(`Enter ${form.non_returnable_type === "Donation" ? "Donation" : "Write-off"} Approval Reference`, "warning"); return; }
+    if ((form.non_returnable_type === "Donation" || form.non_returnable_type === "Write-off") && !items.some((r) => r.item_id && r.wo_no)) { showToast(`Select Order Reference for ${form.non_returnable_type === "Donation" ? "Donation" : "Write-off"} type`, "warning"); return; }
     if (form.non_returnable_type === "Internal Transfer" && !form.transfer_location) { showToast("Enter Transfer Target Location", "warning"); return; }
     if (!items.some((r) => r.item_id)) { showToast("Add at least one item", "warning"); return; }
     if (!validateItems(items.filter((r) => r.item_id), showToast)) return;
@@ -519,7 +582,7 @@ export default function NonReturnableChallanForm() {
         non_returnable_type: form.non_returnable_type || null,
         through: form.through || null,
         reference_no: form.reference_no || null,
-        authorization_ref: form.authorization_ref || null,
+        authorization_ref: null,
         transfer_location: form.transfer_location || null,
         items: items.filter((r) => r.item_id).map(({ tempId, uom, qty, value, ...rest }) => ({ ...rest, quantity: qty, unit: uom })),
       };
@@ -562,7 +625,7 @@ const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 36, borderR
       sx={tfsx} />
   );
 
-  const colWidths = [170, 36, 95, 95, 200, 45, 75, 90, 80, 80, 85, 100, 32];
+  const colWidths = [36, 170, 130, 95, 95, 200, 45, 75, 90, 80, 80, 85, 100, 32];
 
   return (
     <Box ref={pageRef} sx={{ p: 3, maxWidth: 1650, mx: "auto" }}>
@@ -600,11 +663,11 @@ const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 36, borderR
           <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "flex-start" }}>
             <Box sx={{ width: 180 }}>
               <Autocomplete size="small" options={DEPARTMENTS} value={form.department || ""}
-                onChange={(_, v) => setForm((f) => ({ ...f, department: v || "" }))}
+                onChange={(_, v) => { setForm((f) => ({ ...f, department: v || "" })); setTimeout(() => { var el = document.querySelector('[tabIndex="2"]'); if (el) el.focus(); }, 0); }}
                 disabled={isView}
                 isOptionEqualToValue={(a, b) => a === b}
                 getOptionLabel={(opt) => opt}
-                renderInput={(p) => <TextField {...p} label="Department *" autoFocus sx={fsx} inputProps={{ tabIndex: 1 }} onFocus={() => { setFocusedCol('department'); setFocusedRow(null); }} />} />
+                renderInput={(p) => <TextField {...p} label="Department *" autoFocus sx={fsx} inputProps={{ ...p.inputProps, tabIndex: 1 }} onFocus={(e) => { p.onFocus?.(e); setFocusedCol('department'); setFocusedRow(null); }} />} />
             </Box>
             <Box sx={{ flex: "1 1 220px", minWidth: 200 }}>
               <TextField size="small" fullWidth label="Supplier *" value={form.party_name}
@@ -615,7 +678,7 @@ const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 36, borderR
                   endAdornment: !isView ? (
                     <IconButton size="small" data-enter-skip onClick={() => setSupplierPicker(true)} edge="end" sx={{ p: 0.3 }}><SearchIcon sx={{ fontSize: 16 }} /></IconButton>
                   ) : undefined,
-                }} sx={fsx} inputProps={{ tabIndex: 3 }} onFocus={() => { setFocusedCol('party_name'); setFocusedRow(null); }} />
+                }} sx={fsx} inputProps={{ tabIndex: 2 }} onFocus={() => { setFocusedCol('party_name'); setFocusedRow(null); }} />
               {form.party_id && ((s) => {
                 if (!s) return null;
                 const addr = [s.address_line1, s.address_line2, s.city, s.state, s.pincode].filter(Boolean).join(", ");
@@ -631,10 +694,10 @@ const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 36, borderR
               })(suppliers.find((x) => String(x.id) === form.party_id))}
             </Box>
             <Box sx={{ width: 110 }}>
-              <TextField size="small" label="DC #" fullWidth value={form.dc_no} disabled sx={{ ...fsx, "& .Mui-disabled": { WebkitTextFillColor: "#64748b !important", fontWeight: 600, bgcolor: "#f8fafc" } }} />
+              <TextField size="small" label="DC #" fullWidth value={form.dc_no} disabled sx={{ ...fsx, "& .Mui-disabled": { WebkitTextFillColor: "#64748b !important", fontWeight: 600, bgcolor: "#f8fafc" } }} inputProps={{ tabIndex: -1 }} />
             </Box>
             <Box sx={{ width: 180 }}>
-              <TextField size="small" label="DC Date" type="datetime-local" fullWidth value={form.dc_date} disabled InputLabelProps={{ shrink: true }} sx={{ ...fsx, "& .Mui-disabled": { WebkitTextFillColor: "#64748b !important", fontWeight: 600, bgcolor: "#f8fafc" } }} onFocus={() => { setFocusedCol('dc_date'); setFocusedRow(null); }} />
+              <TextField size="small" label="DC Date" type="datetime-local" fullWidth value={form.dc_date} disabled InputLabelProps={{ shrink: true }} sx={{ ...fsx, "& .Mui-disabled": { WebkitTextFillColor: "#64748b !important", fontWeight: 600, bgcolor: "#f8fafc" } }} inputProps={{ tabIndex: -1 }} onFocus={() => { setFocusedCol('dc_date'); setFocusedRow(null); }} />
             </Box>
             <Box sx={{ flex: "1 1 150px", minWidth: 130 }}>
               <TextField size="small" label="Requested By" fullWidth value={form.requested_by}
@@ -645,38 +708,37 @@ const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 36, borderR
                   endAdornment: !isView ? (
                     <IconButton size="small" data-enter-skip onClick={() => setEmpPicker(true)} edge="end" sx={{ p: 0.3 }}><SearchIcon sx={{ fontSize: 16 }} /></IconButton>
                   ) : undefined,
-                }} sx={fsx} inputProps={{ tabIndex: 2 }} onFocus={() => { setFocusedCol('requested_by'); setFocusedRow(null); }} />
+                }} sx={fsx} inputProps={{ tabIndex: -1 }} data-enter-skip onFocus={() => { setFocusedCol('requested_by'); setFocusedRow(null); }} />
             </Box>
             <Box sx={{ width: 120 }}>
-              <TextField size="small" label="Prepared By" fullWidth value={form.prepared_by} disabled sx={fsx} onFocus={() => { setFocusedCol('prepared_by'); setFocusedRow(null); }} />
+              <TextField size="small" label="Prepared By" fullWidth value={form.prepared_by} disabled sx={fsx} inputProps={{ tabIndex: -1 }} onFocus={() => { setFocusedCol('prepared_by'); setFocusedRow(null); }} />
             </Box>
           </Box>
           <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "flex-start", mt: 2 }}>
-            <Box sx={{ width: 170 }}>
+            <Box sx={{ width: 180 }}>
               <Autocomplete size="small" options={NON_RETURN_TYPES} value={form.non_returnable_type || ""}
-                onChange={(_, v) => setForm((f) => ({ ...f, non_returnable_type: v || "" }))}
+                onChange={(_, v) => { 
+                  setForm((f) => {
+                    const nextForm = { ...f, non_returnable_type: v || "" };
+                    return nextForm;
+                  }); 
+                  setTimeout(() => { const nextTab = (v === "Donation" || v === "Write-off" || v === "Internal Transfer") ? 4 : 5; var el = document.querySelector(`[tabIndex="${nextTab}"]`); if (el) el.focus(); }, 0); 
+                }}
                 disabled={isView}
                 isOptionEqualToValue={(a, b) => a === b}
                 getOptionLabel={(opt) => opt}
-                renderInput={(p) => <TextField {...p} label="Type *" sx={fsx} inputProps={{ ...p.inputProps, tabIndex: 4 }} onFocus={() => { setFocusedCol('non_returnable_type'); setFocusedRow(null); }} />} />
+                renderInput={(p) => <TextField {...p} label="Type *" sx={fsx} inputProps={{ ...p.inputProps, tabIndex: 3 }} onFocus={(e) => { p.onFocus?.(e); setFocusedCol('non_returnable_type'); setFocusedRow(null); }} />} />
             </Box>
-            {(form.non_returnable_type === "Donation" || form.non_returnable_type === "Write-off") && (
-              <Box sx={{ width: 220 }}>
-                <TextField size="small" label="Authorization Ref #" fullWidth value={form.authorization_ref || ""}
-                  onChange={(e) => setForm((f) => ({ ...f, authorization_ref: e.target.value }))} disabled={isView} sx={fsx} inputProps={{ tabIndex: 5 }}
-                  placeholder={form.non_returnable_type === "Donation" ? "Donation Approval #" : "Write-off Approval #"} onFocus={() => { setFocusedCol('authorization_ref'); setFocusedRow(null); }} />
-              </Box>
-            )}
             {form.non_returnable_type === "Internal Transfer" && (
               <Box sx={{ width: 220 }}>
                 <TextField size="small" label="Transfer To Location" fullWidth value={form.transfer_location || ""}
-                  onChange={(e) => setForm((f) => ({ ...f, transfer_location: e.target.value }))} disabled={isView} sx={fsx} inputProps={{ tabIndex: 5 }}
+                  onChange={(e) => setForm((f) => ({ ...f, transfer_location: e.target.value }))} disabled={isView} sx={fsx} inputProps={{ tabIndex: 4 }}
                   placeholder="Target Warehouse/Location" onFocus={() => { setFocusedCol('transfer_location'); setFocusedRow(null); }} />
               </Box>
             )}
-            <Box sx={{ width: 150 }}>
+            <Box sx={{ width: 220 }}>
               <TextField size="small" label="Through" fullWidth value={form.through}
-                onChange={handleChange("through")} disabled={isView} sx={fsx} inputProps={{ tabIndex: 6 }}
+                onChange={handleChange("through")} disabled={isView} sx={fsx} inputProps={{ tabIndex: 5 }}
                 placeholder="Through whom/by" onFocus={() => { setFocusedCol('through'); setFocusedRow(null); }} />
             </Box>
           </Box>
@@ -698,14 +760,15 @@ const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 36, borderR
             <Table size="small" stickyHeader sx={{ borderCollapse: "separate", borderSpacing: 0 }}>
               <TableHead>
                 <TableRow>
-                  {["Order No", "No", "HS Code", "Item Code", "Item Description", "Uom", "DC Qty", "Order/Prod Qty", "Remain Qty", "Rate", "Value", "Rmks", ""].map((label, i) => (
+                  {["No", "Order No", "Order Ref", "HS Code", "Item Code", "Item Description", "Uom", "DC Qty", "Order/Prod Qty", "Remain Qty", "Rate", "Value", "Rmks", ""].map((label, i) => (
                     <TableCell key={label} sx={{
                       fontWeight: 700, fontSize: "0.72rem", py: 0.8, px: 0.6,
                       color: "#1e293b", bgcolor: "#e2e8f0", border: "1px solid #cbd5e1",
                       borderBottom: "2px solid #94a3b8", position: "sticky", top: 0, zIndex: 2,
                       width: colWidths[i], minWidth: colWidths[i], whiteSpace: "nowrap",
                       textTransform: "uppercase", letterSpacing: "0.3px",
-                      textAlign: i === 0 || i === 2 || i === 4 || i === 11 ? "left" : "center",
+                      textAlign: i === 0 || i === 3 || i === 4 || i === 11 ? "left" : "center",
+                      verticalAlign: "middle",
                     }}>{label}</TableCell>
                   ))}
                 </TableRow>
@@ -713,14 +776,15 @@ const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 36, borderR
               <TableBody>
                 {items.map((r, idx) => {
                   const rowBg = idx % 2 === 0 ? "#ffffff" : "#f8fafc";
-                  const cs = { py: 0.4, px: 0.4, border: "1px solid #e2e8f0", bgcolor: rowBg, fontSize: "0.84rem" };
+                  const cs = { py: 0.4, px: 0.4, border: "1px solid #e2e8f0", bgcolor: rowBg, fontSize: "0.84rem", verticalAlign: "middle" };
                   const remain = (Number(r.order_prod_qty) || 0) - (Number(r.qty) || 0);
                   return (
                     <TableRow key={r.tempId} hover sx={{ verticalAlign: "top" }} data-row-id={r.tempId}
                       onMouseEnter={() => setFocusedRow(r.tempId)} onFocus={() => setFocusedRow(r.tempId)}>
+                      <TableCell sx={{ ...cs, textAlign: "center", verticalAlign: "middle", fontWeight: 600, color: "#64748b", fontSize: "0.8rem" }}>{idx + 1}</TableCell>
                       <TableCell sx={{ ...cs, whiteSpace: "nowrap" }}>
                         {orderSrc ? (
-                          <Box tabIndex={isView ? -1 : 0}
+                          <Box tabIndex={isView ? -1 : (idx === 0 ? 6 : 0)}
                             onFocus={() => { setFocusedCol('wo_no'); setFocusedRow(r.tempId); }}
                             sx={{ display: "flex", alignItems: "center", gap: 0.3, minHeight: 30, cursor: "pointer", outline: "none", "&:focus": { boxShadow: "0 0 0 2px #c4b5fd", borderRadius: "4px" } }}
                             onKeyDown={(e) => { if (!isView && (e.key === "F9" || e.key === "ArrowDown")) { e.preventDefault(); setOrderPicker({ rowId: r.tempId }); } }}
@@ -733,10 +797,12 @@ const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 36, borderR
                             )}
                           </Box>
                         ) : (
-                          <ItemCellInput value={r.wo_no} onChange={(e) => updateItem(r.tempId, { wo_no: e.target.value })} disabled={isView} placeholder="WO#/CSM/MRR" onFocus={() => { setFocusedCol('wo_no'); setFocusedRow(r.tempId); }} />
+                          <ItemCellInput value={r.wo_no} onChange={(e) => updateItem(r.tempId, { wo_no: e.target.value })} disabled={isView} placeholder="WO#/CSM/MRR" onFocus={() => { setFocusedCol('wo_no'); setFocusedRow(r.tempId); }} tabIndex={idx === 0 ? 6 : 0} />
                         )}
                       </TableCell>
-                      <TableCell sx={{ ...cs, textAlign: "center", verticalAlign: "middle", fontWeight: 600, color: "#64748b", fontSize: "0.8rem" }}>{idx + 1}</TableCell>
+                      <TableCell sx={{ ...cs, textAlign: "center", fontWeight: 600, color: (form.non_returnable_type === "Donation" || form.non_returnable_type === "Write-off") ? "#1e293b" : "#94a3b8" }}>
+                        {(form.non_returnable_type === "Donation" || form.non_returnable_type === "Write-off") ? r.wo_no || "—" : "—"}
+                      </TableCell>
                       <TableCell sx={cs}>
                         <Autocomplete size="small" freeSolo options={hsnCodesList} value={r.hs_code}
                           onChange={(_, v) => updateItem(r.tempId, { hs_code: v || "" })}

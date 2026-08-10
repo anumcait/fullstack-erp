@@ -158,16 +158,6 @@ async function lockStock(itemId, t) {
   return rows[0];
 }
 
-/** Whether negative stock is permitted for this company (StoresSettings). */
-async function negativeStockAllowed() {
-  try {
-    const s = await db.StoresSettings.findByPk(1);
-    return Boolean(s?.negative_stock_allowed);
-  } catch (e) {
-    return false;
-  }
-}
-
 /** Fetch all open ledger rows for a document (used to know what to reverse). */
 async function getDocRows({ item_id, ref_type, ref_no }, t) {
   return db.StockLedger.findAll({
@@ -222,7 +212,7 @@ async function stockAsOf(itemId, asOfDate, warehouseId) {
 /** Resolve the default warehouse (from StoresSettings, falling back to first active). */
 async function getDefaultWarehouse() {
   try {
-    const s = await db.StoresSettings.findByPk(1);
+    const s = await getStoresSettings();
     const name = s?.default_warehouse || 'Main Store';
     let w = await db.Warehouse.findOne({ where: { warehouse_name: name } });
     if (!w) w = await db.Warehouse.findOne({ where: { is_active: true }, order: [['id', 'ASC']] });
@@ -235,7 +225,29 @@ async function getDefaultWarehouse() {
 const today = () => new Date().toISOString().slice(0, 10);
 const startOfDay = (d) => new Date(`${d}T00:00:00`);
 
+/** Get StoresSettings singleton (cached per request via module scope). */
+let _settingsCache = null;
+async function getStoresSettings() {
+  if (_settingsCache) return _settingsCache;
+  const s = await db.StoresSettings.findByPk(1);
+  _settingsCache = s || {};
+  return _settingsCache;
+}
+
+/** Clear cache (call after settings update). */
+function clearSettingsCache() {
+  _settingsCache = null;
+}
+
+/** Whether negative stock is permitted for this company (StoresSettings). */
+async function negativeStockAllowed() {
+  const s = await getStoresSettings();
+  return Boolean(s?.negative_stock_allowed);
+}
+
 module.exports = {
+  getStoresSettings,
+  clearSettingsCache,
   REF_TYPES,
   postMovement,
   reverseMovements,

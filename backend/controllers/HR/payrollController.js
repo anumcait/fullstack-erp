@@ -273,7 +273,11 @@ exports.processMonthlySalary = async (req, res) => {
         let lateHalfDaysCount = 0;
         let lateHalfHoursCount = 0;
 
-        const lateRecordsSorted = attendanceData.filter(a => parseFloat(a.late_hrs) > 0)
+        const lateRecordsSorted = attendanceData.filter(a => {
+          const hrs = parseFloat(a.late_hrs);
+          // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
+          return hrs > 0 && parseLateToHours(a.late_hrs) < 240;
+        })
           .sort((a, b) => new Date(a.att_date) - new Date(b.att_date));
 
         lateRecordsSorted.forEach((record, index) => {
@@ -283,8 +287,8 @@ exports.processMonthlySalary = async (req, res) => {
           if (index === 0) return; // First late occurrence always exempt
 
           const perHourBasic = perDayBasic / 8;
-          if (minsLate <= 10) {
-            lateDed += perHourBasic;
+          if (minsLate <= 30) {
+            lateDed += perHourBasic; // within 30 min of shift start: 1-hour salary deduction
           } else {
             lateDed += perDayBasic / 2;
             lateHalfDaysCount++;
@@ -684,7 +688,11 @@ exports.createPayslipByEmployee = async (req, res) => {
     let lateHalfDaysCount = 0;
     let lateHalfHoursCount = 0;
 
-    const lateRecordsSorted = attendanceData.filter(a => parseFloat(a.late_hrs) > 0)
+    const lateRecordsSorted = attendanceData.filter(a => {
+      const hrs = parseFloat(a.late_hrs);
+      // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
+      return hrs > 0 && parseLateToHours(a.late_hrs) < 240;
+    })
       .sort((a, b) => new Date(a.att_date) - new Date(b.att_date));
 
     lateRecordsSorted.forEach((record, index) => {
@@ -694,8 +702,8 @@ exports.createPayslipByEmployee = async (req, res) => {
       if (index === 0) return; // First late occurrence always exempt
 
       const perHourBasic = perDayBasic / 8;
-      if (minsLate <= 10) {
-        lateDed += perHourBasic;
+      if (minsLate <= 30) {
+        lateDed += perHourBasic; // within 30 min of shift start: 1-hour salary deduction
       } else {
         lateDed += perDayBasic / 2;
         lateHalfDaysCount++;

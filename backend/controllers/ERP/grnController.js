@@ -1,7 +1,7 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
-const { generateDocNumber } = require('../../utils/docNumber');
-const { postMovement, reverseMovements, getDefaultWarehouse, REF_TYPES } = require('../../utils/stockService');
+const { generateDocNumber, nextDocNumber } = require('../../utils/docNumber');
+const { postMovement, reverseMovements, getDefaultWarehouse, REF_TYPES, getStoresSettings } = require('../../utils/stockService');
 
 const GRN = db.GRN;
 const GRNItem = db.GRNItem;
@@ -9,7 +9,6 @@ const PurchaseOrder = db.PurchaseOrder;
 const PurchaseOrderItem = db.PurchaseOrderItem;
 const PurchaseRequisition = db.PurchaseRequisition;
 const SupplierMaster = db.SupplierMaster;
-const PurchaseSettings = db.PurchaseSettings;
 const ItemMaster = db.ItemMaster;
 
 // Post purchase cost (moving average) and receipt into stock for a GRN.
@@ -103,9 +102,9 @@ exports.getGRNs = async (req, res) => {
 
 exports.getNextGRNNumber = async (req, res) => {
   try {
-    const count = await GRN.count();
-    const nextNumber = String(count + 1);
-    res.json({ ir_no: nextNumber, sequence: count + 1 });
+    const settings = await getStoresSettings();
+    const ir_no = await nextDocNumber(GRN, 'ir_no', Number(settings?.grn_start_no) || 1, settings?.grn_prefix);
+    res.json({ ir_no, sequence: ir_no });
   } catch (err) {
     console.error('Error getting next GRN number:', err);
     res.status(500).json({ error: 'Failed to get next GRN number' });
@@ -140,9 +139,9 @@ exports.createGRN = async (req, res) => {
     }
 
     if (!header.ir_no) {
-      const settings = await PurchaseSettings.findByPk(1);
+      const settings = await getStoresSettings();
       if (settings?.auto_generate_grn) {
-        header.ir_no = await generateDocNumber('GRN', 'grn_prefix', 'ir_no', settings);
+        header.ir_no = await generateDocNumber('GRN', 'grn_start_no', 'grn_prefix', 'ir_no', settings);
       } else {
         return res.status(400).json({ error: 'GRN number is required. Enable auto-generation in Settings.' });
       }

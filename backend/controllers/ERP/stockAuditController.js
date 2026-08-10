@@ -1,6 +1,7 @@
 const db = require('../../models/ERP');
 const { Op } = require('sequelize');
-const { postMovement, REF_TYPES } = require('../../utils/stockService');
+const { postMovement, REF_TYPES, getStoresSettings } = require('../../utils/stockService');
+const { nextDocNumber } = require('../../utils/docNumber');
 
 const StockAudit = db.StockAudit;
 const StockAuditItem = db.StockAuditItem;
@@ -50,8 +51,8 @@ exports.create = async (req, res) => {
   try {
     let { items, ...header } = req.body;
     if (!header.audit_no) {
-      const seq = await StockAudit.count() + 1;
-      header.audit_no = `AUD-${String(seq).padStart(4, '0')}`;
+      const settings = await getStoresSettings();
+      header.audit_no = await nextDocNumber(StockAudit, 'audit_no', Number(settings?.audit_start_no) || 1, settings?.audit_prefix);
     }
     if (items && items.length > 0) {
       for (const it of items) {

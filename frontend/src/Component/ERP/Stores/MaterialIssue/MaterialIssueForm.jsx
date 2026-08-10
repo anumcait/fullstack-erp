@@ -43,6 +43,7 @@ export default function MaterialIssueForm() {
   const { showToast } = useToast();
   const isView = location.pathname.includes("/view/");
   const isEdit = Boolean(id) && !isView;
+  const urlType = new URLSearchParams(location.search).get('type') || 'General';
 
   const cl = {
     border: theme.palette.divider,
@@ -71,6 +72,7 @@ export default function MaterialIssueForm() {
   const [form, setForm] = useState({
     issue_no: "", issue_date: new Date().toISOString().slice(0, 16),
     issued_to: "", department: "", req_id: "", remarks: "", status: "Draft",
+    issue_type: urlType,
   });
 
   var fsx = {
@@ -112,6 +114,7 @@ export default function MaterialIssueForm() {
           issue_no: data.issue_no || "", issue_date: data.issue_date ? data.issue_date.slice(0, 16) : "",
           issued_to: data.issued_to || "", department: data.department || "",
           req_id: data.req_id || "", remarks: data.remarks || "", status: data.status || "Draft",
+          issue_type: data.issue_type || 'General',
         });
         setItems((data.items || []).map(function (i) {
           return {
@@ -307,6 +310,15 @@ export default function MaterialIssueForm() {
             <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "flex-start", mb: 1.5 }}>
               <Box sx={{ width: 130 }}>
                 <TextField label="Issue #" size="small" fullWidth value={form.issue_no} disabled InputLabelProps={{ shrink: true }} sx={fsx} />
+              </Box>
+              <Box sx={{ width: 140 }}>
+                <TextField label="Issue Type" size="small" fullWidth select value={form.issue_type || 'General'}
+                  onChange={handleChange("issue_type")} disabled={!canEdit}
+                  InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }} sx={fsx}>
+                  <MenuItem value="GRR">GRR</MenuItem>
+                  <MenuItem value="PR">PR</MenuItem>
+                  <MenuItem value="General">General</MenuItem>
+                </TextField>
               </Box>
               <Box sx={{ width: 180 }}>
                 <TextField label="Date" type="datetime-local" size="small" fullWidth value={form.issue_date}

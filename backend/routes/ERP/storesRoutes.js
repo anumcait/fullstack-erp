@@ -13,6 +13,7 @@ const materialReturnController = require('../../controllers/ERP/materialReturnCo
 const deliveryChallanController = require('../../controllers/ERP/deliveryChallanController');
 const inwardRegisterController = require('../../controllers/ERP/inwardRegisterController');
 const billingController = require('../../controllers/ERP/billingController');
+const miscVoucherController = require('../../controllers/ERP/miscVoucherController');
 const storesSettingsController = require('../../controllers/ERP/storesSettingsController');
 const storesReportController = require('../../controllers/ERP/storesReportController');
 const grrReportController = require('../../controllers/ERP/grrReportController');
@@ -195,6 +196,8 @@ router.delete('/delivery-challans/:id', deliveryChallanController.remove);
 router.get('/inward-registers', inwardRegisterController.getList);
 router.get('/inward-registers/next-number', inwardRegisterController.getNextNumber);
 router.get('/inward-registers/pending-dcs', inwardRegisterController.getPendingDCs);
+router.get('/inward-registers/pending-billing', inwardRegisterController.getPendingBilling);
+router.post('/inward-registers/bill', inwardRegisterController.billIr);
 router.get('/inward-registers/:id', inwardRegisterController.getOne);
 router.post('/inward-registers', inwardRegisterController.create);
 router.put('/inward-registers/:id', inwardRegisterController.update);
@@ -211,6 +214,15 @@ router.post('/bills', billingController.create);
 router.put('/invoices/:id', billingController.update);
 router.post('/invoices/:id/bill', billingController.markBilled);
 router.delete('/invoices/:id', billingController.remove);
+
+// ── Miscellaneous / Petty Cash Voucher ──
+router.get('/misc-vouchers/next-number', miscVoucherController.getNextNumber);
+router.get('/misc-vouchers', miscVoucherController.getList);
+router.get('/misc-vouchers/:id', miscVoucherController.getOne);
+router.post('/misc-vouchers', miscVoucherController.create);
+router.put('/misc-vouchers/:id', miscVoucherController.update);
+router.post('/misc-vouchers/:id/approve', miscVoucherController.approve);
+router.delete('/misc-vouchers/:id', miscVoucherController.remove);
 
 // ── Stores Settings ──
 router.get('/settings', storesSettingsController.getSettings);

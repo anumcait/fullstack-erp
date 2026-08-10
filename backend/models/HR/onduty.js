@@ -21,9 +21,9 @@ module.exports = (sequelize, DataTypes) => {
     no_of_hrs: DataTypes.DECIMAL(5, 2),
     reason_perm: DataTypes.TEXT,
     created_by: DataTypes.STRING(50),
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
+    created_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
     },
     status: {
       type: DataTypes.STRING(20)

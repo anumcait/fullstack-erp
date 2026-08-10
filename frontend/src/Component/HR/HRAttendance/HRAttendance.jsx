@@ -22,7 +22,7 @@ import { getErrorMessage } from "../../../utils/errorUtils";
 const HRAttendance = () => {
   const { showToast } = useToast();
 
-  const [filterType, setFilterType] = useState("date");
+  const [filterType, setFilterType] = useState("month");
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [dataDate, setDataDate] = useState(new Date().toISOString().split("T")[0]);
   const [fromDate, setFromDate] = useState("");
@@ -37,7 +37,7 @@ const HRAttendance = () => {
   const [bulkRows, setBulkRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [payrollFinalized, setPayrollFinalized] = useState(false);
-  const [bulkFilterType, setBulkFilterType] = useState("date");
+  const [bulkFilterType, setBulkFilterType] = useState("month");
   const [bulkDataDate, setBulkDataDate] = useState(new Date().toISOString().split("T")[0]);
   const [bulkFromDate, setBulkFromDate] = useState("");
   const [bulkToDate, setBulkToDate] = useState("");
@@ -200,8 +200,8 @@ const HRAttendance = () => {
         status: editRow.status,
         in_time: editRow.in_time || null,
         out_time: editRow.out_time || null,
-        late_hrs: editRow.late_hrs || 0,
-        ot_hrs: editRow.ot_hrs || 0
+        late_hrs: editRow.status === 'A' ? 0 : (editRow.late_hrs || 0),
+        ot_hrs: editRow.status === 'A' ? 0 : (editRow.ot_hrs || 0)
       });
       showToast("Attendance updated successfully", "success");
       setEditDialog(false);
@@ -563,22 +563,22 @@ const HRAttendance = () => {
                   </TableCell>
                   <TableCell sx={{ fontFamily: "monospace" }}>{row.in_time || "-"}</TableCell>
                   <TableCell sx={{ fontFamily: "monospace" }}>{row.out_time || "-"}</TableCell>
-                  <TableCell>
-                    {row.late_hrs > 0 ? (
-                      <Chip
-                        size="small"
-                        label={row.late_hrs < 1
+                   <TableCell>
+                     {row.late_hrs > 0 && getEffectiveStatus(row) !== 'A' ? (
+                       <Chip
+                         size="small"
+                         label={row.late_hrs < 1
                           ? `${Math.round(row.late_hrs * 100)} mins`
                           : parseFloat(row.late_hrs).toFixed(2)
                         }
-                        color={row.late_exempt ? "success" : "warning"}
-                        variant={row.late_exempt ? "outlined" : "filled"}
-                      />
-                    ) : '-'}
+                         color={row.late_exempt ? "success" : "warning"}
+                         variant={row.late_exempt ? "outlined" : "filled"}
+                       />
+                     ) : '-'}
                   </TableCell>
-                  <TableCell sx={{ fontFamily: "monospace" }}>
-                    {row.ot_hrs > 0 ? parseFloat(row.ot_hrs).toFixed(2) : '-'}
-                  </TableCell>
+                   <TableCell sx={{ fontFamily: "monospace" }}>
+                     {row.ot_hrs > 0 && getEffectiveStatus(row) !== 'A' ? parseFloat(row.ot_hrs).toFixed(2) : '-'}
+                   </TableCell>
                   <TableCell>
                     <IconButton size="small" color="primary" onClick={() => openEditDialog(row)} disabled={payrollFinalized}>
                       <EditIcon fontSize="small" />
@@ -886,8 +886,8 @@ const HRAttendance = () => {
                 <Select
                   value={editRow?.status || "P"}
                   label="Status"
-                  onChange={(e) => setEditRow({ ...editRow, status: e.target.value })}
-                >
+           onChange={(e) => setEditRow({ ...editRow, status: e.target.value, ...(e.target.value === 'A' ? { in_time: "", out_time: "", late_hrs: 0, ot_hrs: 0 } : {}) })}
+                 >
                   <MenuItem value="P">Present</MenuItem>
                   <MenuItem value="A">Absent</MenuItem>
                   <MenuItem value="W">Weekly Off</MenuItem>

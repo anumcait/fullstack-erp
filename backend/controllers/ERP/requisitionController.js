@@ -4,7 +4,6 @@ const { generateDocNumber } = require('../../utils/docNumber');
 
 const PurchaseRequisition = db.PurchaseRequisition;
 const PurchaseRequisitionItem = db.PurchaseRequisitionItem;
-const PurchaseSettings = db.PurchaseSettings;
 const PRAmendment = db.PRAmendment;
 
 // Strip volatile/identity columns before snapshotting a record for audit.

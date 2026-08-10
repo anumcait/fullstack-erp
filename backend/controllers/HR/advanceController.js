@@ -1,5 +1,7 @@
-const { AdvanceApplication } = require('../../models');
+const { AdvanceApplication, Payslip } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
+
+const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 exports.saveAdvance = async (req, res) => {
   const application = req.body;
@@ -52,7 +54,65 @@ exports.getAllAdvanceApplications = async (req, res) => {
       order: [['advance_id', 'DESC']]
     });
 
-    res.json(data);
+    const empIds = [...new Set(data.map((a) => a.empid).filter((id) => id != null))];
+    let deductedKeys = new Set();
+    if (empIds.length > 0) {
+      const paid = await Payslip.findAll({
+        attributes: ['C_EMPID', 'C_YEAR', 'C_MONTH'],
+        where: {
+          C_EMPID: { [Op.in]: empIds },
+          C_DED_ADV: { [Op.gt]: 0 },
+          C_FINAL_STATUS: 2
+        },
+        raw: true
+      });
+      deductedKeys = new Set(paid.map((p) => `${p.C_EMPID}|${p.C_YEAR}|${p.C_MONTH}`));
+    }
+
+    const dataWithStatus = data.map((adv) => {
+      let schedule = [];
+      if (adv.deduction_schedule) {
+        try {
+          const parsed = typeof adv.deduction_schedule === 'string'
+            ? JSON.parse(adv.deduction_schedule)
+            : adv.deduction_schedule;
+          if (Array.isArray(parsed)) schedule = parsed;
+        } catch (e) { /* ignore invalid schedule */ }
+      }
+      const scheduleWithStatus = schedule.map((entry) => {
+        const monthNum = parseInt(entry.month) || 1;
+        const yearNum = parseInt(entry.year) || 0;
+        const deducted = deductedKeys.has(`${adv.empid}|${yearNum}|${MONTH_NAMES[monthNum - 1]}`);
+        return { ...entry, month: monthNum, year: yearNum, deducted };
+      });
+
+      const deductedCount = scheduleWithStatus.filter((e) => e.deducted).length;
+      const deductedAmount = scheduleWithStatus.reduce((s, e) => s + (e.deducted ? (parseFloat(e.amount) || 0) : 0), 0);
+      const totalAdvAmount = parseFloat(adv.advance_amount) || 0;
+      const pendingAmount = adv.status === 'Approved' ? Math.max(0, totalAdvAmount - deductedAmount) : 0;
+
+      let overallStatus;
+      if (adv.status !== 'Approved') {
+        overallStatus = adv.status || 'Pending';
+      } else if (scheduleWithStatus.length === 0) {
+        overallStatus = 'Pending';
+      } else if (deductedCount === 0) {
+        overallStatus = 'Pending';
+      } else if (deductedCount >= scheduleWithStatus.length) {
+        overallStatus = 'Completed';
+      } else {
+        overallStatus = 'Partially Completed';
+      }
+
+      return {
+        ...adv.toJSON(),
+        schedule_with_status: scheduleWithStatus,
+        overall_status: overallStatus,
+        pending_amount: Math.round(pendingAmount * 100) / 100
+      };
+    });
+
+    res.json(dataWithStatus);
   } catch (error) {
     console.error('❌ Error fetching Advance applications:', error);
     res.status(500).json({ message: 'Failed to fetch Advance data.' });

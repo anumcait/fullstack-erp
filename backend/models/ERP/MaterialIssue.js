@@ -7,6 +7,11 @@ module.exports = (sequelize) => {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       issue_no: { type: DataTypes.STRING(30), allowNull: false, unique: true },
       issue_date: { type: DataTypes.DATE, allowNull: false },
+      issue_type: {
+        type: DataTypes.STRING(20),
+        defaultValue: 'General',
+        validate: { isIn: [['GRR', 'PR', 'General']] },
+      },
       req_id: { type: DataTypes.INTEGER, allowNull: true },
       issued_to: { type: DataTypes.STRING(100), allowNull: true },
       department: { type: DataTypes.STRING(100), allowNull: true },

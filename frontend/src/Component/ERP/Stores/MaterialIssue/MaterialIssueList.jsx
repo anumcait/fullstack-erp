@@ -21,10 +21,12 @@ const statusColors = { Draft: 'default', Issued: 'primary', Cancelled: 'error' }
 export default function MaterialIssueList() {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const urlType = new URLSearchParams(window.location.search).get('type');
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState(urlType || '');
   const [prDlg, setPrDlg] = useState({ open: false, id: null });
   const [detailsDlg, setDetailsDlg] = useState({ open: false, data: null });
 
@@ -34,11 +36,12 @@ export default function MaterialIssueList() {
       const params = {};
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
+      if (typeFilter) params.issue_type = typeFilter;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast('Failed to load', 'error'); }
     finally { setLoading(false); }
-  }, [search, statusFilter]);
+  }, [search, statusFilter, typeFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -56,6 +59,10 @@ export default function MaterialIssueList() {
   const columns = [
     { field: 'id', headerName: 'ID', width: 60, sortable: false, filterable: false, disableColumnMenu: true },
     { field: 'issue_no', headerName: 'Issue #', width: 130 },
+    {
+      field: 'issue_type', headerName: 'Type', width: 90,
+      renderCell: (p) => <Chip label={p.value || 'General'} size="small" color={p.value === 'GRR' ? 'primary' : p.value === 'PR' ? 'warning' : 'default'} />,
+    },
     { field: 'issue_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? v.split('T')[0] : '' },
     { field: 'issued_to', headerName: 'Issued To', width: 150 },
     { field: 'department', headerName: 'Department', width: 130 },
@@ -101,13 +108,19 @@ export default function MaterialIssueList() {
           <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
             <TextField size="small" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'gray' }} /> }} sx={{ minWidth: 220 }} />
+            <TextField select size="small" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} sx={{ minWidth: 140 }}>
+              <MenuItem value="">All Types</MenuItem>
+              <MenuItem value="GRR">GRR</MenuItem>
+              <MenuItem value="PR">PR</MenuItem>
+              <MenuItem value="General">General</MenuItem>
+            </TextField>
             <TextField select size="small" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} sx={{ minWidth: 130 }}>
               <MenuItem value="">All Status</MenuItem>
               <MenuItem value="Draft">Draft</MenuItem>
               <MenuItem value="Issued">Issued</MenuItem>
               <MenuItem value="Cancelled">Cancelled</MenuItem>
             </TextField>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/stores/material-issues/add')}>New Issue</Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate(`/stores/material-issues/add${typeFilter ? `?type=${typeFilter}` : ''}`)}>New Issue</Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
