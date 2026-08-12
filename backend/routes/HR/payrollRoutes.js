@@ -14,5 +14,9 @@ router.get('/check-status', payrollController.checkPayslipStatus);
 router.get('/latest-processed', payrollController.getLatestProcessedDate);
 router.post('/finalize', payrollController.finalizeSalary);
 router.get('/finalize-status', payrollController.getFinalizeStatus);
+router.get('/pf-report', payrollController.getPfReport);
+router.get('/pt-report', payrollController.getPtReport);
+router.get('/earnings-deductions', payrollController.getEarningsDeductions);
+router.get('/meals-coupon', payrollController.getMealsCoupon);
 
 module.exports = router;

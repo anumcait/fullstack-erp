@@ -1048,3 +1048,149 @@ exports.getFinalizeStatus = async (req, res) => {
     res.status(500).json({ message: 'Error checking finalize status' });
   }
 };
+
+exports.getPfReport = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const monthStr = getMonthName(parseInt(month));
+    const where = {};
+    if (year) where.C_YEAR = parseInt(year);
+    if (month) where.C_MONTH = monthStr;
+
+    const data = await Payslip.findAll({
+      where,
+      order: [['C_EMPID', 'ASC']]
+    });
+
+    const result = data.map(r => ({
+      empid: r.C_EMPID,
+      ename: r.C_ENAME,
+      pf_no: r.C_PF_NUM || '',
+      basic: Number(r.C_BASIC) || 0,
+      pf_contribution: Number(r.C_DED_PF) || 0,
+      emp_share: Number(r.C_DED_PF) || 0,
+      employer_share: Number(r.C_DED_PF) || 0
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching PF report:', error);
+    res.status(500).json({ message: 'Error fetching PF report' });
+  }
+};
+
+exports.getPtReport = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const monthStr = getMonthName(parseInt(month));
+    const where = {};
+    if (year) where.C_YEAR = parseInt(year);
+    if (month) where.C_MONTH = monthStr;
+
+    const data = await Payslip.findAll({
+      where,
+      include: [{
+        model: EmployeeMaster,
+        as: 'employee',
+        attributes: ['empid', 'ename'],
+        include: [{
+          model: EmpOfficial,
+          as: 'official',
+          attributes: ['panno']
+        }]
+      }],
+      order: [['C_EMPID', 'ASC']]
+    });
+
+    const result = data.map(r => ({
+      empid: r.C_EMPID,
+      ename: r.C_ENAME,
+      pan_no: r.employee?.official?.panno || '',
+      gross_salary: Number(r.C_TOT_SAL) || 0,
+      pt_amount: Number(r.C_DED_PT) || 0
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching PT report:', error);
+    res.status(500).json({ message: 'Error fetching PT report' });
+  }
+};
+
+exports.getEarningsDeductions = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const monthStr = getMonthName(parseInt(month));
+    const where = {};
+    if (year) where.C_YEAR = parseInt(year);
+    if (month) where.C_MONTH = monthStr;
+
+    const data = await Payslip.findAll({
+      where,
+      order: [['C_EMPID', 'ASC']]
+    });
+
+    const result = [];
+    for (const r of data) {
+      const earnings = [
+        { type: 'Basic', amount: Number(r.C_EARNED_BASIC) },
+        { type: 'HRA', amount: Number(r.C_EARNED_HRA) },
+        { type: 'Conveyance', amount: Number(r.C_EARNED_CONV) },
+        { type: 'Other', amount: Number(r.C_EARNED_OTHERS) },
+        { type: 'OT', amount: Number(r.C_EARNED_OT) },
+        { type: 'Bonus', amount: Number(r.C_EARNED_BONUS) },
+        { type: 'Lunch', amount: Number(r.C_EARNED_LUNCH) }
+      ].filter(e => e.amount > 0);
+      const deductions = [
+        { type: 'PF', amount: Number(r.C_DED_PF) },
+        { type: 'ESI', amount: Number(r.C_DED_ESI) },
+        { type: 'PT', amount: Number(r.C_DED_PT) },
+        { type: 'LIC', amount: Number(r.C_DED_LIC) },
+        { type: 'Tax', amount: Number(r.C_DED_TAX) },
+        { type: 'Advance', amount: Number(r.C_DED_ADV) },
+        { type: 'Other', amount: Number(r.C_DED_OTH) }
+      ].filter(d => d.amount > 0);
+
+      for (const e of earnings) {
+        result.push({ empid: r.C_EMPID, ename: r.C_ENAME, earning_type: e.type, amount: e.amount, deduction_type: '', amount_ded: 0 });
+      }
+      for (const d of deductions) {
+        result.push({ empid: r.C_EMPID, ename: r.C_ENAME, earning_type: '', amount: 0, deduction_type: d.type, amount_ded: d.amount });
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching earnings/deductions report:', error);
+    res.status(500).json({ message: 'Error fetching earnings/deductions report' });
+  }
+};
+
+exports.getMealsCoupon = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const monthStr = getMonthName(parseInt(month));
+    const where = {};
+    if (year) where.C_YEAR = parseInt(year);
+    if (month) where.C_MONTH = monthStr;
+
+    const data = await Payslip.findAll({
+      where,
+      order: [['C_EMPID', 'ASC']]
+    });
+
+    const result = data.map(r => ({
+      empid: r.C_EMPID,
+      ename: r.C_ENAME,
+      deptname: r.C_DEPT || '',
+      month: r.C_MONTH || '',
+      coupons: Number(r.C_DED_MEALS) || 0,
+      value: 0
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching meals coupon report:', error);
+    res.status(500).json({ message: 'Error fetching meals coupon report' });
+  }
+};

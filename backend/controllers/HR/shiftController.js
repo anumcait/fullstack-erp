@@ -599,7 +599,6 @@ exports.getShiftChangeReport = async (req, res) => {
     
     const data = await ShiftChange.findAll({
       where,
-      include: [{ model: EmployeeMaster, as: 'employee', attributes: ['ename', 'deptname'] }],
       order: [['schange_date', 'DESC']]
     });
     
@@ -607,7 +606,7 @@ exports.getShiftChangeReport = async (req, res) => {
       schange_no: r.schange_no,
       schange_date: r.schange_date,
       empid: r.empid,
-      ename: r.employee?.ename || '',
+      ename: r.empname || '',
       act_shift: r.act_shift,
       act_time: `${r.act_sstart_time || '--'} - ${r.act_send_time || '--'}`,
       change_shift: r.change_shift,
@@ -637,7 +636,6 @@ exports.getWoffChangeReport = async (req, res) => {
     
     const data = await WoffApplication.findAll({
       where,
-      include: [{ model: EmployeeMaster, as: 'employee', attributes: ['ename', 'deptname'] }],
       order: [['woff_date', 'DESC']]
     });
     
@@ -645,11 +643,11 @@ exports.getWoffChangeReport = async (req, res) => {
       woff_id: r.woff_id,
       woff_date: r.woff_date,
       empid: r.empid,
-      ename: r.employee?.ename || '',
-      current_woff: r.current_woff,
-      requested_woff: r.requested_woff,
+      ename: r.ename || '',
+      current_woff: r.current_woff_day,
+      requested_woff: r.requested_woff_day,
       reason: r.reason,
-      status: r.app_status || 'Pending'
+      status: r.app_status || r.status || 'Pending'
     }));
     
     res.json(result);

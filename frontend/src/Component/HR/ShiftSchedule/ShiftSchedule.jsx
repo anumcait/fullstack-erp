@@ -90,7 +90,7 @@ const ShiftSchedule = () => {
 
   const fetchHolidays = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/holiday/all?year=${filters.year}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays?year=${filters.year}`);
       setHolidays(res.data);
     }
     catch (err) { console.error("Error fetching holidays:", err); }

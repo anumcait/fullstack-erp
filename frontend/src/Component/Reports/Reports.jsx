@@ -103,7 +103,7 @@ const Reports = () => {
           params = dateParams;
           break;
         case "woff-change":
-          url = `${import.meta.env.VITE_API_URL}/api/woff/report`;
+          url = `${import.meta.env.VITE_API_URL}/api/shift/woff-report`;
           params = dateParams;
           break;
         case "tour":
@@ -139,11 +139,11 @@ const Reports = () => {
           params = { year: filters.year };
           break;
         case "meals-coupon":
-          url = `${import.meta.env.VITE_API_URL}/api/employees/meals-coupon`;
+          url = `${import.meta.env.VITE_API_URL}/api/payroll/meals-coupon`;
           params = { month: filters.month, year: filters.year };
           break;
         case "appraisal":
-          url = `${import.meta.env.VITE_API_URL}/api/employees/appraisal`;
+          url = `${import.meta.env.VITE_API_URL}/api/pms/appraisals`;
           params = { year: filters.year };
           break;
         case "other-earnings":
@@ -293,6 +293,10 @@ const Reports = () => {
         return [row.empid, row.ename, row.pf_no, row.basic, row.pf_contribution, row.emp_share, row.employer_share];
       case "pt":
         return [row.empid, row.ename, row.pan_no, row.gross_salary, row.pt_amount];
+      case "appraisal":
+        return [row.empid, row.self_final_score ?? "", row.manager_final_score ?? "", row.overall_rating ?? "", row.status ?? "", row.comments ?? ""];
+      case "other-earnings":
+        return [row.empid, row.ename, row.earning_type ?? "-", row.amount ?? 0, row.deduction_type ?? "-", row.amount_ded ?? 0];
       case "meals-coupon":
         return [row.empid, row.ename, row.deptname, row.month, row.coupons, row.value];
       default:
