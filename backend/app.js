@@ -25,6 +25,7 @@ const attendanceRoutes = require('./routes/HR/attendanceRoutes');
 const holidayRoutes = require('./routes/HR/holidayRoutes');
 const extOtRoutes = require('./routes/HR/extOtRoutes');
 const settingsRoutes = require('./routes/HR/settingsRoutes');
+const settingsController = require('./controllers/HR/settingsController');
 const recruitmentRoutes = require('./routes/HR/recruitmentRoutes');
 const exitSettlementRoutes = require('./routes/HR/exitSettlementRoutes');
 const trainingRoutes = require('./routes/HR/trainingRoutes');
@@ -158,6 +159,9 @@ app.use('/api/erp/planning', require('./routes/ERP/planningRoutes'));
 
 // Health check
 app.get('/', (req, res) => res.send('✅ App is running.'));
+
+// Health check endpoint (used by deploy.sh and monitoring)
+app.get('/api/company-settings', settingsController.getCompanySettings);
 
 app.get('/test-models', (req, res) => {
   const db = require('./models');
