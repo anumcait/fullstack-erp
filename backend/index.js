@@ -415,6 +415,11 @@ END $$;`,
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS cin VARCHAR(30)`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS pan VARCHAR(15)`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS show_format_no BOOLEAN NOT NULL DEFAULT TRUE`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS pf_number VARCHAR(100)`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS esi_number VARCHAR(100)`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS payroll_pt_rate DECIMAL(10,2) DEFAULT 200`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS payroll_ot_multiplier DECIMAL(10,2) DEFAULT 1.5`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS c_last_update TIMESTAMP`);
 
         // Align legacy HR module tables created with `created_date` (older raw
         // schema) with the models/controllers which expect `created_at`.
