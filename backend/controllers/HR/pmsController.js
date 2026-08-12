@@ -1,4 +1,4 @@
-const { KraTemplate, KraTemplateItem, AppraisalCycle, Appraisal, AppraisalRating } = require('../../models/HR/pms');
+const { KraTemplate, KraTemplateItem, AppraisalCycle, Appraisal, AppraisalRating } = require('../../models');
 const { Op, Sequelize } = require('sequelize');
 
 // ===== KRA TEMPLATES =====

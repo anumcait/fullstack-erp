@@ -387,6 +387,24 @@ END $$;`,
         `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS opn2 VARCHAR(50)`,
         `ALTER TABLE IF EXISTS t_delivery_challan_item ADD COLUMN IF NOT EXISTS opn3 VARCHAR(50)`,
         `UPDATE t_delivery_challan SET status = 'Approved' WHERE status = 'Issued'`,
+        // ── Load Sheets: header columns for the Oracle-style entry form ──
+        `ALTER TABLE IF EXISTS t_load_sheet ADD COLUMN IF NOT EXISTS unit_no VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS t_load_sheet ADD COLUMN IF NOT EXISTS entry_by VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS t_load_sheet ADD COLUMN IF NOT EXISTS opt_no VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS t_load_sheet ALTER COLUMN status TYPE VARCHAR(20) USING status::text`,
+        `ALTER TABLE IF EXISTS t_load_sheet ALTER COLUMN status SET DEFAULT 'Draft'`,
+        // ── Machine Master: Oracle-style extended columns ──
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS unit_no VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS department_code VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS sub_type VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS hour_rate DECIMAL(12,2)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS installed_cap_cost DECIMAL(14,2)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS traverses VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS max_safe_load DECIMAL(14,2)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS hours_per_day DECIMAL(8,2)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS year_of_manufacturing VARCHAR(10)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS machine_group VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS m_production_machine ADD COLUMN IF NOT EXISTS sub_group VARCHAR(100)`,
       ];
       for (const sql of erpMigrations) {
         try { await erpDb.sequelize.query(sql); } catch (_) { /* ignore */ }
@@ -397,6 +415,25 @@ END $$;`,
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS cin VARCHAR(30)`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS pan VARCHAR(15)`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS show_format_no BOOLEAN NOT NULL DEFAULT TRUE`);
+
+        // Align legacy HR module tables created with `created_date` (older raw
+        // schema) with the models/controllers which expect `created_at`.
+        const hrLegacyTables = [
+          't_pf_ledger', 't_pf_challan',
+          't_attendance_raw_punch', 't_punch_batch',
+          't_disciplinary_case', 't_show_cause', 't_disciplinary_action',
+          't_kra_template', 't_kra_template_item', 't_appraisal_cycle', 't_appraisal', 't_appraisal_rating',
+          't_training_course', 't_training_session', 't_training_participant', 't_certification', 't_skill_matrix',
+          't_exit_application', 't_exit_clearance', 't_final_settlement',
+          't_job_requisition', 't_candidate', 't_interview', 't_offer_letter',
+          't_emp_tax_regime', 't_emp_tax_investment', 't_emp_tax_computation',
+          'esi_leave_permission',
+        ];
+        for (const tbl of hrLegacyTables) {
+          await db.sequelize.query(
+            `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = '${tbl}' AND column_name = 'created_date') AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = '${tbl}' AND column_name = 'created_at') THEN ALTER TABLE "${tbl}" RENAME COLUMN created_date TO created_at; END IF; END $$`
+          );
+        }
       } catch (_) { /* ignore */ }
 
       // 4c. Drop any stale foreign keys that still reference the legacy

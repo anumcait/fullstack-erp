@@ -1,4 +1,4 @@
-const { DisciplinaryCase, ShowCause, DisciplinaryAction } = require('../../models/HR/disciplinary');
+const { DisciplinaryCase, ShowCause, DisciplinaryAction } = require('../../models');
 const { Sequelize } = require('sequelize');
 
 // ===== CASES =====

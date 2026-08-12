@@ -31,8 +31,16 @@ const loadModels = (dir) => {
       }
     } else if (file !== basename && file.endsWith('.js') && !file.startsWith('.')) {
       console.log("Loading model:", file, "from", dir);
-      const model = require(fullPath)(sequelize, Sequelize.DataTypes);
-      db[model.name] = model;
+      const loaded = require(fullPath)(sequelize, Sequelize.DataTypes);
+      if (loaded && typeof loaded.name === 'string' && loaded.name) {
+        db[loaded.name] = loaded;
+      } else if (loaded && typeof loaded === 'object') {
+        Object.keys(loaded).forEach((key) => {
+          if (loaded[key] && typeof loaded[key].name === 'string') {
+            db[loaded[key].name] = loaded[key];
+          }
+        });
+      }
     }
   });
 };

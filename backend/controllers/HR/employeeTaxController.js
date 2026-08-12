@@ -1,5 +1,4 @@
-const { TaxRegime, TaxInvestment, TaxComputation } = require('../../models/HR/employeeTax');
-const { EmpOfficial, EmpSalary } = require('../../models');
+const { TaxRegime, TaxInvestment, TaxComputation, EmpOfficial, EmpSalary } = require('../../models');
 const { Op, fn, col } = require('sequelize');
 
 const SECTIONS_OLD = [

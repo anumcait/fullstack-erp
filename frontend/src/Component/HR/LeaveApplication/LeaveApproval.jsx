@@ -24,29 +24,6 @@ const toYMD = (d) => {
   return date.toISOString().split('T')[0];
 };
 
-/** ---- MOCK DATA (replace with API results) ---- */
-const mockRows = [
-  { id: 236977, empId: 3016, empName: "MALLIKARJUNA RAO KOTA", unit: "UNIT-1", dept: "PRODUCTION", desg: "Supervisor",
-    purpose: "PERSONAL", address: "CHINTAL, HYD-500054", phone: "9441341993",
-    from: "2025-08-01", to: "2025-08-03", nod: 2,
-    clUsed: 4.5, elUsed: 14, clBal: 2.5, elBal: 0, status: "Pending", entry: "01-AUG-25 07.54",
-    days: [
-      { date: "2025-08-08", dayType: "SH", type: "", remarks: "" },
-      { date: "2025-08-09", dayType: "FULL DAY", type: "", remarks: "" },
-      { date: "2025-08-10", dayType: "FIRST HALF", type: "", remarks: "" }
-    ]
-  },
-  { id: 236981, empId: 61002, empName: "MAKIREDDI LOKESH", unit: "UNIT-6", dept: "PRODUCTION", desg: "Trainee Operator",
-    purpose: "PERSONAL", address: "HYDERABAD", phone: "", from: "2025-08-08", to: "2025-08-09",
-     nod: 1, clUsed: 0, elUsed: 0, clBal: 4, elBal: 12, status: "Pending", entry: "01-AUG-25 10.09",
-    days: [
-      { date: "2025-08-08", dayType: "FULL DAY", type: "", remarks: "" },
-      { date: "2025-08-09", dayType: "FULL DAY", type: "", remarks: "" },
-
-    ]
-  },
-];
-
 export default function LeaveApprovalPage() {
 
      const { showToast } = useToast();
@@ -68,14 +45,6 @@ export default function LeaveApprovalPage() {
 
    // ✅ real data from backend
  const [rows, setRows] = useState([]);
-//  useEffect(() => {
-//    axios.get(`${import.meta.env.VITE_API_URL}/leave/pendingleaves`)
-//      .then(res => {
-//        console.log("API Response:", res.data);
-//        setRows(res.data);
-//      })
-//      .catch(err => console.error("Failed to load leave apps", err));
-//  }, []);
 
   const fetchPendingLeaves = async () => {
     try {

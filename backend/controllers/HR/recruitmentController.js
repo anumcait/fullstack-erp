@@ -1,4 +1,4 @@
-const { JobRequisition, Candidate, Interview, OfferLetter } = require('../../models/HR/recruitment');
+const { JobRequisition, Candidate, Interview, OfferLetter } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
 
 // ===== JOB REQUISITION =====

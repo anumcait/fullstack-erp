@@ -1,5 +1,5 @@
 // controllers/dashboardController.js
-const { EmployeeMaster, Attendance, LeaveDetails, Holiday, Payslip, User, LeaveMaster, ProfileUpdateRequest } = require('../../models');
+const { EmployeeMaster, Attendance, LeaveApplication, LeaveDetails, LeaveApproval, Holiday, Payslip, User, LeaveMaster, ProfileUpdateRequest } = require('../../models');
 const { Op, fn, col, literal } = require('sequelize');
 
 const formatDateDB = (dateStr) => {
@@ -64,12 +64,13 @@ exports.hrSummary = async (req, res) => {
       }),
       LeaveDetails.count({ where: { c_hr_app_status: 'Pending' } }),
       LeaveDetails.count({ where: { c_hr_app_status: 'Approved' } }),
-      LeaveDetails.findAll({
+      LeaveApplication.findAll({
         where: {
           status: 'Approved',
-          from_date: { [Op.gte]: new Date(last30Days) },
+          ldate: { [Op.gte]: new Date(last30Days) },
         },
-        raw: true,
+        include: [{ model: LeaveDetails, as: 'leaveDetails', attributes: ['frmdt', 'todate'] }],
+        limit: 20,
       }),
       Holiday.findAll({
         where: {
@@ -93,10 +94,10 @@ exports.hrSummary = async (req, res) => {
       }),
       EmployeeMaster.findAll({
         where: {
-          doj: { [Op.between]: [last60Days, today] },
+          created: { [Op.between]: [last60Days, today] },
         },
-        attributes: ['empid', 'ename', 'deptname', 'doj'],
-        order: [['doj', 'DESC']],
+        attributes: ['empid', 'ename', 'deptname', 'created'],
+        order: [['created', 'DESC']],
         limit: 5,
         raw: true,
       }),
@@ -119,8 +120,8 @@ exports.hrSummary = async (req, res) => {
         order: [['att_date', 'ASC']],
         raw: true,
       }),
-      LeaveDetails.findAll({
-        where: { status: { [Op.ne]: 'Pending' } },
+      LeaveApproval.findAll({
+        where: { app_status: 'Approved' },
         attributes: ['leave_type', [fn('COUNT', col('leave_type')), 'count']],
         group: ['leave_type'],
         raw: true,
@@ -148,9 +149,12 @@ exports.hrSummary = async (req, res) => {
     console.log(`[DashboardDebug] Top Labels: ${approvalLabels.join(', ')}`);
 
     let totalLeaveDaysHR = 0;
-    recentApprovedLeavesHR.forEach((l) => {
-      const diff = new Date(l.to_date) - new Date(l.from_date);
-      totalLeaveDaysHR += Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
+    recentApprovedLeavesHR.forEach((app) => {
+      const details = app.leaveDetails || [];
+      if (!details.length) return;
+      const from = Math.min(...details.map((d) => new Date(d.frmdt).getTime()));
+      const to = Math.max(...details.map((d) => new Date(d.todate).getTime()));
+      totalLeaveDaysHR += Math.max(1, Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1);
     });
     const avgLeaveDuration =
       recentApprovedLeavesHR.length > 0
@@ -236,12 +240,12 @@ exports.managerSummary = async (req, res) => {
       Attendance.count({
         where: { empid: { [Op.in]: teamEmpIds }, att_date: today, status: 'Present' },
       }),
-      LeaveDetails.count({
-        where: { empid: { [Op.in]: teamEmpIds }, c_hr_app_status: 'Pending' },
+      LeaveApproval.count({
+        where: { empid: { [Op.in]: teamEmpIds }, app_status: 'Pending' },
       }),
-      LeaveDetails.findAll({
-        where: { empid: { [Op.in]: teamEmpIds }, c_hr_app_status: 'Pending' },
-        attributes: ['empid', 'from_date', 'to_date', 'leave_type'],
+      LeaveApproval.findAll({
+        where: { empid: { [Op.in]: teamEmpIds }, app_status: 'Pending' },
+        attributes: ['empid', 'frmdt', 'todate', 'leave_type'],
         raw: true,
         limit: 10,
       }),
@@ -250,16 +254,16 @@ exports.managerSummary = async (req, res) => {
         attributes: ['empid', 'ename', 'dob'],
         raw: true,
       }),
-      LeaveDetails.findAll({
+      LeaveApproval.findAll({
         where: {
           empid: { [Op.in]: teamEmpIds },
-          status: 'Approved',
-          from_date: { [Op.gte]: new Date(last30Days) },
+          app_status: 'Approved',
+          frmdt: { [Op.gte]: new Date(last30Days) },
         },
         raw: true,
       }),
-      LeaveDetails.findAll({
-        where: { empid: { [Op.in]: teamEmpIds }, c_hr_app_status: { [Op.ne]: 'Pending' } },
+      LeaveApproval.findAll({
+        where: { empid: { [Op.in]: teamEmpIds }, app_status: { [Op.ne]: 'Pending' } },
         attributes: ['leave_type', [fn('COUNT', col('leave_type')), 'count']],
         group: ['leave_type'],
         raw: true,
@@ -283,14 +287,14 @@ exports.managerSummary = async (req, res) => {
     const pendingApprovals = pendingLeaveApprovals.map((l) => ({
       empName: empMap[l.empid] || l.empid,
       type: l.leave_type,
-      days: Math.ceil((new Date(l.to_date) - new Date(l.from_date)) / (1000 * 60 * 60 * 24)) + 1,
-      from: l.from_date,
-      to: l.to_date,
+      days: Math.ceil((new Date(l.todate) - new Date(l.frmdt)) / (1000 * 60 * 60 * 24)) + 1,
+      from: l.frmdt,
+      to: l.todate,
     }));
 
     let totalLeaveDays = 0;
     recentApprovedLeaves.forEach((l) => {
-      const diff = new Date(l.to_date) - new Date(l.from_date);
+      const diff = new Date(l.todate) - new Date(l.frmdt);
       totalLeaveDays += Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
     });
     const avgLeaveDuration =

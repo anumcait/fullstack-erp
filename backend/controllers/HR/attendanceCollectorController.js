@@ -1,4 +1,4 @@
-const { RawPunch, PunchBatch } = require('../../models/HR/attendanceCollector');
+const { RawPunch, PunchBatch } = require('../../models');
 const { Op, Sequelize, fn, col } = require('sequelize');
 const multer = require('multer');
 const path = require('path');

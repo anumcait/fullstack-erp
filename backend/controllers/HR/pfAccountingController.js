@@ -1,5 +1,4 @@
-const { PfLedger, PfChallan } = require('../../models/HR/pfAccounting');
-const { EmpOfficial, EmpSalary } = require('../../models');
+const { PfLedger, PfChallan, EmpOfficial, EmpSalary } = require('../../models');
 const { Op, Sequelize } = require('sequelize');
 
 const PF_EMPLOYEE_RATE = 0.12;

@@ -1,4 +1,4 @@
-const { TrainingCourse, TrainingSession, TrainingParticipant, Certification, SkillMatrix } = require('../../models/HR/training');
+const { TrainingCourse, TrainingSession, TrainingParticipant, Certification, SkillMatrix } = require('../../models');
 const { Op, Sequelize } = require('sequelize');
 
 // ===== COURSES =====

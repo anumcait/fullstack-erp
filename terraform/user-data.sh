@@ -66,4 +66,41 @@ UNIT
 
 systemctl daemon-reload
 systemctl enable --now erp-demo
+
+# ────────────── Daily local-disk database backup (hrdb + erpdb) ──────────────
+# Runs every day at 01:30 server time. Dumps both databases from the running
+# postgres container into $REPO_DIR/pg_backup/daily/<YYYY-MM-DD>/ and keeps
+# the last 14 daily backups on local disk (rotation).
+cat > /usr/local/bin/erp-daily-backup.sh <<'BACKUP'
+#!/bin/bash
+set -uo pipefail
+BACKUP_ROOT=/opt/erp-app/pg_backup/daily
+TODAY=$(date +%F)
+DEST="$BACKUP_ROOT/$TODAY"
+mkdir -p "$DEST"
+
+for DB in hrdb erpdb; do
+  if docker ps --format '{{.Names}}' | grep -qx hr_postgres; then
+    if docker exec hr_postgres pg_dump -U postgres -Fc -f /tmp/$DB.daily.backup $DB >/dev/null 2>&1; then
+      docker cp hr_postgres:/tmp/$DB.daily.backup "$DEST/$DB.backup" >/dev/null 2>&1
+      docker exec hr_postgres rm -f /tmp/$DB.daily.backup >/dev/null 2>&1
+      echo "OK $DB -> $DEST/$DB.backup ($(stat -c%s "$DEST/$DB.backup" 2>/dev/null || echo 0) bytes)"
+    else
+      echo "FAIL $DB (pg_dump)"
+    fi
+  else
+    echo "SKIP $DB (hr_postgres not running)"
+  fi
+done
+
+# Rotate: keep the most recent 14 daily folders
+ls -1dt "$BACKUP_ROOT"/*/ 2>/dev/null | tail -n +15 | xargs -r rm -rf
+echo "BACKUP_DONE"
+BACKUP
+chmod +x /usr/local/bin/erp-daily-backup.sh
+
+# Cron entry: 1:30 AM daily
+( crontab -l 2>/dev/null | grep -v 'erp-daily-backup.sh' ; echo "30 1 * * * /usr/local/bin/erp-daily-backup.sh >> /opt/erp-app/pg_backup/daily-backup.log 2>&1" ) | crontab -
+echo "==> Daily backup cron installed (01:30 server time, 14-day retention)"
+
 echo "==> Bootstrap complete"

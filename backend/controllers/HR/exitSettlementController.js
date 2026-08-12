@@ -1,5 +1,4 @@
-const { ExitApplication, ExitClearance, FinalSettlement } = require('../../models/HR/exitSettlement');
-const { EmpOfficial, EmpSalary } = require('../../models');
+const { ExitApplication, ExitClearance, FinalSettlement, EmpOfficial, EmpSalary } = require('../../models');
 const { Op, Sequelize } = require('sequelize');
 
 const CLEARANCE_DEPARTMENTS = ['IT', 'HR', 'Accounts', 'Stores', 'Admin', 'Security'];
