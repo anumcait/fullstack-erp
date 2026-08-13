@@ -353,7 +353,7 @@ const Sidebar = () => {
         {/* --- HR MODULE --- */}
         {activeModule === "HR" && (
           <>
-            {hasPermission('HR_DASHBOARD') && (
+            {(hasPermission('HR_DASHBOARD_HR') || hasPermission('HR_DASHBOARD_MGR') || hasPermission('HR_DASHBOARD_EMP') || hasPermission('HR_DASHBOARD')) && (
               <li className="sidebar-menu-item">
                 <SideNavLink to="/hr" label="HR Dashboard" icon={FiUsers} exact />
               </li>

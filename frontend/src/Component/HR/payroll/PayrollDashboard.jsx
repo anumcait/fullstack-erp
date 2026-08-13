@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import SalarySetup from "./SalarySetup";
 import SalaryProcessing from "./SalaryProcessing";
 import PayslipList from "./PayslipList";
@@ -12,7 +13,15 @@ const TABS = [
 ];
 
 const PayrollDashboard = () => {
+  const [searchParams] = useSearchParams();
   const [selectedAction, setSelectedAction] = useState("processing");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && ["processing", "setup", "payslips"].includes(tab)) {
+      setSelectedAction(tab);
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-gray-50">

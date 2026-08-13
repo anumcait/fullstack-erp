@@ -105,10 +105,16 @@ const EmployeeDashboard = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+          <button
+            onClick={() => navigate('/leave?action=new')}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition"
+          >
             <FaPlaneDeparture /> Apply Leave
           </button>
-          <button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+          <button
+            onClick={() => navigate('/payroll?tab=payslips')}
+            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition"
+          >
             <FaDownload /> Payslip
           </button>
         </div>

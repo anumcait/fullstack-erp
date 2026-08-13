@@ -1,7 +1,9 @@
 export const PERMISSIONS = {
   HR: [
     { id: 'MOD_HR', label: 'Access HR Module' },
-    { id: 'HR_DASHBOARD', label: 'Dashboard' },
+    { id: 'HR_DASHBOARD_HR', label: 'HR Dashboard View' },
+    { id: 'HR_DASHBOARD_MGR', label: 'Manager Dashboard View' },
+    { id: 'HR_DASHBOARD_EMP', label: 'Employee Dashboard View' },
     { id: 'HR_EMP_MASTER', label: 'Employee Master' },
     { id: 'HR_ADD_EMP', label: 'Add New Employee' },
     { id: 'HR_PHOTO', label: 'Photo Upload' },

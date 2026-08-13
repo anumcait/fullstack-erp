@@ -245,7 +245,7 @@ exports.managerSummary = async (req, res) => {
       }),
       LeaveApproval.findAll({
         where: { empid: { [Op.in]: teamEmpIds }, app_status: 'Pending' },
-        attributes: ['empid', 'frmdt', 'todate', 'leave_type'],
+        attributes: ['lno', 'empid', 'frmdt', 'todate', 'leave_type'],
         raw: true,
         limit: 10,
       }),
@@ -285,6 +285,7 @@ exports.managerSummary = async (req, res) => {
     });
 
     const pendingApprovals = pendingLeaveApprovals.map((l) => ({
+      lno: l.lno,
       empName: empMap[l.empid] || l.empid,
       type: l.leave_type,
       days: Math.ceil((new Date(l.todate) - new Date(l.frmdt)) / (1000 * 60 * 60 * 24)) + 1,

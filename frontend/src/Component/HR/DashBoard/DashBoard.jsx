@@ -1,88 +1,112 @@
 import React, { useState, useEffect } from "react";
-import {
-  Box, Typography,
-} from "@mui/material";
 import HRDashboard from "./HRDashboard";
 import EmployeeDashboard from "./EmployeeDashboard";
 import ManagerDashboard from "./ManagerDashboard";
 import { FaUserTie, FaUsersCog, FaUser } from "react-icons/fa";
-import PageHeader from "../../Common/PageHeader";
 
 export default function DashboardTabs() {
-  const [activeTab, setActiveTab] = useState(null);
-  const [role, setRole] = useState("EMPLOYEE");
+    const [activeTab, setActiveTab] = useState(null);
+    const [role, setRole] = useState("EMPLOYEE");
+    const [accessibleTabs, setAccessibleTabs] = useState([]);
 
-  useEffect(() => {
-    let storedRole = localStorage.getItem("userRole");
-    if (!storedRole) storedRole = sessionStorage.getItem("userRole");
-    const r = storedRole ? storedRole.trim().toUpperCase() : "EMPLOYEE";
-    setRole(r);
-    if (r === "HR") setActiveTab("HR");
-    else if (r === "MANAGER") setActiveTab("Manager");
-    else setActiveTab("Employee");
-  }, []);
+    useEffect(() => {
+        let storedRole = localStorage.getItem("userRole");
+        if (!storedRole) storedRole = sessionStorage.getItem("userRole");
+        const r = storedRole ? storedRole.trim().toUpperCase() : "EMPLOYEE";
+        setRole(r);
 
-  const tabs = [
-    { name: "Employee", icon: <FaUser /> },
-    { name: "Manager", icon: <FaUserTie /> },
-    { name: "HR", icon: <FaUsersCog /> },
-  ];
+        let storedPerms = localStorage.getItem("userPermissions");
+        if (!storedPerms) storedPerms = sessionStorage.getItem("userPermissions");
+        const userPermissions = JSON.parse(storedPerms || "[]");
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "Employee": return <EmployeeDashboard />;
-      case "Manager": return <ManagerDashboard />;
-      case "HR": return <HRDashboard />;
-      default: return <EmployeeDashboard />;
+        // Determine permissions per tab
+        let canAccessHR = r === "ADMIN" || r === "HR" || userPermissions.includes("HR_DASHBOARD_HR");
+        const canAccessManager = r === "ADMIN" || r === "MANAGER" || userPermissions.includes("HR_DASHBOARD_MGR");
+        const canAccessEmployee = true; // Everyone can access their own employee dashboard
+
+        // Managers should NOT see HR Dashboard (explicit exclusion)
+        if (r === "MANAGER") {
+            canAccessHR = false;
+        }
+
+        const tabs = [];
+        if (canAccessEmployee) {
+            tabs.push({ name: "Employee", label: "Employee Dashboard", icon: <FaUser /> });
+        }
+        if (canAccessManager) {
+            tabs.push({ name: "Manager", label: "Manager Dashboard", icon: <FaUserTie /> });
+        }
+        if (canAccessHR) {
+            tabs.push({ name: "HR", label: "HR Dashboard", icon: <FaUsersCog /> });
+        }
+
+        setAccessibleTabs(tabs);
+
+        // Set default tab safely based on available tabs
+        if (tabs.length > 0) {
+            setActiveTab(tabs[0].name);
+        }
+    }, []);
+
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case "Employee": return <EmployeeDashboard />;
+            case "Manager": return <ManagerDashboard />;
+            case "HR": return <HRDashboard />;
+            default: return null;
+        }
+    };
+
+    if (activeTab === null) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <p className="text-gray-500 text-lg animate-pulse font-sans font-semibold">Loading dashboard...</p>
+            </div>
+        );
     }
-  };
 
-  const canAccess = (tabName) => {
-    const tab = tabName.toUpperCase();
-    if (role === "HR") return tab === "HR" || tab === "EMPLOYEE";
-    if (role === "MANAGER") return tab === "MANAGER" || tab === "EMPLOYEE";
-    return tab === "EMPLOYEE";
-  };
+    // Handle case where user has no accessible dashboards at all
+    if (accessibleTabs.length === 0) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+                <div className="bg-white rounded-2xl shadow-md p-8 max-w-md text-center border border-slate-200">
+                    <p className="text-red-500 text-lg font-sans font-bold">Access Denied</p>
+                    <p className="text-gray-500 mt-2 text-sm font-sans">You do not have permission to view any dashboard.</p>
+                </div>
+            </div>
+        );
+    }
 
-  if (activeTab === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <p className="text-gray-500 text-lg animate-pulse">Loading dashboard…</p>
-      </div>
+        <div className="bg-slate-50 min-h-screen">
+            {/* Tab Navigation - Shown only if the user has access to more than 1 dashboard */}
+            {accessibleTabs.length > 1 && (
+                <div className="p-4 bg-slate-50 pb-0">
+                    <div className="flex flex-wrap justify-center gap-3">
+                        {accessibleTabs.map((tab) => {
+                            const isActive = activeTab === tab.name;
+                            return (
+                                <button
+                                    key={tab.name}
+                                    onClick={() => setActiveTab(tab.name)}
+                                    className={`px-4 py-2 rounded-xl shadow-md flex items-center gap-2 transition-all duration-200 font-sans font-semibold text-sm border ${isActive
+                                        ? "bg-blue-600 text-white border-blue-600 shadow-lg scale-105"
+                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                        }`}
+                                >
+                                    {tab.icon}
+                                    <span>{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Render child dashboards directly at root level with their own styles */}
+            <div>
+                {renderTabContent()}
+            </div>
+        </div>
     );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <PageHeader title="HR Dashboard" subtitle="Your personal HR dashboard — attendance, leaves, payslips & more" />
-
-      <div className="flex flex-wrap justify-center gap-3 mb-6">
-        {tabs.map((tab) => {
-          const isAccessible = canAccess(tab.name);
-          const isActive = activeTab === tab.name;
-          return (
-            <button
-              key={tab.name}
-              onClick={() => isAccessible && setActiveTab(tab.name)}
-              disabled={!isAccessible}
-              className={`px-4 py-2 rounded-xl shadow-md flex items-center gap-2 transition-all duration-200 ${
-                isActive
-                  ? "bg-blue-600 text-white shadow-lg scale-105"
-                  : isAccessible
-                  ? "bg-white text-slate-700 hover:bg-blue-100"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.name} Dashboard</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg transition-all duration-300 animate-fadeIn">
-        {renderTabContent()}
-      </div>
-    </div>
-  );
 }

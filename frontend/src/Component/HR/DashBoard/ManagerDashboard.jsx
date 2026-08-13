@@ -31,18 +31,18 @@ const API = import.meta.env.VITE_API_URL || "";
 const COLORS = ["#3B82F6", "#F97316", "#10B981", "#F43F5E", "#8B5CF6"];
 
 const KpiCard = ({ title, icon, value, color, subtitle, badge }) => (
-  <div className="bg-white rounded-2xl shadow-md hover:shadow-lg border border-gray-100 p-6 transition-transform transform hover:-translate-y-1 hover:scale-[1.02] relative overflow-hidden">
+  <div className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 border border-slate-200 transition-all group relative overflow-hidden">
     {badge > 0 && (
-      <span className="absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+      <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-white animate-pulse">
         {badge}
       </span>
     )}
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="text-gray-600 text-sm font-medium">{title}</h3>
-      {icon}
+    <div className="flex items-center justify-between mb-2">
+      <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{title}</h3>
+      <span className="opacity-70 group-hover:scale-110 transition-transform">{icon}</span>
     </div>
-    <p className={`text-3xl font-semibold ${color}`}>{value}</p>
-    <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+    <p className={`text-xl font-black tracking-tight ${color}`}>{value}</p>
+    <p className="text-[10px] text-slate-400 font-bold mt-0.5">{subtitle}</p>
   </div>
 );
 
@@ -106,6 +106,32 @@ const ManagerDashboard = () => {
     saveAs(blob, `pending_approvals_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
+  const handleApprove = async (item) => {
+    try {
+      await axios.post(`${API}/api/leave/approve`, {
+        lno: item.lno,
+        days: [{ date: item.from, type: item.type, dayType: 'FULL DAY' }]
+      }, { withCredentials: true });
+      fetchAll();
+    } catch (err) {
+      console.error("Approve error:", err);
+    }
+  };
+
+  const handleReject = async (item) => {
+    const reason = window.prompt("Enter rejection reason:");
+    if (!reason) return;
+    try {
+      await axios.post(`${API}/api/leave/reject`, {
+        lno: item.lno,
+        app_remarks: reason
+      }, { withCredentials: true });
+      fetchAll();
+    } catch (err) {
+      console.error("Reject error:", err);
+    }
+  };
+
   // Attendance rate calculation
   const attendanceRate = summary.totalTeam > 0
     ? Math.round((summary.presentToday / summary.totalTeam) * 100)
@@ -123,31 +149,30 @@ const ManagerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-8 transition-all duration-300 animate-fadeIn">
+    <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300 animate-fadeIn">
 
       {/* Header */}
-      <div className="bg-white shadow-lg rounded-2xl p-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-gray-100">
+      <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-slate-200">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Manager Dashboard</h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            Welcome back, <span className="text-green-600 font-semibold">{managerName}</span> — here's your team overview
+          <h1 className="text-xl font-black text-slate-800 tracking-tight">Manager Dashboard</h1>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-1">
+            Welcome back, <span className="text-green-600">{managerName}</span> — team overview
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Live attendance rate badge */}
-          <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-xl">
-            <div className={`w-2 h-2 rounded-full ${attendanceRate >= 80 ? 'bg-green-500' : 'bg-orange-400'} animate-ping`}></div>
-            <span className="text-sm font-semibold text-green-700">{attendanceRate}% Present</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+            <span className="text-xs font-bold text-green-700">{attendanceRate}% Present</span>
           </div>
           <button
             onClick={fetchAll}
-            className="flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg shadow-md transition border border-gray-200"
+            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200 text-xs font-bold transition"
           >
             <FaChartLine /> Refresh
           </button>
           <button
             onClick={exportPending}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold transition"
           >
             <FaFileExport /> Export
           </button>
@@ -256,10 +281,18 @@ const ManagerDashboard = () => {
                     </div>
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-1.5 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition" title="Approve">
+                    <button
+                      onClick={() => handleApprove(item)}
+                      className="p-1.5 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition"
+                      title="Approve"
+                    >
                       <FaCheck size={12} />
                     </button>
-                    <button className="p-1.5 rounded-lg bg-red-100 text-red-500 hover:bg-red-200 transition" title="Reject">
+                    <button
+                      onClick={() => handleReject(item)}
+                      className="p-1.5 rounded-lg bg-red-100 text-red-500 hover:bg-red-200 transition"
+                      title="Reject"
+                    >
                       <FaTimes size={12} />
                     </button>
                   </div>

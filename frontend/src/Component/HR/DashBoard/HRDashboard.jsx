@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FaUsers,
@@ -13,7 +14,7 @@ import {
   FaUserPlus,
   FaRegCalendarCheck,
   FaUserClock,
- 
+
 } from "react-icons/fa";
 import {
   ResponsiveContainer,
@@ -35,13 +36,13 @@ const COLORS = ["#3B82F6", "#F97316", "#10B981", "#F43F5E", "#8B5CF6"];
 
 // KPI Card component
 const KpiCard = ({ title, icon, value, color, subtitle }) => (
-  <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-6 flex flex-col group animate-fadeIn transition-all hover:shadow-lg">
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="text-black text-base font-black uppercase tracking-widest">{title}</h3>
-      <span className="scale-125 opacity-100 group-hover:scale-150 transition-transform">{icon}</span>
+  <div className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 border border-slate-200 transition-all group">
+    <div className="flex items-center justify-between mb-2">
+      <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{title}</h3>
+      <span className="opacity-70 group-hover:scale-110 transition-transform">{icon}</span>
     </div>
-    <p className={`text-5xl font-black tracking-tighter ${color}`}>{value}</p>
-    <p className="text-sm text-black font-black mt-1.5">{subtitle}</p>
+    <p className={`text-xl font-black tracking-tight ${color}`}>{value}</p>
+    <p className="text-[10px] text-slate-400 font-bold mt-0.5">{subtitle}</p>
   </div>
 );
 
@@ -84,7 +85,7 @@ const HRDashboard = () => {
   const [upcomingHolidays, setUpcomingHolidays] = useState([]);
   const [upcomingBirthdays, setUpcomingBirthdays] = useState([]);
   const [topAbsentees, setTopAbsentees] = useState([]);
-    const [insights, setInsights] = useState({
+  const [insights, setInsights] = useState({
     upcomingHolidays: [],
     upcomingBirthdays: [],
     recentHires: [],
@@ -92,7 +93,8 @@ const HRDashboard = () => {
     recentProfileApprovals: [],
   });
   const [loading, setLoading] = useState(true);
-    const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const navigate = useNavigate();
 
   const fetchAll = useCallback(async () => {
     try {
@@ -172,10 +174,10 @@ const HRDashboard = () => {
       {/* Header */}
       <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-slate-200">
         <div>
-          <h1 className="text-5xl font-black text-black tracking-tighter">
+          <h1 className="text-xl font-black text-slate-800 tracking-tight">
             HR Dashboard Summary
           </h1>
-          <p className="text-black text-base font-black uppercase tracking-widest mt-2 bg-blue-50/50 inline-block px-3 py-1 rounded">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-1">
             Strategic Workforce Management Hub
           </p>
         </div>
@@ -193,7 +195,10 @@ const HRDashboard = () => {
             <FaFileExport /> Export
           </button>
           <div className="relative">
-            <button className="px-2 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600">
+            <button
+              onClick={() => navigate('/leave?action=approval')}
+              className="px-2 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-blue-600 transition"
+            >
               <FaBell />
               <span>Alerts</span>
             </button>
@@ -329,10 +334,10 @@ const HRDashboard = () => {
           </ResponsiveContainer>
         </div>
       </div>
-      
- {/* Upcoming Holidays, Birthdays, Top Absentees */}
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-    
+
+      {/* Upcoming Holidays, Birthdays, Top Absentees */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+
         <InfoList
           title="Upcoming Holidays"
           data={(insights.upcomingHolidays || []).map((h) => ({
@@ -371,7 +376,7 @@ const HRDashboard = () => {
           icon={<FaUserCheck className="text-purple-500" />}
         />
       </div>
-     
+
       {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-fadeIn">
         <div className="bg-white rounded-2xl shadow-md hover:shadow-lg border border-gray-100 p-6 transition-transform transform hover:-translate-y-1 hover:scale-[1.02]">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">

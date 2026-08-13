@@ -98,9 +98,22 @@ const Header = () => {
     return () => { clearInterval(interval); clearInterval(clock); };
   }, []);
 
-  const handleLogout = () => {
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('/api/auth/logout', {}, { withCredentials: true });
+    } catch (err) {
+      console.error('Error logging out:', err);
+    }
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/');
+  };
+
+  const confirmLogout = () => {
+    setIsSettingsOpen(false);
+    setLogoutConfirmOpen(true);
   };
 
   const toggleSettings = () => {
@@ -392,15 +405,15 @@ const Header = () => {
       permission: 'MOD_PURCHASE',
       isMega: true,
       columns: [
-            {
-              title: 'Procurement',
-              items: [
-                { label: 'Purchase Requisitions', path: '/purchase/requisitions' },
-                { label: 'PR Sanction', path: '/purchase/requisitions/sanction' },
-                { label: 'Enquiry / RFQ', path: '/purchase/rfq' },
-                { label: 'Purchase Orders', path: '/purchase/orders' }
-              ]
-            },
+        {
+          title: 'Procurement',
+          items: [
+            { label: 'Purchase Requisitions', path: '/purchase/requisitions' },
+            { label: 'PR Sanction', path: '/purchase/requisitions/sanction' },
+            { label: 'Enquiry / RFQ', path: '/purchase/rfq' },
+            { label: 'Purchase Orders', path: '/purchase/orders' }
+          ]
+        },
         {
           title: 'Vendor Mgmt',
           items: [
@@ -637,14 +650,14 @@ const Header = () => {
                     ))}
                   </div>
                   <div className="dropdown-divider"></div>
-                  <button onClick={handleLogout} className="dropdown-item logout-item">
+                  <button onClick={confirmLogout} className="dropdown-item logout-item">
                     <LogoutIcon style={{ fontSize: '18px', marginRight: '10px' }} /> Logout
                   </button>
                 </div>
               )}
             </div>
 
-            <button onClick={handleLogout} title="Logout" className="icon-btn logout-btn desktop-only">
+            <button onClick={confirmLogout} title="Logout" className="icon-btn logout-btn desktop-only">
               <LogoutIcon />
             </button>
             <DarkModeToggle />
@@ -727,6 +740,38 @@ const Header = () => {
             </div>
           </div>
         </>
+      )}
+      {/* Logout Confirm Dialog */}
+      {logoutConfirmOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'var(--header-bg)', borderRadius: 10, padding: '28px 32px',
+            minWidth: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: 'var(--text-white)' }}>Logout</p>
+            <p style={{ color: 'var(--text-white)', opacity: 0.8, marginBottom: 20, fontSize: 14 }}>
+              Are you sure you want to logout?
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setLogoutConfirmOpen(false)}
+                style={{ padding: '7px 18px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', cursor: 'pointer', fontWeight: 600, color: 'var(--text-white)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setLogoutConfirmOpen(false); handleLogout(); }}
+                style={{ padding: '7px 18px', borderRadius: 5, border: 'none', background: '#d32f2f', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Yes, Logout
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </header>
   );
