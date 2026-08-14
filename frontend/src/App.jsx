@@ -1,14 +1,16 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import PermissionRoute from "./routes/PermissionRoute";
+import { getRoutePermission } from "./routes/routePermissions";
 
-import DashBoard from "./Component/HR/DashBoard/DashBoard";
 import ERPLanding from "./Component/ERP/ERPLanding";
 import LoginForm from "./Component/LoginForm/LoginForm";
 import ChangePasswordForm from "./Component/ChangePasswordForm/ChangePasswordForm";
 import EmployeeReportForm from "./Component/HR/Employee/EmployeeMasterReport";
 import AddEmployeeForm from "./Component/HR/Employee/AddEmployee";
 import LeaveReport from "./Component/HR/LeaveApplication/LeaveReport";
+import DashBoard from "./Component/HR/DashBoard/DashBoard";
 import { ToastProvider } from "./context/ToastContext";
 import { CompanyProvider } from "./context/CompanyContext";
 import { NavigationGuardProvider } from "./context/NavigationGuardContext";
@@ -46,6 +48,46 @@ import PMSDashboard from "./Component/HR/PMS/PMSDashboard.jsx";
 import DisciplinaryDashboard from "./Component/HR/Disciplinary/DisciplinaryDashboard.jsx";
 import AttendanceCollectorDashboard from "./Component/HR/AttendanceCollector/AttendanceCollectorDashboard.jsx";
 import PfAccountingDashboard from "./Component/HR/PFAccounting/PfAccountingDashboard.jsx";
+
+// Wrapper combining auth + permission check (dynamic based on current location)
+const SecureRoute = ({ children, fallback = '/dashboard' }) => {
+  const location = useLocation();
+  const userName = localStorage.getItem('userName');
+  const userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+  const userRole = localStorage.getItem('userRole');
+
+  if (!userName) {
+    return <Navigate to="/" replace state={{ from: location }} />;
+  }
+
+  const adminRoles = ['admin', 'superadmin', 'administrator', 'IT'];
+  const isAdmin = userRole && adminRoles.some(r => userRole.toLowerCase().includes(r.toLowerCase()));
+  if (isAdmin) {
+    return children;
+  }
+
+  // Check permission for current pathname
+  const permission = getRoutePermission(location.pathname);
+  if (!permission) {
+    return children; // No specific permission required
+  }
+
+  const hasPermission = userPermissions.includes(permission);
+  if (!hasPermission) {
+    // Redirect to dashboard with permission error in state
+    return <Navigate to={fallback} replace state={{ 
+      from: location, 
+      requiredPermission: permission,
+      permissionDenied: true,
+      attemptedPath: location.pathname
+    }} />;
+  }
+
+  return children;
+};
+
+// Wrapper for layout routes
+const SecureLayout = ({ children }) => <SecureRoute>{children}</SecureRoute>;
 import Reports from "./Component/Reports/Reports.jsx";
 import Settings from "./Component/Settings/Settings.jsx";
 import AccountsDashboard from "./Component/Accounts/AccountsDashboard.jsx";
@@ -228,17 +270,9 @@ function App() {
                   <Route path="/" element={<LoginForm />} />
                   <Route
                     path="/dashboard"
-                    element={
-                      <ProtectedRoute>
-                        <ERPLanding />
-                      </ProtectedRoute>
-                    }
+                    element={<SecureRoute><ERPLanding /></SecureRoute>}
                   />
-                  <Route element={
-                    <ProtectedRoute>
-                      <MainLayout />
-                    </ProtectedRoute>
-                  }>
+                  <Route element={<SecureLayout><MainLayout /></SecureLayout>}>
                     <Route path="/hr" element={<DashBoard />} />
                     <Route path="/accounts" element={<AccountsDashboard />} />
                     <Route path="/accounts/coa" element={<ChartOfAccounts />} />

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import {
   Box, Card, CardContent, Typography, Grid, Stack, Chip,
-  IconButton, Tooltip, Avatar, useMediaQuery,
+  IconButton, Tooltip, Avatar, useMediaQuery, Alert, AlertTitle,
 } from "@mui/material";
 import {
   FiUsers, FiDollarSign, FiShoppingCart, FiBox, FiCpu, FiCalendar,
@@ -39,9 +39,15 @@ const greeting = (d) => {
 export default function ERPLanding() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const { companyName, companySettings } = useCompany();
   const [now, setNow] = useState(new Date());
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Check for permission denied redirect
+  const permissionDenied = location.state?.permissionDenied;
+  const requiredPermission = location.state?.requiredPermission;
+  const attemptedPath = location.state?.attemptedPath;
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -128,6 +134,18 @@ export default function ERPLanding() {
           </IconButton>
         </Tooltip>
       </Box>
+
+      {/* Permission denied alert */}
+      {permissionDenied && (
+        <Alert severity="error" sx={{ m: { xs: 2, md: 3 }, mb: 0 }} onClose={() => navigate('/dashboard', { replace: true })}>
+          <AlertTitle sx={{ fontWeight: 600 }}>Access Denied</AlertTitle>
+          You don't have permission to access <strong>{attemptedPath}</strong>.
+          <br />
+          Required permission: <code>{requiredPermission}</code>
+          <br />
+          Please contact your administrator to request access.
+        </Alert>
+      )}
 
       {/* Hero banner */}
       <Box

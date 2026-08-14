@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const client = require('prom-client');
+const { apiLimiter, sensitiveActionLimiter } = require('./middleware/rateLimiter');
 client.collectDefaultMetrics();
 
 require('dotenv').config(); // make sure .env is loaded before using
@@ -46,79 +47,24 @@ const allowedOrigins = [
 
 // Middlewares
 app.use(cors({
-  origin: true, // Dynamically allow any requesting origin (perfect for 'run anywhere')
+  origin: true,
   credentials: true
 }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ✅ Session middleware
-// app.use(session({
-//   secret: process.env.SESSION_SECRET || 'default_session_secret',
-//   resave: false,
-//   saveUninitialized: false,
-//   cookie: {
-//     secure: false, // true if using HTTPS
-//     httpOnly: true,
-//     maxAge: 1000 * 60 * 60 * 2 // 2 hours
-//   }
-// }));
+// Rate limiting
+app.use('/api/', apiLimiter); // General API rate limit
+app.use('/api/auth', authRoutes); // Auth routes have their own stricter limiters
+app.use('/api/users', sensitiveActionLimiter, require('./routes/userRoutes')); // User management
 
-const pgSession = require('connect-pg-simple')(session);
-const { Pool } = require('pg');
-
-const pgPool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 5432,
-});
-
-const sessionStore = new pgSession({
-  pool: pgPool,
-  tableName: 'session'
-});
-
-// connect-pg-simple (v10) does not auto-create its table; create it if missing.
-// Its expected schema is: sid (PK), sess (json), expire (timestamp).
-pgPool.query(`
-  CREATE TABLE IF NOT EXISTS "session" (
-    "sid" varchar NOT NULL COLLATE "default",
-    "sess" json NOT NULL,
-    "expire" timestamp(6) NOT NULL
-  )
-`, (err) => {
-  if (err) {
-    console.error('❌ Failed to ensure session table exists:', err.message);
-  } else {
-    pgPool.query(
-      `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'session_pkey') THEN ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid"); END IF; END $$;`,
-      () => {}
-    );
-  }
-});
-
-app.use(session({
-  store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'change-me-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 // 24 hours
-  }
-}));
-
-// Routes
+// HR Module Routes
 app.use('/api/employees', employeeRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/onduty', ondutyRoutes);
 app.use('/api/shift', shiftRoutes);
 app.use('/api/jasper', jasperRoutes);
-app.use('/api/auth', authRoutes);
 app.use('/api/gpt', gptRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tour', tourRoutes);
@@ -138,7 +84,6 @@ app.use('/api/pms', pmsRoutes);
 app.use('/api/disciplinary', disciplinaryRoutes);
 app.use('/api/attendance-collector', attendanceCollectorRoutes);
 app.use('/api/pf', pfAccountingRoutes);
-app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/notifications', require('./routes/HR/notificationRoutes'));
 
 // Accounts Module Routes

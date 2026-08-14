@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { login, logout, forgotPassword, resetPassword } = require('../controllers/authController');
+const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 
-router.post('/login', login);
+router.post('/login', authLimiter, login);
 router.post('/logout', logout);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/forgot-password', passwordResetLimiter, forgotPassword);
+router.post('/reset-password', passwordResetLimiter, resetPassword);
 router.get('/test', (req, res) => res.send('Auth API is online'));
 
 module.exports = router;
