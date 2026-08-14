@@ -749,17 +749,17 @@ const Header = () => {
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <div style={{
-            background: 'var(--header-bg)', borderRadius: 10, padding: '28px 32px',
-            minWidth: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.1)'
+            background: 'var(--dropdown-bg)', borderRadius: 10, padding: '28px 32px',
+            minWidth: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)'
           }}>
-            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: 'var(--text-white)' }}>Logout</p>
-            <p style={{ color: 'var(--text-white)', opacity: 0.8, marginBottom: 20, fontSize: 14 }}>
+            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: 'var(--dropdown-text)' }}>Logout</p>
+            <p style={{ color: 'var(--dropdown-text)', opacity: 0.6, marginBottom: 20, fontSize: 14 }}>
               Are you sure you want to logout?
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setLogoutConfirmOpen(false)}
-                style={{ padding: '7px 18px', borderRadius: 5, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', cursor: 'pointer', fontWeight: 600, color: 'var(--text-white)' }}
+                style={{ padding: '7px 18px', borderRadius: 5, border: '1px solid var(--dropdown-border)', background: 'var(--dropdown-hover-bg)', cursor: 'pointer', fontWeight: 600, color: 'var(--dropdown-text)' }}
               >
                 Cancel
               </button>

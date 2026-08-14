@@ -137,6 +137,25 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
     }
   }, [resolvedEmpId]);
 
+  // Fetch employee list for Reporting To dropdown
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const res = await axios.get('/api/employees', { withCredentials: true });
+        const employees = res.data?.data || res.data || [];
+        setEmployeeList(employees.map(e => ({
+          empid: e.empid,
+          ename: e.ename,
+          deptname: e.deptname,
+          designation: e.designation
+        })));
+      } catch (err) {
+        console.error('Error fetching employee list:', err);
+      }
+    };
+    fetchEmployees();
+  }, []);
+
   const fetchEmployeeData = async (id) => {
     try {
       const res = await axios.get(`/api/employees/${id}/full`);
@@ -393,6 +412,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
   const [licDetails, setLICDetails] = useState([{ ...initLIC }]);
   const [transferDetails, setTransferDetails] = useState([{ ...initTransfer }]);
   const [officialDetails, setOfficialDetails] = useState({ ...initOfficial });
+  const [employeeList, setEmployeeList] = useState([]);
 
   //Photo
 
@@ -661,227 +681,224 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
             <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary">
               Basic Information
             </Typography>
-            <Grid container spacing={2.5} sx={{ mb: 4 }}>
-              {/* Personal Fields */}
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField required label="Employee ID" name="empid" size="small"
-                  fullWidth value={formData.empid}
-                  onChange={handleFDChange}
-                  onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField required label="Name" name="ename" size="small"
-                  fullWidth value={formData.ename}
-                  onChange={handleFDChange}
-                  onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Father/Husband Name" name="fname" size="small"
-                  fullWidth value={formData.fname}
-                  onChange={handleFDChange}
-                  onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField select label="Employee Type" name="emptype" size="small"
-                  fullWidth value={formData.emptype}
-                  onChange={handleFDChange}
-                  onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  {empTypes.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField required select label="Gender" name="sex" size="small" fullWidth
-                  value={formData.sex}
-                  onChange={handleFDChange} variant="outlined"
-                  onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  <MenuItem value="M">Male</MenuItem>
-                  <MenuItem value="F">Female</MenuItem>
-                </TextField>
-              </Grid>
-
-
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField required label="Date of Birth" name="dob" size="small" fullWidth type="date"
-                  InputLabelProps={{ shrink: true }} value={formData.dob} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField select label="Marital Status" name="marital_status" size="small"
-                  fullWidth value={formData.marital_status} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  {maritalStatuses.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField select label="Blood Group" name="bgroup" size="small"
-                  fullWidth value={formData.bgroup} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  {bloodGroups.map(bg => <MenuItem value={bg} key={bg}>{bg}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Place of Birth" name="pob" size="small"
-                  fullWidth value={formData.pob} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Mother Tongue" name="mother_tounge" size="small" fullWidth
-                  value={formData.mother_tounge} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Languages Known" name="lang_known" size="small" fullWidth
-                  value={formData.lang_known} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField label="ID Mark 1" name="idfm1" size="small"
-                  fullWidth value={formData.idfm1} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField label="ID Mark 2" name="idfm2" size="small"
-                  fullWidth value={formData.idfm2} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField select label="Employee Status" name="status" size="small" fullWidth
-                  value={formData.status} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Left">Left</MenuItem>
-                  <MenuItem value="Resigned">Resigned</MenuItem>
-                  <MenuItem value="Terminated">Terminated</MenuItem>
-                </TextField>
-              </Grid>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: 2,
+                '& > *': { minWidth: 0 },
+                '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+              }}
+            >
+              <TextField required label="Employee ID" name="empid" size="small"
+                fullWidth value={formData.empid}
+                onChange={handleFDChange}
+                onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField required label="Name" name="ename" size="small"
+                fullWidth value={formData.ename}
+                onChange={handleFDChange}
+                onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField label="Father/Husband Name" name="fname" size="small"
+                fullWidth value={formData.fname}
+                onChange={handleFDChange}
+                onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField select label="Employee Type" name="emptype" size="small"
+                fullWidth value={formData.emptype}
+                onChange={handleFDChange}
+                onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="">Select</MenuItem>
+                {empTypes.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+              </TextField>
+              <TextField required select label="Gender" name="sex" size="small" fullWidth
+                value={formData.sex}
+                onChange={handleFDChange} variant="outlined"
+                onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="M">Male</MenuItem>
+                <MenuItem value="F">Female</MenuItem>
+              </TextField>
+              <TextField required label="Date of Birth" name="dob" size="small" fullWidth type="date"
+                InputLabelProps={{ shrink: true }} value={formData.dob} onChange={handleFDChange} onKeyDown={handleKeyDown}
+              />
+              <TextField select label="Marital Status" name="marital_status" size="small"
+                fullWidth value={formData.marital_status} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="">Select</MenuItem>
+                {maritalStatuses.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+              </TextField>
+              <TextField select label="Blood Group" name="bgroup" size="small"
+                fullWidth value={formData.bgroup} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="">Select</MenuItem>
+                {bloodGroups.map(bg => <MenuItem value={bg} key={bg}>{bg}</MenuItem>)}
+              </TextField>
+              <TextField label="Place of Birth" name="pob" size="small"
+                fullWidth value={formData.pob} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField label="Mother Tongue" name="mother_tounge" size="small" fullWidth
+                value={formData.mother_tounge} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField label="Languages Known" name="lang_known" size="small" fullWidth
+                value={formData.lang_known} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField label="ID Mark 1" name="idfm1" size="small"
+                fullWidth value={formData.idfm1} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField label="ID Mark 2" name="idfm2" size="small"
+                fullWidth value={formData.idfm2} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField select label="Employee Status" name="status" size="small" fullWidth
+                value={formData.status} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              >
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Left">Left</MenuItem>
+                <MenuItem value="Resigned">Resigned</MenuItem>
+                <MenuItem value="Terminated">Terminated</MenuItem>
+              </TextField>
               {['Left', 'Resigned', 'Terminated'].includes(formData.status) && (
                 <>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField label="Left Date" name="left_date" size="small" fullWidth type="date"
-                      InputLabelProps={{ shrink: true }} value={formData.left_date} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField label="Reason for Left" name="left_reason" size="small" fullWidth
-                      value={formData.left_reason} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
+                  <TextField label="Left Date" name="left_date" size="small" fullWidth type="date"
+                    InputLabelProps={{ shrink: true }} value={formData.left_date} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                  />
+                  <TextField label="Reason for Left" name="left_reason" size="small" fullWidth
+                    value={formData.left_reason} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                    InputLabelProps={{ shrink: true }}
+                  />
                 </>
               )}
-            </Grid>
+            </Box>
 
             <Divider sx={{ my: 2 }} />
 
             <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary">
               Department & Organisation
             </Typography>
-            <Grid container spacing={2.5} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Division" name="divname" size="small" fullWidth
-                  value={formData.divname} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Department" name="deptname" size="small" fullWidth
-                  value={formData.deptname} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Section" name="secname" size="small" fullWidth
-                  value={formData.secname} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField label="Unit" name="uname" size="small" fullWidth
-                  value={formData.uname} onChange={handleFDChange} onKeyDown={handleKeyDown}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-            </Grid>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: 2,
+                '& > *': { minWidth: 0 },
+                '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+              }}
+            >
+              <TextField label="Division" name="divname" size="small" fullWidth
+                value={formData.divname} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField label="Department" name="deptname" size="small" fullWidth
+                value={formData.deptname} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField label="Section" name="secname" size="small" fullWidth
+                value={formData.secname} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField label="Unit" name="uname" size="small" fullWidth
+                value={formData.uname} onChange={handleFDChange} onKeyDown={handleKeyDown}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
 
             <Divider sx={{ my: 3 }} />
 
-            <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary">
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary" sx={{ mb: 1 }}>
               Address & Communication
             </Typography>
-
-            <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-              <Grid container spacing={3} alignItems="center" justifyContent="center">
-
-                {/* Communication Address */}
-                <Grid item xs={12} md={4} sx={{ maxWidth: 400, width: '100%' }}>
-                  <Paper sx={{ p: 2 }}>
-                    <Typography variant="h6" gutterBottom>Communication Address</Typography>
-                    <TextField name="street" label="Street" value={formData.commAddress?.street} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" />
-                    <TextField name="city" label="City" value={formData.commAddress?.city} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" />
-                    <TextField select name="state" label="State" value={formData.commAddress?.state} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense">
-                      <MenuItem value="">Select</MenuItem>
-                      {states.map(state => (
-                        <MenuItem key={state} value={state}>{state}</MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField name="phone" label="Phone" value={formData.commAddress?.phone} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" />
-                    <TextField name="mobile" label="Mobile" value={formData.commAddress?.mobile} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" />
-                    <TextField name="email" label="Email" value={formData.commAddress?.email} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" />
-                  </Paper>
-                </Grid>
-
-                {/* Checkbox - centered */}
-                <Grid item xs={12} md={1} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', maxWidth: 150 }}>
-                  <FormControlLabel
-                    control={<Checkbox checked={formData.sameAsComm} onChange={toggleSame} />}
-                    label="Same as Communication"
-                  />
-                </Grid>
-
-                {/* Permanent Address */}
-                <Grid item xs={12} md={6} sx={{ maxWidth: 400, width: '100%' }}>
-                  <Paper sx={{ p: 2 }}>
-                    <Typography variant="h6" gutterBottom>Permanent Address</Typography>
-                    <TextField name="street" label="Street" value={formData.permAddress?.street} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" disabled={formData.sameAsComm} />
-                    <TextField name="city" label="City" value={formData.permAddress?.city} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" disabled={formData.sameAsComm} />
-                    <TextField select name="state" label="State" value={formData.permAddress?.state} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" disabled={formData.sameAsComm}>
-                      <MenuItem value="">Select</MenuItem>
-                      {states.map(state => (
-                        <MenuItem key={state} value={state}>{state}</MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField name="phone" label="Phone" value={formData.permAddress?.phone} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" disabled={formData.sameAsComm} />
-                    <TextField name="mobile" label="Mobile" value={formData.permAddress?.mobile} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" disabled={formData.sameAsComm} />
-                    <TextField name="email" label="Email" value={formData.permAddress?.email} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" disabled={formData.sameAsComm} />
-                  </Paper>
-                </Grid>
-
-              </Grid>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
+                gap: 1,
+                alignItems: 'stretch',
+                '@media (max-width: 900px)': { 
+                  gridTemplateColumns: '1fr',
+                  gridTemplateRows: 'auto auto auto',
+                },
+              }}
+            >
+              <Paper sx={{ p: 1.5, elevation: 1 }}>
+                <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ mb: 1 }}>Communication Address</Typography>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: 1,
+                    '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                  }}
+                >
+                  <TextField name="street" label="Street" value={formData.commAddress?.street} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" />
+                  <TextField name="city" label="City" value={formData.commAddress?.city} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" />
+                  <TextField select name="state" label="State" value={formData.commAddress?.state} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined">
+                    <MenuItem value="">Select</MenuItem>
+                    {states.map(state => (
+                      <MenuItem key={state} value={state}>{state}</MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField name="phone" label="Phone" value={formData.commAddress?.phone} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" />
+                  <TextField name="mobile" label="Mobile" value={formData.commAddress?.mobile} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" />
+                  <TextField name="email" label="Email" value={formData.commAddress?.email} onChange={handleCommChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" />
+                </Box>
+              </Paper>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                minHeight: '100%',
+                '@media (max-width: 900px)': { 
+                  marginY: 0.5,
+                },
+              }}>
+                <Checkbox checked={formData.sameAsComm} onChange={toggleSame} size="small" color={formData.sameAsComm ? 'success' : 'default'} sx={{ mb: 0.25 }} />
+                <Typography variant="caption" sx={{ fontWeight: 500, color: formData.sameAsComm ? '#2e7d32' : '#666', textAlign: 'center', lineHeight: 1.1, fontSize: '0.7rem' }}>
+                  Same as<br />Communication
+                </Typography>
+              </Box>
+              <Paper sx={{ p: 1.5, elevation: 1 }}>
+                <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ mb: 1 }}>Permanent Address</Typography>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: 1,
+                    '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                  }}
+                >
+                  <TextField name="street" label="Street" value={formData.permAddress?.street} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" disabled={formData.sameAsComm} />
+                  <TextField name="city" label="City" value={formData.permAddress?.city} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" disabled={formData.sameAsComm} />
+                  <TextField select name="state" label="State" value={formData.permAddress?.state} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" disabled={formData.sameAsComm}>
+                    <MenuItem value="">Select</MenuItem>
+                    {states.map(state => (
+                      <MenuItem key={state} value={state}>{state}</MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField name="phone" label="Phone" value={formData.permAddress?.phone} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" disabled={formData.sameAsComm} />
+                  <TextField name="mobile" label="Mobile" value={formData.permAddress?.mobile} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" disabled={formData.sameAsComm} />
+                  <TextField name="email" label="Email" value={formData.permAddress?.email} onChange={handlePermChange} onKeyDown={handleKeyDown} fullWidth size="small" margin="dense" variant="outlined" disabled={formData.sameAsComm} />
+                </Box>
+              </Paper>
             </Box>
             {isEdit && (
               <Box mt={3} textAlign="right">
@@ -903,54 +920,56 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Family Details</Typography>
             {familyDetails.map((mem, idx) => (
-              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="S.No"
-                    value={mem.sno}
-                    fullWidth
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    size="small"
-                    label="Name"
-                    value={mem.name}
-                    fullWidth
-                    onChange={e => famHandlers.handleChange(idx, 'name', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    size="small"
-                    label="Relation"
-                    value={mem.relation}
-                    fullWidth
-                    onChange={e => famHandlers.handleChange(idx, 'relation', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="Age"
-                    type="number"
-                    value={mem.age}
-                    fullWidth
-                    onChange={e => famHandlers.handleChange(idx, 'age', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="Occupation"
-                    value={mem.occupation}
-                    fullWidth
-                    onChange={e => famHandlers.handleChange(idx, 'occupation', e.target.value)}
-                  />
-                </Grid>
-              </Grid>
+              <Box
+                key={idx}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 1,
+                  mb: 1,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="S.No"
+                  value={mem.sno}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <TextField
+                  size="small"
+                  label="Name"
+                  value={mem.name}
+                  fullWidth
+                  onChange={e => famHandlers.handleChange(idx, 'name', e.target.value)}
+                />
+                <TextField
+                  size="small"
+                  label="Relation"
+                  value={mem.relation}
+                  fullWidth
+                  onChange={e => famHandlers.handleChange(idx, 'relation', e.target.value)}
+                />
+                <TextField
+                  size="small"
+                  label="Age"
+                  type="number"
+                  value={mem.age}
+                  fullWidth
+                  onChange={e => famHandlers.handleChange(idx, 'age', e.target.value)}
+                />
+                <TextField
+                  size="small"
+                  label="Occupation"
+                  value={mem.occupation}
+                  fullWidth
+                  onChange={e => famHandlers.handleChange(idx, 'occupation', e.target.value)}
+                />
+              </Box>
             ))}
             <Button variant="outlined" size="small" onClick={famHandlers.addRow} startIcon={<AddIcon />}>Add Row</Button>
             {isEdit && (
@@ -967,21 +986,31 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Qualification Details</Typography>
             {qualDetails.map((q, idx) => (
-              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="S.No"
-                    value={q.sno}
-                    fullWidth
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}><TextField label="Degree" size="small" value={q.degree} fullWidth onChange={e => qualHandlers.handleChange(idx, 'degree', e.target.value)} /></Grid>
-                <Grid item xs={12} md={3}><TextField label="Discipline" size="small" value={q.discipline} fullWidth onChange={e => qualHandlers.handleChange(idx, 'discipline', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Year" size="small" type="number" value={q.year} fullWidth onChange={e => qualHandlers.handleChange(idx, 'year', e.target.value)} /></Grid>
-                <Grid item xs={12} md={4}><TextField label="Institution" size="small" value={q.institution} fullWidth onChange={e => qualHandlers.handleChange(idx, 'institution', e.target.value)} /></Grid>
-              </Grid>
+              <Box
+                key={idx}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 1,
+                  mb: 1,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="S.No"
+                  value={q.sno}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <TextField label="Degree" size="small" value={q.degree} fullWidth onChange={e => qualHandlers.handleChange(idx, 'degree', e.target.value)} />
+                <TextField label="Discipline" size="small" value={q.discipline} fullWidth onChange={e => qualHandlers.handleChange(idx, 'discipline', e.target.value)} />
+                <TextField label="Year" size="small" type="number" value={q.year} fullWidth onChange={e => qualHandlers.handleChange(idx, 'year', e.target.value)} />
+                <TextField label="Institution" size="small" value={q.institution} fullWidth onChange={e => qualHandlers.handleChange(idx, 'institution', e.target.value)} />
+              </Box>
             ))}
             <Button variant="outlined" size="small" onClick={qualHandlers.addRow} startIcon={<AddIcon />}>Add Row</Button>
             {isEdit && (
@@ -998,22 +1027,32 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Experience Details</Typography>
             {expDetails.map((exp, idx) => (
-              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="S.No"
-                    value={exp.sno}
-                    fullWidth
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}><TextField label="Organization" size="small" value={exp.org} fullWidth onChange={e => expHandlers.handleChange(idx, 'org', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="From" size="small" value={exp.from} type="date" InputLabelProps={{ shrink: true }} fullWidth onChange={e => expHandlers.handleChange(idx, 'from', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="To" size="small" value={exp.to} type="date" InputLabelProps={{ shrink: true }} fullWidth onChange={e => expHandlers.handleChange(idx, 'to', e.target.value)} /></Grid>
-                <Grid item xs={12} md={3}><TextField label="Designation" size="small" value={exp.designation} fullWidth onChange={e => expHandlers.handleChange(idx, 'designation', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Remarks" size="small" value={exp.remarks} fullWidth onChange={e => expHandlers.handleChange(idx, 'remarks', e.target.value)} /></Grid>
-              </Grid>
+              <Box
+                key={idx}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(6, 1fr)',
+                  gap: 1,
+                  mb: 1,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="S.No"
+                  value={exp.sno}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <TextField label="Organization" size="small" value={exp.org} fullWidth onChange={e => expHandlers.handleChange(idx, 'org', e.target.value)} />
+                <TextField label="From" size="small" value={exp.from} type="date" InputLabelProps={{ shrink: true }} fullWidth onChange={e => expHandlers.handleChange(idx, 'from', e.target.value)} />
+                <TextField label="To" size="small" value={exp.to} type="date" InputLabelProps={{ shrink: true }} fullWidth onChange={e => expHandlers.handleChange(idx, 'to', e.target.value)} />
+                <TextField label="Designation" size="small" value={exp.designation} fullWidth onChange={e => expHandlers.handleChange(idx, 'designation', e.target.value)} />
+                <TextField label="Remarks" size="small" value={exp.remarks} fullWidth onChange={e => expHandlers.handleChange(idx, 'remarks', e.target.value)} />
+              </Box>
             ))}
             <Button variant="outlined" size="small" onClick={expHandlers.addRow} startIcon={<AddIcon />}>Add Row</Button>
             {isEdit && (
@@ -1030,269 +1069,200 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
         return (
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Official Details</Typography>
-            <Grid container spacing={2} alignItems="flex-end">
-
-              {/* Row 1 */}
-              <Grid item xs={12} md={4}>
-                <TextField label="Date of Interview" type="date" fullWidth size="small" variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  value={officialDetails.dateOfInterview}
-                  onChange={e => handleOfficialChange('dateOfInterview', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField label="Date of Joining" type="date" fullWidth size="small" variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  value={officialDetails.dateOfJoining}
-                  onChange={e => handleOfficialChange('dateOfJoining', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField label="Joined As" fullWidth size="small" variant="outlined"
-                  value={officialDetails.joinedAs}
-                  onChange={e => handleOfficialChange('joinedAs', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-
-              {/* Row 2 */}
-              <Grid item xs={12} md={4}>
-                <TextField label="Probation Period" fullWidth size="small" variant="outlined"
-                  value={officialDetails.probationPeriod}
-                  onChange={e => handleOfficialChange('probationPeriod', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField label="Training Period" fullWidth size="small" variant="outlined"
-                  value={officialDetails.trainingPeriod}
-                  onChange={e => handleOfficialChange('trainingPeriod', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField label="Reporting To" fullWidth size="small" variant="outlined"
-                  value={officialDetails.reportingTo}
-                  onChange={e => handleOfficialChange('reportingTo', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-
-              {/* Row 3 */}
-              <Grid item xs={12} md={4}>
-                <TextField label="Reporting To Dept" fullWidth size="small" variant="outlined"
-                  value={officialDetails.reportingToDept}
-                  onChange={e => handleOfficialChange('reportingToDept', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField label="Designation" fullWidth size="small" variant="outlined"
-                  value={officialDetails.designation}
-                  onChange={e => handleOfficialChange('designation', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField label="Qualification" fullWidth size="small" variant="outlined"
-                  value={officialDetails.qualification}
-                  onChange={e => handleOfficialChange('qualification', e.target.value)}
-                  sx={{ width: '230px' }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField label="Emp Status (S/W)" select fullWidth size="small" variant="outlined"
-                  value={officialDetails.empStatus}
-                  onChange={e => handleOfficialChange('empStatus', e.target.value)}
-                  sx={{ width: '230px' }}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  <MenuItem value="S">S</MenuItem>
-                  <MenuItem value="W">W</MenuItem>
-                </TextField>
-              </Grid>
-
-              {/* Row 4 */}
-              <Grid item xs={12} md={4}>
-                <TextField label="PF A/C No" fullWidth size="small" variant="outlined"
-                  value={officialDetails.pfAccountNo}
-                  onChange={e => handleOfficialChange('pfAccountNo', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="ESI No" fullWidth size="small" variant="outlined"
-                  value={officialDetails.esiNo}
-                  onChange={e => handleOfficialChange('esiNo', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Bank A/C No" fullWidth size="small" variant="outlined"
-                  value={officialDetails.bankAccountNo}
-                  onChange={e => handleOfficialChange('bankAccountNo', e.target.value)}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <TextField label="Bank Name" fullWidth size="small" variant="outlined"
-                  value={officialDetails.bankName}
-                  onChange={e => handleOfficialChange('bankName', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Branch Name" fullWidth size="small" variant="outlined"
-                  value={officialDetails.branchName}
-                  onChange={e => handleOfficialChange('branchName', e.target.value)}
-                />
-              </Grid>
-
-              {/* Row 5 */}
-              <Grid item xs={12} md={4}>
-                <TextField label="IFSC Code" fullWidth size="small" variant="outlined"
-                  value={officialDetails.ifscCode}
-                  onChange={e => handleOfficialChange('ifscCode', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="PAN No" fullWidth size="small" variant="outlined"
-                  value={officialDetails.panNo}
-                  onChange={e => handleOfficialChange('panNo', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Aadhar No" type="number" fullWidth size="small" variant="outlined"
-                  value={officialDetails.aadharNo}
-                  onChange={e => handleOfficialChange('aadharNo', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="UAN" type="number" fullWidth size="small" variant="outlined"
-                  value={officialDetails.uanNo}
-                  onChange={e => handleOfficialChange('uanNo', e.target.value)}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <TextField label="Passport No" fullWidth size="small" variant="outlined"
-                  value={officialDetails.passportNo}
-                  onChange={e => handleOfficialChange('passportNo', e.target.value)}
-                />
-              </Grid>
-
-              {/* Row 6 */}
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Original Certificates (Y/N)" select fullWidth size="small" variant="outlined"
-                  value={officialDetails.originalCertificates}
-                  onChange={e => handleOfficialChange('originalCertificates', e.target.value)}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  <MenuItem value="Y">Yes</MenuItem>
-                  <MenuItem value="N">No</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Bond From Dt" type="date" fullWidth size="small" variant="outlined" InputLabelProps={{ shrink: true }}
-                  value={officialDetails.bondFromDate}
-                  onChange={e => handleOfficialChange('bondFromDate', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Bond To Dt" type="date" fullWidth size="small" variant="outlined" InputLabelProps={{ shrink: true }}
-                  value={officialDetails.bondToDate}
-                  onChange={e => handleOfficialChange('bondToDate', e.target.value)}
-                />
-              </Grid>
-
-              {/* Row 7 */}
-              <Grid item xs={12} md={4}>
-                <TextField label="Bond Executed (Y/N)" select fullWidth size="small" variant="outlined"
-                  value={officialDetails.bondExecuted}
-                  onChange={e => handleOfficialChange('bondExecuted', e.target.value)}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  <MenuItem value="Y">Yes</MenuItem>
-                  <MenuItem value="N">No</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Bond Yrs" type="number" fullWidth size="small" variant="outlined"
-                  value={officialDetails.bondYears}
-                  onChange={e => handleOfficialChange('bondYears', e.target.value)}
-                />
-              </Grid>
-
-
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Weekly Off" select fullWidth size="small" variant="outlined"
-                  value={officialDetails.weeklyOff}
-                  onChange={e => handleOfficialChange('weeklyOff', e.target.value)}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  <MenuItem value="Sunday">Sunday</MenuItem>
-                  <MenuItem value="Saturday">Saturday</MenuItem>
-                </TextField>
-              </Grid>
-
-
-
-              {/* Row 8 */}
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={officialDetails.shiftDisable || false}
-                      onChange={e => handleOfficialChange('shiftDisable', e.target.checked)}
-                    />
-                  }
-                  label="Shift Disable"
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    marginLeft: 0,
-                    width: '215px'
-                  }}
-                />
-              </Grid>
-
-
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="Regular Inc Date" type="date" fullWidth size="small" variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  value={officialDetails.regularIncDate}
-                  onChange={e => handleOfficialChange('regularIncDate', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField label="DOJ Inc Date" type="date" fullWidth size="small" variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  value={officialDetails.dojIncDate}
-                  onChange={e => handleOfficialChange('dojIncDate', e.target.value)}
-                />
-              </Grid>
-
-
-              <Grid item xs={12} md={6}>
-                <TextField label="Inc Note" fullWidth size="small" variant="outlined"
-                  value={officialDetails.incNote}
-                  onChange={e => handleOfficialChange('incNote', e.target.value)}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <TextField label="Special Note" fullWidth size="small" variant="outlined"
-                  value={officialDetails.specialNote}
-                  onChange={e => handleOfficialChange('specialNote', e.target.value)}
-                />
-              </Grid>
-
-
-
-
-
-
-            </Grid>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: 2,
+                '& > *': { minWidth: 0 },
+                '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+              }}
+            >
+              <TextField label="Date of Interview" type="date" fullWidth size="small" variant="outlined"
+                InputLabelProps={{ shrink: true }}
+                value={officialDetails.dateOfInterview}
+                onChange={e => handleOfficialChange('dateOfInterview', e.target.value)}
+              />
+              <TextField label="Date of Joining" type="date" fullWidth size="small" variant="outlined"
+                InputLabelProps={{ shrink: true }}
+                value={officialDetails.dateOfJoining}
+                onChange={e => handleOfficialChange('dateOfJoining', e.target.value)}
+              />
+              <TextField label="Joined As" fullWidth size="small" variant="outlined"
+                value={officialDetails.joinedAs}
+                onChange={e => handleOfficialChange('joinedAs', e.target.value)}
+              />
+              <TextField label="Probation Period" fullWidth size="small" variant="outlined"
+                value={officialDetails.probationPeriod}
+                onChange={e => handleOfficialChange('probationPeriod', e.target.value)}
+              />
+              <TextField label="Training Period" fullWidth size="small" variant="outlined"
+                value={officialDetails.trainingPeriod}
+                onChange={e => handleOfficialChange('trainingPeriod', e.target.value)}
+              />
+              <TextField select label="Reporting To" fullWidth size="small" variant="outlined"
+                value={officialDetails.reportingTo}
+                onChange={e => handleOfficialChange('reportingTo', e.target.value)}
+              >
+                <MenuItem value="">Select Manager</MenuItem>
+                {employeeList
+                  .filter(emp => emp.empid !== formData.empid)
+                  .map(emp => (
+                    <MenuItem key={emp.empid} value={emp.empid}>
+                      {emp.ename} ({emp.empid}) - {emp.deptname || emp.designation || ''}
+                    </MenuItem>
+                  ))}
+              </TextField>
+              <TextField label="Reporting To Dept" fullWidth size="small" variant="outlined"
+                value={officialDetails.reportingToDept}
+                onChange={e => handleOfficialChange('reportingToDept', e.target.value)}
+              />
+              <TextField label="Designation" fullWidth size="small" variant="outlined"
+                value={officialDetails.designation}
+                onChange={e => handleOfficialChange('designation', e.target.value)}
+              />
+              <TextField label="Qualification" fullWidth size="small" variant="outlined"
+                value={officialDetails.qualification}
+                onChange={e => handleOfficialChange('qualification', e.target.value)}
+              />
+              <TextField label="Emp Status (S/W)" select fullWidth size="small" variant="outlined"
+                value={officialDetails.empStatus}
+                onChange={e => handleOfficialChange('empStatus', e.target.value)}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="S">S</MenuItem>
+                <MenuItem value="W">W</MenuItem>
+              </TextField>
+              <TextField label="PF A/C No" fullWidth size="small" variant="outlined"
+                value={officialDetails.pfAccountNo}
+                onChange={e => handleOfficialChange('pfAccountNo', e.target.value)}
+              />
+              <TextField label="ESI No" fullWidth size="small" variant="outlined"
+                value={officialDetails.esiNo}
+                onChange={e => handleOfficialChange('esiNo', e.target.value)}
+              />
+              <TextField label="Bank A/C No" fullWidth size="small" variant="outlined"
+                value={officialDetails.bankAccountNo}
+                onChange={e => handleOfficialChange('bankAccountNo', e.target.value)}
+              />
+              <TextField label="Bank Name" fullWidth size="small" variant="outlined"
+                value={officialDetails.bankName}
+                onChange={e => handleOfficialChange('bankName', e.target.value)}
+              />
+              <TextField label="Branch Name" fullWidth size="small" variant="outlined"
+                value={officialDetails.branchName}
+                onChange={e => handleOfficialChange('branchName', e.target.value)}
+              />
+              <TextField label="IFSC Code" fullWidth size="small" variant="outlined"
+                value={officialDetails.ifscCode}
+                onChange={e => handleOfficialChange('ifscCode', e.target.value)}
+              />
+              <TextField label="PAN No" fullWidth size="small" variant="outlined"
+                value={officialDetails.panNo}
+                onChange={e => handleOfficialChange('panNo', e.target.value)}
+              />
+              <TextField label="Aadhar No" type="number" fullWidth size="small" variant="outlined"
+                value={officialDetails.aadharNo}
+                onChange={e => handleOfficialChange('aadharNo', e.target.value)}
+              />
+<TextField label="UAN" type="number" fullWidth size="small" variant="outlined"
+                value={officialDetails.uanNo}
+                onChange={e => handleOfficialChange('uanNo', e.target.value)}
+              />
+              <TextField label="Passport No" fullWidth size="small" variant="outlined"
+                value={officialDetails.passportNo}
+                onChange={e => handleOfficialChange('passportNo', e.target.value)}
+              />
+              <TextField label="Validity" type="date" fullWidth size="small" variant="outlined"
+                InputLabelProps={{ shrink: true }}
+                value={officialDetails.validity}
+                onChange={e => handleOfficialChange('validity', e.target.value)}
+              />
+              <TextField label="Original Certificates (Y/N)" select fullWidth size="small" variant="outlined"
+                value={officialDetails.originalCertificates}
+                onChange={e => handleOfficialChange('originalCertificates', e.target.value)}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="Y">Yes</MenuItem>
+                <MenuItem value="N">No</MenuItem>
+              </TextField>
+              <TextField label="Bond From Dt" type="date" fullWidth size="small" variant="outlined" InputLabelProps={{ shrink: true }}
+                value={officialDetails.bondFromDate}
+                onChange={e => handleOfficialChange('bondFromDate', e.target.value)}
+              />
+              <TextField label="Bond To Dt" type="date" fullWidth size="small" variant="outlined" InputLabelProps={{ shrink: true }}
+                value={officialDetails.bondToDate}
+                onChange={e => handleOfficialChange('bondToDate', e.target.value)}
+              />
+              <TextField label="Bond Executed (Y/N)" select fullWidth size="small" variant="outlined"
+                value={officialDetails.bondExecuted}
+                onChange={e => handleOfficialChange('bondExecuted', e.target.value)}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="Y">Yes</MenuItem>
+                <MenuItem value="N">No</MenuItem>
+              </TextField>
+              <TextField label="Bond Yrs" type="number" fullWidth size="small" variant="outlined"
+                value={officialDetails.bondYears}
+                onChange={e => handleOfficialChange('bondYears', e.target.value)}
+              />
+              <TextField label="Weekly Off" select fullWidth size="small" variant="outlined"
+                value={officialDetails.weeklyOff}
+                onChange={e => handleOfficialChange('weeklyOff', e.target.value)}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="Sunday">Sunday</MenuItem>
+                <MenuItem value="Saturday">Saturday</MenuItem>
+              </TextField>
+              <TextField label="Shift" select fullWidth size="small" variant="outlined"
+                value={officialDetails.shift}
+                onChange={e => handleOfficialChange('shift', e.target.value)}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="A">A</MenuItem>
+                <MenuItem value="B">B</MenuItem>
+                <MenuItem value="C">C</MenuItem>
+                <MenuItem value="G">G</MenuItem>
+              </TextField>
+              <TextField label="Regular Inc Date" type="date" fullWidth size="small" variant="outlined"
+                InputLabelProps={{ shrink: true }}
+                value={officialDetails.regularIncDate}
+                onChange={e => handleOfficialChange('regularIncDate', e.target.value)}
+              />
+              <TextField label="DOJ Inc Date" type="date" fullWidth size="small" variant="outlined"
+                InputLabelProps={{ shrink: true }}
+                value={officialDetails.dojIncDate}
+                onChange={e => handleOfficialChange('dojIncDate', e.target.value)}
+              />
+              <TextField label="Inc Note" fullWidth size="small" variant="outlined"
+                value={officialDetails.incNote}
+                onChange={e => handleOfficialChange('incNote', e.target.value)}
+                sx={{ gridColumn: 'span 2' }}
+              />
+              <TextField label="Special Note" fullWidth size="small" variant="outlined"
+                value={officialDetails.specialNote}
+                onChange={e => handleOfficialChange('specialNote', e.target.value)}
+                sx={{ gridColumn: 'span 2' }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={officialDetails.shiftDisable || false}
+                    onChange={e => handleOfficialChange('shiftDisable', e.target.checked)}
+                  />
+                }
+                label="Shift Disable"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  marginLeft: 0,
+                  width: '215px'
+                }}
+              />
+</Box>
             {isEdit && (
               <Box mt={3} textAlign="right">
                 <Button variant="contained" color="success" onClick={() => handleSectionUpdate({ officialDetails })}>
@@ -1309,14 +1279,24 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Paper elevation={3} sx={{ p: 2, background: "#fafbfc" }}>
             {/* Salary Breakup */}
             <Box mb={2}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={2}><TextField label="Basic" name="basic" size="small" value={salaryDetails.basic} onChange={handleObjChange(setSalaryDetails)} fullWidth /></Grid>
-                <Grid item xs={12} md={2}><TextField label="HRA" name="hra" size="small" value={salaryDetails.hra} onChange={handleObjChange(setSalaryDetails)} fullWidth /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Conveyance" name="conveyance" size="small" value={salaryDetails.conveyance} onChange={handleObjChange(setSalaryDetails)} fullWidth /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Washing Allowance" name="washingAllowance" size="small" value={salaryDetails.washingAllowance} onChange={handleObjChange(setSalaryDetails)} fullWidth /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Total Sal" name="totalSal" size="small" value={salaryDetails.totalSal} onChange={handleObjChange(setSalaryDetails)} fullWidth /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Other Deductions" name="otherDeductions" size="small" value={salaryDetails.otherDeductions} onChange={handleObjChange(setSalaryDetails)} fullWidth /></Grid>
-              </Grid>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(6, 1fr)',
+                  gap: 2,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField label="Basic" name="basic" size="small" value={salaryDetails.basic} onChange={handleObjChange(setSalaryDetails)} fullWidth />
+                <TextField label="HRA" name="hra" size="small" value={salaryDetails.hra} onChange={handleObjChange(setSalaryDetails)} fullWidth />
+                <TextField label="Conveyance" name="conveyance" size="small" value={salaryDetails.conveyance} onChange={handleObjChange(setSalaryDetails)} fullWidth />
+                <TextField label="Washing Allowance" name="washingAllowance" size="small" value={salaryDetails.washingAllowance} onChange={handleObjChange(setSalaryDetails)} fullWidth />
+                <TextField label="Total Sal" name="totalSal" size="small" value={salaryDetails.totalSal} onChange={handleObjChange(setSalaryDetails)} fullWidth />
+                <TextField label="Other Deductions" name="otherDeductions" size="small" value={salaryDetails.otherDeductions} onChange={handleObjChange(setSalaryDetails)} fullWidth />
+              </Box>
             </Box>
             <Divider sx={{ my: 2 }} />
 
@@ -1324,45 +1304,43 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
             <Box mb={2}>
               <Typography variant="subtitle1" sx={{ mb: 1, color: '#155fa0' }}>Deductions</Typography>
 
-              <Grid container spacing={2}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(6, 1fr)',
+                  gap: 2,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
                 {[
                   { label: "ESI", name: "esi" },
                   { label: "PF", name: "pf" },
                   { label: "OT", name: "ot" },
                   { label: "LIC", name: "lic" }
                 ].map(({ label, name }) => (
-                  <Grid item xs={6} sm={4} md={2} key={name}>
-                    <FormControl component="fieldset">
-                      <FormLabel component="legend" sx={{ fontSize: '0.8rem' }}>{label}</FormLabel>
-                      <RadioGroup row name={name} value={salaryDetails[name]} onChange={handleObjChange(setSalaryDetails)}>
-                        <FormControlLabel value="Yes" control={<Radio size="small" />} label="Yes" />
-                        <FormControlLabel value="No" control={<Radio size="small" />} label="No" />
-                      </RadioGroup>
-                    </FormControl>
-                  </Grid>
-                ))}
-                <Grid item xs={6} sm={4} md={2}>
-                  <TextField label="LIC Amount" name="licAmount" size="small" value={salaryDetails.licAmount} onChange={handleObjChange(setSalaryDetails)} fullWidth />
-                </Grid>
-
-                <Grid item xs={6} sm={4} md={2}>
-                  <TextField label="TDS Amount" name="tdsAmount" size="small" value={salaryDetails.tdsAmount} onChange={handleObjChange(setSalaryDetails)} fullWidth />
-                </Grid>
-
-                <Grid item xs={12} sm={4} md={2}>
-                  <FormControl fullWidth size="small">
-                    <FormLabel sx={{ fontSize: '0.8rem' }}>Payment Mode</FormLabel>
-                    <Select value={salaryDetails.paymentMode} name="paymentMode" onChange={handleObjChange(setSalaryDetails)} displayEmpty>
-                      <MenuItem value="">Select</MenuItem>
-                      <MenuItem value="Cash">Cash</MenuItem>
-                      <MenuItem value="Bank">Bank</MenuItem>
-                    </Select>
+                  <FormControl component="fieldset" key={name} fullWidth>
+                    <FormLabel component="legend" sx={{ fontSize: '0.8rem' }}>{label}</FormLabel>
+                    <RadioGroup row name={name} value={salaryDetails[name]} onChange={handleObjChange(setSalaryDetails)}>
+                      <FormControlLabel value="Yes" control={<Radio size="small" />} label="Yes" />
+                      <FormControlLabel value="No" control={<Radio size="small" />} label="No" />
+                    </RadioGroup>
                   </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField label="Remarks" name="remarks" multiline rows={2} value={salaryDetails.remarks} onChange={handleObjChange(setSalaryDetails)} fullWidth />
-                </Grid>
-              </Grid>
+                ))}
+                <TextField label="LIC Amount" name="licAmount" size="small" value={salaryDetails.licAmount} onChange={handleObjChange(setSalaryDetails)} fullWidth />
+                <TextField label="TDS Amount" name="tdsAmount" size="small" value={salaryDetails.tdsAmount} onChange={handleObjChange(setSalaryDetails)} fullWidth />
+                <FormControl fullWidth size="small">
+                  <FormLabel sx={{ fontSize: '0.8rem' }}>Payment Mode</FormLabel>
+                  <Select value={salaryDetails.paymentMode} name="paymentMode" onChange={handleObjChange(setSalaryDetails)} displayEmpty>
+                    <MenuItem value="">Select</MenuItem>
+                    <MenuItem value="Cash">Cash</MenuItem>
+                    <MenuItem value="Bank">Bank</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField label="Remarks" name="remarks" multiline rows={2} value={salaryDetails.remarks} onChange={handleObjChange(setSalaryDetails)} fullWidth sx={{ gridColumn: 'span 3' }} />
+              </Box>
             </Box>
             {isEdit && (
               <Box mt={3} textAlign="right">
@@ -1379,22 +1357,32 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Training Details</Typography>
             {trainingDetails.map((t, idx) => (
-              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="S.No"
-                    value={t.sno}
-                    fullWidth
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}><TextField label="Name" size="small" value={t.name} fullWidth onChange={e => trainHandlers.handleChange(idx, 'name', e.target.value)} /></Grid>
-                <Grid item xs={12} md={3}><TextField label="Institution" size="small" value={t.institution} fullWidth onChange={e => trainHandlers.handleChange(idx, 'institution', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="From" size="small" value={t.from} type="date" InputLabelProps={{ shrink: true }} fullWidth onChange={e => trainHandlers.handleChange(idx, 'from', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="To" size="small" value={t.to} type="date" InputLabelProps={{ shrink: true }} fullWidth onChange={e => trainHandlers.handleChange(idx, 'to', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Remarks" size="small" value={t.remarks} fullWidth onChange={e => trainHandlers.handleChange(idx, 'remarks', e.target.value)} /></Grid>
-              </Grid>
+              <Box
+                key={idx}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(6, 1fr)',
+                  gap: 1,
+                  mb: 1,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="S.No"
+                  value={t.sno}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <TextField label="Name" size="small" value={t.name} fullWidth onChange={e => trainHandlers.handleChange(idx, 'name', e.target.value)} />
+                <TextField label="Institution" size="small" value={t.institution} fullWidth onChange={e => trainHandlers.handleChange(idx, 'institution', e.target.value)} />
+                <TextField label="From" size="small" value={t.from} type="date" InputLabelProps={{ shrink: true }} fullWidth onChange={e => trainHandlers.handleChange(idx, 'from', e.target.value)} />
+                <TextField label="To" size="small" value={t.to} type="date" InputLabelProps={{ shrink: true }} fullWidth onChange={e => trainHandlers.handleChange(idx, 'to', e.target.value)} />
+                <TextField label="Remarks" size="small" value={t.remarks} fullWidth onChange={e => trainHandlers.handleChange(idx, 'remarks', e.target.value)} />
+              </Box>
             ))}
             <Button variant="outlined" size="small" onClick={trainHandlers.addRow} startIcon={<AddIcon />}>Add Row</Button>
           </Box>
@@ -1405,21 +1393,31 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Promotions</Typography>
             {promotionDetails.map((p, idx) => (
-              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="S.No"
-                    value={p.sno}
-                    fullWidth
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}><TextField label="From Post" size="small" value={p.from} fullWidth onChange={e => promoHandlers.handleChange(idx, 'from', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="To Post" size="small" value={p.to} fullWidth onChange={e => promoHandlers.handleChange(idx, 'to', e.target.value)} /></Grid>
-                <Grid item xs={12} md={3}><TextField label="Date" size="small" type="date" InputLabelProps={{ shrink: true }} value={p.date} fullWidth onChange={e => promoHandlers.handleChange(idx, 'date', e.target.value)} /></Grid>
-                <Grid item xs={12} md={5}><TextField label="Remarks" size="small" value={p.remarks} fullWidth onChange={e => promoHandlers.handleChange(idx, 'remarks', e.target.value)} /></Grid>
-              </Grid>
+              <Box
+                key={idx}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 1,
+                  mb: 1,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="S.No"
+                  value={p.sno}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <TextField label="From Post" size="small" value={p.from} fullWidth onChange={e => promoHandlers.handleChange(idx, 'from', e.target.value)} />
+                <TextField label="To Post" size="small" value={p.to} fullWidth onChange={e => promoHandlers.handleChange(idx, 'to', e.target.value)} />
+                <TextField label="Date" size="small" type="date" InputLabelProps={{ shrink: true }} value={p.date} fullWidth onChange={e => promoHandlers.handleChange(idx, 'date', e.target.value)} />
+                <TextField label="Remarks" size="small" value={p.remarks} fullWidth onChange={e => promoHandlers.handleChange(idx, 'remarks', e.target.value)} sx={{ gridColumn: 'span 2' }} />
+              </Box>
             ))}
             <Button variant="outlined" size="small" onClick={promoHandlers.addRow} startIcon={<AddIcon />}>Add Row</Button>
           </Box>
@@ -1430,21 +1428,31 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Awards / Rewards</Typography>
             {awardDetails.map((a, idx) => (
-              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="S.No"
-                    value={a.sno}
-                    fullWidth
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}><TextField label="Award Name" size="small" value={a.name} fullWidth onChange={e => awardHandlers.handleChange(idx, 'name', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Year" type="number" size="small" value={a.year} fullWidth onChange={e => awardHandlers.handleChange(idx, 'year', e.target.value)} /></Grid>
-                <Grid item xs={12} md={3}><TextField label="Awarded By" size="small" value={a.by} fullWidth onChange={e => awardHandlers.handleChange(idx, 'by', e.target.value)} /></Grid>
-                <Grid item xs={12} md={4}><TextField label="Remarks" size="small" value={a.remarks} fullWidth onChange={e => awardHandlers.handleChange(idx, 'remarks', e.target.value)} /></Grid>
-              </Grid>
+              <Box
+                key={idx}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 1,
+                  mb: 1,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="S.No"
+                  value={a.sno}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <TextField label="Award Name" size="small" value={a.name} fullWidth onChange={e => awardHandlers.handleChange(idx, 'name', e.target.value)} />
+                <TextField label="Year" type="number" size="small" value={a.year} fullWidth onChange={e => awardHandlers.handleChange(idx, 'year', e.target.value)} />
+                <TextField label="Awarded By" size="small" value={a.by} fullWidth onChange={e => awardHandlers.handleChange(idx, 'by', e.target.value)} />
+                <TextField label="Remarks" size="small" value={a.remarks} fullWidth onChange={e => awardHandlers.handleChange(idx, 'remarks', e.target.value)} sx={{ gridColumn: 'span 2' }} />
+              </Box>
             ))}
             <Button variant="outlined" size="small" onClick={awardHandlers.addRow} startIcon={<AddIcon />}>Add Row</Button>
           </Box>
@@ -1454,21 +1462,31 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Disciplinary Actions</Typography>
             {discDetails.map((d, idx) => (
-              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="S.No"
-                    value={d.sno}
-                    fullWidth
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}><TextField label="Action" size="small" value={d.action} fullWidth onChange={e => discHandlers.handleChange(idx, 'action', e.target.value)} /></Grid>
-                <Grid item xs={12} md={3}><TextField label="Reason" size="small" value={d.reason} fullWidth onChange={e => discHandlers.handleChange(idx, 'reason', e.target.value)} /></Grid>
-                <Grid item xs={12} md={2}><TextField label="Date" size="small" type="date" InputLabelProps={{ shrink: true }} value={d.date} fullWidth onChange={e => discHandlers.handleChange(idx, 'date', e.target.value)} /></Grid>
-                <Grid item xs={12} md={5}><TextField label="Remarks" size="small" value={d.remarks} fullWidth onChange={e => discHandlers.handleChange(idx, 'remarks', e.target.value)} /></Grid>
-              </Grid>
+              <Box
+                key={idx}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 1,
+                  mb: 1,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(3, 1fr)' },
+                  '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="S.No"
+                  value={d.sno}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <TextField label="Action" size="small" value={d.action} fullWidth onChange={e => discHandlers.handleChange(idx, 'action', e.target.value)} />
+                <TextField label="Reason" size="small" value={d.reason} fullWidth onChange={e => discHandlers.handleChange(idx, 'reason', e.target.value)} sx={{ gridColumn: 'span 2' }} />
+                <TextField label="Date" size="small" type="date" InputLabelProps={{ shrink: true }} value={d.date} fullWidth onChange={e => discHandlers.handleChange(idx, 'date', e.target.value)} />
+                <TextField label="Remarks" size="small" value={d.remarks} fullWidth onChange={e => discHandlers.handleChange(idx, 'remarks', e.target.value)} sx={{ gridColumn: 'span 2' }} />
+              </Box>
             ))}
             <Button variant="outlined" size="small" onClick={discHandlers.addRow} startIcon={<AddIcon />}>Add Row</Button>
           </Box>
@@ -1479,58 +1497,81 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
           <Box>
             <Typography fontWeight={600} fontSize={17} mb={2}>Increments</Typography>
             {incrementDetails.map((inc, idx) => (
-              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    size="small"
-                    label="S.No"
-                    value={inc.sno}
-                    fullWidth
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}><TextField label="Date" size="small" type="date" InputLabelProps={{ shrink: true }} value={inc.date} fullWidth onChange={e => incrHandlers.handleChange(idx, 'date', e.target.value)} /></Grid>
-                <Grid item xs={12} md={3}><TextField label="Amount" size="small" value={inc.amount} fullWidth onChange={e => incrHandlers.handleChange(idx, 'amount', e.target.value)} /></Grid>
-                <Grid item xs={12} md={6}><TextField label="Remarks" size="small" value={inc.remarks} fullWidth onChange={e => incrHandlers.handleChange(idx, 'remarks', e.target.value)} /></Grid>
-              </Grid>
+              <Box
+                key={idx}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 1,
+                  mb: 1,
+                  '& > *': { minWidth: 0 },
+                  '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+                  '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="S.No"
+                  value={inc.sno}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <TextField label="Date" size="small" type="date" InputLabelProps={{ shrink: true }} value={inc.date} fullWidth onChange={e => incrHandlers.handleChange(idx, 'date', e.target.value)} />
+                <TextField label="Amount" size="small" value={inc.amount} fullWidth onChange={e => incrHandlers.handleChange(idx, 'amount', e.target.value)} />
+                <TextField label="Remarks" size="small" value={inc.remarks} fullWidth onChange={e => incrHandlers.handleChange(idx, 'remarks', e.target.value)} sx={{ gridColumn: 'span 2' }} />
+              </Box>
             ))}
             <Button variant="outlined" size="small" onClick={incrHandlers.addRow} startIcon={<AddIcon />}>Add Row</Button>
           </Box>
         );
       case 11: // Canteen
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={2}>
-              <TextField
-                size="small"
-                label="S.No"
-                value={canteenDetails.sno}
-                fullWidth
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}><TextField label="Canteen Card No" name="cardno" size="small" value={canteenDetails.cardno} onChange={handleObjChange(setCanteenDetails)} fullWidth /></Grid>
-            <Grid item xs={12} md={4}><TextField label="Valid From" name="from" type="date" size="small" InputLabelProps={{ shrink: true }} value={canteenDetails.from} onChange={handleObjChange(setCanteenDetails)} fullWidth /></Grid>
-            <Grid item xs={12} md={4}><TextField label="To" name="to" type="date" size="small" InputLabelProps={{ shrink: true }} value={canteenDetails.to} onChange={handleObjChange(setCanteenDetails)} fullWidth /></Grid>
-          </Grid>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 2,
+              '& > *': { minWidth: 0 },
+              '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+              '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+            }}
+          >
+            <TextField
+              size="small"
+              label="S.No"
+              value={canteenDetails.sno}
+              fullWidth
+              InputProps={{ readOnly: true }}
+            />
+            <TextField label="Canteen Card No" name="cardno" size="small" value={canteenDetails.cardno} onChange={handleObjChange(setCanteenDetails)} fullWidth />
+            <TextField label="Valid From" name="from" type="date" size="small" InputLabelProps={{ shrink: true }} value={canteenDetails.from} onChange={handleObjChange(setCanteenDetails)} fullWidth />
+            <TextField label="To" name="to" type="date" size="small" InputLabelProps={{ shrink: true }} value={canteenDetails.to} onChange={handleObjChange(setCanteenDetails)} fullWidth />
+          </Box>
         );
       case 12: // LIC
         return (
-          <Grid container spacing={2}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 2,
+              '& > *': { minWidth: 0 },
+              '@media (max-width: 900px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
+              '@media (max-width: 600px)': { gridTemplateColumns: '1fr' },
+            }}
+          >
 
-            <Grid item xs={12} md={2}>
-              <TextField
-                size="small"
-                label="S.No"
-                value={licDetails.sno}
-                fullWidth
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}><TextField label="Policy No." name="policyno" size="small" value={licDetails.policyno} onChange={handleObjChange(setLICDetails)} fullWidth /></Grid>
-            <Grid item xs={12} md={4}><TextField label="Sum Insured" name="sum" size="small" value={licDetails.sum} onChange={handleObjChange(setLICDetails)} fullWidth /></Grid>
-            <Grid item xs={12} md={4}><TextField label="Nominee" name="nominee" size="small" value={licDetails.nominee} onChange={handleObjChange(setLICDetails)} fullWidth /></Grid>
-          </Grid>
+            <TextField
+              size="small"
+              label="S.No"
+              value={licDetails.sno}
+              fullWidth
+              InputProps={{ readOnly: true }}
+            />
+            <TextField label="Policy No." name="policyno" size="small" value={licDetails.policyno} onChange={handleObjChange(setLICDetails)} fullWidth />
+            <TextField label="Sum Insured" name="sum" size="small" value={licDetails.sum} onChange={handleObjChange(setLICDetails)} fullWidth />
+            <TextField label="Nominee" name="nominee" size="small" value={licDetails.nominee} onChange={handleObjChange(setLICDetails)} fullWidth />
+          </Box>
         );
       // case 12: // Transfer
       //   return (

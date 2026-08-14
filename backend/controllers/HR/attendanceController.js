@@ -571,10 +571,21 @@ const classifySwipedDay = (inTime, outTime, shiftStart, lunchStart, lunchEnd, sh
   const lunchStartMins = getTimeMins(lunchStart);
   const lunchEndMins = getTimeMins(lunchEnd);
   const shiftEndMins = getTimeMins(shiftEnd);
+  const shiftStartMins = getTimeMins(shiftStart);
+
+  const isOvernightShift = shiftStartMins !== null && shiftEndMins !== null && shiftEndMins < shiftStartMins;
 
   if (lunchEndMins !== null && outMins <= lunchEndMins) return 'Half Day';
   if (lunchStartMins !== null && inMins >= lunchStartMins) return 'Half Day';
-  if (shiftEndMins !== null && outMins < shiftEndMins) return 'Half Day';
+
+  // For overnight shifts: out_time is next day (early AM), so add 1440 for comparison
+  let effectiveOutMins = outMins;
+  if (isOvernightShift && outMins < 720) { // out before noon = next day
+    effectiveOutMins += 1440;
+  }
+  const effectiveShiftEndMins = isOvernightShift ? shiftEndMins + 1440 : shiftEndMins;
+
+  if (shiftEndMins !== null && effectiveOutMins < effectiveShiftEndMins) return 'Half Day';
   return 'Present';
 };
 
