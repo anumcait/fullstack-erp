@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 
 const createRateLimiter = (windowMs, max, message, keyGenerator) => {
   return rateLimit({
@@ -7,7 +8,10 @@ const createRateLimiter = (windowMs, max, message, keyGenerator) => {
     message: { success: false, message },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: keyGenerator || ((req) => req.ip),
+    // Use express-rate-limit's built-in IPv6-safe key generator so that requests
+    // behind a proxy (trust proxy enabled) don't trip the ERR_ERL_KEY_GEN_IPV6
+    // validation. Falls back to 'anonymous' when no IP can be derived.
+    keyGenerator: keyGenerator || ((req, res) => ipKeyGenerator(req, res) ?? req.ip ?? 'anonymous'),
     handler: (req, res) => {
       res.status(429).json({ success: false, message });
     },

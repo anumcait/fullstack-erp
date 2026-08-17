@@ -54,6 +54,22 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'change-this-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
+  }
+}));
+
+// Trust proxy for rate limiting behind reverse proxy (nginx, Docker, etc.)
+app.set('trust proxy', 1);
+
 // Rate limiting
 app.use('/api/', apiLimiter); // General API rate limit
 app.use('/api/auth', authRoutes); // Auth routes have their own stricter limiters
