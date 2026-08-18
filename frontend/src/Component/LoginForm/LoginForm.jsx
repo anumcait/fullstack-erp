@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FaFacebookF, FaGoogle, FaLinkedinIn, FaEye, FaEyeSlash } from 'react-icons/fa';
 import logo from "../../assets/images/EQIC_Image.jpg";
 import loginIllustration from "../../assets/images/login_illustration.png";
@@ -7,7 +7,7 @@ import './LoginForm.css'; // ✅ Import your custom CSS
 import { useCompany } from '../../context/CompanyContext';
 
 const LoginForm = () => {
-  const { companyName } = useCompany();
+  const { companyName, companyConfigured, refreshCompanySettings } = useCompany();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,6 +20,35 @@ const LoginForm = () => {
   const [newPassword, setNewPassword] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [rememberMe, setRememberMe] = useState(localStorage.getItem('rememberMe') === 'true');
+  const passwordRef = useRef(null);
+
+  // First-run "Create Company" (Tally-style) — shown when no company is configured yet.
+  const [companyForm, setCompanyForm] = useState({
+    company_name: '', address: '', phone: '', email: '', website: '', gstin: '', cin: '', pan: ''
+  });
+  const [companyError, setCompanyError] = useState('');
+  const [companySuccess, setCompanySuccess] = useState('');
+  const [companyLoading, setCompanyLoading] = useState(false);
+
+  const handleCreateCompany = async (e) => {
+    e.preventDefault();
+    if (!companyForm.company_name.trim()) {
+      setCompanyError('Company name is required.');
+      return;
+    }
+    setCompanyLoading(true);
+    setCompanyError('');
+    setCompanySuccess('');
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/company`, companyForm);
+      setCompanySuccess('Company created successfully. Please login to continue.');
+      await refreshCompanySettings();
+    } catch (err) {
+      setCompanyError(err.response?.data?.error || err.response?.data?.message || 'Failed to create company.');
+    } finally {
+      setCompanyLoading(false);
+    }
+  };
 
   // SEO and Pre-fill logic
   React.useEffect(() => {
@@ -179,7 +208,71 @@ const LoginForm = () => {
             </div>
           </div>
 
-          {!isForgotMode ? (
+          {!companyConfigured ? (
+            <div className="relative z-10 w-full">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-black text-gray-800">Create Company</h3>
+                <p className="text-sm text-gray-500 mt-1">No company is configured yet. Set up your company (like Tally) to begin.</p>
+              </div>
+              <form onSubmit={handleCreateCompany}>
+                <label className="block mb-2 text-sm font-semibold text-gray-700">Company Name *</label>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. AUCTOR HOME APPLIANCES LLP"
+                  value={companyForm.company_name}
+                  onChange={(e) => { setCompanyForm({ ...companyForm, company_name: e.target.value }); setCompanyError(''); }}
+                  required
+                  className="w-full px-4 py-3 mb-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 focus:border-[#56c7be] bg-white/50"
+                />
+                <label className="block mb-2 text-sm font-semibold text-gray-700">Address</label>
+                <textarea
+                  rows="2"
+                  placeholder="Registered address"
+                  value={companyForm.address}
+                  onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })}
+                  className="w-full px-4 py-3 mb-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50 resize-none"
+                />
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">GSTIN</label>
+                    <input type="text" placeholder="GSTIN" value={companyForm.gstin} onChange={(e) => setCompanyForm({ ...companyForm, gstin: e.target.value })} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50" />
+                  </div>
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">PAN</label>
+                    <input type="text" placeholder="PAN" value={companyForm.pan} onChange={(e) => setCompanyForm({ ...companyForm, pan: e.target.value })} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">Phone</label>
+                    <input type="text" placeholder="Phone" value={companyForm.phone} onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50" />
+                  </div>
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">Email</label>
+                    <input type="email" placeholder="Email" value={companyForm.email} onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50" />
+                  </div>
+                </div>
+                {companyError && (
+                  <div className="flex items-center justify-center p-3 mb-4 bg-red-50 border-2 border-red-500 rounded-xl">
+                    <p className="text-red-700 text-xs font-black uppercase">{companyError}</p>
+                  </div>
+                )}
+                {companySuccess && (
+                  <div className="flex items-center justify-center p-3 mb-4 bg-[#f0f9f9] border-2 border-[#56c7be]/50 rounded-xl">
+                    <p className="text-[#214c94] text-xs font-black uppercase">{companySuccess}</p>
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={companyLoading || !companyForm.company_name.trim()}
+                  className={`w-full py-4 px-4 font-black rounded-xl shadow-xl transition-all duration-500 ${(companyLoading || !companyForm.company_name.trim()) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-br from-[#56c7be] via-[#214c94] to-[#1e3a8a] text-white hover:-translate-y-1 active:scale-95'}`}
+                >
+                  {companyLoading ? 'CREATING...' : 'CREATE COMPANY'}
+                </button>
+              </form>
+            </div>
+          ) : !isForgotMode ? (
             <form onSubmit={handleLogin} className="relative z-10">
               <label className="block mb-2 text-sm font-semibold text-gray-700">
                 User Name:
@@ -190,6 +283,12 @@ const LoginForm = () => {
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    passwordRef.current?.focus();
+                  }
+                }}
                 required
                 className="w-full px-4 py-3 mb-5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 focus:border-[#56c7be] transition-all bg-white/50 backdrop-blur-sm"
               />
@@ -199,6 +298,7 @@ const LoginForm = () => {
               </label>
               <div className="relative mb-6">
                 <input
+                  ref={passwordRef}
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(''); }}

@@ -750,6 +750,34 @@ END $$;`,
         console.log(`✅ Seeded financial year ${fyName}.`);
       } catch (_) { console.log('⚠️ Accounts seed skipped (may already exist).'); }
 
+      // 4d. Bootstrap default admin user (idempotent) so login always works
+      // even on a fresh database. Password: AUCTOR  (change after first login).
+      try {
+        const { User, EmployeeMaster } = db;
+        const ADMIN_EMPID = 1001;
+        await EmployeeMaster.findOrCreate({
+          where: { empid: ADMIN_EMPID },
+          defaults: { empid: ADMIN_EMPID, ename: 'Administrator', company_id: 1, unit_id: 1, is_active: true },
+        });
+        const existingAdmin = await User.findOne({ where: { username: 'admin' } });
+        if (!existingAdmin) {
+          const bcrypt = require('bcrypt');
+          const salt = await bcrypt.genSalt(10);
+          const password_hash = await bcrypt.hash('AUCTOR', salt);
+          await User.create({
+            username: 'admin',
+            password_hash,
+            empid: ADMIN_EMPID,
+            ename: 'Administrator',
+            role: 'ADMIN',
+            permissions: ['*'],
+            is_active: true,
+            created_by: String(ADMIN_EMPID),
+          });
+          console.log('✅ Bootstrapped default admin user (admin / AUCTOR).');
+        }
+      } catch (_) { console.log('⚠️ Admin bootstrap skipped.'); }
+
       // 5. Start listening
       app.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ Server running at http://localhost:${PORT}`);

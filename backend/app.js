@@ -72,6 +72,21 @@ app.set('trust proxy', 1);
 
 // Rate limiting
 app.use('/api/', apiLimiter); // General API rate limit
+
+// Authentication guard — protect every /api route except public ones.
+// Sessions are cookie-based (express-session) and work same-origin; the
+// frontend already stores the logged-in user in localStorage for UI gating.
+const { requireAuth } = require('./middleware/auth');
+// - /auth: login/logout/recovery (always public)
+// - /company-settings & /settings/company GET: read-only branding (public)
+// - /settings/company POST: first-run company creation (public); the controller
+//   enforces login for any subsequent update of an existing company.
+const PUBLIC = ['/auth', '/company-settings', '/settings/company'];
+app.use('/api', (req, res, next) => {
+  if (PUBLIC.some((p) => req.path === p || req.path.startsWith(p + '/'))) return next();
+  return requireAuth(req, res, next);
+});
+
 app.use('/api/auth', authRoutes); // Auth routes have their own stricter limiters
 app.use('/api/users', sensitiveActionLimiter, require('./routes/userRoutes')); // User management
 

@@ -19,13 +19,21 @@ export const CompanyProvider = ({ children }) => {
         pf_number: '',
         esi_number: ''
     });
+    const [companyConfigured, setCompanyConfigured] = useState(false);
+    const [companyLoading, setCompanyLoading] = useState(true);
 
     const fetchSettings = () => {
         axios.get(`${import.meta.env.VITE_API_URL}/api/settings/company`)
             .then(res => {
-                if (res.data) setCompanySettings(res.data);
+                if (res.data && res.data.company_name) {
+                    setCompanySettings(res.data);
+                    setCompanyConfigured(true);
+                } else {
+                    setCompanyConfigured(false);
+                }
             })
-            .catch(err => console.error('Error loading company settings:', err));
+            .catch(err => console.error('Error loading company settings:', err))
+            .finally(() => setCompanyLoading(false));
     };
 
     useEffect(() => {
@@ -34,8 +42,10 @@ export const CompanyProvider = ({ children }) => {
 
     return (
         <CompanyContext.Provider value={{
-            companyName: companySettings.company_name || 'ABC Company Pvt. Ltd.',
+            companyName: companyConfigured ? (companySettings.company_name || '') : '',
             companySettings,
+            companyConfigured,
+            companyLoading,
             refreshCompanySettings: fetchSettings
         }}>
             {children}

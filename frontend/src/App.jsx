@@ -6,6 +6,8 @@ import { getRoutePermission } from "./routes/routePermissions";
 
 import ERPLanding from "./Component/ERP/ERPLanding";
 import LoginForm from "./Component/LoginForm/LoginForm";
+import CompanySetup from "./Component/Settings/CompanySetup";
+import CompanyGate from "./routes/CompanyGate";
 import ChangePasswordForm from "./Component/ChangePasswordForm/ChangePasswordForm";
 import EmployeeReportForm from "./Component/HR/Employee/EmployeeMasterReport";
 import AddEmployeeForm from "./Component/HR/Employee/AddEmployee";
@@ -268,6 +270,8 @@ function App() {
               <Router>
                 <Routes>
                   <Route path="/" element={<LoginForm />} />
+                  <Route path="/company-setup" element={<CompanySetup />} />
+                  <Route element={<CompanyGate />}>
                   <Route
                     path="/dashboard"
                     element={<SecureRoute><ERPLanding /></SecureRoute>}
@@ -575,6 +579,7 @@ function App() {
                     <Route path="/useraccess" element={<UserAccess />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile" element={<ProfileUpdate />} />
+                  </Route>
                   </Route>
                 </Routes>
               </Router>
