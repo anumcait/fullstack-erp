@@ -157,7 +157,7 @@ const getPageTitle = (pathname) => {
 
 const getShortName = (companyName) => {
   const name = (companyName || '').trim();
-  return name.split(/\s+/)[0] || 'AUCTOR';
+  return name.split(/\s+/)[0] || 'ERP';
 };
 
 const DocumentTitle = () => {

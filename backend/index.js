@@ -751,7 +751,8 @@ END $$;`,
       } catch (_) { console.log('⚠️ Accounts seed skipped (may already exist).'); }
 
       // 4d. Bootstrap default admin user (idempotent) so login always works
-      // even on a fresh database. Password: AUCTOR  (change after first login).
+      // even on a fresh database. Password is taken from BOOTSTRAP_ADMIN_PASSWORD
+      // (set in .env) or auto-generated. Change it after first login.
       try {
         const { User, EmployeeMaster } = db;
         const ADMIN_EMPID = 1001;
@@ -762,8 +763,11 @@ END $$;`,
         const existingAdmin = await User.findOne({ where: { username: 'admin' } });
         if (!existingAdmin) {
           const bcrypt = require('bcrypt');
+          const crypto = require('crypto');
           const salt = await bcrypt.genSalt(10);
-          const password_hash = await bcrypt.hash('AUCTOR', salt);
+          const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD
+            || crypto.randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, '').slice(0, 12);
+          const password_hash = await bcrypt.hash(bootstrapPassword, salt);
           await User.create({
             username: 'admin',
             password_hash,
@@ -774,7 +778,12 @@ END $$;`,
             is_active: true,
             created_by: String(ADMIN_EMPID),
           });
-          console.log('✅ Bootstrapped default admin user (admin / AUCTOR).');
+          if (process.env.BOOTSTRAP_ADMIN_PASSWORD) {
+            console.log('✅ Bootstrapped default admin user (admin / BOOTSTRAP_ADMIN_PASSWORD from .env). Change it after first login.');
+          } else {
+            console.log(`✅ Bootstrapped default admin user (admin). Auto-generated password: ${bootstrapPassword}`);
+            console.log('   Set BOOTSTRAP_ADMIN_PASSWORD in .env to use a fixed password, then change it after first login.');
+          }
         }
       } catch (_) { console.log('⚠️ Admin bootstrap skipped.'); }
 

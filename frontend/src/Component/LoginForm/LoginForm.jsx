@@ -52,7 +52,7 @@ const LoginForm = () => {
 
   // SEO and Pre-fill logic
   React.useEffect(() => {
-    document.title = `${companyName || 'AUCTOR'} ERP - Secure Login`;
+    document.title = `${companyName ? companyName.trim() + ' ERP' : 'ERP'} - Secure Login`;
 
     if (rememberMe) {
       const savedUser = localStorage.getItem('rememberedUsername');
@@ -182,7 +182,7 @@ const LoginForm = () => {
               <div className="relative w-28 h-28 rounded-full border-4 border-white shadow-2xl p-2 bg-white flex items-center justify-center transform transition-all duration-700 hover:rotate-[360deg] hover:scale-105 active:scale-95">
                 <img
                   src={logo}
-                  alt="AUCTOR Logo"
+                  alt={`${(companyName || 'ERP').trim()} Logo`}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -194,11 +194,13 @@ const LoginForm = () => {
               </span>
               <h2 className="font-black leading-none tracking-tighter flex items-baseline justify-center">
                 <span className="text-4xl bg-gradient-to-tr from-[#56c7be] via-[#214c94] to-[#1e3a8a] bg-clip-text text-transparent uppercase drop-shadow-sm select-none">
-                  AUCTOR
+                  {companyName ? companyName.trim() : 'ERP'}
                 </span>
-                <span className="text-4xl text-orange-500 drop-shadow-[0_2px_10px_rgba(249,115,22,0.3)] uppercase ml-1">
-                  ERP
-                </span>
+                {companyName && (
+                  <span className="text-4xl text-orange-500 drop-shadow-[0_2px_10px_rgba(249,115,22,0.3)] uppercase ml-1">
+                    ERP
+                  </span>
+                )}
               </h2>
               {/* <div className="flex items-center justify-center gap-3 mt-1">
                 <div className="h-[2px] w-12 bg-gradient-to-r from-transparent via-[#56c7be]/50 to-transparent"></div>
@@ -469,12 +471,12 @@ const LoginForm = () => {
       {/* Bottom Left Branding */}
       <div className="fixed bottom-6 left-6 flex flex-col gap-1 opacity-70 hover:opacity-100 transition-opacity duration-300">
         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-          © {new Date().getFullYear()} AUCTOR HOME APPLIANCES LLP
+          © {new Date().getFullYear()} {(companyName || 'ERP').trim().toUpperCase()}
         </p>
         <div className="flex items-center gap-2">
           <span className="text-[9px] text-gray-500 uppercase font-bold tracking-tighter">Powered by</span>
           <span className="px-3 py-1 bg-white/80 backdrop-blur-sm text-[#56c7be] text-[11px] font-black rounded-full shadow-sm border border-white/50">
-            AUCTOR<span className="text-[#214c94]">ERP</span>
+            {(companyName || 'ERP').trim()}{companyName && <span className="text-[#214c94]"> ERP</span>}
           </span>
         </div>
       </div>

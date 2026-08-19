@@ -213,9 +213,12 @@ exports.createEmployee = async (req, res) => {
     // 1. Create employee
     const newEmployee = await EmployeeMaster.create(empData, { transaction: t });
 
-    // 2. Create user with default password
-    const defaultPassword = 'AUCTOR';
+    // 2. Create user with default password (env-driven; auto-generated if not set)
+    const crypto = require('crypto');
+    const defaultPassword = process.env.DEFAULT_USER_PASSWORD
+      || crypto.randomBytes(6).toString('base64').replace(/[^A-Za-z0-9]/g, '').slice(0, 8);
     const password_hash = await bcrypt.hash(defaultPassword, 10);
+    console.log(`ℹ️ Created login for ${username} — temporary password: ${defaultPassword} (user should change after first login)`);
     const username = newEmployee.uname || newEmployee.empid.toString();
     const role = 'user';
     const created_by = req.session?.userId || null;

@@ -9,6 +9,7 @@ services:
       POSTGRES_DB:       hrdb
       POSTGRES_USER:     postgres
       POSTGRES_PASSWORD: postgres
+      RESTORE_MODE:      ${RESTORE_MODE:-full}   # full | schema | none (per-company empty-DB deploy)
     volumes:
       - ./pg_restore:/pg_backup
       - hr_db_data:/var/lib/postgresql/data

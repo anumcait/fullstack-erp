@@ -7,9 +7,12 @@ import {
   ExpandLess, ExpandMore, LocationOn, Email, Phone, Copyright
 } from '@mui/icons-material';
 import logo from "../../assets/images/EQIC_Image.jpg";
+import { useCompany } from '../../context/CompanyContext';
 
 const Footer = () => {
   const [showFooter, setShowFooter] = useState(false);
+  const { companyName, companySettings } = useCompany();
+  const brand = (companyName || 'ERP').trim();
   const toggleFooter = () => setShowFooter((prev) => !prev);
 
   return (
@@ -33,26 +36,26 @@ const Footer = () => {
                   height: 56, width: 'auto', maxWidth: 160, objectFit: 'contain',
                   bgcolor: 'white', borderRadius: 1.5, p: 0.5, boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                 }} />
-                <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: 2 }}>ERP</Typography>
+                <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: 2 }}>{brand}</Typography>
               </Box>
               <Typography variant="body2" color="grey.300" sx={{ lineHeight: 1.6, mb: 1.5, fontSize: '0.82rem' }}>
                 Complete business management platform with Purchase, Inventory, Production, HRMS and more. GST-compliant enterprise solution.
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                 <LocationOn fontSize="small" sx={{ color: 'var(--footer-icon)' }} />
-                <Typography variant="body2" color="grey.300" sx={{ fontSize: '0.8rem' }}>Plot No. 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</Typography>
+                <Typography variant="body2" color="grey.300" sx={{ fontSize: '0.8rem' }}>{companySettings.address || 'Address not configured'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                 <Email fontSize="small" sx={{ color: 'var(--footer-icon)' }} />
-                <Typography variant="body2" color="grey.300" sx={{ fontSize: '0.8rem' }}>contact@auctorerp.com</Typography>
+                <Typography variant="body2" color="grey.300" sx={{ fontSize: '0.8rem' }}>{companySettings.email || 'email@company.com'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                 <Phone fontSize="small" sx={{ color: 'var(--footer-icon)' }} />
-                <Typography variant="body2" color="grey.300" sx={{ fontSize: '0.8rem' }}>+91 98765 43210</Typography>
+                <Typography variant="body2" color="grey.300" sx={{ fontSize: '0.8rem' }}>{companySettings.phone || '+91 00000 00000'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="a" href="https://www.auctor.co.in" target="_blank" rel="noopener" sx={{ color: 'var(--footer-icon)', fontSize: '0.8rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                  www.auctor.co.in
+                <Box component="a" href={companySettings.website ? `https://${companySettings.website.replace(/^https?:\/\//, '')}` : '#'} target="_blank" rel="noopener" sx={{ color: 'var(--footer-icon)', fontSize: '0.8rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                  {companySettings.website || 'www.yourcompany.com'}
                 </Box>
               </Box>
             </Grid>
@@ -96,7 +99,7 @@ const Footer = () => {
 
           <Box mt={3} textAlign="center" sx={{ borderTop: '1px solid #ffffff33', pt: 1.5 }}>
             <Typography variant="caption" color="grey.400" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-              <Copyright fontSize="inherit" /> {new Date().getFullYear()} Auctor ERP. All rights reserved.
+              <Copyright fontSize="inherit" /> {new Date().getFullYear()} {brand}{companyName ? ' ERP' : ''}. All rights reserved.
             </Typography>
           </Box>
         </Container>

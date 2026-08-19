@@ -2,6 +2,10 @@ const bcrypt = require('bcryptjs');
 const db = require('./models');
 require('dotenv').config();
 
+// Shared temporary password for seeded demo users (override via .env).
+// NOTE: change these passwords immediately after first login.
+const SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Changeme@123';
+
 // Full permission catalog (mirrors frontend/src/constants/permissions.js).
 // ADMIN users receive all of these; scoped employees receive a subset.
 const ALL_PERMISSIONS = [
@@ -502,7 +506,7 @@ const seedAll = async () => {
 
             // Create User
             const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash('AUCTOR', salt);
+            const hashedPassword = await bcrypt.hash(SEED_PASSWORD, salt);
 
             await db.User.create({
                 username: String(emp.empid),
@@ -572,7 +576,7 @@ const seedAll = async () => {
             await db.EmpSalary.create({ empid: demoEmpId, basic: 18000, hra: 6000, total: 24000, created_by: '1001' });
         }
         const salt2 = await bcrypt.genSalt(10);
-        const hash2 = await bcrypt.hash('AUCTOR', salt2);
+        const hash2 = await bcrypt.hash(SEED_PASSWORD, salt2);
         await db.User.findOrCreate({
             where: { username: 'EMP001' },
             defaults: {
@@ -581,7 +585,7 @@ const seedAll = async () => {
                 is_active: true, created_by: '1001',
             },
         });
-        console.log('✅ Demo employee (EMP001 / AUCTOR) seeded with Stores+Subcontract scope.');
+        console.log(`✅ Demo employee (EMP001 / ${SEED_PASSWORD}) seeded with Stores+Subcontract scope.`);
 
         process.exit(0);
     } catch (error) {
