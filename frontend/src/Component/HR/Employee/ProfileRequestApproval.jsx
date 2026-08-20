@@ -100,7 +100,7 @@ export default function ProfileRequestApproval() {
   return (
     <Box sx={{ m: 2 }}>
       <Card>
-        <Box sx={{ bgcolor: '#1976d2', color: 'white', p: 2 }}>
+        <Box sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', p: 2 }}>
           <Typography variant="h6">Profile Update Requests</Typography>
           <Typography variant="body2">Review and process employee address/phone change requests</Typography>
         </Box>

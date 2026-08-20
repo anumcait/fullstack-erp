@@ -270,10 +270,10 @@ const months = [
     <ScrollSyncWrapper>
       <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #e0e0e0' } }}>
         <TableHead sx={{ position: 'sticky', top: 0, zIndex: 8 }}>
-          <TableRow sx={{ backgroundColor: '#1565c0', color: 'white' }}>
-            <TableCell sx={stickyCellSx(0, { color: 'white', bgcolor: '#1565c0', zIndex: 12 })}><strong>S.No</strong></TableCell>
-            <TableCell sx={stickyCellSx(1, { color: 'white', bgcolor: '#1565c0', zIndex: 12 })}><strong>ID</strong></TableCell>
-            <TableCell sx={stickyCellSx(2, { color: 'white', bgcolor: '#1565c0', zIndex: 12 })}><strong>Employee Name</strong></TableCell>
+          <TableRow sx={{ backgroundColor: 'primary.main', color: 'white' }}>
+            <TableCell sx={stickyCellSx(0, { color: 'white', bgcolor: 'primary.main', zIndex: 12 })}><strong>S.No</strong></TableCell>
+            <TableCell sx={stickyCellSx(1, { color: 'white', bgcolor: 'primary.main', zIndex: 12 })}><strong>ID</strong></TableCell>
+            <TableCell sx={stickyCellSx(2, { color: 'white', bgcolor: 'primary.main', zIndex: 12 })}><strong>Employee Name</strong></TableCell>
             <TableCell sx={{ color: 'white' }}><strong>Basic</strong></TableCell>
             <TableCell sx={{ color: 'white' }}><strong>HRA</strong></TableCell>
             <TableCell sx={{ color: 'white' }}><strong>Conveyance</strong></TableCell>
@@ -309,7 +309,7 @@ const months = [
                   )}
                 </TableRow>
               ))}
-              <TableRow sx={{ '& .MuiTableCell-root': { fontWeight: 'bold', bgcolor: '#e8eaf6', borderTop: '2px solid #1565c0' } }}>
+              <TableRow sx={{ '& .MuiTableCell-root': { fontWeight: 'bold', bgcolor: '#e8eaf6', borderTop: '2px solid primary.main' } }}>
                 <TableCell colSpan={3} sx={{ textAlign: 'right', pr: 2 }}>{label} Total →</TableCell>
                 <TableCell>{formatCurrency(group.reduce((s, r) => s + (parseFloat(r.C_BASIC) || 0), 0))}</TableCell>
                 <TableCell>{formatCurrency(group.reduce((s, r) => s + (parseFloat(r.C_HRA) || 0), 0))}</TableCell>
@@ -321,9 +321,9 @@ const months = [
             </TableBody>
           );
         })}
-        <TableBody sx={{ '& .MuiTableCell-root': { borderTop: '2px solid #1565c0', fontWeight: 'bold', backgroundColor: '#e3f2fd' } }}>
+        <TableBody sx={{ '& .MuiTableCell-root': { borderTop: '2px solid primary.main', fontWeight: 'bold', backgroundColor: '#e3f2fd' } }}>
           <TableRow>
-            <TableCell colSpan={3} sx={{ fontWeight: 'bold', backgroundColor: '#e3f2fd', borderTop: '2px solid #1565c0', textAlign: 'right', pr: 2 }}>
+            <TableCell colSpan={3} sx={{ fontWeight: 'bold', backgroundColor: '#e3f2fd', borderTop: '2px solid primary.main', textAlign: 'right', pr: 2 }}>
               <strong>Grand Total →</strong>
             </TableCell>
             <TableCell>{formatCurrency(salaryData.reduce((s, r) => s + (parseFloat(r.C_BASIC) || 0), 0))}</TableCell>
@@ -477,17 +477,17 @@ const months = [
     <ScrollSyncWrapper>
       <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #e0e0e0' } }}>
         <TableHead sx={{ position: 'sticky', top: 0, zIndex: 8 }}>
-          <TableRow sx={{ backgroundColor: '#1565c0', color: 'white' }}>
-            <TableCell rowSpan={2} sx={stickyCellSx(0, { color: 'white', bgcolor: '#1565c0', zIndex: 12, verticalAlign: 'bottom' })}><strong>S.No</strong></TableCell>
-            <TableCell rowSpan={2} sx={stickyCellSx(1, { color: 'white', bgcolor: '#1565c0', zIndex: 12, verticalAlign: 'bottom' })}><strong>ID.No</strong></TableCell>
-            <TableCell rowSpan={2} sx={stickyCellSx(2, { color: 'white', bgcolor: '#1565c0', zIndex: 12, verticalAlign: 'bottom' })}><strong>Name of Employee</strong></TableCell>
+          <TableRow sx={{ backgroundColor: 'primary.main', color: 'white' }}>
+            <TableCell rowSpan={2} sx={stickyCellSx(0, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>S.No</strong></TableCell>
+            <TableCell rowSpan={2} sx={stickyCellSx(1, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>ID.No</strong></TableCell>
+            <TableCell rowSpan={2} sx={stickyCellSx(2, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>Name of Employee</strong></TableCell>
             {visibleFixedCols > 0 && <TableCell colSpan={visibleFixedCols} sx={{ color: 'white', textAlign: 'center' }}><strong>Fixed Salary</strong></TableCell>}
             {visibleEarnedCols > 0 && <TableCell colSpan={visibleEarnedCols} sx={{ color: 'white', textAlign: 'center' }}><strong>Earned Salary</strong></TableCell>}
             {visibleDedCols > 0 && <TableCell colSpan={visibleDedCols} sx={{ color: 'white', textAlign: 'center' }}><strong>Deduction</strong></TableCell>}
             {showTotalDed && <TableCell rowSpan={2} sx={{ color: 'white', verticalAlign: 'bottom' }}><strong>Total Ded</strong></TableCell>}
             {showNetAmount && <TableCell rowSpan={2} sx={{ color: 'white', verticalAlign: 'bottom' }}><strong>Net Amount</strong></TableCell>}
           </TableRow>
-          <TableRow sx={{ backgroundColor: '#1976d2', color: 'white' }}>
+          <TableRow sx={{ backgroundColor: 'primary.main', color: 'primary.contrastText' }}>
             {showFixedBasic && <TableCell sx={{ color: 'white' }}><strong>Basic</strong></TableCell>}
             {showFixedHra && <TableCell sx={{ color: 'white' }}><strong>HRA</strong></TableCell>}
             {showFixedCa && <TableCell sx={{ color: 'white' }}><strong>CA/Others</strong></TableCell>}
@@ -549,7 +549,7 @@ const months = [
                   {showNetAmount && <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#fff3e0' }}>{formatCurrency(row.C_NET_AMT)}</TableCell>}
                 </TableRow>
               ))}
-              <TableRow sx={{ '& .MuiTableCell-root': { fontWeight: 'bold', bgcolor: '#e8eaf6', borderTop: '2px solid #1565c0' } }}>
+              <TableRow sx={{ '& .MuiTableCell-root': { fontWeight: 'bold', bgcolor: '#e8eaf6', borderTop: '2px solid primary.main' } }}>
                 <TableCell colSpan={3} sx={{ textAlign: 'right', pr: 2 }}>{label} Total →</TableCell>
                 {showFixedBasic && <TableCell>{sum(group, 'C_BASIC')}</TableCell>}
                 {showFixedHra && <TableCell>{sum(group, 'C_HRA')}</TableCell>}
@@ -578,9 +578,9 @@ const months = [
             </TableBody>
           );
         })}
-        <TableBody sx={{ '& .MuiTableCell-root': { borderTop: '2px solid #1565c0', fontWeight: 'bold', backgroundColor: '#e3f2fd' } }}>
+        <TableBody sx={{ '& .MuiTableCell-root': { borderTop: '2px solid primary.main', fontWeight: 'bold', backgroundColor: '#e3f2fd' } }}>
           <TableRow>
-            <TableCell colSpan={3} sx={{ fontWeight: 'bold', backgroundColor: '#e3f2fd', borderTop: '2px solid #1565c0', textAlign: 'right', pr: 2 }}><strong>Grand Total →</strong></TableCell>
+            <TableCell colSpan={3} sx={{ fontWeight: 'bold', backgroundColor: '#e3f2fd', borderTop: '2px solid primary.main', textAlign: 'right', pr: 2 }}><strong>Grand Total →</strong></TableCell>
             {showFixedBasic && <TableCell>{sum(salaryData, 'C_BASIC')}</TableCell>}
             {showFixedHra && <TableCell>{sum(salaryData, 'C_HRA')}</TableCell>}
             {showFixedCa && <TableCell>{sum(salaryData, 'C_CONV')}</TableCell>}

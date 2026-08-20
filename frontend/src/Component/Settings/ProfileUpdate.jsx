@@ -135,7 +135,7 @@ export default function ProfileUpdate() {
   return (
     <Box sx={{ m: 2 }}>
       <Card>
-        <Box sx={{ bgcolor: '#1976d2', color: 'white', p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
           <PersonIcon />
           <Typography variant="h6">My Profile</Typography>
         </Box>
@@ -146,7 +146,7 @@ export default function ProfileUpdate() {
                 {userPhoto ? (
                   <Avatar src={userPhoto} sx={{ width: 80, height: 80 }} />
                 ) : (
-                  <Avatar sx={{ width: 80, height: 80, bgcolor: '#1976d2' }}>
+                  <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main' }}>
                     <PersonIcon sx={{ fontSize: 40 }} />
                   </Avatar>
                 )}

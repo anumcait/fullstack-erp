@@ -606,7 +606,7 @@ const Settings = () => {
   return (
     <Box sx={{ m: 2 }}>
       <Card>
-        <Box sx={{ bgcolor: "#1976d2", color: "white", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Box sx={{ bgcolor: "primary.main", color: "primary.contrastText", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="h6">Settings</Typography>
         </Box>
         <CardContent>

@@ -448,7 +448,7 @@ const OTApproval = () => {
 
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: "#1976d2", color: "white" }}>
+                <TableRow sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
                   <TableCell sx={{ color: "white" }}>
                     <Checkbox
                       size="small"
@@ -858,7 +858,7 @@ const OTApproval = () => {
       </Dialog>
 
       <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ bgcolor: "#1976d2", color: "white", display: "flex", justifyContent: "space-between" }}>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "primary.contrastText", display: "flex", justifyContent: "space-between" }}>
           OT Approval - {selectedRow?.empName}
           <IconButton onClick={() => setEditDialog(false)} sx={{ color: "white" }}><CloseIcon /></IconButton>
         </DialogTitle>

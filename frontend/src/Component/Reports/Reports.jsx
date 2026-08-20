@@ -307,7 +307,7 @@ const Reports = () => {
   return (
     <Box sx={{ m: 2 }}>
       <Card>
-        <Box sx={{ bgcolor: "#1976d2", color: "white", p: 2 }}>
+        <Box sx={{ bgcolor: "primary.main", color: "primary.contrastText", p: 2 }}>
           <Typography variant="h6">Reports Center</Typography>
         </Box>
         <CardContent>
@@ -366,7 +366,7 @@ const Reports = () => {
 
       {selectedReport && (
         <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", mt: 2 }}>
-          <Box sx={{ bgcolor: "#1976d2", color: "white", p: 2, borderTopLeftRadius: 12, borderTopRightRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box sx={{ bgcolor: "primary.main", color: "primary.contrastText", p: 2, borderTopLeftRadius: 12, borderTopRightRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography variant="h6">{selectedReport.title}</Typography>
             <Button onClick={() => { setSelectedReport(null); setReportData([]); setSearchText(""); clearFilters(); }} size="small" sx={{ color: "white", bgcolor: "rgba(255,255,255,0.2)", "&:hover": { bgcolor: "rgba(255,255,255,0.3)" } }}>
               Back to List
@@ -451,7 +451,7 @@ const Reports = () => {
               <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: "auto" }}>
                 <Table size="small" stickyHeader>
                   <TableHead>
-                    <TableRow sx={{ bgcolor: "#1976d2" }}>
+                    <TableRow sx={{ bgcolor: "primary.main" }}>
                       {getColumns(selectedReport?.id).map((col, idx) => (
                         <TableCell key={idx} sx={{ color: "white", fontWeight: "bold", whiteSpace: "nowrap" }}>{col}</TableCell>
                       ))}

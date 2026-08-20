@@ -168,7 +168,7 @@ const AttendanceModificationEntry = () => {
   return (
     <Card sx={{ m: 2 }}>
       {/* HEADER */}
-      <Box sx={{ bgcolor: "#1976d2", color: "white", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Box sx={{ bgcolor: "primary.main", color: "primary.contrastText", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="h6">Attendance Modification</Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button 
@@ -355,7 +355,7 @@ const AttendanceModificationEntry = () => {
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: "#1976d2", color: "white" }}>
+              <TableRow sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>

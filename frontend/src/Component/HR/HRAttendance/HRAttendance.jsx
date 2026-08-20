@@ -336,7 +336,7 @@ const HRAttendance = () => {
 
   return (
     <Card sx={{ m: 2 }}>
-      <Box sx={{ bgcolor: "#1976d2", color: "white", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Box sx={{ bgcolor: "primary.main", color: "primary.contrastText", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="h6">HR Attendance</Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button
@@ -514,7 +514,7 @@ const HRAttendance = () => {
 
         <Table size="small">
           <TableHead>
-            <TableRow sx={{ bgcolor: "#1976d2", color: "white" }}>
+            <TableRow sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
               <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
@@ -595,7 +595,7 @@ const HRAttendance = () => {
       </CardContent>
 
       <Dialog open={bulkDialog} onClose={() => setBulkDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: "#1976d2", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "primary.contrastText", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>Bulk Attendance Entry</span>
           {bulkRows.length > 0 && (
             <Chip label={`${bulkRows.length} rows`} size="small" sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "white", fontWeight: "bold" }} />
@@ -851,7 +851,7 @@ const HRAttendance = () => {
       </Dialog>
 
       <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ bgcolor: "#1976d2", color: "white" }}>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
           Edit Attendance
         </DialogTitle>
         <DialogContent sx={{ p: 2 }}>

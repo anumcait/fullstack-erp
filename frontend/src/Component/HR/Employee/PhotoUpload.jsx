@@ -163,7 +163,7 @@ export default function PhotoUpload() {
   return (
     <Box sx={{ m: 2 }}>
       <Card>
-        <Box sx={{ bgcolor: '#1976d2', color: 'white', p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
           <PhotoCameraIcon />
           <Typography variant="h6">Employee Photo Upload</Typography>
         </Box>
