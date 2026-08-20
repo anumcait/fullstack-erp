@@ -13,13 +13,16 @@ import { Avatar, IconButton } from '@mui/material';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useThemeMode } from '../../context/ThemeContext';
+import { useCompany } from '../../context/CompanyContext';
 import './Header.css';
-import logo from "../../assets/images/EQIC_Image.jpg";
+import fallbackLogo from "../../assets/images/EQIC_Image.jpg";
 
 const API = import.meta.env.VITE_API_URL || "";
 
 const Header = () => {
   const { mode, toggleTheme, accent, setAccentColor, ACCENT_COLORS } = useThemeMode();
+  const { companySettings } = useCompany();
+  const logoUrl = companySettings?.logo_url || fallbackLogo;
   const [userName, setUserName] = useState('Guest');
   const [userRole, setUserRole] = useState('');
   const [currentDate, setCurrentDate] = useState('');
@@ -498,7 +501,7 @@ const Header = () => {
             {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
           </button>
           <Link to="/dashboard" className="logo-container">
-            <img src={logo} alt="Enterprise Logo" className="logo-img" />
+            <img src={logoUrl} alt="Enterprise Logo" className="logo-img" />
           </Link>
         </div>
 
@@ -714,7 +717,7 @@ const Header = () => {
           <div className="drawer-overlay" onClick={() => setIsMobileMenuOpen(false)}></div>
           <div className={`mobile-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
             <div className="drawer-header">
-              <img src={logo} alt="Logo" style={{ height: '30px' }} />
+              <img src={logoUrl} alt="Logo" style={{ height: '30px' }} />
               <FaTimes onClick={() => setIsMobileMenuOpen(false)} style={{ cursor: 'pointer' }} />
             </div>
 
