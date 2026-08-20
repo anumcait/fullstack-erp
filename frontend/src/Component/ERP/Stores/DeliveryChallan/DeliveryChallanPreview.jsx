@@ -37,6 +37,7 @@ const buildAddress = (s) => {
 
 const DeliveryChallanPreview = ({ data = {}, onClose }) => {
   const { companyName, companySettings } = useCompany();
+  const [storesSettings, setStoresSettings] = useState({ show_format_no: true, dc_format_no: FORM_NO });
   const [employees, setEmployees] = useState([]);
   const items = data.items || [];
   const supplier = data.supplier || {};
@@ -46,6 +47,7 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
 
   useEffect(() => {
     axios.get("/api/employees").then(({ data }) => setEmployees(Array.isArray(data) ? data : [])).catch(() => []);
+    axios.get("/api/erp/stores/settings").then(({ data }) => setStoresSettings(data || {})).catch(() => {});
   }, []);
 
   const empName = (id) => {
@@ -93,7 +95,9 @@ const DeliveryChallanPreview = ({ data = {}, onClose }) => {
               </div>
             </div>
             <div className="dc-corner-right">
-              {companySettings.show_format_no !== false ? <div className="dc-format-no">{FORM_NO}</div> : null}
+              {storesSettings && storesSettings.show_format_no !== false
+                ? <div className="dc-format-no">{storesSettings.dc_format_no || FORM_NO}</div>
+                : null}
             </div>
           </div>
           <div className="dc-title-strip">

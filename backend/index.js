@@ -328,6 +328,10 @@ END $$;`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS transfer_start_no INTEGER NOT NULL DEFAULT 1`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS voucher_prefix VARCHAR(10)`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS voucher_start_no INTEGER NOT NULL DEFAULT 1`,
+        // ── Stores Settings: Delivery Challan form-number stamp ──
+        `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS show_format_no BOOLEAN NOT NULL DEFAULT TRUE`,
+        `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS dc_format_no VARCHAR(100)`,
+
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS auto_generate_voucher BOOLEAN NOT NULL DEFAULT FALSE`,
         // ── Misc / Petty Cash Voucher ──
         `CREATE TABLE IF NOT EXISTS t_misc_voucher (
@@ -411,7 +415,6 @@ END $$;`,
       try {
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS cin VARCHAR(30)`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS pan VARCHAR(15)`);
-        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS show_format_no BOOLEAN NOT NULL DEFAULT TRUE`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS pf_number VARCHAR(100)`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS esi_number VARCHAR(100)`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS payroll_pt_rate DECIMAL(10,2) DEFAULT 200`);
@@ -419,6 +422,10 @@ END $$;`,
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS c_last_update TIMESTAMP`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS logo_url TEXT`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS short_name VARCHAR(100)`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS title VARCHAR(100)`);
+        // Remove show_format_no from company settings — it is a Stores/Delivery
+        // Challan document-format concern, now owned by m_stores_settings.
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings DROP COLUMN IF EXISTS show_format_no`);
 
         // Remove the obsolete single-tenant `company_id` column. This project is
         // deployed as one organization per instance (single global company

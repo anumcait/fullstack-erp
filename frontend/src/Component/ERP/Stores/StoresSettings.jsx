@@ -31,6 +31,10 @@ const DEFAULT_FORM = {
   dc_prefix_repair: 'DCR', dc_prefix_maintenance: 'DCM',
   dc_prefix_jobwork: 'DCJ', dc_prefix_nonreturn: 'DCN',
 
+  // Delivery Challan form-number stamp (printed top-right on the DC)
+  show_format_no: true,
+  dc_format_no: "Str./F06/L/Rev.02/Dec'18",
+
   // Document Start Numbers (Zoho-style)
   mr_start_no: 1, mi_start_no: 1, grn_start_no: 1, pr_start_no: 1,
   po_start_no: 1, rfq_start_no: 1, ir_start_no: 1, ge_start_no: 1,
@@ -265,6 +269,25 @@ export default function StoresSettings() {
             'Prefixes used for auto-numbering each stores / inventory document.')}
           {sectionCard('Delivery Challan Prefixes', renderPrefixGrid(DC_PREFIX_FIELDS),
             'Each DC sub-type keeps its own numbering series.')}
+          {sectionCard('Delivery Challan Form Number', (
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={8}>
+                <TextField
+                  label="Form Number Text (printed top-right on DC)"
+                  size="small" fullWidth
+                  value={form.dc_format_no || ''}
+                  onChange={handleChange('dc_format_no')}
+                  placeholder="e.g. Str./F06/L/Rev.02/Dec'18"
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <FormControlLabel
+                  control={<Switch checked={Boolean(form.show_format_no)} onChange={handleChange('show_format_no')} />}
+                  label="Show form number on Delivery Challan"
+                />
+              </Grid>
+            </Grid>
+          ), 'Admin-editable document form number stamped on the Delivery Challan. Leave blank and toggle off to hide it.')}
         </>
       )}
 

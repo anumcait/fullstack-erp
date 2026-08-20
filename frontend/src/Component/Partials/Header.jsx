@@ -21,8 +21,10 @@ const API = import.meta.env.VITE_API_URL || "";
 
 const Header = () => {
   const { mode, toggleTheme, accent, setAccentColor, ACCENT_COLORS } = useThemeMode();
-  const { companySettings } = useCompany();
-  const logoUrl = companySettings?.logo_url || fallbackLogo;
+  const { companySettings, companyShortName } = useCompany();
+  const logoUrl = companySettings?.logo_url;
+  const brandTitle = companySettings?.title
+    || (companyShortName ? `${companyShortName} ERP` : 'ERP');
   const [userName, setUserName] = useState('Guest');
   const [userRole, setUserRole] = useState('');
   const [currentDate, setCurrentDate] = useState('');
@@ -500,8 +502,11 @@ const Header = () => {
           <button className="hamburger" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
           </button>
-          <Link to="/dashboard" className="logo-container">
-            <img src={logoUrl} alt="Enterprise Logo" className="logo-img" />
+          <Link to="/dashboard" className="logo-container" aria-label="Home">
+            {logoUrl && (
+              <img src={logoUrl} alt="Company Logo" className="logo-img" />
+            )}
+            <span className="logo-title">{brandTitle}</span>
           </Link>
         </div>
 
@@ -717,8 +722,9 @@ const Header = () => {
           <div className="drawer-overlay" onClick={() => setIsMobileMenuOpen(false)}></div>
           <div className={`mobile-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
             <div className="drawer-header">
-              <img src={logoUrl} alt="Logo" style={{ height: '30px' }} />
-              <FaTimes onClick={() => setIsMobileMenuOpen(false)} style={{ cursor: 'pointer' }} />
+              {logoUrl && <img src={logoUrl} alt="Logo" style={{ height: '30px' }} />}
+              <span className="logo-title">{brandTitle}</span>
+              <FaTimes onClick={() => setIsMobileMenuOpen(false)} style={{ cursor: 'pointer', marginLeft: 'auto' }} />
             </div>
 
             <div className="drawer-content">

@@ -45,7 +45,6 @@ const Settings = () => {
     gstin: "",
     cin: "",
     pan: "",
-    show_format_no: true,
     pf_number: "",
     esi_number: "",
     logo_url: ""
@@ -219,6 +218,21 @@ const Settings = () => {
                   }
                 />
 
+                {/* Top Bar Title (admin-controlled brand text) */}
+                <TextField
+                  fullWidth
+                  label="Top Bar Title"
+                  placeholder="e.g. ACME ERP (shown left of the app)"
+                  value={companySettings.title || ""}
+                  onChange={(e) =>
+                    setCompanySettings({
+                      ...companySettings,
+                      title: e.target.value,
+                    })
+                  }
+                  helperText="Text displayed to the right of the logo in the top bar. Leave blank to use Short Name + ERP."
+                />
+
                 {/* Address */}
                 <TextField
                   fullWidth
@@ -359,18 +373,6 @@ const Settings = () => {
                   size="small"
                   value={companySettings.esi_number || ""}
                   onChange={(e) => setCompanySettings({ ...companySettings, esi_number: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={companySettings.show_format_no !== false}
-                      onChange={(e) => setCompanySettings({ ...companySettings, show_format_no: e.target.checked })}
-                      size="small"
-                    />
-                  }
-                  label="Show Format Number on Delivery Challan (Str./F06/L/Rev.02/Dec'18)"
                 />
               </Grid>
             </Grid>

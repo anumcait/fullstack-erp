@@ -18,6 +18,10 @@ module.exports = (sequelize) => {
       ge_prefix_out: { type: DataTypes.STRING(10), allowNull: true },
       bill_prefix: { type: DataTypes.STRING(10), allowNull: true },
       voucher_prefix: { type: DataTypes.STRING(10), allowNull: true },
+
+      // Delivery Challan form-number stamp (printed top-right on the DC)
+      show_format_no: { type: DataTypes.BOOLEAN, defaultValue: true },
+      dc_format_no: { type: DataTypes.STRING(100), allowNull: true, defaultValue: "Str./F06/L/Rev.02/Dec'18" },
       qc_prefix_iqc: { type: DataTypes.STRING(10), allowNull: true },
       qc_prefix_ipc: { type: DataTypes.STRING(10), allowNull: true },
       qc_prefix_fqc: { type: DataTypes.STRING(10), allowNull: true },

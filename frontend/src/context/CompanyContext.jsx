@@ -18,7 +18,6 @@ export const CompanyProvider = ({ children }) => {
         cin: '',
         pan: '',
         logo_url: '',
-        show_format_no: true,
         pf_number: '',
         esi_number: ''
     });

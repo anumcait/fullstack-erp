@@ -10,6 +10,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: ''
         },
+        title: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Custom title shown on the top-left bar (falls back to Short Name + ERP).'
+        },
         short_name: {
             type: DataTypes.STRING,
             allowNull: true
@@ -41,10 +46,6 @@ module.exports = (sequelize, DataTypes) => {
         pan: {
             type: DataTypes.STRING,
             allowNull: true
-        },
-        show_format_no: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true
         },
         pf_number: {
             type: DataTypes.STRING,
