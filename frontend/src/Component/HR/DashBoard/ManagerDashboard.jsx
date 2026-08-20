@@ -28,7 +28,7 @@ import {
 import { saveAs } from "file-saver";
 
 const API = import.meta.env.VITE_API_URL || "";
-const COLORS = ["#3B82F6", "#F97316", "#10B981", "#F43F5E", "#8B5CF6"];
+const COLORS = ["var(--primary-main)", "#F97316", "#10B981", "#F43F5E", "#8B5CF6"];
 
 const KpiCard = ({ title, icon, value, color, subtitle, badge }) => (
   <div className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 border border-slate-200 transition-all group relative overflow-hidden">
@@ -156,7 +156,7 @@ const ManagerDashboard = () => {
         <div>
           <h1 className="text-xl font-black text-slate-800 tracking-tight">Manager Dashboard</h1>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-1">
-            Welcome back, <span className="text-green-600">{managerName}</span> — team overview
+            Welcome back, <span className="text-[var(--primary-main)]">{managerName}</span> — team overview
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -190,9 +190,9 @@ const ManagerDashboard = () => {
         />
         <KpiCard
           title="Present Today"
-          icon={<FaUserCheck className="text-blue-500 text-2xl" />}
+          icon={<FaUserCheck className="text-[var(--primary-main)] text-2xl" />}
           value={summary.presentToday}
-          color="text-blue-600"
+          color="text-[var(--primary-main)]"
           subtitle={`${attendanceRate}% team attendance`}
         />
         <KpiCard

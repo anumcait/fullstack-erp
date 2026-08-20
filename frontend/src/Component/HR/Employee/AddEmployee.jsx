@@ -1646,7 +1646,7 @@ export default function AddEmployee({ modalEmpId, isModal = false, onModalClose 
               {!photoPreview && !currentPhoto && <PersonIcon />}
             </Avatar>
             <Box>
-              <Typography variant="h6" fontWeight="bold" color="text.primary">
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5 }}>
                 {isEdit ? `Editing: ${formData.ename || 'Employee'}` : 'New Employee'}
               </Typography>
               <Typography variant="caption" color="text.secondary">

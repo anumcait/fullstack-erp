@@ -166,10 +166,10 @@ const AttendanceModificationEntry = () => {
   };
 
   return (
-    <Card sx={{ m: 2 }}>
+    <Card sx={{ m: 2, p: 2 }}>
       {/* HEADER */}
-      <Box sx={{ bgcolor: "primary.main", color: "primary.contrastText", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Typography variant="h6">Attendance Modification</Typography>
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", color: "var(--heading-color)", borderLeft: "4px solid", borderColor: "primary.main", pl: 1.5, lineHeight: 1.2 }}>Attendance Modification</Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button 
             variant={filterType === "date" ? "contained" : "outlined"} 
@@ -355,18 +355,18 @@ const AttendanceModificationEntry = () => {
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Mod Type</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>New Shift</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>New Status</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actual In</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actual Out</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Modify In</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Modify Out</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
+              <TableRow sx={{ bgcolor: "rgba(25, 118, 210, 0.08)", color: "primary.dark" }}>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Date</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Emp ID</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Name</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Mod Type</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>New Shift</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>New Status</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Actual In</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Actual Out</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Modify In</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Modify Out</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

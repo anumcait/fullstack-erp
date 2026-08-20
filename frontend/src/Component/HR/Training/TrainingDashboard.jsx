@@ -178,7 +178,7 @@ export default function TrainingDashboard() {
       {tab === 0 && dashboard && (
         <Grid container spacing={2}>
           {[
-            { label: 'Active Courses', value: dashboard.totalCourses, color: '#1976d2' },
+            { label: 'Active Courses', value: dashboard.totalCourses, color: 'var(--primary-main)' },
             { label: 'Upcoming Sessions', value: dashboard.upcomingSessions, color: '#388e3c' },
             { label: 'Total Participants', value: dashboard.totalParticipants, color: '#f57c00' },
           ].map((s) => (

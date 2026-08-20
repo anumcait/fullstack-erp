@@ -338,7 +338,7 @@ export default function ShiftChangeApprovalPage() {
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 100 }}
         PaperProps={{ sx: { width: 520, borderLeft: "1px solid #e5e7eb", display: "flex", flexDirection: "column", height: "100vh" } }}>
         <Box sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #e5e7eb", flexShrink: 0 }}>
-          <Typography variant="h6" fontWeight={700}>Shift Change Approval</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>Shift Change Approval</Typography>
           <IconButton onClick={closeDrawer}><CloseIcon /></IconButton>
         </Box>
 

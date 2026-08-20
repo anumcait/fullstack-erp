@@ -270,18 +270,18 @@ const months = [
     <ScrollSyncWrapper>
       <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #e0e0e0' } }}>
         <TableHead sx={{ position: 'sticky', top: 0, zIndex: 8 }}>
-          <TableRow sx={{ backgroundColor: 'primary.main', color: 'white' }}>
-            <TableCell sx={stickyCellSx(0, { color: 'white', bgcolor: 'primary.main', zIndex: 12 })}><strong>S.No</strong></TableCell>
-            <TableCell sx={stickyCellSx(1, { color: 'white', bgcolor: 'primary.main', zIndex: 12 })}><strong>ID</strong></TableCell>
-            <TableCell sx={stickyCellSx(2, { color: 'white', bgcolor: 'primary.main', zIndex: 12 })}><strong>Employee Name</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Basic</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>HRA</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Conveyance</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Washing</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Total Gross</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>PF</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>ESI</strong></TableCell>
-            {salaryData.some(r => r.C_OT_EXIST === 'Y') && <TableCell sx={{ color: 'white' }}><strong>OT</strong></TableCell>}
+          <TableRow sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)', color: 'primary.dark' }}>
+            <TableCell sx={stickyCellSx(0, { color: 'primary.dark', bgcolor: 'rgba(25, 118, 210, 0.08)', zIndex: 12 })}><strong>S.No</strong></TableCell>
+            <TableCell sx={stickyCellSx(1, { color: 'primary.dark', bgcolor: 'rgba(25, 118, 210, 0.08)', zIndex: 12 })}><strong>ID</strong></TableCell>
+            <TableCell sx={stickyCellSx(2, { color: 'primary.dark', bgcolor: 'rgba(25, 118, 210, 0.08)', zIndex: 12 })}><strong>Employee Name</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Basic</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>HRA</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Conveyance</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Washing</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Total Gross</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>PF</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>ESI</strong></TableCell>
+            {salaryData.some(r => r.C_OT_EXIST === 'Y') && <TableCell sx={{ color: 'primary.dark' }}><strong>OT</strong></TableCell>}
           </TableRow>
         </TableHead>
         {[staffData, traineeData].map((group, gi) => {
@@ -343,22 +343,22 @@ const months = [
     <ScrollSyncWrapper>
       <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #e0e0e0' } }}>
         <TableHead sx={{ position: 'sticky', top: 0, zIndex: 8 }}>
-          <TableRow sx={{ backgroundColor: '#2e7d32', color: 'white' }}>
-            <TableCell sx={stickyCellSx(0, { color: 'white', bgcolor: '#2e7d32', zIndex: 12 })}><strong>S.No</strong></TableCell>
-            <TableCell sx={stickyCellSx(1, { color: 'white', bgcolor: '#2e7d32', zIndex: 12 })}><strong>ID</strong></TableCell>
-            <TableCell sx={stickyCellSx(2, { color: 'white', bgcolor: '#2e7d32', zIndex: 12 })}><strong>Employee Name</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Month Days</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Paid Days</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>W-Off/Hol</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Leaves</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Absent</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>LOP</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Total Paid</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>OT Hrs</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Late Times</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Half Days</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Hour Ded</strong></TableCell>
-            <TableCell sx={{ color: 'white' }}><strong>Late Ded</strong></TableCell>
+          <TableRow sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)', color: 'primary.dark' }}>
+            <TableCell sx={stickyCellSx(0, { color: 'primary.dark', bgcolor: 'rgba(25, 118, 210, 0.08)', zIndex: 12 })}><strong>S.No</strong></TableCell>
+            <TableCell sx={stickyCellSx(1, { color: 'primary.dark', bgcolor: 'rgba(25, 118, 210, 0.08)', zIndex: 12 })}><strong>ID</strong></TableCell>
+            <TableCell sx={stickyCellSx(2, { color: 'primary.dark', bgcolor: 'rgba(25, 118, 210, 0.08)', zIndex: 12 })}><strong>Employee Name</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Month Days</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Paid Days</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>W-Off/Hol</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Leaves</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Absent</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>LOP</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Total Paid</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>OT Hrs</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Late Times</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Half Days</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Hour Ded</strong></TableCell>
+            <TableCell sx={{ color: 'primary.dark' }}><strong>Late Ded</strong></TableCell>
           </TableRow>
         </TableHead>
         {[staffData, traineeData].map((group, gi) => {
@@ -477,7 +477,7 @@ const months = [
     <ScrollSyncWrapper>
       <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #e0e0e0' } }}>
         <TableHead sx={{ position: 'sticky', top: 0, zIndex: 8 }}>
-          <TableRow sx={{ backgroundColor: 'primary.main', color: 'white' }}>
+          <TableRow sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)', color: 'primary.dark' }}>
             <TableCell rowSpan={2} sx={stickyCellSx(0, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>S.No</strong></TableCell>
             <TableCell rowSpan={2} sx={stickyCellSx(1, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>ID.No</strong></TableCell>
             <TableCell rowSpan={2} sx={stickyCellSx(2, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>Name of Employee</strong></TableCell>
@@ -487,28 +487,28 @@ const months = [
             {showTotalDed && <TableCell rowSpan={2} sx={{ color: 'white', verticalAlign: 'bottom' }}><strong>Total Ded</strong></TableCell>}
             {showNetAmount && <TableCell rowSpan={2} sx={{ color: 'white', verticalAlign: 'bottom' }}><strong>Net Amount</strong></TableCell>}
           </TableRow>
-          <TableRow sx={{ backgroundColor: 'primary.main', color: 'primary.contrastText' }}>
-            {showFixedBasic && <TableCell sx={{ color: 'white' }}><strong>Basic</strong></TableCell>}
-            {showFixedHra && <TableCell sx={{ color: 'white' }}><strong>HRA</strong></TableCell>}
-            {showFixedCa && <TableCell sx={{ color: 'white' }}><strong>CA/Others</strong></TableCell>}
-            {showFixedWa && <TableCell sx={{ color: 'white' }}><strong>W.A</strong></TableCell>}
-            {showFixedGross && <TableCell sx={{ color: 'white' }}><strong>Gross Salary</strong></TableCell>}
-            {showEarnedDays && <TableCell sx={{ color: 'white' }}><strong>No. Days</strong></TableCell>}
-            {showEarnedBasic && <TableCell sx={{ color: 'white' }}><strong>Basic</strong></TableCell>}
-            {showEarnedHra && <TableCell sx={{ color: 'white' }}><strong>HRA</strong></TableCell>}
-            {showEarnedOthers && <TableCell sx={{ color: 'white' }}><strong>Others</strong></TableCell>}
-            {showEarnedWa && <TableCell sx={{ color: 'white' }}><strong>W.A</strong></TableCell>}
-            {showEarnedAb && <TableCell sx={{ color: 'white' }}><strong>A.B</strong></TableCell>}
-            {showEarnedOtHrs && <TableCell sx={{ color: 'white' }}><strong>OT Hrs</strong></TableCell>}
-            {showEarnedOtAmt && <TableCell sx={{ color: 'white' }}><strong>OT Amt</strong></TableCell>}
-            {showEarnedTotal && <TableCell sx={{ color: 'white' }}><strong>Total</strong></TableCell>}
-            {showEsi && <TableCell sx={{ color: 'white' }}><strong>ESI</strong></TableCell>}
-            {showPf && <TableCell sx={{ color: 'white' }}><strong>PF</strong></TableCell>}
-            {showPt && <TableCell sx={{ color: 'white' }}><strong>PT</strong></TableCell>}
-            {showTds && <TableCell sx={{ color: 'white' }}><strong>TDS</strong></TableCell>}
-            {showLic && <TableCell sx={{ color: 'white' }}><strong>LIC</strong></TableCell>}
-            {showOtherDed && <TableCell sx={{ color: 'white' }}><strong>Other Ded</strong></TableCell>}
-            {showSalAdv && <TableCell sx={{ color: 'white' }}><strong>Sal. Adv</strong></TableCell>}
+          <TableRow sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)', color: 'primary.dark' }}>
+            {showFixedBasic && <TableCell sx={{ color: 'primary.dark' }}><strong>Basic</strong></TableCell>}
+            {showFixedHra && <TableCell sx={{ color: 'primary.dark' }}><strong>HRA</strong></TableCell>}
+            {showFixedCa && <TableCell sx={{ color: 'primary.dark' }}><strong>CA/Others</strong></TableCell>}
+            {showFixedWa && <TableCell sx={{ color: 'primary.dark' }}><strong>W.A</strong></TableCell>}
+            {showFixedGross && <TableCell sx={{ color: 'primary.dark' }}><strong>Gross Salary</strong></TableCell>}
+            {showEarnedDays && <TableCell sx={{ color: 'primary.dark' }}><strong>No. Days</strong></TableCell>}
+            {showEarnedBasic && <TableCell sx={{ color: 'primary.dark' }}><strong>Basic</strong></TableCell>}
+            {showEarnedHra && <TableCell sx={{ color: 'primary.dark' }}><strong>HRA</strong></TableCell>}
+            {showEarnedOthers && <TableCell sx={{ color: 'primary.dark' }}><strong>Others</strong></TableCell>}
+            {showEarnedWa && <TableCell sx={{ color: 'primary.dark' }}><strong>W.A</strong></TableCell>}
+            {showEarnedAb && <TableCell sx={{ color: 'primary.dark' }}><strong>A.B</strong></TableCell>}
+            {showEarnedOtHrs && <TableCell sx={{ color: 'primary.dark' }}><strong>OT Hrs</strong></TableCell>}
+            {showEarnedOtAmt && <TableCell sx={{ color: 'primary.dark' }}><strong>OT Amt</strong></TableCell>}
+            {showEarnedTotal && <TableCell sx={{ color: 'primary.dark' }}><strong>Total</strong></TableCell>}
+            {showEsi && <TableCell sx={{ color: 'primary.dark' }}><strong>ESI</strong></TableCell>}
+            {showPf && <TableCell sx={{ color: 'primary.dark' }}><strong>PF</strong></TableCell>}
+            {showPt && <TableCell sx={{ color: 'primary.dark' }}><strong>PT</strong></TableCell>}
+            {showTds && <TableCell sx={{ color: 'primary.dark' }}><strong>TDS</strong></TableCell>}
+            {showLic && <TableCell sx={{ color: 'primary.dark' }}><strong>LIC</strong></TableCell>}
+            {showOtherDed && <TableCell sx={{ color: 'primary.dark' }}><strong>Other Ded</strong></TableCell>}
+            {showSalAdv && <TableCell sx={{ color: 'primary.dark' }}><strong>Sal. Adv</strong></TableCell>}
           </TableRow>
         </TableHead>
         {[staffData, traineeData].map((group, gi) => {

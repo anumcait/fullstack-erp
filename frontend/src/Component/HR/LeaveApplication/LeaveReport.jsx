@@ -36,7 +36,7 @@ const LeaveReport = ({ onNewEntry }) => {
             from_date: row.leaveDetails?.length > 1
               ? <span
                 onClick={(e) => { e.stopPropagation(); handleExpand(row); }}
-                style={{ color: '#1976d2', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
+                style={{ color: 'var(--primary-main)', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
               >
                 Multi-Row
               </span>
@@ -46,7 +46,7 @@ const LeaveReport = ({ onNewEntry }) => {
             to_date: row.leaveDetails?.length > 1
               ? <span
                 onClick={(e) => { e.stopPropagation(); handleExpand(row); }}
-                style={{ color: '#1976d2', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
+                style={{ color: 'var(--primary-main)', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}
               >
                 See Grid ⬇️
               </span>
@@ -106,7 +106,7 @@ const LeaveReport = ({ onNewEntry }) => {
               onClick={onNewEntry}
               style={{
                 padding: '6px 14px',
-                background: '#1976d2',
+                background: 'var(--primary-main)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '4px',

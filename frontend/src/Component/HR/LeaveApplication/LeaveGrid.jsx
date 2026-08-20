@@ -314,7 +314,7 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="subtitle1" fontWeight={800} color="text.secondary">
             Total Leaves: 
-            <span style={{ color: '#1976d2', marginLeft: '8px', fontSize: '1.2rem' }}>{totalDays}</span>
+            <span style={{ color: 'var(--primary-main)', marginLeft: '8px', fontSize: '1.2rem' }}>{totalDays}</span>
           </Typography>
 
           <Button

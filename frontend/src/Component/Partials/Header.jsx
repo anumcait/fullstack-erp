@@ -555,10 +555,10 @@ const Header = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.15)',
-                  border: '1px solid rgba(255,255,255,0.3)',
+                  background: 'rgba(0,0,0,0.05)',
+                  border: '1px solid rgba(0,0,0,0.1)',
                   borderRadius: '8px',
-                  color: unreadCount > 0 ? '#fbbf24' : '#ffffff',
+                  color: unreadCount > 0 ? '#fbbf24' : '#1f2937',
                   fontSize: '18px',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
@@ -581,7 +581,7 @@ const Header = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid var(--header-bg)',
+                    border: '2px solid #e5e7eb',
                     padding: '0 3px',
                   }}>
                     {unreadCount}
@@ -804,7 +804,7 @@ const Header = () => {
 function DarkModeToggle() {
   const { mode, toggleTheme } = useThemeMode();
   return (
-    <IconButton onClick={toggleTheme} title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`} sx={{ color: 'white', ml: 1 }}>
+    <IconButton onClick={toggleTheme} title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`} sx={{ color: 'var(--primary-dark, #1565c0)', ml: 1, '&:hover': { bgcolor: 'rgba(25,118,210,0.12)' } }}>
       {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
     </IconButton>
   );

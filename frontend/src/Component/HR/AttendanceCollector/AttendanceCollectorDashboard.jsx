@@ -88,11 +88,11 @@ export default function AttendanceCollectorDashboard() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'var(--heading-color)' }}>Attendance Data Collector</Typography>
+      <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5 }}>Attendance Data Collector</Typography>
       {loading && <LinearProgress sx={{ mb: 2 }} />}
       {message && <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>{message.text}</Alert>}
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" textColor="primary" indicatorColor="primary" sx={{ mb: 2 }}>
         <Tab label="Import" />
         <Tab label="Manual Entry" />
         <Tab label="Raw Punches" />
@@ -105,7 +105,7 @@ export default function AttendanceCollectorDashboard() {
           <Grid item xs={12} md={6}>
             <Card sx={{ borderRadius: 3, p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>CSV Upload</Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Upload a CSV file exported from your biometric device. Expected columns: empid, punch_time (or Date+Time), direction (IN/OUT).
               </Typography>
               <input ref={fileRef} type="file" accept=".csv" hidden onChange={handleCsvUpload} />
@@ -117,7 +117,7 @@ export default function AttendanceCollectorDashboard() {
           <Grid item xs={12} md={6}>
             <Card sx={{ borderRadius: 3, p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>API Push</Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 Biometric software can push data to:
               </Typography>
               <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#f5f5f5' }}>
@@ -244,7 +244,7 @@ export default function AttendanceCollectorDashboard() {
       {tab === 3 && (
         <Card sx={{ borderRadius: 3, p: 3, maxWidth: 500 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Process Raw Punches → Attendance</Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Converts raw punch data into attendance records. First IN punch becomes in_time, last OUT becomes out_time.
           </Typography>
           <Grid container spacing={2} alignItems="center">

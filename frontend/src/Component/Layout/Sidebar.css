@@ -103,7 +103,7 @@
 
 .sidebar-menu-item.open > .sidebar-menu-link .expand-icon {
   opacity: 1;
-  color: var(--primary-main, #0077cc);
+  color: var(--primary-dark, #1565c0);
 }
 
 .sidebar-menu-link:hover {
@@ -112,14 +112,14 @@
 }
 
 .sidebar-active {
-  background-color: var(--sidebar-active-bg) !important;
-  color: var(--primary-main, #0077cc) !important;
+  background-color: var(--primary-main) !important;
+  color: #ffffff !important;
   font-weight: 600;
-  border-right: 3px solid var(--primary-main, #0077cc);
+  border-right: 3px solid var(--primary-dark, #1565c0);
 }
 
 .sidebar-active svg {
-  color: var(--primary-main, #0077cc) !important;
+  color: #ffffff !important;
 }
 
 .sidebar-submenu {
@@ -139,16 +139,16 @@
 
 .sidebar-submenu .sidebar-menu-link:hover {
   background-color: var(--sidebar-hover);
-  color: var(--primary-main, #0077cc);
+  color: var(--primary-dark, #1565c0);
   opacity: 1;
 }
 
 .sidebar-submenu .sidebar-active {
-  background-color: var(--sidebar-active-bg) !important;
-  color: var(--primary-main, #0077cc) !important;
+  background-color: var(--primary-main) !important;
+  color: #ffffff !important;
   font-weight: 700;
   border-right: none;
-  border-left: 3px solid var(--primary-main, #0077cc);
+  border-left: 3px solid var(--primary-dark, #1565c0);
 }
 
 .sidebar-menu-item.open>.sidebar-menu-link {
@@ -158,12 +158,12 @@
 
 .sidebar-menu-item.sidebar-active-parent>.sidebar-menu-link {
   background-color: var(--sidebar-hover);
-  color: var(--primary-main, #0077cc);
+  color: var(--primary-dark, #1565c0);
   font-weight: 600;
 }
 
 .sidebar-menu-item.sidebar-active-parent>.sidebar-menu-link .expand-icon {
-  color: var(--primary-main, #0077cc);
+  color: var(--primary-dark, #1565c0);
 }
 
 .sidebar-menu-list::-webkit-scrollbar {

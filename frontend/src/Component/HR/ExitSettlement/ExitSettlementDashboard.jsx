@@ -162,7 +162,7 @@ export default function ExitSettlementDashboard() {
           {[
             { label: 'Pending Exits', value: dashboard.pendingExits, color: '#f57c00' },
             { label: 'Approved Exits', value: dashboard.approvedExits, color: '#388e3c' },
-            { label: 'Pending Clearance', value: dashboard.pendingClearance, color: '#1976d2' },
+            { label: 'Pending Clearance', value: dashboard.pendingClearance, color: 'var(--primary-main)' },
             { label: 'Pending Settlements', value: dashboard.pendingSettlements, color: '#7b1fa2' },
           ].map((s) => (
             <Grid item xs={12} sm={6} md={3} key={s.label}>

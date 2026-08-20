@@ -576,7 +576,7 @@ const generateDays = (from, to, daytype) => {
       flexShrink: 0,
     }}
   >
-    <Typography variant="h6" fontWeight={700}>
+    <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>
       Leave Approval
     </Typography>
     <IconButton onClick={closeDrawer}>

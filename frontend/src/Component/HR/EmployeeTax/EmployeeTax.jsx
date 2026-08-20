@@ -108,7 +108,7 @@ export default function EmployeeTax() {
   return (
     <Box sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'var(--heading-color)' }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>
           Tax — {emp?.ename} ({emp?.empid})
         </Typography>
         <Box display="flex" gap={2} alignItems="center">

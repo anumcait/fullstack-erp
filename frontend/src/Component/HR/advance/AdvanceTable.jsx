@@ -120,7 +120,7 @@ const AdvanceTable = ({ onNewEntry }) => {
       field: "overall_status",
       render: (row) => {
         const st = row.overall_status || row.status || "Pending";
-        const color = st === "Completed" ? "#2e7d32" : st === "Partially Completed" ? "#ed6c02" : st === "Pending" ? "#1976d2" : "#c62828";
+        const color = st === "Completed" ? "#2e7d32" : st === "Partially Completed" ? "#ed6c02" : st === "Pending" ? "var(--primary-main)" : "#c62828";
         return (
           <span style={{ fontWeight: 700, color, whiteSpace: "nowrap" }}>
             {st}
@@ -149,7 +149,7 @@ const AdvanceTable = ({ onNewEntry }) => {
               onClick={onNewEntry}
               style={{
                 padding: '6px 14px',
-                background: '#1976d2',
+                background: 'var(--primary-main)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '4px',

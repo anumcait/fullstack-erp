@@ -285,6 +285,9 @@ const OTApproval = () => {
   return (
     <Card sx={{ m: 2 }}>
       <CardContent>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h5" sx={{ fontWeight: "bold", color: "var(--heading-color)", borderLeft: "4px solid", borderColor: "primary.main", pl: 1.5 }}>OT Approval</Typography>
+        </Box>
         <Box sx={{ mb: 2, display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
           <FormControl size="small" sx={{ minWidth: 120, bgcolor: "white", borderRadius: 1 }}>
             <InputLabel>Filter</InputLabel>
@@ -448,25 +451,25 @@ const OTApproval = () => {
 
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
-                  <TableCell sx={{ color: "white" }}>
+                <TableRow sx={{ bgcolor: "rgba(25, 118, 210, 0.08)", color: "primary.dark" }}>
+                  <TableCell sx={{ color: "primary.dark" }}>
                     <Checkbox
                       size="small"
-                      sx={{ color: "white" }}
+                      sx={{ color: "primary.dark" }}
                       checked={data.length > 0 && selectedRows.length === data.length}
                       indeterminate={selectedRows.length > 0 && selectedRows.length < data.length}
                       onChange={handleSelectAll}
                     />
                   </TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Dept</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actual OT</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Manager OT</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>HR OT</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Status</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Date</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Emp ID</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Name</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Dept</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Actual OT</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Manager OT</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>HR OT</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Status</TableCell>
+                  <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -534,11 +537,11 @@ const OTApproval = () => {
                     <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold" }}>
                       {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.ot_hrs), 0))}
                     </TableCell>
-                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "#1976d2" }}>
+                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "var(--primary-main)" }}>
                       {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.app_ot), 0))}<br />
                       <span style={{ color: "green" }}>{formatHoursToOT(data.reduce((sum, r) => sum + (Number(r.app_status) === 1 || Number(r.hr_app_status) === 1 ? parseOTToHours(r.app_ot || r.ot_hrs) : 0), 0))}</span>
                     </TableCell>
-                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "#1976d2" }}>
+                    <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "var(--primary-main)" }}>
                       {formatHoursToOT(data.reduce((sum, r) => sum + parseOTToHours(r.hr_app_ot), 0))}<br />
                       <span style={{ color: "green" }}>{formatHoursToOT(data.reduce((sum, r) => sum + (Number(r.hr_app_status) === 1 ? parseOTToHours(r.hr_app_ot || r.app_ot || r.ot_hrs) : 0), 0))}</span>
                     </TableCell>
@@ -549,7 +552,7 @@ const OTApproval = () => {
             </Table>
 
             {selectedRows.length > 0 && (
-              <Box sx={{ p: 2, display: "flex", gap: 2, alignItems: "center", bgcolor: "#e3f2fd", borderTop: "2px solid #1976d2", mt: 2, mb: 1, borderRadius: 1 }}>
+              <Box sx={{ p: 2, display: "flex", gap: 2, alignItems: "center", bgcolor: "#e3f2fd", borderTop: "2px solid var(--primary-main)", mt: 2, mb: 1, borderRadius: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: "bold" }}>{selectedRows.length} selected</Typography>
                 <Button
                   variant="contained"
@@ -614,15 +617,15 @@ const OTApproval = () => {
             <TableHead>
               <TableRow sx={{ bgcolor: "#e65100", color: "white" }}>
                 <TableCell sx={{ color: "white" }}><Checkbox size="small" sx={{ color: "white" }} checked={extOtSelectedRows.length === extOtData.length && extOtData.length > 0} indeterminate={extOtSelectedRows.length > 0 && extOtSelectedRows.length < extOtData.length} onChange={handleExtSelectAll} /></TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>In</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Out</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>OT Hrs</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Type</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Status</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Date</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Emp ID</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Name</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>In</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Out</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>OT Hrs</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Type</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Status</TableCell>
+                <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -668,7 +671,7 @@ const OTApproval = () => {
               <TableFooter>
                 <TableRow sx={{ bgcolor: "#f5f5f5" }}>
                   <TableCell colSpan={6} sx={{ fontWeight: "bold", textAlign: "right" }}>Total (All):<br />Total (HR Approved):</TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "#1976d2" }}>
+                  <TableCell sx={{ fontFamily: "monospace", fontWeight: "bold", color: "var(--primary-main)" }}>
                     {formatHoursToOT(extOtData.reduce((sum, r) => sum + parseOTToHours(r.ot_hrs), 0))}<br />
                     <span style={{ color: "green" }}>{formatHoursToOT(extOtData.reduce((sum, r) => sum + (Number(r.app_status) === 2 ? parseOTToHours(r.ot_hrs) : 0), 0))}</span>
                   </TableCell>

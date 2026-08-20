@@ -98,7 +98,7 @@ const EmployeeDashboard = () => {
       <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200">
         <div>
           <h1 className="text-xl font-black text-slate-800 tracking-tight">
-            Welcome, <span className="text-blue-600">{empName}</span>
+            Welcome, <span className="text-[var(--primary-main)]">{empName}</span>
           </h1>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">
             Daily Workforce Overview
@@ -258,7 +258,7 @@ const EmployeeDashboard = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <button onClick={() => setNotifPanelOpen(false)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition">
+            <button onClick={() => setNotifPanelOpen(false)} className="px-4 py-2 bg-[var(--primary-main)] hover:opacity-90 text-white rounded-lg text-sm font-bold transition">
               Close
             </button>
           </DialogActions>
@@ -283,7 +283,7 @@ const EmployeeDashboard = () => {
       {/* Recent Profile Requests Table - Compacted */}
       <div className="mt-6 bg-white rounded-xl shadow-sm p-4 border border-slate-200 animate-fadeIn">
         <div className="flex items-center gap-2 mb-4">
-          <FaClipboardList className="text-blue-600 text-lg" />
+          <FaClipboardList className="text-[var(--primary-main)] text-lg" />
           <h2 className="text-lg font-black text-slate-800">My Recent Profile Requests</h2>
         </div>
 
@@ -314,7 +314,7 @@ const EmployeeDashboard = () => {
                     <td className="py-2.5 text-right">
                       <button
                         onClick={() => { setSelectedRequest(req); setDetailsOpen(true); }}
-                        className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 font-bold"
+                        className="text-[var(--primary-main)] hover:opacity-80 inline-flex items-center gap-1 font-bold"
                       >
                         <FaEye /> DETAILS
                       </button>

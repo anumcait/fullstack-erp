@@ -4,7 +4,7 @@
 }
 
 .hr-attendance-header {
-  background: linear-gradient(90deg, #1976d2, #42a5f5) !important;
+  background: linear-gradient(90deg, var(--primary-main), var(--primary-main)) !important;
   color: #fff !important;
   font-weight: 600 !important;
   padding: 12px 18px !important;

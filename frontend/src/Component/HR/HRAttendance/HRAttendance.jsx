@@ -335,9 +335,9 @@ const HRAttendance = () => {
   ];
 
   return (
-    <Card sx={{ m: 2 }}>
-      <Box sx={{ bgcolor: "primary.main", color: "primary.contrastText", p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Typography variant="h6">HR Attendance</Typography>
+    <Card sx={{ m: 2, p: 2 }}>
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", color: "var(--heading-color)", borderLeft: "4px solid", borderColor: "primary.main", pl: 1.5, lineHeight: 1.2 }}>HR Attendance</Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button
             variant={filterType === "date" ? "contained" : "outlined"}
@@ -514,17 +514,17 @@ const HRAttendance = () => {
 
         <Table size="small">
           <TableHead>
-            <TableRow sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Emp ID</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Shift</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Status</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>In Time</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Out Time</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Late Hrs</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>OT Hrs</TableCell>
-              <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
+            <TableRow sx={{ bgcolor: "rgba(25, 118, 210, 0.08)", color: "primary.dark" }}>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Date</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Emp ID</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Name</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Shift</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Status</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>In Time</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Out Time</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Late Hrs</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>OT Hrs</TableCell>
+              <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -729,7 +729,7 @@ const HRAttendance = () => {
           {/* Quick Actions Toolbar */}
           {!loading && bulkRows.length > 0 && (
             <Box sx={{ mb: 2, p: 1.5, bgcolor: "#e3f2fd", borderRadius: 1, display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
-              <Typography variant="caption" sx={{ fontWeight: "bold", color: "#1565c0", mr: 1 }}>⚡ Quick Actions:</Typography>
+              <Typography variant="caption" sx={{ fontWeight: "bold", color: "var(--primary-dark, #1565c0)", mr: 1 }}>⚡ Quick Actions:</Typography>
               <Button size="small" variant="outlined" color="success" startIcon={<CheckCircleIcon />} onClick={() => setAllStatus("P")}>
                 All Present
               </Button>

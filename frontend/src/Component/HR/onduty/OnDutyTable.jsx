@@ -118,7 +118,7 @@ const OnDutyTable = ({ onNewEntry }) => {
               onClick={onNewEntry}
               style={{
                 padding: '6px 14px',
-                background: '#1976d2',
+                background: 'var(--primary-main)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '4px',

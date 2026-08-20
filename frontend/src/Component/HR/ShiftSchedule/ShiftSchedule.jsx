@@ -203,7 +203,7 @@ const ShiftSchedule = () => {
       if (schedule.shift_cd === 'W') return { bg: '#c8e6c9', text: '#2e7d32', label: 'W' };
       if (schedule.shift_cd === 'H') return { bg: '#ffcdd2', text: '#c62828', label: 'H' };
       const colors = { 'G': '#bbdefb', 'A': '#e1bee7', 'B': '#ffe0b2', 'C': '#b2dfdb', '1': '#f8bbd0', '2': '#d1c4e9', '3': '#ffccbc' };
-      return { bg: colors[schedule.shift_cd] || '#e3f2fd', text: '#1565c0', label: schedule.shift_cd };
+      return { bg: colors[schedule.shift_cd] || '#e3f2fd', text: 'var(--primary-dark, #1565c0)', label: schedule.shift_cd };
     }
     if (isHoliday) return { bg: '#ffcdd2', text: '#c62828', label: 'H' };
     if (isWeekend) return { bg: '#c8e6c9', text: '#2e7d32', label: 'W' };
@@ -511,9 +511,9 @@ const ShiftSchedule = () => {
   const handleNextWeek = () => setWeekOffset(weekOffset + 1);
 
   return (
-    <Card sx={{ m: 2 }}>
+    <Card sx={{ m: 2, p: 2 }}>
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
-        <Typography variant="h6">Shift Schedule</Typography>
+        <Typography variant="h5" sx={{ fontWeight: "bold", color: "var(--heading-color)", borderLeft: "4px solid", borderColor: "primary.main", pl: 1.5 }}>Shift Schedule</Typography>
         <Box>
           <Button variant="contained" color="secondary" startIcon={<ViewWeekIcon />} onClick={() => {
             if (!weekForm.startDate) {
@@ -726,7 +726,7 @@ const ShiftSchedule = () => {
       {/* Bulk Matrix Entry Dialog */}
       <Dialog open={bulkMatrixDialog} onClose={() => { if (bulkMatrixDialog) { setBulkMatrixDialog(false); setBulkData({}); setExistingShifts(new Set()); setBulkSchedules([]); } }} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: '#f5f5f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" fontWeight="bold">Bulk Shift Matrix Entry</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>Bulk Shift Matrix Entry</Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <TextField size="small" type="date" label="Start Date" InputLabelProps={{ shrink: true }} value={weekForm.startDate} onChange={(e) => setWeekForm({ ...weekForm, startDate: e.target.value })} />
             <TextField size="small" placeholder="Search employee..." value={empSearch} onChange={(e) => setEmpSearch(e.target.value)} />
@@ -741,7 +741,7 @@ const ShiftSchedule = () => {
             <>
               {/* Quick Actions Toolbar */}
               <Box sx={{ mb: 0, p: 1.5, bgcolor: '#e3f2fd', borderBottom: '1px solid #bbdefb', display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
-                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0', mr: 1 }}>⚡ Quick Fill:</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'var(--primary-dark, #1565c0)', mr: 1 }}>⚡ Quick Fill:</Typography>
                 {shifts.map((sh) => (
                   <Button key={sh.shift_cd} size="small" variant="outlined" color="primary" onClick={() => {
                     getDialogWeekDates().forEach(d => fillBulkColumn(d.date, sh.shift_cd));
@@ -768,7 +768,7 @@ const ShiftSchedule = () => {
                 <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
                   Existing Schedules: {existingShifts.size} <span style={{ fontSize: '0.7rem' }}>🟢 = pre-existing</span>
                 </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'var(--primary-main)' }}>
                   Week of: {weekForm.startDate}
                 </Typography>
                 <Box sx={{ ml: 'auto' }}>

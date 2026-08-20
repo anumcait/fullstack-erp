@@ -167,7 +167,7 @@ export default function RecruitmentDashboard() {
       {tab === 0 && dashboard && (
         <Grid container spacing={2}>
           {[
-            { label: 'Open Requisitions', value: dashboard.openReqs, color: '#1976d2' },
+            { label: 'Open Requisitions', value: dashboard.openReqs, color: 'var(--primary-main)' },
             { label: 'Total Candidates', value: dashboard.totalCandidates, color: '#388e3c' },
             { label: 'Pending Interviews', value: dashboard.pendingInterviews, color: '#f57c00' },
             { label: 'Pending Offers', value: dashboard.pendingOffers, color: '#7b1fa2' },

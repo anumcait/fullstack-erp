@@ -238,7 +238,7 @@ const MusterRoll = () => {
       FE: { bg: "#e0f2f1", text: "#e65100" },
       FL: { bg: "#ffebee", text: "#e65100" },
       A: { bg: "#ffebee", text: "#c62828" },
-      H: { bg: "#e3f2fd", text: "#1565c0" },
+      H: { bg: "#e3f2fd", text: "var(--primary-dark, #1565c0)" },
       W: { bg: "#f3e5f5", text: "#7b1fa2" },
       CL: { bg: "#fff8e1", text: "#f57f17" },
       EL: { bg: "#e0f2f1", text: "#00695c" },
@@ -509,7 +509,7 @@ const MusterRoll = () => {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1976d2" }}>
+          <Typography variant="h5" sx={{ fontWeight: "bold", color: "var(--heading-color)", borderLeft: "4px solid", borderColor: "primary.main", pl: 1.5 }}>
             {tab === "late" ? "Late Coming Report" : "Muster Roll"}
           </Typography>
           {filteredData.length > 0 && (
@@ -914,7 +914,7 @@ const MusterRoll = () => {
                                 <TableCell rowSpan={2} sx={stickyCellSx(3, { color: "text.secondary", bgcolor: "#fafafa", zIndex: 6 })}>
                                   {emp.department || "-"}
                                 </TableCell>
-                                <TableCell align="center" sx={stickyCellSx(4, { fontWeight: "bold", color: "#1565c0", bgcolor: "#e3f2fd", verticalAlign: "middle", zIndex: 6 })}>
+                                <TableCell align="center" sx={stickyCellSx(4, { fontWeight: "bold", color: "var(--primary-dark, #1565c0)", bgcolor: "#e3f2fd", verticalAlign: "middle", zIndex: 6 })}>
                                   Attn
                                 </TableCell>
 
@@ -948,7 +948,7 @@ const MusterRoll = () => {
                                 <TableCell rowSpan={2} align="center" sx={{ bgcolor: "#e8f5e9", color: "#2e7d32", fontWeight: "bold", fontSize: "12px" }}>
                                   {presentDays}
                                 </TableCell>
-                                <TableCell rowSpan={2} align="center" sx={{ bgcolor: "#e3f2fd", color: "#1565c0", fontWeight: "bold", fontSize: "12px" }}>
+                                <TableCell rowSpan={2} align="center" sx={{ bgcolor: "#e3f2fd", color: "var(--primary-dark, #1565c0)", fontWeight: "bold", fontSize: "12px" }}>
                                   {holidays + woffCount}
                                 </TableCell>
                                 <TableCell rowSpan={2} align="center" sx={{ bgcolor: "#fff8e1", color: "#f57f17", fontWeight: "bold", fontSize: "12px" }}>
@@ -1011,7 +1011,7 @@ const MusterRoll = () => {
                             <TableCell />
                             <TableCell />
                             <TableCell />
-                            <TableCell align="center" sx={{ fontWeight: "bold", fontSize: "12px", color: "#1565c0", py: "6px" }}>
+                            <TableCell align="center" sx={{ fontWeight: "bold", fontSize: "12px", color: "var(--primary-dark, #1565c0)", py: "6px" }}>
                               {Math.round(catTotalDays * 100) / 100}
                             </TableCell>
                             <TableCell align="center" sx={{ fontWeight: "bold", fontSize: "12px", color: "#e65100", py: "6px" }}>
@@ -1074,7 +1074,7 @@ const MusterRoll = () => {
               <Chip label="P: Present" size="small" sx={{ bgcolor: "#e8f5e9", color: "#2e7d32", fontWeight: "500" }} />
               <Chip label="F: Half Day" size="small" sx={{ bgcolor: "#fff3e0", color: "#e65100", fontWeight: "500" }} />
               <Chip label="A: Absent" size="small" sx={{ bgcolor: "#ffebee", color: "#c62828", fontWeight: "500" }} />
-              <Chip label="H: Holiday" size="small" sx={{ bgcolor: "#e3f2fd", color: "#1565c0", fontWeight: "500" }} />
+              <Chip label="H: Holiday" size="small" sx={{ bgcolor: "#e3f2fd", color: "var(--primary-dark, #1565c0)", fontWeight: "500" }} />
               <Chip label="W: Weekly Off" size="small" sx={{ bgcolor: "#f3e5f5", color: "#7b1fa2", fontWeight: "500" }} />
               <Chip label="CL: Casual Leave" size="small" sx={{ bgcolor: "#fff8e1", color: "#f57f17", fontWeight: "500" }} />
               <Chip label="EL: Earned Leave" size="small" sx={{ bgcolor: "#e0f2f1", color: "#00695c", fontWeight: "500" }} />

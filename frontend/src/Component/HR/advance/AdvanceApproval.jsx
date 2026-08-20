@@ -460,7 +460,7 @@ export default function AdvanceApprovalPage() {
             flexShrink: 0,
           }}
         >
-          <Typography variant="h6" fontWeight={700}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>
             Advance Approval
           </Typography>
           <IconButton onClick={closeDrawer}>
@@ -520,8 +520,8 @@ export default function AdvanceApprovalPage() {
 
               <Card variant="outlined" sx={{ mb: 2, border: '1px solid #e0e0e0' }}>
                 <CardContent sx={{ py: 1.5 }}>
-                  <Typography fontWeight={700} sx={{ mb: 1, color: '#1565c0', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ width: 4, height: 16, bgcolor: '#1565c0', borderRadius: 0.5, display: 'inline-block' }} />
+                  <Typography fontWeight={700} sx={{ mb: 1, color: 'var(--primary-dark, #1565c0)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'var(--primary-dark, #1565c0)', borderRadius: 0.5, display: 'inline-block' }} />
                     Deduction Schedule
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>

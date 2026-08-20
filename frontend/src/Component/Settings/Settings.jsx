@@ -750,7 +750,7 @@ const Settings = () => {
     <Box sx={{ m: 1 }}>
       <Card>
         <Box sx={{ p: 1.5, borderBottom: "1px solid #eee" }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", color: "var(--heading-color)" }}>
+          <Typography variant="h5" sx={{ fontWeight: "bold", color: "var(--heading-color)", borderLeft: "4px solid", borderColor: "primary.main", pl: 1.5 }}>
             {location.pathname.startsWith("/hr") ? "HR Settings" : "Settings"}
           </Typography>
         </Box>

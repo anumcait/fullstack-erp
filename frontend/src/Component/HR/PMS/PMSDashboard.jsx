@@ -165,7 +165,7 @@ export default function PMSDashboard() {
       {tab === 0 && dashboard && (
         <Grid container spacing={2}>
           {[
-            { label: 'Active Cycles', value: dashboard.activeCycles, color: '#1976d2' },
+            { label: 'Active Cycles', value: dashboard.activeCycles, color: 'var(--primary-main)' },
             { label: 'Pending Appraisals', value: dashboard.pendingAppraisals, color: '#f57c00' },
             { label: 'Submitted', value: dashboard.submittedAppraisals, color: '#7b1fa2' },
             { label: 'Approved', value: dashboard.approvedAppraisals, color: '#388e3c' },

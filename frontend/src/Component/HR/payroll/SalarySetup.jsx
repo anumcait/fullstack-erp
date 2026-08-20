@@ -167,7 +167,7 @@ const SalarySetup = () => {
         </Typography>
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h6">Employee Salary Setup</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5 }}>Employee Salary Setup</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={refreshData}>
             Refresh
@@ -211,7 +211,7 @@ const SalarySetup = () => {
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Payroll View Columns (Processed Salary Table)</Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
           <Box>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0' }}>Fixed Salary</Typography>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'var(--primary-dark, #1565c0)' }}>Fixed Salary</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
               <FormControlLabel control={<Checkbox size="small" checked={columnSettings.fixedBasic !== false} onChange={() => handleColumnToggle('fixedBasic')} />} label={<Typography variant="caption">Basic</Typography>} />
               <FormControlLabel control={<Checkbox size="small" checked={columnSettings.fixedHra !== false} onChange={() => handleColumnToggle('fixedHra')} />} label={<Typography variant="caption">HRA</Typography>} />
@@ -221,7 +221,7 @@ const SalarySetup = () => {
             </Box>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0' }}>Earned Salary</Typography>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'var(--primary-dark, #1565c0)' }}>Earned Salary</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
               <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedDays !== false} onChange={() => handleColumnToggle('earnedDays')} />} label={<Typography variant="caption">No. Days</Typography>} />
               <FormControlLabel control={<Checkbox size="small" checked={columnSettings.earnedBasic !== false} onChange={() => handleColumnToggle('earnedBasic')} />} label={<Typography variant="caption">Basic</Typography>} />
@@ -235,7 +235,7 @@ const SalarySetup = () => {
             </Box>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0' }}>Deduction</Typography>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'var(--primary-dark, #1565c0)' }}>Deduction</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
               <FormControlLabel control={<Checkbox size="small" checked={columnSettings.esi !== false} onChange={() => handleColumnToggle('esi')} />} label={<Typography variant="caption">ESI</Typography>} />
               <FormControlLabel control={<Checkbox size="small" checked={columnSettings.pf !== false} onChange={() => handleColumnToggle('pf')} />} label={<Typography variant="caption">PF</Typography>} />
@@ -247,7 +247,7 @@ const SalarySetup = () => {
             </Box>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1565c0' }}>Summary</Typography>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'var(--primary-dark, #1565c0)' }}>Summary</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
               <FormControlLabel control={<Checkbox size="small" checked={columnSettings.totalDed !== false} onChange={() => handleColumnToggle('totalDed')} />} label={<Typography variant="caption">Total Ded</Typography>} />
               <FormControlLabel control={<Checkbox size="small" checked={columnSettings.netAmount !== false} onChange={() => handleColumnToggle('netAmount')} />} label={<Typography variant="caption">Net Amount</Typography>} />
@@ -338,7 +338,7 @@ const SalarySetup = () => {
               <TextField label="Gross" value={(parseFloat(salaryForm.basic) || 0) + (parseFloat(salaryForm.hra) || 0) + (parseFloat(salaryForm.conveyance) || 0) + (parseFloat(salaryForm.washing_allowance) || 0)} fullWidth size="small" InputProps={{ readOnly: true }} />
             </Grid>
             <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5, color: '#1565c0', fontWeight: 'bold' }}>Deductions</Typography>
+              <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5, color: 'var(--primary-dark, #1565c0)', fontWeight: 'bold' }}>Deductions</Typography>
             </Grid>
             <Grid item xs={2}>
               <FormControlLabel

@@ -421,7 +421,7 @@ const OnDutyForm = ({ onClose }) => {
     <Box>
       <div className="p-6 max-w-4xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Typography variant="h6" fontWeight={700}>On Duty Permission</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>On Duty Permission</Typography>
           <IconButton onClick={() => { setIsDirty(false); onClose(); }}><CloseIcon /></IconButton>
         </Stack>
 
@@ -603,7 +603,7 @@ const OnDutyForm = ({ onClose }) => {
           <button className="save-btn"
             ref={saveBtnRef}
             onClick={saveOnDuty}
-            style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+            style={{ padding: '8px 16px', background: 'var(--primary-main)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
             Save
           </button>
         </div>

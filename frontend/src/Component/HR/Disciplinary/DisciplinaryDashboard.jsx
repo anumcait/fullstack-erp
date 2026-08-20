@@ -107,7 +107,7 @@ export default function DisciplinaryDashboard() {
         <Grid container spacing={2}>
           {[
             { label: 'Open Cases', value: dashboard.openCases, color: '#d32f2f' },
-            { label: 'Total Cases', value: dashboard.totalCases, color: '#1976d2' },
+            { label: 'Total Cases', value: dashboard.totalCases, color: 'var(--primary-main)' },
             { label: 'Pending SC Responses', value: dashboard.pendingResponses, color: '#f57c00' },
           ].map((s) => (
             <Grid item xs={12} sm={4} key={s.label}>

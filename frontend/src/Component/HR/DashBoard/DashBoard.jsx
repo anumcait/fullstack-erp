@@ -92,10 +92,14 @@ export default function DashboardTabs() {
                                 <button
                                     key={tab.name}
                                     onClick={() => setActiveTab(tab.name)}
-                                    className={`px-4 py-2 rounded-xl shadow-md flex items-center gap-2 transition-all duration-200 font-sans font-semibold text-sm border ${isActive
-                                        ? "bg-blue-600 text-white border-blue-600 shadow-lg scale-105"
-                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                        }`}
+                                    style={{
+                                        backgroundColor: isActive ? 'var(--primary-main)' : '#ffffff',
+                                        color: isActive ? '#ffffff' : '#334155',
+                                        borderColor: isActive ? 'var(--primary-main)' : '#cbd5e1',
+                                        transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                                        boxShadow: isActive ? '0 4px 12px rgba(15, 23, 42, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)',
+                                    }}
+                                    className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-200 font-sans font-semibold text-sm border ${isActive ? 'border' : 'hover:bg-slate-50'}`}
                                 >
                                     {tab.icon}
                                     <span>{tab.label}</span>

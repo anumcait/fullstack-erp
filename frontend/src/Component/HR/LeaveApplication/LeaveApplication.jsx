@@ -390,7 +390,7 @@ const LeaveApplication = ({ onClose }) => {
     <Box>
       <div className="p-6 max-w-6xl mx-auto bg-white border rounded-lg shadow">
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Typography variant="h6" fontWeight={700}>Leave Application</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>Leave Application</Typography>
           <Box>
             <Tooltip title="Refresh">
               <IconButton onClick={resetForm}><RefreshIcon /></IconButton>

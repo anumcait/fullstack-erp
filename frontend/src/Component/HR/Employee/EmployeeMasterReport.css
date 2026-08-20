@@ -79,8 +79,8 @@
 }
 
 .action-btn.new-emp:hover {
-  color: #3b82f6 !important;
-  border-color: #3b82f6 !important;
+  color: var(--primary-main) !important;
+  border-color: var(--primary-main) !important;
   background-color: #eff6ff !important;
 }
 
