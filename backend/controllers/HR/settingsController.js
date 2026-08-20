@@ -15,7 +15,7 @@ exports.getCompanySettings = async (req, res) => {
 exports.updateCompanySettings = async (req, res) => {
     try {
         const {
-            company_name, address, phone, email, website,
+            company_name, short_name, address, phone, email, website,
             gstin, cin, pan, show_format_no, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier
         } = req.body;
 
@@ -27,14 +27,14 @@ exports.updateCompanySettings = async (req, res) => {
                 return res.status(403).json({ error: 'Login required to update company settings.' });
             }
             await settings.update({
-                company_name, address, phone, email, website,
+                company_name, short_name, address, phone, email, website,
                 gstin, cin, pan, show_format_no, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier,
                 c_last_update: new Date()
             });
         } else {
             // First-run creation is allowed without login (initial setup only).
             settings = await CompanySettings.create({
-                company_name, address, phone, email, website,
+                company_name, short_name, address, phone, email, website,
                 gstin, cin, pan, show_format_no, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier,
                 c_last_update: new Date()
             });

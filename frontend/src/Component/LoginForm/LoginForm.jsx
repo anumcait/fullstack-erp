@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { FaFacebookF, FaGoogle, FaLinkedinIn, FaEye, FaEyeSlash } from 'react-icons/fa';
-import logo from "../../assets/images/EQIC_Image.jpg";
 import loginIllustration from "../../assets/images/login_illustration.png";
 import axios from 'axios';
 import './LoginForm.css'; // ✅ Import your custom CSS
 import { useCompany } from '../../context/CompanyContext';
 
 const LoginForm = () => {
-  const { companyName, companyConfigured, refreshCompanySettings } = useCompany();
+  const { companyName, companyShortName, companyConfigured, companySettings, refreshCompanySettings } = useCompany();
+  const logoUrl = companySettings?.logo_url;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,8 +24,16 @@ const LoginForm = () => {
 
   // First-run "Create Company" (Tally-style) — shown when no company is configured yet.
   const [companyForm, setCompanyForm] = useState({
-    company_name: '', address: '', phone: '', email: '', website: '', gstin: '', cin: '', pan: ''
+    company_name: '', short_name: '', address: '', phone: '', email: '', website: '', gstin: '', cin: '', pan: '', logo_url: ''
   });
+
+  const handleCompanyLogoChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setCompanyForm((f) => ({ ...f, logo_url: reader.result }));
+    reader.readAsDataURL(file);
+  };
   const [companyError, setCompanyError] = useState('');
   const [companySuccess, setCompanySuccess] = useState('');
   const [companyLoading, setCompanyLoading] = useState(false);
@@ -52,7 +60,7 @@ const LoginForm = () => {
 
   // SEO and Pre-fill logic
   React.useEffect(() => {
-    document.title = `${companyName ? companyName.trim() + ' ERP' : 'ERP'} - Secure Login`;
+    document.title = `${companyShortName ? companyShortName.trim() + ' ERP' : 'ERP'} - Secure Login`;
 
     if (rememberMe) {
       const savedUser = localStorage.getItem('rememberedUsername');
@@ -90,7 +98,7 @@ const LoginForm = () => {
       localStorage.setItem('userName', user.username);
       localStorage.setItem('userRole', user.role);
       localStorage.setItem('empName', user.ename);
-      localStorage.setItem('empId', user.empid);
+      localStorage.setItem('empId', user.empid ? String(user.empid) : '');
       localStorage.setItem('userPermissions', JSON.stringify(user.permissions || []));
 
       // Handle "Keep me signed in"
@@ -106,7 +114,13 @@ const LoginForm = () => {
       sessionStorage.setItem('empName', user.ename);
       sessionStorage.setItem('userPermissions', JSON.stringify(user.permissions || []));
 
-      window.location.href = '/dashboard';
+      if (user.mustChangePassword) {
+        sessionStorage.setItem('mustChangePassword', 'true');
+        window.location.href = '/change-password';
+      } else {
+        sessionStorage.removeItem('mustChangePassword');
+        window.location.href = '/dashboard';
+      }
     } catch (err) {
       console.error('Login error:', err.response?.data || err.message);
       setError(err.response?.data?.message || 'Invalid username or password');
@@ -180,11 +194,15 @@ const LoginForm = () => {
 
               {/* Logo Container */}
               <div className="relative w-28 h-28 rounded-full border-4 border-white shadow-2xl p-2 bg-white flex items-center justify-center transform transition-all duration-700 hover:rotate-[360deg] hover:scale-105 active:scale-95">
-                <img
-                  src={logo}
-                  alt={`${(companyName || 'ERP').trim()} Logo`}
-                  className="w-full h-full object-contain"
-                />
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={`${companyShortName || 'Company'} Logo`}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-2xl font-black uppercase text-[#214c94]">LOGO</span>
+                )}
               </div>
             </div>
 
@@ -194,9 +212,9 @@ const LoginForm = () => {
               </span>
               <h2 className="font-black leading-none tracking-tighter flex items-baseline justify-center">
                 <span className="text-4xl bg-gradient-to-tr from-[#56c7be] via-[#214c94] to-[#1e3a8a] bg-clip-text text-transparent uppercase drop-shadow-sm select-none">
-                  {companyName ? companyName.trim() : 'ERP'}
+                  {companyShortName ? companyShortName.trim() : 'ERP'}
                 </span>
-                {companyName && (
+                {companyShortName && (
                   <span className="text-4xl text-orange-500 drop-shadow-[0_2px_10px_rgba(249,115,22,0.3)] uppercase ml-1">
                     ERP
                   </span>
@@ -214,19 +232,43 @@ const LoginForm = () => {
             <div className="relative z-10 w-full">
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-black text-gray-800">Create Company</h3>
-                <p className="text-sm text-gray-500 mt-1">No company is configured yet. Set up your company (like Tally) to begin.</p>
+                <p className="text-sm text-gray-500 mt-1">No company is configured yet. Set up your company to begin.</p>
               </div>
               <form onSubmit={handleCreateCompany}>
                 <label className="block mb-2 text-sm font-semibold text-gray-700">Company Name *</label>
                 <input
                   type="text"
                   autoFocus
-                  placeholder="e.g. AUCTOR HOME APPLIANCES LLP"
+                  placeholder="Enter your company name"
                   value={companyForm.company_name}
                   onChange={(e) => { setCompanyForm({ ...companyForm, company_name: e.target.value }); setCompanyError(''); }}
                   required
                   className="w-full px-4 py-3 mb-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 focus:border-[#56c7be] bg-white/50"
                 />
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">Short Name (brand)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. ACME"
+                      value={companyForm.short_name}
+                      onChange={(e) => setCompanyForm({ ...companyForm, short_name: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 focus:border-[#56c7be] bg-white/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-gray-700">Logo</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCompanyLogoChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white/50 text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-[#56c7be]/10 file:text-[#214c94] file:font-semibold"
+                    />
+                    {companyForm.logo_url && (
+                      <img src={companyForm.logo_url} alt="Logo preview" className="mt-2 h-12 w-auto object-contain" />
+                    )}
+                  </div>
+                </div>
                 <label className="block mb-2 text-sm font-semibold text-gray-700">Address</label>
                 <textarea
                   rows="2"
@@ -471,12 +513,12 @@ const LoginForm = () => {
       {/* Bottom Left Branding */}
       <div className="fixed bottom-6 left-6 flex flex-col gap-1 opacity-70 hover:opacity-100 transition-opacity duration-300">
         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-          © {new Date().getFullYear()} {(companyName || 'ERP').trim().toUpperCase()}
+          © {new Date().getFullYear()} {(companyShortName || 'ERP').trim().toUpperCase()}
         </p>
         <div className="flex items-center gap-2">
           <span className="text-[9px] text-gray-500 uppercase font-bold tracking-tighter">Powered by</span>
           <span className="px-3 py-1 bg-white/80 backdrop-blur-sm text-[#56c7be] text-[11px] font-black rounded-full shadow-sm border border-white/50">
-            {(companyName || 'ERP').trim()}{companyName && <span className="text-[#214c94]"> ERP</span>}
+            {(companyShortName || 'ERP').trim()}{companyShortName && <span className="text-[#214c94]"> ERP</span>}
           </span>
         </div>
       </div>

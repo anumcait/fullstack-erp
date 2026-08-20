@@ -215,9 +215,6 @@ END $$;`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS mat_code VARCHAR(50)`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS mat_desc VARCHAR(200)`,
         `ALTER TABLE IF EXISTS t_purchase_requisition_item ADD COLUMN IF NOT EXISTS est_cost DECIMAL(14,2)`,
-        // ── Company settings: logo ──
-        `ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS logo_url TEXT`,
-        `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'm_company_settings' AND table_schema = 'public') THEN UPDATE m_company_settings SET logo_url = '/logo.png' WHERE logo_url IS NULL OR logo_url = ''; END IF; END $$;`,
         // ── Sequence counters (row-level locking for concurrent-safe auto-numbering) ──
         `CREATE TABLE IF NOT EXISTS t_sequence_counters (
           id SERIAL PRIMARY KEY,
@@ -420,6 +417,14 @@ END $$;`,
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS payroll_pt_rate DECIMAL(10,2) DEFAULT 200`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS payroll_ot_multiplier DECIMAL(10,2) DEFAULT 1.5`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS c_last_update TIMESTAMP`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS logo_url TEXT`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS short_name VARCHAR(100)`);
+
+        // Remove the obsolete single-tenant `company_id` column. This project is
+        // deployed as one organization per instance (single global company
+        // config in m_company_settings), so the per-employee company_id column is
+        // unused and misleading. Dropping it keeps the schema honest.
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_employee_master DROP COLUMN IF EXISTS company_id`);
 
         // Align legacy HR module tables created with `created_date` (older raw
         // schema) with the models/controllers which expect `created_at`.
@@ -751,32 +756,31 @@ END $$;`,
       } catch (_) { console.log('⚠️ Accounts seed skipped (may already exist).'); }
 
       // 4d. Bootstrap default admin user (idempotent) so login always works
-      // even on a fresh database. Password is taken from BOOTSTRAP_ADMIN_PASSWORD
-      // (set in .env) or auto-generated. Change it after first login.
+      // even on a fresh database. The admin is a pure system account with NO
+      // employee id (empid is left null) — it is not tied to any EmployeeMaster.
+      // Any legacy bootstrap employee record (empid 1001 / "Administrator") is
+      // removed so it never shows up in the employee list.
+      // Password is taken from BOOTSTRAP_ADMIN_PASSWORD (set in .env) or
+      // auto-generated. Change it after first login.
       try {
         const { User, EmployeeMaster } = db;
-        const ADMIN_EMPID = 1001;
-        await EmployeeMaster.findOrCreate({
-          where: { empid: ADMIN_EMPID },
-          defaults: { empid: ADMIN_EMPID, ename: 'Administrator', company_id: 1, unit_id: 1, is_active: true },
-        });
-        const existingAdmin = await User.findOne({ where: { username: 'admin' } });
-        if (!existingAdmin) {
-          const bcrypt = require('bcrypt');
-          const crypto = require('crypto');
+        const bcrypt = require('bcrypt');
+        const crypto = require('crypto');
+
+        let admin = await User.findOne({ where: { username: 'admin' } });
+        if (!admin) {
           const salt = await bcrypt.genSalt(10);
           const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD
             || crypto.randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g, '').slice(0, 12);
           const password_hash = await bcrypt.hash(bootstrapPassword, salt);
-          await User.create({
+          admin = await User.create({
             username: 'admin',
             password_hash,
-            empid: ADMIN_EMPID,
+            empid: null,
             ename: 'Administrator',
             role: 'ADMIN',
             permissions: ['*'],
             is_active: true,
-            created_by: String(ADMIN_EMPID),
           });
           if (process.env.BOOTSTRAP_ADMIN_PASSWORD) {
             console.log('✅ Bootstrapped default admin user (admin / BOOTSTRAP_ADMIN_PASSWORD from .env). Change it after first login.');
@@ -785,7 +789,24 @@ END $$;`,
             console.log('   Set BOOTSTRAP_ADMIN_PASSWORD in .env to use a fixed password, then change it after first login.');
           }
         }
-      } catch (_) { console.log('⚠️ Admin bootstrap skipped.'); }
+
+        // Detach the admin from any employee id and drop the legacy bootstrap
+        // employee record so it does not appear in employee lists.
+        await admin.update({ empid: null });
+
+        // Hard-delete (force) the legacy bootstrap employee row by empid only —
+        // using `force: true` bypasses the model's `paranoid` soft-delete so the
+        // row is physically removed (soft-deleted rows can still surface in
+        // queries that run with `paranoid: false` or raw SQL). Match on empid
+        // alone because the stored ename may differ in case/whitespace.
+        const removedLegacy = await EmployeeMaster.destroy({
+          where: { empid: 1001 },
+          force: true,
+        });
+        if (removedLegacy) {
+          console.log(`✅ Removed ${removedLegacy} legacy bootstrap employee row(s) (empid 1001).`);
+        }
+      } catch (e) { console.log('⚠️ Admin bootstrap skipped:', e.message); }
 
       // 5. Start listening
       app.listen(PORT, '0.0.0.0', () => {

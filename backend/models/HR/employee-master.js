@@ -26,7 +26,6 @@ module.exports = (sequelize) => {
       },
 
       // 🔹 Employment Details
-      company_id: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
       unit_id: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 }, //Unit ID
       div_id: { type: DataTypes.INTEGER }, // Division ID
       dept_id: { type: DataTypes.INTEGER }, // Department ID
@@ -162,7 +161,6 @@ module.exports = (sequelize) => {
 //         // autoIncrement: true, // Uncomment if you want auto-increment
 //       },
 //       // 🔹 Employment Details
-//       company_id: { type: DataTypes.INTEGER, allowNull: false },
 //       unit_id: { type: DataTypes.INTEGER, allowNull: false },
 //       div_id: { type: DataTypes.INTEGER }, // Division
 //       dept_id: { type: DataTypes.INTEGER }, // Department

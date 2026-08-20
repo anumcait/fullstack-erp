@@ -998,7 +998,6 @@ ALTER SEQUENCE public.emp_qualification_master_id_seq OWNED BY public.emp_qualif
 CREATE TABLE public.employee_master (
     id uuid,
     empid integer NOT NULL,
-    company_id integer DEFAULT 1 NOT NULL,
     unit_id integer DEFAULT 1 NOT NULL,
     div_id integer,
     dept_id integer,

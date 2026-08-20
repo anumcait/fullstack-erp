@@ -45,13 +45,20 @@ exports.login = async (req, res) => {
     }
 
     // Success - Regenerate session to prevent session fixation
+    const displayName = user.role === 'ADMIN'
+      ? (user.username || user.ename || user.employee?.ename || 'Administrator')
+      : (user.ename || user.employee?.ename || user.username || 'User');
+
+    const mustChangePassword = !user.password_changed_at;
+
     const userData = {
       id: user.id,
       username: user.username,
       empid: user.empid,
       role: user.role,
       permissions: user.permissions || [],
-      ename: user.employee?.ename || 'Guest'
+      ename: displayName,
+      mustChangePassword
     };
 
     req.session.regenerate((err) => {
@@ -72,7 +79,7 @@ exports.login = async (req, res) => {
         failed_attempts: 0 // Reset on successful login
       });
 
-      res.json({ message: 'Login successful', user: userData });
+      res.json({ message: 'Login successful', user: userData, mustChangePassword });
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -176,6 +183,44 @@ exports.resetPassword = async (req, res) => {
   } catch (err) {
     console.error('Reset password error:', err);
     res.status(500).json({ message: 'Failed to reset password.' });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({ message: 'Login required to change password.' });
+  }
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ message: 'Old and new password are required.' });
+  }
+  if (newPassword.length < 4) {
+    return res.status(400).json({ message: 'New password must be at least 4 characters.' });
+  }
+  try {
+    const user = await User.findByPk(req.session.user.id);
+    if (!user || !user.is_active) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const match = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ message: 'Current password is incorrect.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await user.update({
+      password_hash: hashedPassword,
+      password_changed_at: new Date(),
+      failed_attempts: 0
+    });
+
+    res.json({ message: 'Password changed successfully.' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ message: 'Failed to change password.' });
   }
 };
 

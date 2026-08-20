@@ -10,6 +10,10 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: ''
         },
+        short_name: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         address: {
             type: DataTypes.TEXT,
             allowNull: true

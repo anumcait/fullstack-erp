@@ -19,6 +19,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/" replace />; // not logged in
   }
 
+  if (sessionStorage.getItem('mustChangePassword') === 'true') {
+    return <Navigate to="/change-password" replace />; // force password change first
+  }
+
   if (allowedRoles && !allowedRoles.includes(userRole)) {
     return <Navigate to="/unauthorized" replace />;
   }

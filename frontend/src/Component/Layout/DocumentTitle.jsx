@@ -162,14 +162,14 @@ const getShortName = (companyName) => {
 
 const DocumentTitle = () => {
   const { pathname } = useLocation();
-  const { companyName } = useCompany();
+  const { companyShortName } = useCompany();
 
   useEffect(() => {
     const pageTitle = getPageTitle(pathname);
     if (pageTitle) {
-      document.title = `${getShortName(companyName)} : ${pageTitle}`;
+      document.title = `${getShortName(companyShortName) || 'ERP'} : ${pageTitle}`;
     }
-  }, [pathname, companyName]);
+  }, [pathname, companyShortName]);
 
   return null;
 };

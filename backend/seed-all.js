@@ -4,7 +4,7 @@ require('dotenv').config();
 
 // Shared temporary password for seeded demo users (override via .env).
 // NOTE: change these passwords immediately after first login.
-const SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Changeme@123';
+const SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'ERP123';
 
 // Full permission catalog (mirrors frontend/src/constants/permissions.js).
 // ADMIN users receive all of these; scoped employees receive a subset.
@@ -41,7 +41,7 @@ const employeesData = [
     // 🔹 Active Employees
     {
         empid: 1002,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 1,
         dept_id: 1,
@@ -69,7 +69,7 @@ const employeesData = [
     },
     {
         empid: 1003,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -97,7 +97,7 @@ const employeesData = [
     },
     {
         empid: 1005,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -125,7 +125,7 @@ const employeesData = [
     },
     {
         empid: 1006,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -153,7 +153,7 @@ const employeesData = [
     },
     {
         empid: 1009,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -181,7 +181,7 @@ const employeesData = [
     },
     {
         empid: 1010,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 3,
         dept_id: 3,
@@ -209,7 +209,7 @@ const employeesData = [
     },
     {
         empid: 1016,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -237,7 +237,7 @@ const employeesData = [
     },
     {
         empid: 1019,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 4,
         dept_id: 4,
@@ -265,7 +265,7 @@ const employeesData = [
     },
     {
         empid: 1021,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 4,
         dept_id: 4,
@@ -293,7 +293,7 @@ const employeesData = [
     },
     {
         empid: 1022,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 4,
         dept_id: 4,
@@ -321,7 +321,7 @@ const employeesData = [
     },
     {
         empid: 1024,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -349,7 +349,7 @@ const employeesData = [
     },
     {
         empid: 1025,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -377,7 +377,7 @@ const employeesData = [
     },
     {
         empid: 1026,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -405,7 +405,7 @@ const employeesData = [
     },
     {
         empid: 1027,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 3,
         dept_id: 3,
@@ -435,7 +435,7 @@ const employeesData = [
     // 🔹 Left Employees
     {
         empid: 1013,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 2,
         dept_id: 2,
@@ -463,7 +463,7 @@ const employeesData = [
     },
     {
         empid: 1004,
-        company_id: 1,
+
         unit_id: 1,
         div_id: 4,
         dept_id: 4,
@@ -565,7 +565,7 @@ const seedAll = async () => {
         const existing = await db.EmployeeMaster.findOne({ where: { empid: demoEmpId } });
         if (!existing) {
             await db.EmployeeMaster.create({
-                empid: demoEmpId, company_id: 1, unit_id: 1, div_id: 4, dept_id: 4, sec_id: 1,
+                empid: demoEmpId, unit_id: 1, div_id: 4, dept_id: 4, sec_id: 1,
                 designation_id: 1, divname: 'Stores', deptname: 'Stores', secname: 'Section 1',
                 gender: 'M', marital_status: 'Married', ename: 'DEMO STORES CLERK', fname: 'Clerk',
                 dob: new Date('1995-01-01'), bgroup: 'O+', mother_tongue: 'Telugu',

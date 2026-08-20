@@ -271,6 +271,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<LoginForm />} />
                   <Route path="/company-setup" element={<CompanySetup />} />
+                  <Route path="/change-password" element={<ChangePasswordForm />} />
                   <Route element={<CompanyGate />}>
                   <Route
                     path="/dashboard"
@@ -555,7 +556,6 @@ function App() {
                     <Route path="/shiftchange" element={<ShiftChangeDashboard />} />
                     <Route path="/attendance-mod" element={<AttendanceModification />} />
                     <Route path="/hr-attendance" element={<HRAttendance />} />
-                    <Route path="/change-password" element={<ChangePasswordForm />} />
                     <Route path="/tour" element={<TourDashboard />} />
                     <Route path="/woffchange" element={<WoffChangeDashboard />} />
                     <Route path="/advance" element={<AdvanceDashboard />} />

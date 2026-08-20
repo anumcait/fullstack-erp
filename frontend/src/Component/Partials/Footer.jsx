@@ -6,13 +6,12 @@ import {
 import {
   ExpandLess, ExpandMore, LocationOn, Email, Phone, Copyright
 } from '@mui/icons-material';
-import logo from "../../assets/images/EQIC_Image.jpg";
 import { useCompany } from '../../context/CompanyContext';
 
 const Footer = () => {
   const [showFooter, setShowFooter] = useState(false);
-  const { companyName, companySettings } = useCompany();
-  const brand = (companyName || 'ERP').trim();
+  const { companyShortName, companySettings } = useCompany();
+  const brand = (companyShortName || 'ERP').trim();
   const toggleFooter = () => setShowFooter((prev) => !prev);
 
   return (
@@ -32,10 +31,12 @@ const Footer = () => {
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box display="flex" alignItems="center" gap={2} mb={1.5}>
-                <Box component="img" src={logo} alt="Logo" sx={{
-                  height: 56, width: 'auto', maxWidth: 160, objectFit: 'contain',
-                  bgcolor: 'white', borderRadius: 1.5, p: 0.5, boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }} />
+                {companySettings.logo_url && (
+                  <Box component="img" src={companySettings.logo_url} alt="Logo" sx={{
+                    height: 56, width: 'auto', maxWidth: 160, objectFit: 'contain',
+                    bgcolor: 'white', borderRadius: 1.5, p: 0.5, boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                  }} />
+                )}
                 <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: 2 }}>{brand}</Typography>
               </Box>
               <Typography variant="body2" color="grey.300" sx={{ lineHeight: 1.6, mb: 1.5, fontSize: '0.82rem' }}>
@@ -99,7 +100,7 @@ const Footer = () => {
 
           <Box mt={3} textAlign="center" sx={{ borderTop: '1px solid #ffffff33', pt: 1.5 }}>
             <Typography variant="caption" color="grey.400" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-              <Copyright fontSize="inherit" /> {new Date().getFullYear()} {brand}{companyName ? ' ERP' : ''}. All rights reserved.
+              <Copyright fontSize="inherit" /> {new Date().getFullYear()} {brand}{companyShortName ? ' ERP' : ''}. All rights reserved.
             </Typography>
           </Box>
         </Container>

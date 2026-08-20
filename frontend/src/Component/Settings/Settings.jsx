@@ -37,6 +37,7 @@ const Settings = () => {
 
   const [companySettings, setCompanySettings] = useState({
     company_name: "",
+    short_name: "",
     address: "",
     phone: "",
     email: "",
@@ -202,6 +203,20 @@ const Settings = () => {
                     })
                   }
                   inputProps={{ style: { fontWeight: "bold" } }}
+                />
+
+                {/* Short Name (brand) */}
+                <TextField
+                  fullWidth
+                  label="Short Name (brand)"
+                  placeholder="e.g. ACME"
+                  value={companySettings.short_name || ""}
+                  onChange={(e) =>
+                    setCompanySettings({
+                      ...companySettings,
+                      short_name: e.target.value,
+                    })
+                  }
                 />
 
                 {/* Address */}

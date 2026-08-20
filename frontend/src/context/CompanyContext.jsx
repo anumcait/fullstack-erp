@@ -9,12 +9,15 @@ const CompanyContext = createContext({
 export const CompanyProvider = ({ children }) => {
     const [companySettings, setCompanySettings] = useState({
         company_name: '',
+        short_name: '',
         address: '',
         phone: '',
         email: '',
+        website: '',
         gstin: '',
         cin: '',
         pan: '',
+        logo_url: '',
         show_format_no: true,
         pf_number: '',
         esi_number: ''
@@ -40,9 +43,14 @@ export const CompanyProvider = ({ children }) => {
         fetchSettings();
     }, []);
 
+    const companyShortName = companyConfigured
+        ? (companySettings.short_name || (companySettings.company_name ? companySettings.company_name.split(/\s+/)[0] : ''))
+        : '';
+
     return (
         <CompanyContext.Provider value={{
             companyName: companyConfigured ? (companySettings.company_name || '') : '',
+            companyShortName,
             companySettings,
             companyConfigured,
             companyLoading,

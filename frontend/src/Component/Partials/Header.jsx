@@ -66,7 +66,8 @@ const Header = () => {
     }, 1000);
     const fetchUserPhoto = async () => {
       const empId = localStorage.getItem('empId');
-      if (!empId) return;
+      const role = localStorage.getItem('userRole');
+      if (!empId || role === 'ADMIN') return;
       try {
         const res = await axios.get(`${API}/api/employees/${empId}/photo`, { withCredentials: true });
         if (res.data?.photo) {
@@ -140,6 +141,7 @@ const Header = () => {
 
   const markAllAsRead = async () => {
     const empId = localStorage.getItem('empId');
+    if (!empId) return;
     try {
       await axios.post(`${API}/api/notifications/read-all`, { empid: empId }, { withCredentials: true });
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
@@ -508,6 +510,10 @@ const Header = () => {
                 alt={userName}
                 sx={{ width: 32, height: 32 }}
               />
+            ) : userRole === 'ADMIN' ? (
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'var(--primary-main)' }}>
+                <SecurityIcon />
+              </Avatar>
             ) : (
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'var(--primary-main)' }}>
                 <PersonIcon />

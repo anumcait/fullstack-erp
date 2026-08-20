@@ -22,7 +22,9 @@ export default function DashboardTabs() {
         // Determine permissions per tab
         let canAccessHR = r === "ADMIN" || r === "HR" || userPermissions.includes("HR_DASHBOARD_HR");
         const canAccessManager = r === "ADMIN" || r === "MANAGER" || userPermissions.includes("HR_DASHBOARD_MGR");
-        const canAccessEmployee = true; // Everyone can access their own employee dashboard
+        // Admin is not a real employee, so don't expose the self-service Employee tab
+        // (it would otherwise show leave/attendance data for empid 1001).
+        const canAccessEmployee = r !== "ADMIN";
 
         // Managers should NOT see HR Dashboard (explicit exclusion)
         if (r === "MANAGER") {
@@ -44,7 +46,8 @@ export default function DashboardTabs() {
 
         // Set default tab safely based on available tabs
         if (tabs.length > 0) {
-            setActiveTab(tabs[0].name);
+            const defaultTab = (r === "ADMIN" && canAccessHR) ? "HR" : tabs[0].name;
+            setActiveTab(defaultTab);
         }
     }, []);
 
