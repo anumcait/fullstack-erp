@@ -117,7 +117,7 @@ const HolidayMaster = () => {
   return (
     <Card sx={{ m: 2 }}>
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
-        <Typography variant="h6">Holiday Master</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>Holiday Master</Typography>
         <Box>
           <TextField
             size="small"
