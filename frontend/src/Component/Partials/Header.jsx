@@ -40,6 +40,15 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const faviconUrl = companySettings?.favicon_url || logoUrl;
+
+  useEffect(() => {
+    if (faviconUrl) {
+      const link = document.getElementById('favicon');
+      if (link) link.href = faviconUrl;
+    }
+  }, [faviconUrl]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {

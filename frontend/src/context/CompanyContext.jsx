@@ -18,24 +18,37 @@ export const CompanyProvider = ({ children }) => {
         cin: '',
         pan: '',
         logo_url: '',
+        favicon_url: '',
         pf_number: '',
         esi_number: ''
     });
     const [companyConfigured, setCompanyConfigured] = useState(false);
     const [companyLoading, setCompanyLoading] = useState(true);
 
-    const fetchSettings = () => {
-        axios.get(`${import.meta.env.VITE_API_URL}/api/settings/company`)
-            .then(res => {
-                if (res.data && res.data.company_name) {
-                    setCompanySettings(res.data);
-                    setCompanyConfigured(true);
-                } else {
-                    setCompanyConfigured(false);
+    const fetchSettings = async () => {
+        setCompanyLoading(true);
+        let data = null;
+        // Retry transient failures — a single failed GET must not send an
+        // already-configured instance to the "Create Company" setup screen.
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const res = await axios.get(`/api/settings/company`);
+                data = res.data;
+                break;
+            } catch (err) {
+                console.error(`Error loading company settings (attempt ${attempt}):`, err);
+                if (attempt < 3) {
+                    await new Promise(r => setTimeout(r, 400 * attempt));
                 }
-            })
-            .catch(err => console.error('Error loading company settings:', err))
-            .finally(() => setCompanyLoading(false));
+            }
+        }
+        if (data && data.company_name) {
+            setCompanySettings(data);
+            setCompanyConfigured(true);
+        } else {
+            setCompanyConfigured(false);
+        }
+        setCompanyLoading(false);
     };
 
     useEffect(() => {

@@ -59,6 +59,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.TEXT,
             allowNull: true
         },
+        favicon_url: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            comment: 'Small icon for the browser tab. Falls back to logo_url when empty.'
+        },
         // Add other settings fields as needed
         payroll_pt_rate: {
             type: DataTypes.DECIMAL(10, 2),

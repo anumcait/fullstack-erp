@@ -16,7 +16,7 @@ exports.updateCompanySettings = async (req, res) => {
     try {
         const {
             company_name, short_name, title, address, phone, email, website,
-            gstin, cin, pan, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier
+            gstin, cin, pan, pf_number, esi_number, logo_url, favicon_url, payroll_pt_rate, payroll_ot_multiplier
         } = req.body;
 
         let settings = await CompanySettings.findOne();
@@ -28,14 +28,14 @@ exports.updateCompanySettings = async (req, res) => {
             }
             await settings.update({
                 company_name, short_name, title, address, phone, email, website,
-                gstin, cin, pan, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier,
+                gstin, cin, pan, pf_number, esi_number, logo_url, favicon_url, payroll_pt_rate, payroll_ot_multiplier,
                 c_last_update: new Date()
             });
         } else {
             // First-run creation is allowed without login (initial setup only).
             settings = await CompanySettings.create({
                 company_name, short_name, title, address, phone, email, website,
-                gstin, cin, pan, pf_number, esi_number, logo_url, payroll_pt_rate, payroll_ot_multiplier,
+                gstin, cin, pan, pf_number, esi_number, logo_url, favicon_url, payroll_pt_rate, payroll_ot_multiplier,
                 c_last_update: new Date()
             });
         }

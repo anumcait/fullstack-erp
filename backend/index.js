@@ -421,6 +421,7 @@ END $$;`,
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS payroll_ot_multiplier DECIMAL(10,2) DEFAULT 1.5`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS c_last_update TIMESTAMP`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS logo_url TEXT`);
+        await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS favicon_url TEXT`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS short_name VARCHAR(100)`);
         await db.sequelize.query(`ALTER TABLE IF EXISTS m_company_settings ADD COLUMN IF NOT EXISTS title VARCHAR(100)`);
         // Remove show_format_no from company settings — it is a Stores/Delivery

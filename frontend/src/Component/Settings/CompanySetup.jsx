@@ -31,7 +31,7 @@ const CompanySetup = () => {
     setError('');
     setSuccess('');
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/company`, form);
+      await axios.post(`/api/settings/company`, form);
       setSuccess('Company created successfully.');
       await refreshCompanySettings();
       setTimeout(() => navigate('/'), 1200);

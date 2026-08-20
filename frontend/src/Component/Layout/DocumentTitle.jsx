@@ -144,7 +144,7 @@ const PAGE_TITLES = [
   ['/useraccess', 'User Access'],
   ['/profile', 'My Profile'],
   ['/change-password', 'Change Password'],
-  ['/hr/settings', 'Settings'],
+  ['/hr/settings', 'HR Settings'],
   ['/settings', 'Settings'],
   ['/reports', 'Reports'],
   ['/hr', 'HR Dashboard'],
