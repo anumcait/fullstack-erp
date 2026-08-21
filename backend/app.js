@@ -36,6 +36,7 @@ const attendanceCollectorRoutes = require('./routes/HR/attendanceCollectorRoutes
 const pfAccountingRoutes = require('./routes/HR/pfAccountingRoutes');
 
 const app = express();
+const logger = require('./utils/logger');
 
 // Allowed origins for CORS
 const allowedOrigins = [
@@ -151,6 +152,24 @@ app.get('/test-models', (req, res) => {
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', client.register.contentType);
   res.end(await client.register.metrics());
+});
+
+// 404 for unmatched API routes
+app.use('/api', (req, res, next) => {
+  const ApiError = require('./utils/ApiError');
+  next(ApiError.notFound(`Route not found: ${req.method} ${req.originalUrl}`));
+});
+
+// Centralized error handling (must be the last middleware)
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
+
+// Log server boot issues for ops visibility
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection', { error: reason && reason.message });
+});
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception', { error: err.message, stack: err.stack });
 });
 
 module.exports = app;

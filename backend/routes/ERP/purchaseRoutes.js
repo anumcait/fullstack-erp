@@ -13,6 +13,8 @@ const approvalController = require('../../controllers/ERP/approvalController');
 const prSanctionController = require('../../controllers/ERP/prSanctionController');
 const purchaseReturnController = require('../../controllers/ERP/purchaseReturnController');
 const costCenterController = require('../../controllers/ERP/costCenterController');
+const { requirePermission } = require('../../middleware/auth');
+const P = require('../../constants/permissions').PURCHASE;
 
 // ── Dashboard ──
 router.get('/dashboard', purchaseController.getDashboardStats);
@@ -21,56 +23,56 @@ router.get('/dashboard', purchaseController.getDashboardStats);
 router.get('/suppliers/lookup/gstin/:gstin', supplierController.lookupByGSTIN);
 router.get('/suppliers', supplierController.getSuppliers);
 router.get('/suppliers/:id', supplierController.getSupplier);
-router.post('/suppliers', supplierController.createSupplier);
-router.put('/suppliers/:id', supplierController.updateSupplier);
-router.delete('/suppliers/:id', supplierController.deleteSupplier);
+router.post('/suppliers', requirePermission(P.SUPPLIER_MANAGE), supplierController.createSupplier);
+router.put('/suppliers/:id', requirePermission(P.SUPPLIER_MANAGE), supplierController.updateSupplier);
+router.delete('/suppliers/:id', requirePermission(P.SUPPLIER_MANAGE), supplierController.deleteSupplier);
 
 // ── Purchase Requisitions (Indents) ──
 router.get('/requisitions', requisitionController.getRequisitions);
 router.get('/requisitions/:id', requisitionController.getRequisition);
 router.get('/requisitions/:id/amendments', requisitionController.getAmendmentHistory);
-router.post('/requisitions', requisitionController.createRequisition);
-router.put('/requisitions/:id', requisitionController.updateRequisition);
-router.put('/requisitions/:id/approve', requisitionController.approveRequisition);
-router.delete('/requisitions/:id', requisitionController.deleteRequisition);
+router.post('/requisitions', requirePermission(P.REQUISITION_CREATE), requisitionController.createRequisition);
+router.put('/requisitions/:id', requirePermission(P.REQUISITION_CREATE), requisitionController.updateRequisition);
+router.put('/requisitions/:id/approve', requirePermission(P.REQUISITION_APPROVE), requisitionController.approveRequisition);
+router.delete('/requisitions/:id', requirePermission(P.REQUISITION_DELETE), requisitionController.deleteRequisition);
 
 // ── Purchase Orders ──
 router.get('/orders/terms/:old_po_no', poController.getPOTermsByPoNo);
 router.get('/orders', poController.getPurchaseOrders);
 router.get('/orders/:id', poController.getPurchaseOrder);
-router.post('/orders', poController.createPurchaseOrder);
-router.put('/orders/:id', poController.updatePurchaseOrder);
-router.put('/orders/:id/approve', poController.approvePurchaseOrder);
-router.put('/orders/:id/recalculate', poController.recalculatePO);
-router.delete('/orders/:id', poController.deletePurchaseOrder);
+router.post('/orders', requirePermission(P.ORDER_CREATE), poController.createPurchaseOrder);
+router.put('/orders/:id', requirePermission(P.ORDER_CREATE), poController.updatePurchaseOrder);
+router.put('/orders/:id/approve', requirePermission(P.ORDER_APPROVE), poController.approvePurchaseOrder);
+router.put('/orders/:id/recalculate', requirePermission(P.ORDER_CREATE), poController.recalculatePO);
+router.delete('/orders/:id', requirePermission(P.ORDER_DELETE), poController.deletePurchaseOrder);
 
 // ── RFQ ──
 router.get('/rfq', rfqController.getRFQs);
 router.get('/rfq/:id', rfqController.getRFQ);
-router.post('/rfq', rfqController.createRFQ);
-router.put('/rfq/:id', rfqController.updateRFQ);
-router.put('/rfq/:id/select-quote', rfqController.selectVendorQuote);
-router.delete('/rfq/:id', rfqController.deleteRFQ);
+router.post('/rfq', requirePermission(P.ORDER_CREATE), rfqController.createRFQ);
+router.put('/rfq/:id', requirePermission(P.ORDER_CREATE), rfqController.updateRFQ);
+router.put('/rfq/:id/select-quote', requirePermission(P.ORDER_CREATE), rfqController.selectVendorQuote);
+router.delete('/rfq/:id', requirePermission(P.ORDER_DELETE), rfqController.deleteRFQ);
 
 // ── Price List ──
 router.get('/price-list', priceListController.getPriceList);
-router.post('/price-list', priceListController.createPrice);
-router.put('/price-list/:id', priceListController.updatePrice);
-router.delete('/price-list/:id', priceListController.deletePrice);
+router.post('/price-list', requirePermission(P.SUPPLIER_MANAGE), priceListController.createPrice);
+router.put('/price-list/:id', requirePermission(P.SUPPLIER_MANAGE), priceListController.updatePrice);
+router.delete('/price-list/:id', requirePermission(P.SUPPLIER_MANAGE), priceListController.deletePrice);
 
 // ── Vendor Ratings ──
 router.get('/vendor-ratings', vendorRatingController.getRatings);
 router.get('/vendor-ratings/supplier/:id/summary', vendorRatingController.getSupplierSummary);
-router.post('/vendor-ratings', vendorRatingController.createRating);
-router.delete('/vendor-ratings/:id', vendorRatingController.deleteRating);
+router.post('/vendor-ratings', requirePermission(P.SUPPLIER_MANAGE), vendorRatingController.createRating);
+router.delete('/vendor-ratings/:id', requirePermission(P.SUPPLIER_MANAGE), vendorRatingController.deleteRating);
 
 // ── PR Sanctions ──
 router.get('/sanctions', prSanctionController.getSanctions);
-router.post('/sanctions', prSanctionController.createSanctions);
+router.post('/sanctions', requirePermission(P.REQUISITION_APPROVE), prSanctionController.createSanctions);
 
 // ── Cost Centers ──
 router.get('/cost-centers', costCenterController.getCostCenters);
-router.post('/cost-centers', costCenterController.createCostCenter);
+router.post('/cost-centers', requirePermission(P.ORDER_CREATE), costCenterController.createCostCenter);
 
 // ── Approvals Inbox ──
 router.get('/approvals', approvalController.getPendingApprovals);
@@ -108,7 +110,7 @@ router.get('/reports/pending-by-party', R.getPendingMaterialByParty);
 
 // ── Purchase Settings ──
 router.get('/settings', purchaseSettingsController.getSettings);
-router.put('/settings', purchaseSettingsController.updateSettings);
+router.put('/settings', requirePermission(P.SUPPLIER_MANAGE), purchaseSettingsController.updateSettings);
 
 // ── Purchase Returns / Debit Notes ──
 router.get('/returns', purchaseReturnController.getPurchaseReturns);
@@ -116,12 +118,12 @@ router.get('/returns/next-number', purchaseReturnController.getNextReturnNumber)
 router.get('/returns/returnable-items', purchaseReturnController.getReturnableItems);
 router.get('/returns/pending-supplier', purchaseReturnController.getPendingReturnsForSupplier);
 router.get('/returns/:id', purchaseReturnController.getPurchaseReturn);
-router.post('/returns', purchaseReturnController.createPurchaseReturn);
-router.put('/returns/:id', purchaseReturnController.updatePurchaseReturn);
-router.put('/returns/:id/submit', purchaseReturnController.submitPurchaseReturn);
-router.put('/returns/:id/approve', purchaseReturnController.approvePurchaseReturn);
-router.put('/returns/:id/reject', purchaseReturnController.rejectPurchaseReturn);
-router.put('/returns/:id/cancel', purchaseReturnController.cancelPurchaseReturn);
-router.delete('/returns/:id', purchaseReturnController.deletePurchaseReturn);
+router.post('/returns', requirePermission(P.RETURN_CREATE), purchaseReturnController.createPurchaseReturn);
+router.put('/returns/:id', requirePermission(P.RETURN_CREATE), purchaseReturnController.updatePurchaseReturn);
+router.put('/returns/:id/submit', requirePermission(P.RETURN_CREATE), purchaseReturnController.submitPurchaseReturn);
+router.put('/returns/:id/approve', requirePermission(P.ORDER_APPROVE), purchaseReturnController.approvePurchaseReturn);
+router.put('/returns/:id/reject', requirePermission(P.ORDER_APPROVE), purchaseReturnController.rejectPurchaseReturn);
+router.put('/returns/:id/cancel', requirePermission(P.ORDER_APPROVE), purchaseReturnController.cancelPurchaseReturn);
+router.delete('/returns/:id', requirePermission(P.ORDER_DELETE), purchaseReturnController.deletePurchaseReturn);
 
 module.exports = router;

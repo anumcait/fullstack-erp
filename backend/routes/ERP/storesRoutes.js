@@ -21,6 +21,8 @@ const approvalController = require('../../controllers/ERP/approvalController');
 const inventoryReportController = require('../../controllers/ERP/inventoryReportController');
 const warehouseController = require('../../controllers/ERP/warehouseController');
 const batchController = require('../../controllers/ERP/batchController');
+const { requirePermission } = require('../../middleware/auth');
+const S = require('../../constants/permissions').STORES;
 
 // ── Dashboard ──
 router.get('/dashboard', storesController.getDashboardStats);
@@ -57,55 +59,55 @@ router.get('/inventory/warehouse-wise', inventoryReportController.getWarehouseWi
 // ── Warehouse Master ──
 router.get('/warehouses', warehouseController.getList);
 router.get('/warehouses/:id', warehouseController.getOne);
-router.post('/warehouses', warehouseController.create);
-router.put('/warehouses/:id', warehouseController.update);
-router.delete('/warehouses/:id', warehouseController.remove);
+router.post('/warehouses', requirePermission(S.ITEM_MANAGE), warehouseController.create);
+router.put('/warehouses/:id', requirePermission(S.ITEM_MANAGE), warehouseController.update);
+router.delete('/warehouses/:id', requirePermission(S.ITEM_MANAGE), warehouseController.remove);
 
 // ── Batch Master ──
 router.get('/batches', batchController.getList);
-router.post('/batches', batchController.create);
-router.put('/batches/:id', batchController.update);
-router.delete('/batches/:id', batchController.remove);
+router.post('/batches', requirePermission(S.ITEM_MANAGE), batchController.create);
+router.put('/batches/:id', requirePermission(S.ITEM_MANAGE), batchController.update);
+router.delete('/batches/:id', requirePermission(S.ITEM_MANAGE), batchController.remove);
 
 // ── Item Group / Sub Group / Type / Sub Type (4-level classification) ──
 router.get('/groups', itemController.getGroups);
-router.post('/groups', itemController.createGroup);
-router.put('/groups/:id', itemController.updateGroup);
-router.delete('/groups/:id', itemController.deleteGroup);
+router.post('/groups', requirePermission(S.ITEM_MANAGE), itemController.createGroup);
+router.put('/groups/:id', requirePermission(S.ITEM_MANAGE), itemController.updateGroup);
+router.delete('/groups/:id', requirePermission(S.ITEM_MANAGE), itemController.deleteGroup);
 
 // Alias used by the Item Master (AddItem) UI for the "Item Group" lookup/create.
 // Frontend refers to the item group as "category" — keep both endpoints in sync.
 router.get('/categories', itemController.getGroups);
-router.post('/categories', itemController.createGroup);
+router.post('/categories', requirePermission(S.ITEM_MANAGE), itemController.createGroup);
 
 router.get('/subgroups', itemController.getSubGroups);
-router.post('/subgroups', itemController.createSubGroup);
-router.put('/subgroups/:id', itemController.updateSubGroup);
-router.delete('/subgroups/:id', itemController.deleteSubGroup);
+router.post('/subgroups', requirePermission(S.ITEM_MANAGE), itemController.createSubGroup);
+router.put('/subgroups/:id', requirePermission(S.ITEM_MANAGE), itemController.updateSubGroup);
+router.delete('/subgroups/:id', requirePermission(S.ITEM_MANAGE), itemController.deleteSubGroup);
 
 router.get('/item-types', itemController.getItemTypes);
-router.post('/item-types', itemController.createItemType);
-router.put('/item-types/:id', itemController.updateItemType);
-router.delete('/item-types/:id', itemController.deleteItemType);
+router.post('/item-types', requirePermission(S.ITEM_MANAGE), itemController.createItemType);
+router.put('/item-types/:id', requirePermission(S.ITEM_MANAGE), itemController.updateItemType);
+router.delete('/item-types/:id', requirePermission(S.ITEM_MANAGE), itemController.deleteItemType);
 
 router.get('/subtypes', itemController.getSubTypes);
-router.post('/subtypes', itemController.createSubType);
-router.put('/subtypes/:id', itemController.updateSubType);
-router.delete('/subtypes/:id', itemController.deleteSubType);
+router.post('/subtypes', requirePermission(S.ITEM_MANAGE), itemController.createSubType);
+router.put('/subtypes/:id', requirePermission(S.ITEM_MANAGE), itemController.updateSubType);
+router.delete('/subtypes/:id', requirePermission(S.ITEM_MANAGE), itemController.deleteSubType);
 
 // ── Units ──
 router.get('/units', itemController.getUnits);
-router.post('/units', itemController.createUnit);
-router.put('/units/:id', itemController.updateUnit);
-router.delete('/units/:id', itemController.deleteUnit);
+router.post('/units', requirePermission(S.ITEM_MANAGE), itemController.createUnit);
+router.put('/units/:id', requirePermission(S.ITEM_MANAGE), itemController.updateUnit);
+router.delete('/units/:id', requirePermission(S.ITEM_MANAGE), itemController.deleteUnit);
 
 // ── Item Master ──
 router.get('/items', itemController.getItems);
 router.get('/items/next-code', itemController.getNextItemCode);
 router.get('/items/:id', itemController.getItem);
-router.post('/items', itemController.createItem);
-router.put('/items/:id', itemController.updateItem);
-router.delete('/items/:id', itemController.deleteItem);
+router.post('/items', requirePermission(S.ITEM_MANAGE), itemController.createItem);
+router.put('/items/:id', requirePermission(S.ITEM_MANAGE), itemController.updateItem);
+router.delete('/items/:id', requirePermission(S.ITEM_MANAGE), itemController.deleteItem);
 
 // ── GRN (Goods Receipt Note / GRR) ──
 router.get('/grn', grnController.getGRNs);
@@ -114,10 +116,10 @@ router.get('/grn/pending-billing', grnController.getPendingBilling);
 router.put('/grn/batch-mark-billed', grnController.batchMarkGRRBilled);
 router.put('/grn/:id/mark-billed', grnController.markGRRBilled);
 router.get('/grn/:id', grnController.getGRN);
-router.post('/grn', grnController.createGRN);
-router.put('/grn/:id', grnController.updateGRN);
-router.put('/grn/:id/approve', grnController.approveGRN);
-router.delete('/grn/:id', grnController.deleteGRN);
+router.post('/grn', requirePermission(S.GRN_POST), grnController.createGRN);
+router.put('/grn/:id', requirePermission(S.GRN_POST), grnController.updateGRN);
+router.put('/grn/:id/approve', requirePermission(S.GRN_POST), grnController.approveGRN);
+router.delete('/grn/:id', requirePermission(S.GRN_POST), grnController.deleteGRN);
 
 // ── GRR Reports ──
 router.get('/reports/grr-register', grrReportController.getGRRRegister);
@@ -130,27 +132,27 @@ router.get('/reports/grr-qa', grrReportController.getGRRQASummary);
 router.get('/material-requisitions', materialRequisitionController.getList);
 router.get('/material-requisitions/next-number', materialRequisitionController.getNextNumber);
 router.get('/material-requisitions/:id', materialRequisitionController.getOne);
-router.post('/material-requisitions', materialRequisitionController.create);
-router.put('/material-requisitions/:id', materialRequisitionController.update);
-router.put('/material-requisitions/:id/submit', materialRequisitionController.submitForApproval);
-router.put('/material-requisitions/:id/approve', materialRequisitionController.approve);
-router.put('/material-requisitions/:id/approve-items', materialRequisitionController.approveItems);
-router.put('/material-requisitions/:id/reject', materialRequisitionController.reject);
-router.post('/material-requisitions/:id/convert-to-pr', materialRequisitionController.convertToPR);
-router.post('/material-requisitions/:id/pr-preview', materialRequisitionController.prPreview);
-router.post('/material-requisitions/:id/create-pr', materialRequisitionController.createPRFromMR);
-router.delete('/material-requisitions/:id', materialRequisitionController.delete);
+router.post('/material-requisitions', requirePermission(S.MISSUE_CREATE), materialRequisitionController.create);
+router.put('/material-requisitions/:id', requirePermission(S.MISSUE_CREATE), materialRequisitionController.update);
+router.put('/material-requisitions/:id/submit', requirePermission(S.MISSUE_CREATE), materialRequisitionController.submitForApproval);
+router.put('/material-requisitions/:id/approve', requirePermission(S.MISSUE_CREATE), materialRequisitionController.approve);
+router.put('/material-requisitions/:id/approve-items', requirePermission(S.MISSUE_CREATE), materialRequisitionController.approveItems);
+router.put('/material-requisitions/:id/reject', requirePermission(S.MISSUE_CREATE), materialRequisitionController.reject);
+router.post('/material-requisitions/:id/convert-to-pr', requirePermission(S.MISSUE_CREATE), materialRequisitionController.convertToPR);
+router.post('/material-requisitions/:id/pr-preview', requirePermission(S.MISSUE_CREATE), materialRequisitionController.prPreview);
+router.post('/material-requisitions/:id/create-pr', requirePermission(S.MISSUE_CREATE), materialRequisitionController.createPRFromMR);
+router.delete('/material-requisitions/:id', requirePermission(S.MISSUE_CREATE), materialRequisitionController.delete);
 
 // ── Material Issue ──
 router.get('/material-issues', materialIssueController.getList);
 router.get('/material-issues/next-number', materialIssueController.getNextNumber);
 router.get('/material-issues/:id', materialIssueController.getOne);
-router.post('/material-issues', materialIssueController.create);
-router.put('/material-issues/:id', materialIssueController.update);
-router.post('/material-issues/:id/convert-to-pr', materialIssueController.convertToPR);
-router.post('/material-issues/:id/pr-preview', materialIssueController.prPreview);
-router.post('/material-issues/:id/create-pr', materialIssueController.createPRFromIssue);
-router.delete('/material-issues/:id', materialIssueController.delete);
+router.post('/material-issues', requirePermission(S.MISSUE_CREATE), materialIssueController.create);
+router.put('/material-issues/:id', requirePermission(S.MISSUE_CREATE), materialIssueController.update);
+router.post('/material-issues/:id/convert-to-pr', requirePermission(S.MISSUE_CREATE), materialIssueController.convertToPR);
+router.post('/material-issues/:id/pr-preview', requirePermission(S.MISSUE_CREATE), materialIssueController.prPreview);
+router.post('/material-issues/:id/create-pr', requirePermission(S.MISSUE_CREATE), materialIssueController.createPRFromIssue);
+router.delete('/material-issues/:id', requirePermission(S.MISSUE_CREATE), materialIssueController.delete);
 
 // ── Stock Ledger ──
 router.get('/stock-ledger', stockLedgerController.getStockLedger);
@@ -159,24 +161,24 @@ router.get('/day-wise-stock', stockReportController.getDayWiseStock);
 // ── Stock Audit / Physical Verification ──
 router.get('/stock-audit', stockAuditController.getList);
 router.get('/stock-audit/:id', stockAuditController.getOne);
-router.post('/stock-audit', stockAuditController.create);
-router.put('/stock-audit/:id', stockAuditController.update);
-router.put('/stock-audit/:id/approve', stockAuditController.approve);
-router.delete('/stock-audit/:id', stockAuditController.delete);
+router.post('/stock-audit', requirePermission(S.STOCK_ADJUST), stockAuditController.create);
+router.put('/stock-audit/:id', requirePermission(S.STOCK_ADJUST), stockAuditController.update);
+router.put('/stock-audit/:id/approve', requirePermission(S.STOCK_ADJUST), stockAuditController.approve);
+router.delete('/stock-audit/:id', requirePermission(S.STOCK_ADJUST), stockAuditController.delete);
 
 // ── Gate Entry ──
 router.get('/gate-entry', gateEntryController.getList);
 router.get('/gate-entry/:id', gateEntryController.getOne);
-router.post('/gate-entry', gateEntryController.create);
-router.put('/gate-entry/:id', gateEntryController.update);
-router.delete('/gate-entry/:id', gateEntryController.delete);
+router.post('/gate-entry', requirePermission(S.GRN_POST), gateEntryController.create);
+router.put('/gate-entry/:id', requirePermission(S.GRN_POST), gateEntryController.update);
+router.delete('/gate-entry/:id', requirePermission(S.GRN_POST), gateEntryController.delete);
 
 // ── Material Return ──
 router.get('/material-returns', materialReturnController.getList);
 router.get('/material-returns/:id', materialReturnController.getOne);
-router.post('/material-returns', materialReturnController.create);
-router.put('/material-returns/:id', materialReturnController.update);
-router.delete('/material-returns/:id', materialReturnController.delete);
+router.post('/material-returns', requirePermission(S.MRETURN_CREATE), materialReturnController.create);
+router.put('/material-returns/:id', requirePermission(S.MRETURN_CREATE), materialReturnController.update);
+router.delete('/material-returns/:id', requirePermission(S.MRETURN_CREATE), materialReturnController.delete);
 
 // ── Delivery Challan ──
 router.get('/delivery-challans', deliveryChallanController.getList);
@@ -184,13 +186,13 @@ router.get('/delivery-challans/next-number', deliveryChallanController.getNextNu
 router.get('/delivery-challans/pending-billing', deliveryChallanController.getPendingBilling);
 router.get('/delivery-challans/by-party/:partyId', deliveryChallanController.getByParty);
 router.get('/delivery-challans/:id', deliveryChallanController.getOne);
-router.post('/delivery-challans', deliveryChallanController.create);
-router.put('/delivery-challans/:id', deliveryChallanController.update);
-router.post('/delivery-challans/:id/approve', deliveryChallanController.approve);
-router.post('/delivery-challans/:id/cancel', deliveryChallanController.cancel);
-router.post('/delivery-challans/:id/return', deliveryChallanController.returnDc);
-router.post('/delivery-challans/bill', deliveryChallanController.billDc);
-router.delete('/delivery-challans/:id', deliveryChallanController.remove);
+router.post('/delivery-challans', requirePermission(S.MISSUE_CREATE), deliveryChallanController.create);
+router.put('/delivery-challans/:id', requirePermission(S.MISSUE_CREATE), deliveryChallanController.update);
+router.post('/delivery-challans/:id/approve', requirePermission(S.MISSUE_CREATE), deliveryChallanController.approve);
+router.post('/delivery-challans/:id/cancel', requirePermission(S.MISSUE_CREATE), deliveryChallanController.cancel);
+router.post('/delivery-challans/:id/return', requirePermission(S.MISSUE_CREATE), deliveryChallanController.returnDc);
+router.post('/delivery-challans/bill', requirePermission(S.MISSUE_CREATE), deliveryChallanController.billDc);
+router.delete('/delivery-challans/:id', requirePermission(S.MISSUE_CREATE), deliveryChallanController.remove);
 
 // ── Inward Register (IR) ──
 router.get('/inward-registers', inwardRegisterController.getList);
@@ -199,33 +201,33 @@ router.get('/inward-registers/pending-dcs', inwardRegisterController.getPendingD
 router.get('/inward-registers/pending-billing', inwardRegisterController.getPendingBilling);
 router.post('/inward-registers/bill', inwardRegisterController.billIr);
 router.get('/inward-registers/:id', inwardRegisterController.getOne);
-router.post('/inward-registers', inwardRegisterController.create);
-router.put('/inward-registers/:id', inwardRegisterController.update);
-router.post('/inward-registers/:id/approve', inwardRegisterController.approve);
-router.post('/inward-registers/:id/cancel', inwardRegisterController.cancel);
-router.delete('/inward-registers/:id', inwardRegisterController.remove);
+router.post('/inward-registers', requirePermission(S.GRN_POST), inwardRegisterController.create);
+router.put('/inward-registers/:id', requirePermission(S.GRN_POST), inwardRegisterController.update);
+router.post('/inward-registers/:id/approve', requirePermission(S.GRN_POST), inwardRegisterController.approve);
+router.post('/inward-registers/:id/cancel', requirePermission(S.GRN_POST), inwardRegisterController.cancel);
+router.delete('/inward-registers/:id', requirePermission(S.GRN_POST), inwardRegisterController.remove);
 
 // ── Billing (Tax Invoice) ──
 router.get('/bills/next-number', billingController.getNextBillNo);
 router.get('/invoices', billingController.getList);
 router.get('/invoices/:id', billingController.getOne);
-router.post('/invoices', billingController.create);
-router.post('/bills', billingController.create);
-router.put('/invoices/:id', billingController.update);
-router.post('/invoices/:id/bill', billingController.markBilled);
-router.delete('/invoices/:id', billingController.remove);
+router.post('/invoices', requirePermission(S.GRN_POST), billingController.create);
+router.post('/bills', requirePermission(S.GRN_POST), billingController.create);
+router.put('/invoices/:id', requirePermission(S.GRN_POST), billingController.update);
+router.post('/invoices/:id/bill', requirePermission(S.GRN_POST), billingController.markBilled);
+router.delete('/invoices/:id', requirePermission(S.GRN_POST), billingController.remove);
 
 // ── Miscellaneous / Petty Cash Voucher ──
 router.get('/misc-vouchers/next-number', miscVoucherController.getNextNumber);
 router.get('/misc-vouchers', miscVoucherController.getList);
 router.get('/misc-vouchers/:id', miscVoucherController.getOne);
-router.post('/misc-vouchers', miscVoucherController.create);
-router.put('/misc-vouchers/:id', miscVoucherController.update);
-router.post('/misc-vouchers/:id/approve', miscVoucherController.approve);
-router.delete('/misc-vouchers/:id', miscVoucherController.remove);
+router.post('/misc-vouchers', requirePermission(S.STOCK_ADJUST), miscVoucherController.create);
+router.put('/misc-vouchers/:id', requirePermission(S.STOCK_ADJUST), miscVoucherController.update);
+router.post('/misc-vouchers/:id/approve', requirePermission(S.STOCK_ADJUST), miscVoucherController.approve);
+router.delete('/misc-vouchers/:id', requirePermission(S.STOCK_ADJUST), miscVoucherController.remove);
 
 // ── Stores Settings ──
 router.get('/settings', storesSettingsController.getSettings);
-router.put('/settings', storesSettingsController.updateSettings);
+router.put('/settings', requirePermission(S.ITEM_MANAGE), storesSettingsController.updateSettings);
 
 module.exports = router;

@@ -2,62 +2,53 @@ const db = require('../../models/ERP');
 const { Op } = require('sequelize');
 const { generateDocNumber } = require('../../utils/docNumber');
 const { getStoresSettings } = require('../../utils/stockService');
+const ApiError = require('../../utils/ApiError');
 
 const PurchaseOrder = db.PurchaseOrder;
 const PurchaseOrderItem = db.PurchaseOrderItem;
 const SupplierMaster = db.SupplierMaster;
 
 exports.getPurchaseOrders = async (req, res) => {
-  try {
-    const { search, status, supplier_id, date_from, date_to, year } = req.query;
-    const where = {};
-    if (status) where.status = status;
-    if (supplier_id) where.supplier_id = supplier_id;
-    if (date_from || date_to || year) {
-      const dateWhere = {};
-      if (date_from) dateWhere[Op.gte] = date_from;
-      if (date_to) dateWhere[Op.lte] = date_to;
-      if (year) {
-        dateWhere[Op.gte] = `${year}-01-01`;
-        dateWhere[Op.lte] = `${year}-12-31`;
-      }
-      where.po_date = dateWhere;
+  const { search, status, supplier_id, date_from, date_to, year } = req.query;
+  const where = {};
+  if (status) where.status = status;
+  if (supplier_id) where.supplier_id = supplier_id;
+  if (date_from || date_to || year) {
+    const dateWhere = {};
+    if (date_from) dateWhere[Op.gte] = date_from;
+    if (date_to) dateWhere[Op.lte] = date_to;
+    if (year) {
+      dateWhere[Op.gte] = `${year}-01-01`;
+      dateWhere[Op.lte] = `${year}-12-31`;
     }
-    if (search) {
-      where[Op.or] = [
-        { po_no: { [Op.iLike]: `%${search}%` } },
-        { '$supplier.supplier_name$': { [Op.iLike]: `%${search}%` } },
-      ];
-    }
-    const orders = await PurchaseOrder.findAll({
-      where,
-      include: [
-        { model: PurchaseOrderItem, as: 'items' },
-        { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
-      ],
-      order: [['created_date', 'DESC']],
-    });
-    res.json(orders);
-  } catch (err) {
-    console.error('Error fetching POs:', err);
-    res.status(500).json({ error: 'Failed to fetch purchase orders' });
+    where.po_date = dateWhere;
   }
+  if (search) {
+    where[Op.or] = [
+      { po_no: { [Op.iLike]: `%${search}%` } },
+      { '$supplier.supplier_name$': { [Op.iLike]: `%${search}%` } },
+    ];
+  }
+  const orders = await PurchaseOrder.findAll({
+    where,
+    include: [
+      { model: PurchaseOrderItem, as: 'items' },
+      { model: SupplierMaster, as: 'supplier', attributes: ['id', 'supplier_code', 'supplier_name'] },
+    ],
+    order: [['created_date', 'DESC']],
+  });
+  res.json(orders);
 };
 
 exports.getPurchaseOrder = async (req, res) => {
-  try {
-    const order = await PurchaseOrder.findByPk(req.params.id, {
-      include: [
-        { model: PurchaseOrderItem, as: 'items' },
-        { model: SupplierMaster, as: 'supplier' },
-      ],
-    });
-    if (!order) return res.status(404).json({ error: 'Purchase order not found' });
-    res.json(order);
-  } catch (err) {
-    console.error('Error fetching PO:', err);
-    res.status(500).json({ error: 'Failed to fetch purchase order' });
-  }
+  const order = await PurchaseOrder.findByPk(req.params.id, {
+    include: [
+      { model: PurchaseOrderItem, as: 'items' },
+      { model: SupplierMaster, as: 'supplier' },
+    ],
+  });
+  if (!order) throw ApiError.notFound('Purchase order not found');
+  res.json(order);
 };
 
 function recalcPO(header, items) {
@@ -105,111 +96,109 @@ function recalcPO(header, items) {
 }
 
 exports.createPurchaseOrder = async (req, res) => {
-  try {
-    let { items, ...header } = req.body;
+  let { items, ...header } = req.body;
 
-    // Auto-generate PO number if not provided or auto-generation is enabled
-    if (!header.po_no) {
-      const settings = await getStoresSettings();
-      if (settings?.auto_generate_po) {
-        header.po_no = await generateDocNumber('PurchaseOrder', 'po_start_no', 'po_prefix', 'po_no', settings);
-      } else {
-        return res.status(400).json({ error: 'PO number is required. Enable auto-generation in Settings.' });
-      }
+  if (!header.supplier_id) throw ApiError.badRequest('Supplier is required');
+
+  // Auto-generate PO number if not provided or auto-generation is enabled
+  if (!header.po_no) {
+    const settings = await getStoresSettings();
+    if (settings && settings.auto_generate_po) {
+      header.po_no = await generateDocNumber('PurchaseOrder', 'po_start_no', 'po_prefix', 'po_no', settings);
+    } else {
+      throw ApiError.badRequest('PO number is required. Enable auto-generation in Settings.');
     }
+  }
 
-    if (!header.supplier_id) return res.status(400).json({ error: 'Supplier is required' });
+  const existing = await PurchaseOrder.findOne({ where: { po_no: header.po_no } });
+  if (existing) throw ApiError.conflict(`PO '${header.po_no}' already exists`);
 
-    const existing = await PurchaseOrder.findOne({ where: { po_no: header.po_no } });
-    if (existing) return res.status(409).json({ error: `PO '${header.po_no}' already exists` });
+  const { header: recalcHeader, items: recalcItems } = recalcPO(header, items);
 
-    const { header: recalcHeader, items: recalcItems } = recalcPO(header, items);
-    const order = await PurchaseOrder.create(recalcHeader);
+  // Atomic: header + line items must be created together.
+  const result = await db.sequelize.transaction(async (t) => {
+    const order = await PurchaseOrder.create(recalcHeader, { transaction: t });
     if (recalcItems.length > 0) {
       const itemRows = recalcItems.map((it) => ({ ...it, po_id: order.id }));
-      await PurchaseOrderItem.bulkCreate(itemRows);
+      await PurchaseOrderItem.bulkCreate(itemRows, { transaction: t });
     }
-    const result = await PurchaseOrder.findByPk(order.id, {
+    return PurchaseOrder.findByPk(order.id, {
       include: [
         { model: PurchaseOrderItem, as: 'items' },
         { model: SupplierMaster, as: 'supplier' },
       ],
+      transaction: t,
     });
-    res.status(201).json(result);
-  } catch (err) {
-    console.error('Error creating PO:', err);
-    res.status(500).json({ error: 'Failed to create purchase order' });
-  }
+  });
+
+  res.status(201).json(result);
 };
 
 exports.updatePurchaseOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await PurchaseOrder.findByPk(id);
-    if (!order) return res.status(404).json({ error: 'Purchase order not found' });
+  const { id } = req.params;
+  const order = await PurchaseOrder.findByPk(id);
+  if (!order) throw ApiError.notFound('Purchase order not found');
 
-    const { items, ...header } = req.body;
-    const { header: recalcHeader, items: recalcItems } = recalcPO(header, items);
-    await order.update(recalcHeader);
+  const { items, ...header } = req.body;
+  const { header: recalcHeader, items: recalcItems } = recalcPO(header, items);
 
+  // Atomic: replace line items within the same transaction as the header update.
+  const result = await db.sequelize.transaction(async (t) => {
+    await order.update(recalcHeader, { transaction: t });
     if (recalcItems.length) {
-      await PurchaseOrderItem.destroy({ where: { po_id: id } });
+      await PurchaseOrderItem.destroy({ where: { po_id: id }, transaction: t });
       const itemRows = recalcItems.map((it) => ({ ...it, po_id: id }));
-      await PurchaseOrderItem.bulkCreate(itemRows);
+      await PurchaseOrderItem.bulkCreate(itemRows, { transaction: t });
     }
-
-    const result = await PurchaseOrder.findByPk(id, {
+    return PurchaseOrder.findByPk(id, {
       include: [
         { model: PurchaseOrderItem, as: 'items' },
         { model: SupplierMaster, as: 'supplier' },
       ],
+      transaction: t,
     });
-    res.json(result);
-  } catch (err) {
-    console.error('Error updating PO:', err);
-    res.status(500).json({ error: 'Failed to update purchase order' });
-  }
+  });
+
+  res.json(result);
 };
 
 exports.approvePurchaseOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, approved_by, notes } = req.body;
-    const order = await PurchaseOrder.findByPk(id);
-    if (!order) return res.status(404).json({ error: 'Purchase order not found' });
+  const { id } = req.params;
+  const { status, approved_by, notes } = req.body;
+  const order = await PurchaseOrder.findByPk(id);
+  if (!order) throw ApiError.notFound('Purchase order not found');
 
-    await order.update({
-      status: status || 'Approved',
-      approved_by: approved_by || 'System',
-      approved_date: new Date(),
-      notes: notes || order.notes,
-    });
-    res.json(order);
-  } catch (err) {
-    console.error('Error approving PO:', err);
-    res.status(500).json({ error: 'Failed to approve purchase order' });
-  }
+  await order.update({
+    status: status || 'Approved',
+    approved_by: approved_by || 'System',
+    approved_date: new Date(),
+    notes: notes || order.notes,
+  });
+  res.json(order);
 };
 
 exports.recalculatePO = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await PurchaseOrder.findByPk(id);
-    if (!order) return res.status(404).json({ error: 'Purchase order not found' });
+  const { id } = req.params;
+  const order = await PurchaseOrder.findByPk(id);
+  if (!order) throw ApiError.notFound('Purchase order not found');
 
-    const items = await PurchaseOrderItem.findAll({ where: { po_id: id }, raw: true });
-    const { header: recalcHeader, items: recalcItems } = recalcPO(order.toJSON(), items);
-    await order.update({
-      subtotal: recalcHeader.subtotal,
-      discount_amount: recalcHeader.discount_amount,
-      pf_amount: recalcHeader.pf_amount,
-      sgst_amount: recalcHeader.sgst_amount,
-      cgst_amount: recalcHeader.cgst_amount,
-      igst_amount: recalcHeader.igst_amount,
-      tax_amount: recalcHeader.tax_amount,
-      grand_total: recalcHeader.grand_total,
-    });
+  const items = await PurchaseOrderItem.findAll({ where: { po_id: id }, raw: true });
+  const { header: recalcHeader, items: recalcItems } = recalcPO(order.toJSON(), items);
 
+  await db.sequelize.transaction(async (t) => {
+    await order.update(
+      {
+        subtotal: recalcHeader.subtotal,
+        discount_amount: recalcHeader.discount_amount,
+        pf_amount: recalcHeader.pf_amount,
+        sgst_amount: recalcHeader.sgst_amount,
+        cgst_amount: recalcHeader.cgst_amount,
+        igst_amount: recalcHeader.igst_amount,
+        tax_amount: recalcHeader.tax_amount,
+        grand_total: recalcHeader.grand_total,
+      },
+      { transaction: t }
+    );
     for (const item of recalcItems) {
       await PurchaseOrderItem.update(
         {
@@ -224,54 +213,43 @@ exports.recalculatePO = async (req, res) => {
           igst_inr: item.igst_inr,
           total_value: item.total_value,
         },
-        { where: { id: item.id } }
+        { where: { id: item.id }, transaction: t }
       );
     }
+  });
 
-    const updated = await PurchaseOrder.findByPk(order.id, {
-      include: [{ model: PurchaseOrderItem, as: 'items' }],
-    });
-    res.json(updated);
-  } catch (err) {
-    console.error('Error recalculating PO:', err);
-    res.status(500).json({ error: 'Failed to recalculate PO' });
-  }
+  const updated = await PurchaseOrder.findByPk(order.id, {
+    include: [{ model: PurchaseOrderItem, as: 'items' }],
+  });
+  res.json(updated);
 };
 
 exports.deletePurchaseOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await PurchaseOrder.findByPk(id);
-    if (!order) return res.status(404).json({ error: 'Purchase order not found' });
-    if (order.status !== 'Draft') {
-      return res.status(400).json({ error: 'Only draft POs can be deleted' });
-    }
-    await PurchaseOrderItem.destroy({ where: { po_id: id } });
-    await order.destroy();
-    res.json({ message: 'Purchase order deleted' });
-  } catch (err) {
-    console.error('Error deleting PO:', err);
-    res.status(500).json({ error: 'Failed to delete purchase order' });
+  const { id } = req.params;
+  const order = await PurchaseOrder.findByPk(id);
+  if (!order) throw ApiError.notFound('Purchase order not found');
+  if (order.status !== 'Draft') {
+    throw ApiError.badRequest('Only draft POs can be deleted');
   }
+  await db.sequelize.transaction(async (t) => {
+    await PurchaseOrderItem.destroy({ where: { po_id: id }, transaction: t });
+    await order.destroy({ transaction: t });
+  });
+  res.json({ message: 'Purchase order deleted' });
 };
 
 // ── Fetch terms & conditions from an old PO by PO number ──────────────
 exports.getPOTermsByPoNo = async (req, res) => {
-  try {
-    const { po_no } = req.params;
-    const order = await PurchaseOrder.findOne({
-      where: { po_no },
-      attributes: [
-        'old_po_no', 'old_po_year', 'subject', 'reference', 'qtn_no', 'ref_date',
-        'qca_req', 'any_other_terms', 'delivery_period', 'payment_terms', 'delivery_terms',
-        'desp_to', 'insurance', 'rem1', 'rem2', 'rem3', 'inspection', 'freight',
-        'freight_forward', 'currency_val', 'req_yn', 'ven_code', 'notes',
-      ],
-    });
-    if (!order) return res.status(404).json({ error: 'Purchase order not found' });
-    res.json(order);
-  } catch (err) {
-    console.error('Error fetching PO terms:', err);
-    res.status(500).json({ error: 'Failed to fetch PO terms' });
-  }
+  const { po_no } = req.params;
+  const order = await PurchaseOrder.findOne({
+    where: { po_no },
+    attributes: [
+      'old_po_no', 'old_po_year', 'subject', 'reference', 'qtn_no', 'ref_date',
+      'qca_req', 'any_other_terms', 'delivery_period', 'payment_terms', 'delivery_terms',
+      'desp_to', 'insurance', 'rem1', 'rem2', 'rem3', 'inspection', 'freight',
+      'freight_forward', 'currency_val', 'req_yn', 'ven_code', 'notes',
+    ],
+  });
+  if (!order) throw ApiError.notFound('Purchase order not found');
+  res.json(order);
 };
