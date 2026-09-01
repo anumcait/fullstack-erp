@@ -476,6 +476,9 @@ END $$;`,
         try { await erpDb.sequelize.query(sql); } catch (_) { /* ignore */ }
       }
       try {
+        await erpDb.sequelize.query(`UPDATE m_product_master SET parent_id = NULL WHERE parent_id IS NOT NULL AND parent_id NOT IN (SELECT id FROM m_product_master)`);
+        await erpDb.sequelize.query(`UPDATE m_product_master SET category_id = NULL WHERE category_id IS NOT NULL AND category_id NOT IN (SELECT id FROM m_product_category)`);
+        await erpDb.sequelize.query(`UPDATE m_product_master SET default_bom_id = NULL WHERE default_bom_id IS NOT NULL AND default_bom_id NOT IN (SELECT id FROM t_bom)`);
         await erpDb.sequelize.query(`UPDATE t_bom SET product_id = NULL WHERE product_id IS NOT NULL AND product_id NOT IN (SELECT id FROM m_product_master)`);
         await erpDb.sequelize.query(`UPDATE t_bom_item SET component_product_id = NULL WHERE component_product_id IS NOT NULL AND component_product_id NOT IN (SELECT id FROM m_product_master)`);
         await erpDb.sequelize.query(`UPDATE t_bom_item SET sub_bom_id = NULL WHERE sub_bom_id IS NOT NULL AND sub_bom_id NOT IN (SELECT id FROM t_bom)`);
@@ -567,6 +570,7 @@ END $$;`,
           const cc = color ? (COLOR_CODES[color.toString().toLowerCase()] || color.toString().slice(0, 2).toUpperCase()) : '';
           return cc ? `${prefix}-${cc}-${String(seq).padStart(3, '0')}` : `${prefix}-${String(seq).padStart(3, '0')}`;
         };
+        await erpDb.sequelize.query(`UPDATE m_product_master SET parent_id = NULL WHERE parent_id IS NOT NULL AND parent_id NOT IN (SELECT id FROM m_product_master)`);
         // Remove legacy tree nodes (Category/Model/color-SKU) — now represented by Main/Sub categories
         const removed = await ProductMaster.destroy({
           where: Sequelize.or(

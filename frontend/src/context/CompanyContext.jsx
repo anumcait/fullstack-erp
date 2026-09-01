@@ -72,6 +72,14 @@ export const CompanyProvider = ({ children }) => {
         ? (companySettings.short_name || (companySettings.company_name ? companySettings.company_name.split(/\s+/)[0] : ''))
         : '';
 
+    useEffect(() => {
+        const url = companySettings?.favicon_url || companySettings?.logo_url;
+        if (url) {
+            const link = document.getElementById('favicon');
+            if (link) link.href = url;
+        }
+    }, [companySettings?.favicon_url, companySettings?.logo_url]);
+
     return (
         <CompanyContext.Provider value={{
             companyName: companyConfigured ? (companySettings.company_name || '') : '',

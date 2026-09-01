@@ -162,14 +162,24 @@ const getShortName = (companyName) => {
 
 const DocumentTitle = () => {
   const { pathname } = useLocation();
-  const { companyShortName } = useCompany();
+  const { companyShortName, companySettings } = useCompany();
 
   useEffect(() => {
     const pageTitle = getPageTitle(pathname);
     if (pageTitle) {
       document.title = `${getShortName(companyShortName) || 'ERP'} : ${pageTitle}`;
+    } else if (pathname === '/dashboard') {
+      document.title = `${getShortName(companyShortName) || 'ERP'} : Dashboard`;
     }
   }, [pathname, companyShortName]);
+
+  useEffect(() => {
+    const url = companySettings?.favicon_url || companySettings?.logo_url;
+    if (url) {
+      const link = document.getElementById('favicon');
+      if (link) link.href = url;
+    }
+  }, [companySettings?.favicon_url, companySettings?.logo_url]);
 
   return null;
 };

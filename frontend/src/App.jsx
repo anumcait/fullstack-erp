@@ -18,6 +18,7 @@ import { CompanyProvider, useCompany } from "./context/CompanyContext";
 import CompanyErrorScreen from "./routes/CompanyErrorScreen";
 import { NavigationGuardProvider } from "./context/NavigationGuardContext";
 import MainLayout from "./Component/Layout/MainLayout";
+import DocumentTitle from "./Component/Layout/DocumentTitle";
 import OnDutyPreview from "./Component/HR/onduty/OnDutyPreview";
 import OnDutyDashboard from "./Component/HR/onduty/OnDutyDashboard";
 import ItemMaster from "./Component/ERP/Stores/ItemMaster/ItemMaster";
@@ -330,6 +331,7 @@ function App() {
           <CompanyProvider>
             <div className="App">
               <Router>
+                <DocumentTitle />
                 <Routes>
                   <Route path="/" element={<RootRoute />} />
                   <Route path="/login" element={<LoginForm />} />
