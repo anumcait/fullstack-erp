@@ -3,7 +3,7 @@ import {
   Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress,
   IconButton, Tooltip
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import StandardTable from '../../../Common/StandardTable.jsx';
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -77,7 +77,7 @@ export default function QuotationList() {
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
           <div style={{ height: 520, width: "100%" }}>
-            <DataGrid rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
+            <StandardTable title="QuotationList" rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
               initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} disableColumnMenu loading={loading}
               sx={{ border: 0, "& .MuiDataGrid-columnHeaders": { bgcolor: "#f2f4f7", fontWeight: 700 },
                 "& .MuiDataGrid-row:hover": { bgcolor: "#f8fafc" }, "& .MuiDataGrid-cell": { fontSize: ".92rem" } }} />

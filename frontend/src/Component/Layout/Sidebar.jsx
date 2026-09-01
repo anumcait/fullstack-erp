@@ -773,6 +773,11 @@ const Sidebar = () => {
                 )}
               </li>
             )}
+            {hasPermission('SUPPLIER_MANAGE') && (
+              <li className="sidebar-menu-item">
+                <SideNavLink to="/purchase/vendors" label="Supplier Master" icon={FiUsers} exact />
+              </li>
+            )}
             {hasPermission('PUR_DASHBOARD') && (
               <li className="sidebar-menu-item">
                 <SideNavLink to="/purchase/approvals" label="Approvals" icon={FiCheckSquare} exact />
@@ -876,7 +881,7 @@ const Sidebar = () => {
                   <ul className="sidebar-submenu">
                     <SubItem to="/engineering/products" label="Product Master" icon={FiStar} />
                     {hasPermission('ENG_ITEMS') && <SubItem to="/engineering/categories" label="Category Master" icon={FiGrid} />}
-                    {hasPermission('ENG_BOM') && <SubItem to="/engineering/bom" label="Bill of Materials" icon={FiLayers} />}
+                    {hasPermission('ENG_BOM') && <SubItem to="/engineering/bom" label="Product Assembly Master" icon={FiLayers} />}
                     {hasPermission('ENG_BOM_DIFF') && <SubItem to="/engineering/bom-diff" label="BOM Comparison" icon={FiShuffle} />}
                   </ul>
                 )}

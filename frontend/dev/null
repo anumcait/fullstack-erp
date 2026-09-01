@@ -1,0 +1,1141 @@
+(() => {
+  var __create = Object.create;
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getProtoOf = Object.getPrototypeOf;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+    get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+  }) : x)(function(x) {
+    if (typeof require !== "undefined") return require.apply(this, arguments);
+    throw Error('Dynamic require of "' + x + '" is not supported');
+  });
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+    // If the importer is in node compatibility mode or this is not an ESM
+    // file that has been converted to a CommonJS file using a Babel-
+    // compatible transform (i.e. "__esModule" has not been set), then set
+    // "default" to the CommonJS "module.exports" for node compatibility.
+    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+    mod
+  ));
+
+  // src/Component/ERP/Engineering/ProductMaster/ProductMasterForm.jsx
+  var import_react4 = __toESM(__require("react"), 1);
+  var import_react_router_dom = __require("react-router-dom");
+  var import_material2 = __require("@mui/material");
+  var import_Autocomplete = __require("@mui/material/Autocomplete");
+  var import_x_data_grid = __require("@mui/x-data-grid");
+  var import_Add = __toESM(__require("@mui/icons-material/Add"), 1);
+  var import_Delete = __toESM(__require("@mui/icons-material/Delete"), 1);
+  var import_Edit = __toESM(__require("@mui/icons-material/Edit"), 1);
+  var import_Save = __toESM(__require("@mui/icons-material/Save"), 1);
+  var import_ArrowBack = __toESM(__require("@mui/icons-material/ArrowBack"), 1);
+  var import_Layers = __toESM(__require("@mui/icons-material/Layers"), 1);
+  var import_ExpandMore = __toESM(__require("@mui/icons-material/ExpandMore"), 1);
+  var import_ChevronRight = __toESM(__require("@mui/icons-material/ChevronRight"), 1);
+  var import_Settings = __toESM(__require("@mui/icons-material/Settings"), 1);
+  var import_InfoOutlined = __toESM(__require("@mui/icons-material/InfoOutlined"), 1);
+  var import_HelpOutline = __toESM(__require("@mui/icons-material/HelpOutline"), 1);
+  var import_Assignment = __toESM(__require("@mui/icons-material/Assignment"), 1);
+  var import_AccountTree = __toESM(__require("@mui/icons-material/AccountTree"), 1);
+  var import_PrecisionManufacturing = __toESM(__require("@mui/icons-material/PrecisionManufacturing"), 1);
+  var import_LocalShipping = __toESM(__require("@mui/icons-material/LocalShipping"), 1);
+  var import_CheckCircleOutline = __toESM(__require("@mui/icons-material/CheckCircleOutline"), 1);
+  var import_axios = __toESM(__require("axios"), 1);
+
+  // src/context/ToastContext.jsx
+  var import_react2 = __toESM(__require("react"), 1);
+
+  // src/Component/Common/Toast.jsx
+  var import_react = __toESM(__require("react"), 1);
+
+  // src/context/ToastContext.jsx
+  var ToastContext = (0, import_react2.createContext)();
+  var useToast = () => (0, import_react2.useContext)(ToastContext);
+
+  // src/Component/Common/CountedTextArea.jsx
+  var import_react3 = __toESM(__require("react"), 1);
+  var import_material = __require("@mui/material");
+  function CountedTextArea({ maxLength, helperText, value = "", InputProps, ...props }) {
+    const len = (value || "").length;
+    const counter = maxLength != null ? `${Math.max(0, maxLength - len)} letters remaining` : `${len} letters`;
+    return /* @__PURE__ */ import_react3.default.createElement(
+      import_material.TextField,
+      {
+        multiline: true,
+        value,
+        inputProps: maxLength != null ? { maxLength, ...InputProps || {} } : InputProps,
+        helperText: /* @__PURE__ */ import_react3.default.createElement(import_material.Box, { component: "span", sx: { display: "flex", justifyContent: "space-between", gap: 1, width: "100%" } }, /* @__PURE__ */ import_react3.default.createElement("span", null, helperText), /* @__PURE__ */ import_react3.default.createElement("span", { style: { whiteSpace: "nowrap", opacity: 0.7 } }, counter)),
+        ...props
+      }
+    );
+  }
+
+  // src/Component/ERP/Engineering/ProductMaster/ProductMasterForm.jsx
+  var API = "/api/erp/engineering/products";
+  var ITEMS_API = "/api/erp/stores/items";
+  var CATEGORIES_API = "/api/erp/engineering/categories";
+  var BOM_API = "/api/erp/engineering/bom";
+  var PRODUCT_TYPES = ["FG", "SFG", "Assembly", "Spare"];
+  var FINISH_TYPES = ["Paint", "Powder Coat", "Anodized", "Polished", "Raw", "Galvanized"];
+  var ITEM_FILTER = (0, import_Autocomplete.createFilterOptions)({ stringify: (o) => `${o.item_code} ${o.item_name} ${o.item_description || ""}` });
+  var cap = (opts, state) => ITEM_FILTER(opts, state).slice(0, 50);
+  var PRODUCT_FILTER = (0, import_Autocomplete.createFilterOptions)({ stringify: (o) => `${o.product_code || o.product_uid || ""} ${o.part_name || ""}` });
+  var capProduct = (opts, state) => PRODUCT_FILTER(opts, state).slice(0, 50);
+  var NODE_TYPES = [
+    { value: "ROOT", label: "ROOT (Finished Product)" },
+    { value: "ASSEMBLY", label: "ASSEMBLY (Manufactured)" },
+    { value: "SUB_ASSEMBLY", label: "SUB ASSEMBLY" },
+    { value: "PHANTOM", label: "PHANTOM (Non-stocked)" },
+    { value: "SKU", label: "SKU (Leaf)" }
+  ];
+  var gradientHeader = {
+    background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+    color: "#0f172a",
+    p: 3,
+    borderRadius: 3,
+    mb: 3,
+    boxShadow: "0 4px 15px rgba(100,116,139,0.06)",
+    border: "1px solid #e2e8f0",
+    borderLeft: "6px solid var(--primary-color, #0b3c91)",
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 2
+  };
+  var guideCard = {
+    background: "#f0f9ff",
+    border: "1px solid #bae6fd",
+    borderRadius: 3,
+    p: 2.5,
+    mb: 3.5
+  };
+  var cardLayout = {
+    borderRadius: 2,
+    boxShadow: "none",
+    border: "1px solid #e2e8f0",
+    overflow: "hidden",
+    mb: 3
+  };
+  function ProductMasterForm() {
+    const { id } = (0, import_react_router_dom.useParams)();
+    const navigate = (0, import_react_router_dom.useNavigate)();
+    const location = (0, import_react_router_dom.useLocation)();
+    const [searchParams] = (0, import_react_router_dom.useSearchParams)();
+    const { showToast } = useToast();
+    const isView = location.pathname.includes("/view/");
+    const isEdit = location.pathname.includes("/edit/");
+    const presetNodeType = ["ROOT", "ASSEMBLY", "SUB_ASSEMBLY", "PHANTOM", "SKU"].includes(searchParams.get("node")) ? searchParams.get("node") : "SKU";
+    const [loading, setLoading] = (0, import_react4.useState)(false);
+    const [activeTab, setActiveTab] = (0, import_react4.useState)(0);
+    const [showGuide, setShowGuide] = (0, import_react4.useState)(false);
+    const [dirty, setDirty] = (0, import_react4.useState)(false);
+    const apiRef = (0, import_x_data_grid.useGridApiRef)();
+    const topScrollRef = (0, import_react4.useRef)(null);
+    const [itemMasterList, setItemMasterList] = (0, import_react4.useState)([]);
+    const [categories, setCategories] = (0, import_react4.useState)([]);
+    const [items, setItems] = (0, import_react4.useState)([]);
+    const [productList, setProductList] = (0, import_react4.useState)([]);
+    const [bomOptions, setBomOptions] = (0, import_react4.useState)([]);
+    const [usedIn, setUsedIn] = (0, import_react4.useState)([]);
+    const [itemDialog, setItemDialog] = (0, import_react4.useState)({ open: false, targetTempId: null, code: "", name: "", make_buy: "Buy", saving: false, error: "" });
+    const [form, setForm] = (0, import_react4.useState)({
+      product_uid: "",
+      product_type: "FG",
+      main_category_name: "",
+      sub_category_name: "",
+      product_code: "",
+      part_name: "",
+      color: "",
+      item_id: "",
+      description: "",
+      finish_type: "",
+      assembly_qty: 1,
+      qty_per_pallet: 0,
+      is_active: true,
+      node_type: presetNodeType,
+      parent_id: "",
+      sort_order: 0,
+      drawing_no: "",
+      revision: "",
+      default_bom_id: ""
+    });
+    const [linkedTrees, setLinkedTrees] = (0, import_react4.useState)({});
+    const fetchLinkedTree = (productId) => {
+      if (!productId || linkedTrees[productId]) return;
+      import_axios.default.get(`${API}/${productId}/bom-tree`).then(({ data }) => setLinkedTrees((m) => ({ ...m, [productId]: Array.isArray(data) ? data : [] }))).catch(() => {
+      });
+    };
+    (0, import_react4.useEffect)(() => {
+      const ids = items.map((i) => i.component_product_id).filter(Boolean).map(Number);
+      [...new Set(ids)].forEach(fetchLinkedTree);
+    }, [items]);
+    (0, import_react4.useEffect)(() => {
+      if (!dirty) return void 0;
+      const handler = (e) => {
+        e.preventDefault();
+        e.returnValue = "";
+      };
+      window.addEventListener("beforeunload", handler);
+      return () => window.removeEventListener("beforeunload", handler);
+    }, [dirty]);
+    (0, import_react4.useEffect)(() => {
+      const el = apiRef.current?.getScrollableElement?.();
+      const top = topScrollRef.current;
+      if (!el || !top) return void 0;
+      const content = top.firstChild;
+      const syncWidth = () => {
+        if (content) content.style.width = `${el.scrollWidth}px`;
+      };
+      const onEl = () => {
+        top.scrollLeft = el.scrollLeft;
+      };
+      const onTop = () => {
+        el.scrollLeft = top.scrollLeft;
+      };
+      el.addEventListener("scroll", onEl);
+      top.addEventListener("scroll", onTop);
+      syncWidth();
+      const ro = new ResizeObserver(syncWidth);
+      ro.observe(el);
+      return () => {
+        el.removeEventListener("scroll", onEl);
+        top.removeEventListener("scroll", onTop);
+        ro.disconnect();
+      };
+    }, [apiRef]);
+    const isSubAssembly = ["SUB_ASSEMBLY", "PHANTOM"].includes(form.node_type);
+    const readOnly = isView;
+    const titlePrefix = isView ? "View" : isEdit ? "Edit" : "New";
+    const mainOptions = categories.filter((c) => c.type === "Main").map((c) => c.name);
+    const subOptions = categories.filter((c) => c.type === "Sub" && (!form.main_category_name || c.parent && c.parent.name === form.main_category_name)).map((c) => c.name);
+    const subAssemblyProducts = productList.filter(
+      (p) => ["SUB_ASSEMBLY", "PHANTOM"].includes(p.node_type) && String(p.id) !== String(id)
+    );
+    const itemOptions = (0, import_react4.useMemo)(
+      () => itemMasterList.map((im) => ({
+        id: im.id,
+        label: `${im.item_code} \u2014 ${im.item_name} ${im.unit?.short_name ? `(${im.unit.short_name})` : ""}`,
+        item_code: im.item_code,
+        item_name: im.item_name,
+        item_description: im.item_description || "",
+        unit_id: im.unit_id
+      })),
+      [itemMasterList]
+    );
+    (0, import_react4.useEffect)(() => {
+      import_axios.default.get(ITEMS_API).then(({ data }) => setItemMasterList(data)).catch(() => {
+      });
+      import_axios.default.get(CATEGORIES_API).then(({ data }) => setCategories(data)).catch(() => {
+      });
+      import_axios.default.get(API).then(({ data }) => setProductList(Array.isArray(data) ? data : data?.rows || [])).catch(() => {
+      });
+      if (id) {
+        setLoading(true);
+        import_axios.default.get(`${API}/${id}`).then(({ data }) => {
+          const category = data.category;
+          setForm({
+            product_uid: data.product_uid || "",
+            product_type: data.product_type || "FG",
+            main_category_name: category && category.parent ? category.parent.name : "",
+            sub_category_name: category ? category.name : "",
+            product_code: data.product_code || "",
+            part_name: data.part_name || "",
+            color: data.color || "",
+            item_id: data.item_id || "",
+            description: data.description || "",
+            finish_type: data.finish_type || "",
+            assembly_qty: data.assembly_qty || 0,
+            qty_per_pallet: data.qty_per_pallet || 0,
+            is_active: data.is_active !== false,
+            node_type: data.node_type || "SKU",
+            parent_id: data.parent_id || "",
+            sort_order: data.sort_order || 0,
+            drawing_no: data.drawing_no || "",
+            revision: data.revision || "",
+            default_bom_id: data.default_bom_id || ""
+          });
+          const dbToTemp = {};
+          let ctr = Date.now();
+          const loaded = (data.items || []).map((i) => {
+            const t = "t" + ctr++;
+            dbToTemp[i.id] = t;
+            return {
+              tempId: t,
+              parentTempId: null,
+              serial_no: i.serial_no != null ? i.serial_no : null,
+              item_id: i.item_id || "",
+              item_code: i.item_code || "",
+              item_name: i.item_name || "",
+              quantity: i.quantity || 1,
+              unit_id: i.unit_id || "",
+              wastage_percent: i.wastage_percent || 0,
+              is_subassembly: !!i.is_subassembly,
+              component_product_id: i.component_product_id || "",
+              remark: i.remark || "",
+              color: i.color || "",
+              item_description: i.item_description || ""
+            };
+          });
+          loaded.forEach((n, idx) => {
+            const p = data.items[idx] && data.items[idx].parent_item_id;
+            if (p && dbToTemp[p]) n.parentTempId = dbToTemp[p];
+          });
+          setItems(loaded);
+        }).catch(() => showToast("Failed to load product details", "error")).finally(() => setLoading(false));
+        import_axios.default.get(`${BOM_API}?product_id=${id}`).then(({ data }) => {
+          const list = Array.isArray(data) ? data : data?.rows || [];
+          setBomOptions(list.filter((b) => String(b.product_id) === String(id)));
+        }).catch(() => {
+        });
+      }
+    }, [id]);
+    (0, import_react4.useEffect)(() => {
+      if (id && isSubAssembly) {
+        import_axios.default.get(`${API}/${id}/used-in`).then(({ data }) => setUsedIn(Array.isArray(data) ? data : [])).catch(() => setUsedIn([]));
+      } else {
+        setUsedIn([]);
+      }
+    }, [id, isSubAssembly]);
+    const handleChange = (field) => (e) => {
+      const val = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+      setForm((f) => ({ ...f, [field]: val }));
+      setDirty(true);
+    };
+    const [compDialog, setCompDialog] = (0, import_react4.useState)({ open: false, mode: "add", targetTempId: null, parentTempId: null, draft: null });
+    const blankDraft = (parentTempId) => ({
+      tempId: Date.now() + Math.random(),
+      parentTempId: parentTempId ?? null,
+      serial_no: parentTempId == null ? items.filter((p) => p.parentTempId == null).length + 1 : null,
+      item_id: "",
+      item_code: "",
+      item_name: "",
+      quantity: 1,
+      wastage_percent: 0,
+      is_subassembly: false,
+      component_product_id: "",
+      remark: "",
+      color: "",
+      item_description: ""
+    });
+    const openAddComponent = (parentTempId = null) => setCompDialog({ open: true, mode: "add", targetTempId: null, parentTempId, draft: blankDraft(parentTempId) });
+    const openEditComponent = (it) => setCompDialog({ open: true, mode: "edit", targetTempId: it.tempId, parentTempId: it.parentTempId, draft: { ...it } });
+    const saveComponent = () => {
+      const d = compDialog.draft;
+      const dup = items.some((i) => {
+        if (compDialog.mode === "edit" && i.tempId === compDialog.targetTempId) return false;
+        if ((i.parentTempId ?? null) !== (d.parentTempId ?? null)) return false;
+        if (d.component_product_id) {
+          return String(i.component_product_id) === String(d.component_product_id);
+        }
+        return !!d.item_id && String(i.item_id) === String(d.item_id);
+      });
+      if (dup) {
+        showToast("This item is already added to this group. Use a different item or remove the existing one.", "warning");
+        return;
+      }
+      if (compDialog.mode === "edit") {
+        setItems((prev) => prev.map((i) => i.tempId === compDialog.targetTempId ? { ...i, ...d } : i));
+      } else {
+        setItems((prev) => [...prev, d]);
+      }
+      setCompDialog((cd) => ({ ...cd, open: false }));
+      setDirty(true);
+    };
+    const removeItem = (tempId) => {
+      const toRemove = /* @__PURE__ */ new Set([tempId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const it of items) {
+          if (it.parentTempId && toRemove.has(it.parentTempId) && !toRemove.has(it.tempId)) {
+            toRemove.add(it.tempId);
+            changed = true;
+          }
+        }
+      }
+      setItems((prev) => prev.filter((i) => !toRemove.has(i.tempId)));
+      setDirty(true);
+    };
+    const handleItemChange = (tempId, field, value) => {
+      setItems((prev) => prev.map((i) => {
+        if (i.tempId !== tempId) return i;
+        const updated = { ...i, [field]: value };
+        if (field === "item_id") {
+          const sel = itemMasterList.find((im) => String(im.id) === String(value));
+          if (sel) {
+            updated.item_code = sel.item_code;
+            updated.item_name = sel.item_name;
+            updated.item_description = sel.item_description || "";
+            updated.unit_id = sel.unit_id;
+          }
+        }
+        if (field === "component_product_id") {
+          const sub = productList.find((p) => String(p.id) === String(value));
+          if (sub) {
+            updated.component_product_id = value ? Number(value) : "";
+            updated.item_code = sub.product_code || sub.product_uid || "";
+            updated.item_name = sub.part_name || "";
+            updated.is_subassembly = true;
+            if (value) fetchLinkedTree(Number(value));
+            if (sub.item_id) {
+              const sel = itemMasterList.find((im) => String(im.id) === String(sub.item_id));
+              if (sel) {
+                updated.item_id = sel.id;
+                updated.item_description = sel.item_description || "";
+                updated.unit_id = sel.unit_id;
+              }
+            } else {
+              updated.item_id = "";
+              updated.item_description = "";
+              updated.unit_id = "";
+            }
+          }
+        }
+        return updated;
+      }));
+      setDirty(true);
+    };
+    const openItemDialog = (targetTempId = null) => {
+      setItemDialog({ open: true, targetTempId, code: "", name: "", make_buy: "Buy", saving: false, error: "" });
+    };
+    const handleCreateItem = async () => {
+      const code = itemDialog.code.trim().toUpperCase();
+      const name = itemDialog.name.trim();
+      if (!code) return setItemDialog((d) => ({ ...d, error: "Item code is required" }));
+      if (code && !/^[A-Z0-9][A-Z0-9-]*$/.test(code)) return setItemDialog((d) => ({ ...d, error: "Code must be uppercase letters/numbers with optional hyphens" }));
+      if (name.length < 2) return setItemDialog((d) => ({ ...d, error: "Item name is too short" }));
+      setItemDialog((d) => ({ ...d, saving: true, error: "" }));
+      try {
+        const { data } = await import_axios.default.post(ITEMS_API, { item_code: code, item_name: name, make_buy: itemDialog.make_buy });
+        import_axios.default.get(ITEMS_API).then(({ data: data2 }) => setItemMasterList(data2)).catch(() => {
+        });
+        if (itemDialog.targetTempId) handleItemChange(itemDialog.targetTempId, "item_id", data.id);
+        setItemDialog((d) => ({ ...d, open: false, saving: false }));
+        showToast("Item code created successfully", "success");
+      } catch (e) {
+        setItemDialog((d) => ({ ...d, saving: false, error: e?.response?.data?.error || "Failed to create item" }));
+      }
+    };
+    const childItems = (parentTempId) => items.filter((it) => it.parentTempId === parentTempId).sort((a, b) => (a.serial_no ?? Infinity) - (b.serial_no ?? Infinity));
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      const payload = {
+        ...form,
+        parent_id: form.parent_id ? Number(form.parent_id) : null,
+        item_id: form.item_id ? Number(form.item_id) : null,
+        sort_order: Number(form.sort_order) || 0,
+        drawing_no: form.drawing_no || null,
+        revision: form.revision || null,
+        default_bom_id: form.default_bom_id ? Number(form.default_bom_id) : null,
+        items
+      };
+      try {
+        if (isEdit) await import_axios.default.put(`${API}/${id}`, payload);
+        else await import_axios.default.post(API, payload);
+        setDirty(false);
+        showToast(`Product ${isEdit ? "updated" : "created"} successfully`, "success");
+        navigate("/engineering/products");
+      } catch {
+        showToast("Failed to save product details", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    const gridRows = (0, import_react4.useMemo)(() => {
+      const resolve = (entry) => {
+        const opt = entry.item_id ? itemOptions.find((o) => String(o.id) === String(entry.item_id)) : null;
+        return {
+          item_code: opt ? opt.item_code : entry.item_code || "\u2014",
+          item_name: opt ? opt.item_name : entry.item_name || "\u2014",
+          item_description: opt ? opt.item_description || entry.item_description || "\u2014" : entry.item_description || "\u2014"
+        };
+      };
+      const rows = [];
+      let seq = 0;
+      const walkLinked = (nodes, level) => {
+        (nodes || []).forEach((n) => {
+          const isLinked = !!n.component_product_id;
+          const r = resolve(n);
+          rows.push({
+            id: `L-${n.id}-${level}-${rows.length}`,
+            tempId: null,
+            level,
+            sno: ++seq,
+            serial_no: n.serial_no,
+            item_code: r.item_code,
+            item_name: r.item_name,
+            item_description: r.item_description,
+            quantity: Number(n.quantity),
+            wastage_percent: Number(n.wastage_percent || 0),
+            color: n.color || "",
+            type: isLinked ? "Linked Sub-Assembly" : n.is_subassembly ? "Sub-Assembly" : "Item",
+            component_product_id: isLinked ? Number(n.component_product_id) : null,
+            is_subassembly: n.is_subassembly || isLinked,
+            remark: n.remark || "",
+            readOnly: true
+          });
+          if (n.children && n.children.length) walkLinked(n.children, level + 1);
+        });
+      };
+      const walk = (list, level) => {
+        list.forEach((it) => {
+          const isLinked = !!it.component_product_id;
+          const r = resolve(it);
+          rows.push({
+            id: it.tempId,
+            tempId: it.tempId,
+            level,
+            sno: ++seq,
+            serial_no: it.serial_no,
+            item_code: r.item_code,
+            item_name: r.item_name,
+            item_description: r.item_description,
+            quantity: Number(it.quantity),
+            wastage_percent: Number(it.wastage_percent || 0),
+            color: it.color || "",
+            type: isLinked ? "Linked Sub-Assembly" : it.is_subassembly ? "Sub-Assembly" : "Item",
+            component_product_id: isLinked ? Number(it.component_product_id) : null,
+            is_subassembly: it.is_subassembly,
+            remark: it.remark || "",
+            readOnly: false
+          });
+          const kids = childItems(it.tempId);
+          if (kids.length) walk(kids, level + 1);
+          if (isLinked) walkLinked(linkedTrees[it.component_product_id] || [], level + 1);
+        });
+      };
+      walk(childItems(null), 0);
+      return rows;
+    }, [items, linkedTrees, itemOptions]);
+    const bomColumns = [
+      {
+        field: "serial_no",
+        headerName: "S.No",
+        width: 90,
+        renderCell: (p) => /* @__PURE__ */ import_react4.default.createElement("span", { style: { paddingLeft: p.row.level * 22, fontWeight: 600 } }, p.row.serial_no != null ? p.row.serial_no : "")
+      },
+      {
+        field: "item_code",
+        headerName: "Item Code",
+        width: 150,
+        renderCell: (p) => /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontFamily: "monospace", fontWeight: 600 } }, p.row.item_code || "\u2014")
+      },
+      {
+        field: "item_name",
+        headerName: "Part Name",
+        width: 220,
+        renderCell: (p) => /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", alignItems: "center", gap: 1 }, p.row.is_subassembly && /* @__PURE__ */ import_react4.default.createElement(import_material2.Chip, { size: "small", color: "warning", label: "Sub-Assy", sx: { height: 18, fontSize: ".68rem", fontWeight: 700 } }), /* @__PURE__ */ import_react4.default.createElement("span", null, p.row.item_name || "\u2014"))
+      },
+      { field: "item_description", headerName: "Description", width: 200 },
+      { field: "quantity", headerName: "Qty", width: 80, type: "number" },
+      { field: "wastage_percent", headerName: "Wastage %", width: 95, type: "number" },
+      { field: "color", headerName: "Color", width: 90 },
+      { field: "type", headerName: "Type", width: 160 },
+      { field: "remark", headerName: "Remark", width: 160 },
+      {
+        field: "actions",
+        headerName: "Actions",
+        width: 150,
+        sortable: false,
+        filterable: false,
+        renderCell: (p) => {
+          const r = p.row;
+          if (r.readOnly) {
+            return r.component_product_id ? /* @__PURE__ */ import_react4.default.createElement(import_material2.Button, { size: "small", variant: "text", sx: { textTransform: "none" }, onClick: () => navigate(`/engineering/products/edit/${r.component_product_id}`) }, "Open") : null;
+          }
+          return /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", gap: 0.5, justifyContent: "flex-end" }, r.is_subassembly && r.level === 0 && /* @__PURE__ */ import_react4.default.createElement(import_material2.Tooltip, { title: "Add sub-component" }, /* @__PURE__ */ import_react4.default.createElement(import_material2.IconButton, { size: "small", color: "primary", onClick: () => openAddComponent(r.tempId), sx: { bgcolor: "#f0fdf4", color: "success.main", "&:hover": { bgcolor: "#dcfce7" } } }, /* @__PURE__ */ import_react4.default.createElement(import_Layers.default, { sx: { fontSize: 16 } }))), /* @__PURE__ */ import_react4.default.createElement(import_material2.Tooltip, { title: "Edit" }, /* @__PURE__ */ import_react4.default.createElement(import_material2.IconButton, { size: "small", color: "primary", onClick: () => openEditComponent(items.find((i) => i.tempId === r.tempId)), sx: { bgcolor: "#eff6ff", "&:hover": { bgcolor: "#dbeafe" } } }, /* @__PURE__ */ import_react4.default.createElement(import_Edit.default, { sx: { fontSize: 16 } }))), /* @__PURE__ */ import_react4.default.createElement(import_material2.Tooltip, { title: "Remove" }, /* @__PURE__ */ import_react4.default.createElement(import_material2.IconButton, { size: "small", color: "error", onClick: () => removeItem(r.tempId), sx: { bgcolor: "#fef2f2", "&:hover": { bgcolor: "#fee2e2" } } }, /* @__PURE__ */ import_react4.default.createElement(import_Delete.default, { sx: { fontSize: 16 } }))));
+        }
+      }
+    ];
+    return /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { p: { xs: 2, md: 4 }, maxWidth: 1440, mx: "auto" } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: gradientHeader }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", alignItems: "center", gap: 2.5 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.IconButton, { onClick: () => {
+      if (dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return;
+      navigate("/engineering/products");
+    }, sx: {
+      bgcolor: "#f1f5f9",
+      color: "#0f172a",
+      "&:hover": { bgcolor: "#e2e8f0" }
+    } }, /* @__PURE__ */ import_react4.default.createElement(import_ArrowBack.default, null)), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, null, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "h5", sx: { fontWeight: 800, letterSpacing: "-0.02em", mb: 0.5, color: "#0f172a" } }, titlePrefix, " ", isSubAssembly ? "Sub-Assembly Component" : "Finished Product"), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", gap: 1.25, flexWrap: "wrap", alignItems: "center" }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Chip,
+      {
+        size: "small",
+        label: form.node_type || "SKU",
+        sx: {
+          bgcolor: "#e0f2fe",
+          color: "#0369a1",
+          fontWeight: 700,
+          border: "1px solid #bae6fd",
+          fontSize: ".72rem"
+        }
+      }
+    ), form.product_uid ? /* @__PURE__ */ import_react4.default.createElement(import_material2.Chip, { size: "small", label: `UID: ${form.product_uid}`, sx: { bgcolor: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", fontSize: ".72rem" } }) : /* @__PURE__ */ import_react4.default.createElement(import_material2.Chip, { size: "small", label: "Auto-generating UID", sx: { bgcolor: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", fontStyle: "italic", fontSize: ".72rem" } })))), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", alignItems: "center", gap: 1.5 }, !readOnly && /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Button,
+      {
+        type: "submit",
+        form: "product-master-form",
+        variant: "contained",
+        startIcon: /* @__PURE__ */ import_react4.default.createElement(import_Save.default, null),
+        disabled: loading,
+        sx: {
+          fontWeight: 700,
+          textTransform: "none",
+          background: "linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)",
+          boxShadow: "0 2px 8px rgba(29, 78, 216, 0.3)",
+          "&:hover": { background: "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)" }
+        }
+      },
+      isEdit ? "Update" : "Save"
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Button,
+      {
+        variant: "outlined",
+        onClick: () => {
+          if (dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return;
+          navigate("/engineering/products");
+        },
+        sx: { textTransform: "none", fontWeight: 600, borderColor: "#cbd5e1", color: "#334155", "&:hover": { bgcolor: "#f8fafc" } }
+      },
+      readOnly ? "Close" : "Cancel"
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Button,
+      {
+        variant: "outlined",
+        onClick: () => setShowGuide(!showGuide),
+        startIcon: /* @__PURE__ */ import_react4.default.createElement(import_HelpOutline.default, null),
+        sx: { color: "#0b3c91", borderColor: "#0b3c91", textTransform: "none", fontWeight: 600, "&:hover": { bgcolor: "rgba(11,60,145,0.04)" } }
+      },
+      "Guide"
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.FormControlLabel,
+      {
+        control: /* @__PURE__ */ import_react4.default.createElement(
+          import_material2.Switch,
+          {
+            size: "small",
+            checked: form.is_active,
+            onChange: handleChange("is_active"),
+            disabled: readOnly,
+            sx: {
+              "& .MuiSwitch-switchBase.Mui-checked": { color: "#0ebf7a" },
+              "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#0ebf7a" }
+            }
+          }
+        ),
+        label: /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "body2", sx: { fontWeight: 700, color: form.is_active ? "#0d9488" : "#64748b" } }, form.is_active ? "Active" : "Inactive"),
+        sx: { m: 0 }
+      }
+    ))), showGuide && /* @__PURE__ */ import_react4.default.createElement(import_material2.Paper, { sx: guideCard, elevation: 0 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", alignItems: "center", gap: 1.25 }, /* @__PURE__ */ import_react4.default.createElement(import_InfoOutlined.default, { color: "primary", sx: { fontSize: 24 } }), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "subtitle1", sx: { fontWeight: 700, color: "#1e293b" } }, "Engineering Product Master Foundations")), /* @__PURE__ */ import_react4.default.createElement(import_material2.Button, { size: "small", onClick: () => setShowGuide(false), sx: { textTransform: "none" } }, "Dismiss")), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { container: true, spacing: 2.5 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, md: 4 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { p: 1.5, height: "100%", bgcolor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", gap: 1, alignItems: "center", mb: 1, color: "primary.main" }, /* @__PURE__ */ import_react4.default.createElement(import_Assignment.default, { sx: { fontSize: 18 } }), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "body2", sx: { fontWeight: 700 } }, "1. Basic Identity Information")), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "caption", color: "text.secondary", component: "p" }, "Standardizes nomenclature, categories, finish models, and links the design directly with active stock inventory items to trace unit costs and quantities."))), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, md: 4 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { p: 1.5, height: "100%", bgcolor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", gap: 1, alignItems: "center", mb: 1, color: "warning.main" }, /* @__PURE__ */ import_react4.default.createElement(import_AccountTree.default, { sx: { fontSize: 18 } }), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "body2", sx: { fontWeight: 700 } }, "2. Structural Node Tree Role")), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "caption", color: "text.secondary", component: "p" }, "Configures BOM relation (ROOT to SKU). Specifies if this item operates as a **Phantom** (inline assembly with direct component blow-out) or independent **Sub-Assembly**."))), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, md: 4 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { p: 1.5, height: "100%", bgcolor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", gap: 1, alignItems: "center", mb: 1, color: "success.main" }, /* @__PURE__ */ import_react4.default.createElement(import_PrecisionManufacturing.default, { sx: { fontSize: 18 } }), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "body2", sx: { fontWeight: 700 } }, "3. Engineering & Planning version")), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "caption", color: "text.secondary", component: "p" }, "Specifies Drawing Numbers, revisions, yields, and pallet packing details. It establishes standard output boundaries for production lines."))))), /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Tabs,
+      {
+        value: activeTab,
+        onChange: (_, val) => setActiveTab(val),
+        sx: {
+          mb: 3,
+          borderBottom: "1px solid #e2e8f0",
+          "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" }
+        }
+      },
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.Tab, { icon: /* @__PURE__ */ import_react4.default.createElement(import_Assignment.default, { sx: { fontSize: 18 } }), iconPosition: "start", label: "1. Basic & Identity", sx: { fontWeight: 700, textTransform: "none", py: 1.5 } }),
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.Tab, { icon: /* @__PURE__ */ import_react4.default.createElement(import_PrecisionManufacturing.default, { sx: { fontSize: 18 } }), iconPosition: "start", label: "2. Structure & Planning Params", sx: { fontWeight: 700, textTransform: "none", py: 1.5 } }),
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.Tab, { icon: /* @__PURE__ */ import_react4.default.createElement(import_AccountTree.default, { sx: { fontSize: 18 } }), iconPosition: "start", label: "3. Component BOM Tree", sx: { fontWeight: 700, textTransform: "none", py: 1.5 } })
+    ), /* @__PURE__ */ import_react4.default.createElement("form", { id: "product-master-form", onSubmit: handleSubmit }, activeTab === 0 && /* @__PURE__ */ import_react4.default.createElement(import_material2.Card, { sx: cardLayout }, /* @__PURE__ */ import_react4.default.createElement(import_material2.CardContent, { sx: { p: 2, "&:last-child": { pb: 2 } } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { display: "flex", flexWrap: "wrap", gap: 1.5, mb: 1.5 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "2 1 260px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Part Name *",
+        size: "small",
+        fullWidth: true,
+        required: true,
+        value: form.part_name,
+        onChange: handleChange("part_name"),
+        disabled: readOnly,
+        placeholder: "e.g. TOWER FAN - NORMAL MODEL",
+        inputProps: { maxLength: 255 }
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "1 1 160px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Product Code",
+        size: "small",
+        fullWidth: true,
+        value: form.product_code,
+        onChange: handleChange("product_code"),
+        disabled: readOnly,
+        placeholder: "Auto-generated if blank",
+        inputProps: { maxLength: 100 }
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "0 0 140px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Product Type",
+        select: true,
+        size: "small",
+        fullWidth: true,
+        value: form.product_type,
+        onChange: handleChange("product_type"),
+        disabled: readOnly
+      },
+      PRODUCT_TYPES.map((t) => /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { key: t, value: t }, t))
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "0 0 150px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Finish Type",
+        select: true,
+        size: "small",
+        fullWidth: true,
+        value: form.finish_type,
+        onChange: handleChange("finish_type"),
+        disabled: readOnly
+      },
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { value: "" }, /* @__PURE__ */ import_react4.default.createElement("em", null, "None")),
+      FINISH_TYPES.map((f) => /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { key: f, value: f }, f))
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "0 0 140px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Color",
+        size: "small",
+        fullWidth: true,
+        value: form.color,
+        onChange: handleChange("color"),
+        disabled: readOnly,
+        placeholder: "White, Black...",
+        inputProps: { maxLength: 100 }
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "0 0 110px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Assembly Qty",
+        type: "number",
+        size: "small",
+        fullWidth: true,
+        value: form.assembly_qty,
+        onChange: handleChange("assembly_qty"),
+        disabled: readOnly
+      }
+    ))), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { display: "flex", flexWrap: "wrap", gap: 1.5 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "1 1 180px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Autocomplete,
+      {
+        fullWidth: true,
+        size: "small",
+        freeSolo: true,
+        options: mainOptions,
+        value: form.main_category_name || "",
+        onChange: (_, v) => setForm((f) => ({ ...f, main_category_name: v || "" })),
+        onInputChange: (_, v) => setForm((f) => ({ ...f, main_category_name: v || "" })),
+        disabled: readOnly,
+        renderInput: (params) => /* @__PURE__ */ import_react4.default.createElement(import_material2.TextField, { ...params, label: "Main Category *", placeholder: "Select or type..." })
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "1 1 180px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Autocomplete,
+      {
+        fullWidth: true,
+        size: "small",
+        freeSolo: true,
+        options: subOptions,
+        value: form.sub_category_name || "",
+        onChange: (_, v) => setForm((f) => ({ ...f, sub_category_name: v || "" })),
+        onInputChange: (_, v) => setForm((f) => ({ ...f, sub_category_name: v || "" })),
+        disabled: readOnly,
+        renderInput: (params) => /* @__PURE__ */ import_react4.default.createElement(import_material2.TextField, { ...params, label: "Sub Category *", placeholder: "Select or type..." })
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "1 1 200px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Linked Inventory Item",
+        select: true,
+        size: "small",
+        fullWidth: true,
+        value: form.item_id,
+        onChange: handleChange("item_id"),
+        disabled: readOnly
+      },
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { value: "" }, /* @__PURE__ */ import_react4.default.createElement("em", null, "Not Linked")),
+      itemMasterList.map((im) => /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { key: im.id, value: im.id }, im.item_code, " - ", im.item_name, " ", im.unit?.short_name ? `(${im.unit.short_name})` : ""))
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { flex: "2 1 260px" } }, /* @__PURE__ */ import_react4.default.createElement(
+      CountedTextArea,
+      {
+        label: "Description / Engineering Notes",
+        size: "small",
+        fullWidth: true,
+        value: form.description,
+        onChange: handleChange("description"),
+        disabled: readOnly,
+        rows: 2,
+        placeholder: "Material composition, assembly parameters, tooling notes..."
+      }
+    ))))), activeTab === 1 && /* @__PURE__ */ import_react4.default.createElement(import_material2.Card, { sx: cardLayout }, /* @__PURE__ */ import_react4.default.createElement(import_material2.CardContent, { sx: { p: 3 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { container: true, spacing: 3.25 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "subtitle2", sx: { fontWeight: 700, color: "text.secondary", display: "flex", alignItems: "center", gap: 1, mb: 1 } }, /* @__PURE__ */ import_react4.default.createElement(import_AccountTree.default, { fontSize: "small", color: "primary" }), " Hierarchy & Role parameters"), /* @__PURE__ */ import_react4.default.createElement(import_material2.Divider, { sx: { mb: 2 } })), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sm: 6 }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Structural Tree Node Role",
+        select: true,
+        size: "small",
+        fullWidth: true,
+        value: form.node_type,
+        onChange: handleChange("node_type"),
+        disabled: readOnly,
+        helperText: "ROOT: Top-level item. SKU: single parts/sales unit. PHANTOM: direct collapse"
+      },
+      NODE_TYPES.map((n) => /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { key: n.value, value: n.value }, n.label))
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sm: 6 }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Immediate Parent Assembly Product",
+        select: true,
+        size: "small",
+        fullWidth: true,
+        value: form.parent_id,
+        onChange: handleChange("parent_id"),
+        disabled: readOnly,
+        helperText: "Define parent element if this belongs to a larger top-level assembly structure"
+      },
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { value: "" }, /* @__PURE__ */ import_react4.default.createElement("em", null, "None (Top Level Root)")),
+      productList.filter((p) => String(p.id) !== String(id)).map((p) => /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { key: p.id, value: p.id }, p.product_code || p.product_uid, " \u2014 ", p.part_name))
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sx: { mt: 2 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "subtitle2", sx: { fontWeight: 700, color: "text.secondary", display: "flex", alignItems: "center", gap: 1, mb: 1 } }, /* @__PURE__ */ import_react4.default.createElement(import_PrecisionManufacturing.default, { fontSize: "small", color: "secondary" }), " Version Control & Reference Drawings"), /* @__PURE__ */ import_react4.default.createElement(import_material2.Divider, { sx: { mb: 2 } })), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sm: 4 }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Engineering Drawing Reference Number",
+        size: "small",
+        fullWidth: true,
+        value: form.drawing_no,
+        onChange: handleChange("drawing_no"),
+        disabled: readOnly,
+        placeholder: "e.g. DWG-206-TF-012",
+        inputProps: { maxLength: 100 }
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sm: 4 }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Revision Control Level",
+        size: "small",
+        fullWidth: true,
+        value: form.revision,
+        onChange: handleChange("revision"),
+        disabled: readOnly,
+        placeholder: "e.g. Rev A.2",
+        inputProps: { maxLength: 50 }
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sm: 4 }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Default Locked Version BOM",
+        select: true,
+        size: "small",
+        fullWidth: true,
+        value: form.default_bom_id,
+        onChange: handleChange("default_bom_id"),
+        disabled: readOnly,
+        helperText: "Binds assembly processes to specific revisions"
+      },
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { value: "" }, /* @__PURE__ */ import_react4.default.createElement("em", null, "Latest Active Iteration")),
+      bomOptions.map((b) => /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { key: b.id, value: b.id }, b.bom_no, " (Version ", b.version, ")"))
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sx: { mt: 2 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "subtitle2", sx: { fontWeight: 700, color: "text.secondary", display: "flex", alignItems: "center", gap: 1, mb: 1 } }, /* @__PURE__ */ import_react4.default.createElement(import_LocalShipping.default, { fontSize: "small", color: "success" }), " Warehouse & Dispatch Logistics"), /* @__PURE__ */ import_react4.default.createElement(import_material2.Divider, { sx: { mb: 2 } })), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sm: 6 }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Quantity Allocation per standard shipping pallet",
+        type: "number",
+        size: "small",
+        fullWidth: true,
+        value: form.qty_per_pallet,
+        onChange: handleChange("qty_per_pallet"),
+        disabled: readOnly,
+        placeholder: "e.g. 50"
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement(import_material2.Grid, { item: true, xs: 12, sm: 6 }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.TextField,
+      {
+        label: "Sequential UI Display Order",
+        type: "number",
+        size: "small",
+        fullWidth: true,
+        value: form.sort_order,
+        onChange: handleChange("sort_order"),
+        disabled: readOnly,
+        helperText: "Controls list sort ranking position"
+      }
+    ))))), activeTab === 2 && /* @__PURE__ */ import_react4.default.createElement(import_material2.Card, { sx: cardLayout }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      px: 3,
+      py: 2.25,
+      borderBottom: "1px solid #e2e8f0",
+      bgcolor: "#f8fafc"
+    } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", alignItems: "center", gap: 1.5 }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { sx: { fontWeight: 700, color: "#0f172a" } }, isSubAssembly ? "Sub-Assembly Component Parts list" : "Bill of Materials (BOM) Tree"), /* @__PURE__ */ import_react4.default.createElement(import_material2.Chip, { size: "small", label: `${items.length} columns allocated`, color: "primary", sx: { fontWeight: 700 } })), !readOnly && /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", gap: 1.25 }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Button,
+      {
+        startIcon: /* @__PURE__ */ import_react4.default.createElement(import_Add.default, null),
+        onClick: () => openAddComponent(),
+        size: "small",
+        variant: "contained",
+        sx: { textTransform: "none", fontWeight: 700, boxShadow: "none" }
+      },
+      "Add Component Column"
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Button,
+      {
+        startIcon: /* @__PURE__ */ import_react4.default.createElement(import_Add.default, null),
+        onClick: () => openItemDialog(null),
+        size: "small",
+        variant: "text",
+        sx: { textTransform: "none", fontWeight: 600 }
+      },
+      "New Item Code Info"
+    ))), /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Box,
+      {
+        ref: topScrollRef,
+        sx: {
+          overflowX: "auto",
+          overflowY: "hidden",
+          borderBottom: "1px solid #e2e8f0",
+          "&::-webkit-scrollbar": { height: 10 },
+          "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 5 },
+          "&::-webkit-scrollbar-track": { backgroundColor: "#f1f5f9" }
+        }
+      },
+      /* @__PURE__ */ import_react4.default.createElement("div", { style: { height: 1 } })
+    ), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { overflowX: "auto" } }, gridRows.length === 0 ? /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { sx: { py: 6, display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "body2", color: "text.disabled", sx: { fontStyle: "italic", fontWeight: 500 } }, "No child items configured in this BOM tree structure yet."), !readOnly && /* @__PURE__ */ import_react4.default.createElement(import_material2.Button, { startIcon: /* @__PURE__ */ import_react4.default.createElement(import_Add.default, null), variant: "outlined", size: "small", onClick: () => openAddComponent() }, "Insert First Component")) : /* @__PURE__ */ import_react4.default.createElement(
+      import_x_data_grid.DataGrid,
+      {
+        rows: gridRows,
+        columns: bomColumns,
+        getRowId: (r) => r.id,
+        pageSizeOptions: [10, 25, 50, 100],
+        initialState: { pagination: { paginationModel: { pageSize: 25 } } },
+        slots: { toolbar: import_x_data_grid.GridToolbar },
+        slotProps: { toolbar: { showQuickFilter: true, printOptions: { disableToolbarButton: true }, csvOptions: { disableToolbarButton: true } } },
+        disableRowSelectionOnClick: true,
+        sx: {
+          fontSize: 13,
+          "& .MuiDataGrid-columnHeaders": { fontWeight: 700, bgcolor: "#f1f5f9" },
+          "& .MuiDataGrid-row:hover": { bgcolor: "#f8fafc" },
+          minHeight: 440
+        }
+      }
+    ))), isSubAssembly && id && /* @__PURE__ */ import_react4.default.createElement(import_material2.Card, { sx: cardLayout }, /* @__PURE__ */ import_react4.default.createElement(import_material2.CardContent, { sx: { p: 3 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "subtitle2", sx: { fontWeight: 700, mb: 1.5 } }, "Usage Mapping (Referenced Assemblies / Products)"), usedIn.length === 0 ? /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "body2", color: "text.disabled", sx: { fontStyle: "italic" } }, "This specific sub-assembly configuration has not been referenced inside parent product BOM structures yet.") : /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", flexWrap: "wrap", gap: 1.25 }, usedIn.map((p) => /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Chip,
+      {
+        key: p.id,
+        color: "warning",
+        variant: "outlined",
+        onClick: () => navigate(`/engineering/products/edit/${p.id}`),
+        sx: { cursor: "pointer", fontWeight: 700, "&:hover": { bgcolor: "#fffbeb" } },
+        label: `${p.product_code || p.product_uid} \u2014 ${p.part_name}`
+      }
+    ))))), !readOnly && activeTab < 2 && /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { mt: 2, display: "flex", justifyContent: "flex-end" }, /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Button,
+      {
+        onClick: () => setActiveTab(activeTab + 1),
+        sx: { textTransform: "none", fontWeight: 700 },
+        endIcon: /* @__PURE__ */ import_react4.default.createElement(import_ChevronRight.default, null)
+      },
+      "Proceed to Next Tab"
+    ))), /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Dialog,
+      {
+        open: itemDialog.open,
+        onClose: () => setItemDialog((d) => ({ ...d, open: false })),
+        maxWidth: "xs",
+        fullWidth: true,
+        PaperProps: { sx: { borderRadius: 3, p: 1 } }
+      },
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.DialogTitle, { sx: { fontWeight: 800 } }, "Create New Item Code"),
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.DialogContent, null, /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", flexDirection: "column", gap: 2.5, sx: { mt: 1.5 } }, /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          label: "Item Code ID (Required)",
+          size: "small",
+          fullWidth: true,
+          value: itemDialog.code,
+          onChange: (e) => setItemDialog((d) => ({ ...d, code: e.target.value })),
+          inputProps: { maxLength: 50 },
+          helperText: "Uppercase only: TF06, TOP-FANTY, etc."
+        }
+      ), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          label: "Detailed Item Designation",
+          size: "small",
+          fullWidth: true,
+          value: itemDialog.name,
+          onChange: (e) => setItemDialog((d) => ({ ...d, name: e.target.value })),
+          inputProps: { maxLength: 200 }
+        }
+      ), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          label: "Make / Buy Procurement Status",
+          select: true,
+          size: "small",
+          fullWidth: true,
+          value: itemDialog.make_buy,
+          onChange: (e) => setItemDialog((d) => ({ ...d, make_buy: e.target.value }))
+        },
+        /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { value: "Buy" }, "Buy (Purchased Part)"),
+        /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { value: "Make" }, "Make (Manufactured)"),
+        /* @__PURE__ */ import_react4.default.createElement(import_material2.MenuItem, { value: "Phantom" }, "Phantom (Logical Grouping)")
+      ), itemDialog.error && /* @__PURE__ */ import_react4.default.createElement(import_material2.Alert, { severity: "error" }, itemDialog.error))),
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.DialogActions, { sx: { px: 3, pb: 2 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Button, { onClick: () => setItemDialog((d) => ({ ...d, open: false })), sx: { textTransform: "none" } }, "Cancel"), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.Button,
+        {
+          variant: "contained",
+          onClick: handleCreateItem,
+          disabled: itemDialog.saving,
+          sx: { fontWeight: 700, px: 3, textTransform: "none" }
+        },
+        "Create Record"
+      ))
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      import_material2.Dialog,
+      {
+        open: compDialog.open,
+        onClose: () => setCompDialog((d) => ({ ...d, open: false })),
+        maxWidth: "sm",
+        fullWidth: true,
+        PaperProps: { sx: { borderRadius: 3, p: 1 } }
+      },
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.DialogTitle, { sx: { fontWeight: 800 } }, compDialog.mode === "edit" ? "Edit Component" : compDialog.parentTempId ? "Add Sub-Component" : "Add Component"),
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.DialogContent, null, compDialog.draft && /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", flexDirection: "column", gap: 2.25, sx: { mt: 1.5 } }, /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.Autocomplete,
+        {
+          size: "small",
+          fullWidth: true,
+          options: itemOptions,
+          getOptionLabel: (o) => typeof o === "string" ? o : o.item_code || "",
+          isOptionEqualToValue: (o, v) => String(o.id) === String(v.id),
+          filterOptions: cap,
+          value: itemOptions.find((o) => String(o.id) === String(compDialog.draft.item_id)) || null,
+          onChange: (_, val) => setCompDialog((cd) => {
+            const d = { ...cd.draft, item_id: val ? String(val.id) : "" };
+            if (val) {
+              d.item_code = val.item_code;
+              d.item_name = val.item_name;
+              d.item_description = val.item_description || "";
+              d.unit_id = val.unit_id;
+            }
+            return { ...cd, draft: d };
+          }),
+          renderOption: (props, option) => /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { component: "li", ...props, sx: { display: "flex", flexDirection: "column", alignItems: "flex-start", py: 0.75, borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "body2", sx: { fontWeight: 700, fontFamily: "monospace", color: "#1e293b" } }, option.item_code), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "caption", sx: { color: "text.secondary", fontWeight: 500 } }, option.item_name), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "caption", sx: { color: "#94a3b8" } }, option.item_description || "\u2014")),
+          renderInput: (params) => /* @__PURE__ */ import_react4.default.createElement(import_material2.TextField, { ...params, label: "Item Code" })
+        }
+      ), compDialog.draft && compDialog.draft.item_id && (() => {
+        const sel = itemOptions.find((o) => String(o.id) === String(compDialog.draft.item_id));
+        return sel ? /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "caption", sx: { color: "text.secondary", ml: 0.5 } }, sel.item_description ? `Item Description: ${sel.item_description}` : "No item description available.") : null;
+      })(), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          size: "small",
+          fullWidth: true,
+          label: "Component Name",
+          value: compDialog.draft.item_name || "",
+          onChange: (e) => setCompDialog((cd) => ({ ...cd, draft: { ...cd.draft, item_name: e.target.value } }))
+        }
+      ), /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { display: "flex", gap: 2 }, /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          type: "number",
+          size: "small",
+          fullWidth: true,
+          label: "Serial No",
+          value: compDialog.draft.serial_no != null ? compDialog.draft.serial_no : "",
+          onChange: (e) => setCompDialog((cd) => ({ ...cd, draft: { ...cd.draft, serial_no: e.target.value === "" ? null : Number(e.target.value) } }))
+        }
+      ), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          type: "number",
+          size: "small",
+          fullWidth: true,
+          label: "Qty",
+          value: Number(compDialog.draft.quantity),
+          onChange: (e) => setCompDialog((cd) => ({ ...cd, draft: { ...cd.draft, quantity: Number(e.target.value) } }))
+        }
+      ), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          type: "number",
+          size: "small",
+          fullWidth: true,
+          label: "Wastage %",
+          value: Number(compDialog.draft.wastage_percent || 0),
+          onChange: (e) => setCompDialog((cd) => ({ ...cd, draft: { ...cd.draft, wastage_percent: Number(e.target.value) } }))
+        }
+      )), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          size: "small",
+          fullWidth: true,
+          label: "Color",
+          value: compDialog.draft.color || "",
+          onChange: (e) => setCompDialog((cd) => ({ ...cd, draft: { ...cd.draft, color: e.target.value } }))
+        }
+      ), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.FormControlLabel,
+        {
+          control: /* @__PURE__ */ import_react4.default.createElement(
+            import_material2.Switch,
+            {
+              size: "small",
+              checked: !!compDialog.draft.is_subassembly,
+              onChange: (e) => setCompDialog((cd) => ({ ...cd.draft, is_subassembly: e.target.checked }))
+            }
+          ),
+          label: /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "caption", sx: { fontSize: ".72rem", fontWeight: 600 } }, "Sub-Assembly (leave link empty for an inline group)")
+        }
+      ), compDialog.draft.is_subassembly && /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.Autocomplete,
+        {
+          size: "small",
+          fullWidth: true,
+          options: subAssemblyProducts,
+          getOptionLabel: (p) => typeof p === "string" ? p : p.product_code || p.product_uid || "",
+          isOptionEqualToValue: (o, v) => String(o.id) === String(v.id),
+          filterOptions: capProduct,
+          value: subAssemblyProducts.find((p) => String(p.id) === String(compDialog.draft.component_product_id)) || null,
+          onChange: (_, val) => setCompDialog((cd) => {
+            const d = { ...cd.draft, component_product_id: val ? String(val.id) : "" };
+            if (val) {
+              d.item_code = val.product_code || val.product_uid || "";
+              d.item_name = val.part_name || "";
+              if (val.item_id) {
+                const sel = itemMasterList.find((im) => String(im.id) === String(val.item_id));
+                if (sel) {
+                  d.item_id = sel.id;
+                  d.item_description = sel.item_description || "";
+                  d.unit_id = sel.unit_id;
+                }
+              } else {
+                d.item_id = "";
+                d.item_description = "";
+                d.unit_id = "";
+              }
+            }
+            return { ...cd, draft: d };
+          }),
+          renderOption: (props, option) => /* @__PURE__ */ import_react4.default.createElement(import_material2.Box, { component: "li", ...props, sx: { display: "flex", flexDirection: "column", alignItems: "flex-start", py: 0.75, borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "body2", sx: { fontWeight: 700, color: "#d97706", fontFamily: "monospace" } }, option.product_code || option.product_uid), /* @__PURE__ */ import_react4.default.createElement(import_material2.Typography, { variant: "caption", sx: { color: "text.secondary", fontWeight: 500 } }, option.part_name)),
+          renderInput: (params) => /* @__PURE__ */ import_react4.default.createElement(import_material2.TextField, { ...params, label: "Link existing Sub-Assembly (reusable)" })
+        }
+      ), /* @__PURE__ */ import_react4.default.createElement(
+        import_material2.TextField,
+        {
+          size: "small",
+          fullWidth: true,
+          label: "Remark",
+          value: compDialog.draft.remark || "",
+          onChange: (e) => setCompDialog((cd) => ({ ...cd, draft: { ...cd.draft, remark: e.target.value } }))
+        }
+      ))),
+      /* @__PURE__ */ import_react4.default.createElement(import_material2.DialogActions, { sx: { px: 3, pb: 2 } }, /* @__PURE__ */ import_react4.default.createElement(import_material2.Button, { onClick: () => setCompDialog((d) => ({ ...d, open: false })), sx: { textTransform: "none" } }, "Cancel"), /* @__PURE__ */ import_react4.default.createElement(import_material2.Button, { variant: "contained", onClick: saveComponent, sx: { fontWeight: 700, px: 3, textTransform: "none" } }, "Save"))
+    ));
+  }
+})();

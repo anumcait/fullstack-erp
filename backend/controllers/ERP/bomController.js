@@ -39,6 +39,7 @@ async function buildTree(bomId) {
           { model: BOMItem, as: 'children' },
           { model: BOM, as: 'subBom', attributes: ['id', 'bom_no', 'bom_name', 'product_name'] },
           { model: ItemMaster, as: 'item', attributes: ['id', 'item_code', 'rate', 'gst_rate'] },
+          { model: ProductMaster, as: 'componentProduct', attributes: ['id', 'product_uid', 'product_code', 'part_name'] },
         ],
         order: [['sort_order', 'ASC'], ['id', 'ASC']],
       },
@@ -75,11 +76,12 @@ async function explodeBOMRecursive(bomId, multiplier = 1, visited = new Set()) {
     include: [{
       model: BOMItem,
       as: 'items',
-      include: [
-        { model: BOMItem, as: 'children' },
-        { model: BOM, as: 'subBom', attributes: ['id', 'bom_no', 'bom_name'] },
-        { model: ItemMaster, as: 'item', attributes: ['id', 'item_code', 'rate', 'gst_rate'] },
-      ],
+        include: [
+          { model: BOMItem, as: 'children' },
+          { model: BOM, as: 'subBom', attributes: ['id', 'bom_no', 'bom_name'] },
+          { model: ItemMaster, as: 'item', attributes: ['id', 'item_code', 'rate', 'gst_rate'] },
+          { model: ProductMaster, as: 'componentProduct', attributes: ['id', 'product_uid', 'product_code', 'part_name'] },
+        ],
     }],
   });
   if (!bom) return [];
@@ -285,6 +287,7 @@ exports.create = async (req, res) => {
         bom_id: doc.id,
         parent_item_id: it.parent_item_id || null,
         sub_bom_id: it.sub_bom_id || null,
+        component_product_id: it.component_product_id || null,
         sort_order: it.sort_order ?? idx,
         section_name: it.section_name || null,
         is_phantom: !!it.is_phantom,
@@ -322,6 +325,7 @@ exports.update = async (req, res) => {
         bom_id: doc.id,
         parent_item_id: it.parent_item_id || null,
         sub_bom_id: it.sub_bom_id || null,
+        component_product_id: it.component_product_id || null,
         sort_order: it.sort_order ?? idx,
         section_name: it.section_name || null,
         is_phantom: !!it.is_phantom,

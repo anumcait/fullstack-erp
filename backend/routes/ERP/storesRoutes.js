@@ -22,7 +22,7 @@ const inventoryReportController = require('../../controllers/ERP/inventoryReport
 const warehouseController = require('../../controllers/ERP/warehouseController');
 const batchController = require('../../controllers/ERP/batchController');
 const { requirePermission } = require('../../middleware/auth');
-const S = require('../../constants/permissions').STORES;
+const S = require('../../constants/permissions').ERP_PERMISSIONS.STORES;
 
 // ── Dashboard ──
 router.get('/dashboard', storesController.getDashboardStats);
@@ -104,6 +104,7 @@ router.delete('/units/:id', requirePermission(S.ITEM_MANAGE), itemController.del
 // ── Item Master ──
 router.get('/items', itemController.getItems);
 router.get('/items/next-code', itemController.getNextItemCode);
+router.get('/items/check-duplicate', itemController.checkItemDuplicate);
 router.get('/items/:id', itemController.getItem);
 router.post('/items', requirePermission(S.ITEM_MANAGE), itemController.createItem);
 router.put('/items/:id', requirePermission(S.ITEM_MANAGE), itemController.updateItem);

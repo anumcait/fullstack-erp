@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Typography, Grid, LinearProgress } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import StandardTable from '../../Common/StandardTable.jsx';
 import { FiCalendar, FiRefreshCw } from 'react-icons/fi';
 import axios from 'axios';
 
@@ -32,7 +32,7 @@ const PlanningReports = () => {
                 <FiCalendar /> <Typography variant="h6">Schedule Status</Typography>
               </Box>
               <div style={{ height: 300 }}>
-                <DataGrid rows={scheduleStatus} columns={[
+                <StandardTable title="PlanningReports" rows={scheduleStatus} columns={[
                   { field: 'status', headerName: 'Status', flex: 1 },
                   { field: 'count', headerName: 'Count', flex: 1 },
                 ]} getRowId={(r, i) => i} hideFooter disableColumnMenu
@@ -48,7 +48,7 @@ const PlanningReports = () => {
                 <FiRefreshCw /> <Typography variant="h6">MRP Run Summary</Typography>
               </Box>
               <div style={{ height: 300 }}>
-                <DataGrid rows={mrpSummary} columns={[
+                <StandardTable title="PlanningReports" rows={mrpSummary} columns={[
                   { field: 'run_no', headerName: 'Run No', flex: 1 },
                   { field: 'run_date', headerName: 'Date', flex: 1 },
                   { field: 'item_count', headerName: 'Items', flex: 1 },

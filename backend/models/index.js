@@ -26,7 +26,7 @@ const loadModels = (dir) => {
       if (file !== 'HR' || dir === __dirname) {
          // Just a safety check, we want to enter subdirectories like HR
       }
-      if (file !== 'node_modules' && file !== 'ERP' && file !== 'Accounts' && !file.startsWith('.')) {
+      if (file !== 'node_modules' && file !== 'ERP' && file !== 'Accounts' && file !== 'Oracle' && !file.startsWith('.')) {
         loadModels(fullPath);
       }
     } else if (file !== basename && file.endsWith('.js') && !file.startsWith('.')) {

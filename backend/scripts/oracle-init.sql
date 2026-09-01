@@ -1,0 +1,9 @@
+-- Oracle init: create HR and ERP schemas (users) for the parallel ERP/HR data.
+-- Run as SYSTEM (DBA). Passwords are for local dev only.
+CREATE USER hr IDENTIFIED BY hr_pass;
+GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE, UNLIMITED TABLESPACE TO hr;
+
+CREATE USER erp IDENTIFIED BY hr_pass;
+GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE, UNLIMITED TABLESPACE TO erp;
+
+EXIT;

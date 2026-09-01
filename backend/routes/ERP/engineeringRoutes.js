@@ -11,6 +11,10 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 // ── Product Master ──
 router.get('/products', productController.getList);
 router.get('/products/:id', productController.getOne);
+router.get('/products/:id/assembly-tree', productController.getAssemblyTree);
+router.get('/products/:id/bom', productController.getProductBOM);
+router.get('/products/:id/bom-tree', productController.getBomTree);
+router.get('/products/:id/used-in', productController.getUsedIn);
 router.post('/products', productController.create);
 router.put('/products/:id', productController.update);
 router.delete('/products/:id', productController.delete);

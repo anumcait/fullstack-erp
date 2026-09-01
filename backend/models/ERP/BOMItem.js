@@ -10,6 +10,7 @@ module.exports = (sequelize) => {
     section_name: { type: DataTypes.STRING(100), allowNull: true },
     is_phantom: { type: DataTypes.BOOLEAN, defaultValue: false },
     item_id: { type: DataTypes.INTEGER, allowNull: true },
+    component_product_id: { type: DataTypes.INTEGER, allowNull: true },
     item_code: { type: DataTypes.STRING(50), allowNull: true },
     item_name: { type: DataTypes.STRING(200), allowNull: false },
     quantity: { type: DataTypes.DECIMAL(12, 4), allowNull: false },
@@ -34,6 +35,7 @@ module.exports = (sequelize) => {
     BOMItem.hasMany(models.BOMItem, { foreignKey: 'parent_item_id', as: 'children' });
     BOMItem.belongsTo(models.BOM, { foreignKey: 'sub_bom_id', as: 'subBom' });
     BOMItem.belongsTo(models.ItemMaster, { foreignKey: 'item_id', as: 'item' });
+    BOMItem.belongsTo(models.ProductMaster, { foreignKey: 'component_product_id', as: 'componentProduct' });
   };
 
   return BOMItem;

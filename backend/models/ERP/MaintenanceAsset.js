@@ -11,7 +11,7 @@ module.exports = (sequelize) => {
     purchase_date: { type: DataTypes.DATEONLY },
     purchase_cost: { type: DataTypes.DECIMAL(14, 2) },
     warranty_expiry: { type: DataTypes.DATEONLY },
-    status: { type: DataTypes.ENUM('Active', 'Inactive', 'Disposed'), defaultValue: 'Active' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Active' },
     notes: { type: DataTypes.TEXT },
   }, {
     tableName: 'm_maintenance_asset',

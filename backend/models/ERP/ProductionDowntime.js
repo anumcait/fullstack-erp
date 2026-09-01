@@ -10,12 +10,12 @@ module.exports = (sequelize) => {
     start_time: { type: DataTypes.TIME },
     end_time: { type: DataTypes.TIME },
     duration_minutes: { type: DataTypes.INTEGER, defaultValue: 0 },
-    category: { type: DataTypes.ENUM('Breakdown', 'Setup', 'Maintenance', 'No Material', 'No Operator', 'Power Failure', 'Other'), defaultValue: 'Breakdown' },
+    category: { type: DataTypes.STRING(30), defaultValue: 'Breakdown' },
     reason: { type: DataTypes.TEXT },
     action_taken: { type: DataTypes.TEXT },
     reported_by: { type: DataTypes.STRING(100) },
     resolved_by: { type: DataTypes.STRING(100) },
-    status: { type: DataTypes.ENUM('Open', 'Resolved', 'Closed'), defaultValue: 'Open' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Open' },
   }, {
     tableName: 't_production_downtime',
 

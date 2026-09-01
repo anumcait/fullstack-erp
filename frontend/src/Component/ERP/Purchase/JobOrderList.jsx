@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress, Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import StandardTable from '../../../Component/Common/StandardTable';
 import AddIcon from "@mui/icons-material/Add";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
@@ -179,16 +179,14 @@ export default function JobOrderList() {
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
           <div style={{ height: 520, width: "100%" }}>
-            <DataGrid rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
-              onRowClick={(p) => navigate(`/purchase/job-orders/view/${p.row.id}`)}
-              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
-              disableColumnMenu loading={loading}
-              sx={{
-                border: 0,
-                "& .MuiDataGrid-columnHeaders": { bgcolor: "#f2f4f7", fontWeight: 700 },
-                "& .MuiDataGrid-row:hover": { bgcolor: "#f8fafc" },
-                "& .MuiDataGrid-cell": { fontSize: ".92rem" },
-              }} />
+            <StandardTable
+              title="Purchase Job Orders"
+              rows={rows}
+              columns={columns}
+              getRowId={(r) => r.id}
+              loading={loading}
+              onRowClick={(row) => navigate(`/purchase/job-orders/view/${row.id}`)}
+            />
           </div>
         </CardContent>
       </Card>

@@ -128,7 +128,7 @@ module.exports = (sequelize) => {
 
   // 🔹 Associations
   Employee.associate = (models) => {
-    Employee.hasOne(models.User, { foreignKey: 'empid', as: 'user' });
+    Employee.hasOne(models.User, { foreignKey: 'empid', sourceKey: 'empid', as: 'user' });
     Employee.hasOne(models.EmpOfficial, { foreignKey: 'empid', as: 'official' });
     Employee.hasOne(models.EmpSalary, { foreignKey: 'empid', as: 'salary' });
     Employee.hasMany(models.EmpFamily, { foreignKey: 'empid', as: 'family' });
@@ -202,7 +202,7 @@ module.exports = (sequelize) => {
 //       divname: DataTypes.STRING(40),
 //       deptname: DataTypes.STRING(40),
 //       secname: DataTypes.STRING(40),
-//       employment_status: { type: DataTypes.ENUM('Active', 'Resigned', 'Terminated', 'On Leave'), defaultValue: 'Active' },
+//       employment_status: { type: DataTypes.STRING(30), defaultValue: 'Active' },
 //       c_emp_left_status: DataTypes.CHAR(1),
 //       c_emp_left_date: DataTypes.DATE,
 //       c_last_update: DataTypes.DATE,

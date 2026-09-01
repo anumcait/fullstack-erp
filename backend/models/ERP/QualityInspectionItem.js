@@ -8,7 +8,7 @@ module.exports = (sequelize) => {
     specification: { type: DataTypes.STRING(255) },
     method: { type: DataTypes.STRING(100) },
     observed_value: { type: DataTypes.STRING(100) },
-    result: { type: DataTypes.ENUM('Pass', 'Fail', 'N/A'), defaultValue: 'N/A' },
+    result: { type: DataTypes.STRING(30), defaultValue: 'N/A' },
     remarks: { type: DataTypes.TEXT },
   }, {
     tableName: 't_quality_inspection_items',

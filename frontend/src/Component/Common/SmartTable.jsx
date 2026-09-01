@@ -10,7 +10,7 @@ import { saveAs } from "file-saver";
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 import { useCompany } from "../../context/CompanyContext";
 
-const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, renderExpanded, headerAction }) => {
+const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, renderExpanded, headerAction, disableActions = false, disableExpand = false, initialWidths = {}, loading = false, onRowClick = null }) => {
   const { companyName } = useCompany();
   const [visibleColumns, setVisibleColumns] = useState(columns.map(col => col.field));
   const [tempVisibleColumns, setTempVisibleColumns] = useState([...visibleColumns]);
@@ -23,6 +23,32 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
   const [filters, setFilters] = useState({});
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [columnWidths, setColumnWidths] = useState(() => {
+    const w = {};
+    columns.forEach((c) => {
+      const len = (c.header || '').length || 6;
+      w[c.field] = initialWidths?.[c.field] ?? Math.max(140, Math.min(320, len * 9 + 48));
+    });
+    return w;
+  });
+
+  // Drag-to-resize column widths
+  const startResize = (field, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = columnWidths[field] || 150;
+    const onMove = (ev) => {
+      const newWidth = Math.max(70, startWidth + (ev.clientX - startX));
+      setColumnWidths((w) => ({ ...w, [field]: newWidth }));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   // Dual scrollbar refs
   const topScrollRef = useRef(null);
@@ -144,8 +170,15 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
 
     doc.save(`${companyName}_${title || "Report"}_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
+  const actionColCount = (disableActions ? 0 : 1) + (disableExpand ? 0 : 1);
+
   return (
     <div className="smart-table-wrapper">
+      {loading && (
+        <div className="smart-table-loading">
+          <div className="smart-table-spinner" /> Loading…
+        </div>
+      )}
       {/* Header */}
       <div className="smart-table-header">
         <div className="smart-table-title">
@@ -239,7 +272,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
         ref={bottomScrollRef}
         onScroll={syncBottomScroll}
       >
-        <table className="smart-table" ref={tableRef}>
+        <table className="smart-table" ref={tableRef} style={{ tableLayout: 'fixed', width: 'max-content' }}>
           <thead>
             <tr>
               {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
@@ -247,14 +280,17 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
                   key={colIdx}
                   className="sortable-header"
                   onClick={() => handleSort(col.field)}
+                  style={{ width: columnWidths[col.field], minWidth: columnWidths[col.field], position: 'relative' }}
                 >
-                  {col.header}
-                  <span className="sort-icon">
-                    {sortConfig.field === col.field ? (
-                      <FontAwesomeIcon icon={sortConfig.direction === 'asc' ? faArrowUp : faArrowDown} />
-                    ) : (
-                      <FontAwesomeIcon icon={faSort} />
-                    )}
+                  <span style={{ whiteSpace: 'nowrap' }}>
+                    {col.header}
+                    <span className="sort-icon">
+                      {sortConfig.field === col.field ? (
+                        <FontAwesomeIcon icon={sortConfig.direction === 'asc' ? faArrowUp : faArrowDown} />
+                      ) : (
+                        <FontAwesomeIcon icon={faSort} />
+                      )}
+                    </span>
                   </span>
                   <br />
                   <input
@@ -265,16 +301,22 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
                     onChange={(e) => handleFilterChange(col.field, e.target.value)}
                     style={{ width: '100%', fontSize: '14px', marginTop: '4px' }}
                   />
+                  <span
+                    className="col-resize-handle"
+                    onMouseDown={(e) => startResize(col.field, e)}
+                    onClick={(e) => e.stopPropagation()}
+                    title="Drag to resize"
+                  />
                 </th>
               ))}
-              <th>Actions</th>
-              <th></th>
+              {!disableActions && <th>Actions</th>}
+              {!disableExpand && <th></th>}
             </tr>
           </thead>
           <tbody>
-            {pagedData.map((row) => (
-              <React.Fragment key={row.sno}>
-                <tr className={row._expanded ? "row-expanded" : ""}>
+            {pagedData.map((row, i) => (
+              <React.Fragment key={row.id ?? row.sno ?? i}>
+                <tr className={row._expanded ? "row-expanded" : ""} onClick={() => onRowClick && onRowClick(row)}>
                   {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
                     <td key={colIdx} style={{ textAlign: col.align || 'left', ...(col.expandable && row._expanded ? { whiteSpace: 'normal', wordBreak: 'break-word' } : {}) }}>
                       {col.render ? (
@@ -291,16 +333,19 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
                       )}
                     </td>
                   ))}
+                  {!disableActions && (
                   <td className="preview-icon-cell">
                     <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                      <a href="#" onClick={(e) => { e.preventDefault(); onPreview && onPreview(row); }} title="Preview">
+                      <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPreview && onPreview(row); }} title="Preview">
                         <FaSearch size={18} color="#007bff" />
                       </a>
-                      <a href="#" onClick={(e) => { e.preventDefault(); onEdit && onEdit(row); }} title="Edit">
+                      <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit && onEdit(row); }} title="Edit">
                         <FaEdit size={18} color="#28a745" />
                       </a>
                     </div>
                   </td>
+                  )}
+                  {!disableExpand && (
                   <td className="expand-icon-cell">
                     <div
                       className={`expand-wrapper ${row._expanded ? "is-expanded" : ""}`}
@@ -327,19 +372,20 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
                       </svg>
                     </div>
                   </td>
+                  )}
                 </tr>
                 {row._expanded && (
                   <>
                     {renderExpanded && (
                       <tr className="expanded-detail-row">
-                        <td colSpan={visibleColumns.length + 2} className="expanded-detail-cell">
+                        <td colSpan={visibleColumns.length + actionColCount} className="expanded-detail-cell">
                           {renderExpanded(row)}
                         </td>
                       </tr>
                     )}
                     {!renderExpanded && row.leaveDetails && row.leaveDetails.length > 1 && (
                   <tr className="expanded-detail-row">
-                    <td colSpan={visibleColumns.length + 2} className="expanded-detail-cell">
+                    <td colSpan={visibleColumns.length + actionColCount} className="expanded-detail-cell">
                       <div className="nested-grid-container">
                         <table className="nested-detail-table">
                           <thead>

@@ -70,7 +70,13 @@ module.exports = (sequelize, DataTypes) => {
   // };
 
   User.associate = (models) => {
-    User.belongsTo(models.EmployeeMaster, { foreignKey: 'empid', as: 'employee' }); // Example
+    // Join User.empid -> EmployeeMaster.empid (not the PK) so the linked
+    // employee record (and its real name) is actually resolved.
+    User.belongsTo(models.EmployeeMaster, {
+      foreignKey: 'empid',
+      targetKey: 'empid',
+      as: 'employee',
+    });
   };
   return User;
 };

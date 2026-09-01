@@ -26,7 +26,27 @@ services:
     command: ["/bin/bash", "-c", "/docker-entrypoint-initdb.d/01-init-db.sh & exec docker-entrypoint.sh postgres"]
     restart: always
     networks: [hr-network]
- 
+
+  # ────────────── ORACLE (parallel legacy ERP/HR source) ──────────────
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: hr_oracle
+    environment:
+      ORACLE_PASSWORD: hr_pass
+      ORACLE_DATABASE: ORCLCDB
+      ORACLE_CHARACTERSET: AL32UTF8
+    ports:
+      - "1521:1521"
+    shm_size: '1gb'
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM dual;' | sqlplus -s SYSTEM/$$ORACLE_PASSWORD@localhost:1521/ORCLCDB || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    networks: [hr-network]
+    restart: always
+
   # db:
   #   image: postgres:17
   #   container_name: hr_postgres
@@ -87,11 +107,23 @@ services:
       - DB_PORT=5432
       - ERP_DB_HOST=db
       - ERP_DB_PORT=5432
+      - ORACLE_HR_DB_HOST=oracle
+      - ORACLE_HR_DB_PORT=1521
+      - ORACLE_HR_DB_SID=ORCLCDB
+      - ORACLE_HR_DB_USER=hr
+      - ORACLE_HR_DB_PASSWORD=hr_pass
+      - ORACLE_ERP_DB_HOST=oracle
+      - ORACLE_ERP_DB_PORT=1521
+      - ORACLE_ERP_DB_SID=ORCLCDB
+      - ORACLE_ERP_DB_USER=erp
+      - ORACLE_ERP_DB_PASSWORD=hr_pass
     depends_on:
       db:
         condition: service_healthy
       agent_python:
         condition: service_started
+      oracle:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/"]
       interval: 20s

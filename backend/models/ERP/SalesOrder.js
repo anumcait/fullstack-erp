@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
     tax_amount: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },
     shipping_charges: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },
     total_amount: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },
-    status: { type: DataTypes.ENUM('Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'), defaultValue: 'Confirmed' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Confirmed' },
     payment_terms: { type: DataTypes.STRING(100) },
     delivery_terms: { type: DataTypes.TEXT },
     notes: { type: DataTypes.TEXT },

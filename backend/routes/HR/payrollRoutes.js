@@ -1,22 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const payrollController = require('../../controllers/HR/payrollController');
+const { requirePermission } = require('../../middleware/auth');
+const { HR_PERMISSIONS } = require('../../constants/permissions');
 
-router.post('/process', payrollController.processMonthlySalary);
-router.post('/create', payrollController.createPayslipByEmployee);
-router.get('/register', payrollController.getSalaryRegister);
-router.get('/payslip', payrollController.getEmployeePayslip);
-router.get('/years', payrollController.getYearsWithSalary);
-router.get('/employees', payrollController.getAllEmployees);
-router.get('/salary-details', payrollController.getSalaryDetails);
-router.post('/salary-details', payrollController.saveSalaryDetails);
-router.get('/check-status', payrollController.checkPayslipStatus);
-router.get('/latest-processed', payrollController.getLatestProcessedDate);
-router.post('/finalize', payrollController.finalizeSalary);
-router.get('/finalize-status', payrollController.getFinalizeStatus);
-router.get('/pf-report', payrollController.getPfReport);
-router.get('/pt-report', payrollController.getPtReport);
-router.get('/earnings-deductions', payrollController.getEarningsDeductions);
-router.get('/meals-coupon', payrollController.getMealsCoupon);
+// Every payroll endpoint requires the HR_PAYROLL_PROC permission. ADMIN still
+// bypasses (see middleware/auth.js). This enforces the same permission the
+// frontend uses, so removing it from a user blocks both UI and API access.
+router.post('/process', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.processMonthlySalary);
+router.post('/create', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.createPayslipByEmployee);
+router.get('/register', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getSalaryRegister);
+router.get('/payslip', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getEmployeePayslip);
+router.get('/years', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getYearsWithSalary);
+router.get('/employees', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getAllEmployees);
+router.get('/salary-details', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getSalaryDetails);
+router.post('/salary-details', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.saveSalaryDetails);
+router.get('/check-status', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.checkPayslipStatus);
+router.get('/latest-processed', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getLatestProcessedDate);
+router.post('/finalize', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.finalizeSalary);
+router.get('/finalize-status', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getFinalizeStatus);
+router.get('/pf-report', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getPfReport);
+router.get('/pt-report', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getPtReport);
+router.get('/earnings-deductions', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getEarningsDeductions);
+router.get('/meals-coupon', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getMealsCoupon);
 
 module.exports = router;

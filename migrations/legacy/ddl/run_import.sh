@@ -1,0 +1,6 @@
+#!/bin/bash
+export ORACLE_HOME=/opt/oracle/product/21c/dbhomeXE
+export PATH=$ORACLE_HOME/bin:$PATH
+$ORACLE_HOME/bin/sqlplus -s SYSTEM/hr_pass@localhost:1521/ORCLCDB @/opt/oracle/setup_legacy.sql
+$ORACLE_HOME/bin/impdp SYSTEM/hr_pass@localhost:1521/ORCLCDB DIRECTORY=DMPDIR DUMPFILE=20260824_093001.dmp SCHEMAS=AUCTOR REMAP_TABLESPACE=APEX_1500484155398012:USERS TRANSFORM=SEGMENT_ATTRIBUTES:N
+echo "IMPORT_DONE"

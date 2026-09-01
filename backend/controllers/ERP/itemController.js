@@ -240,24 +240,146 @@ exports.getItem = async (req, res) => {
   } catch (err) { console.error('getItem', err); res.status(500).json({ error: 'Failed to fetch item' }); }
 };
 
+// ── Shared, source-of-truth validation for item create/update ──
+// A naive user cannot save a malformed or ambiguous item: hard `errors` block
+// the save; soft `warnings` are surfaced but allowed (the item is still usable).
+const GST_SLABS = [0, 3, 5, 12, 18, 28];
+const NAME_PLACEHOLDERS = new Set(['-', '.', 'na', 'n/a', 'none', 'general', 'box', 'boxes']);
+
+function validateItemPayload(body, { isEdit = false } = {}) {
+  const errors = [];
+  const warnings = [];
+  const code = body.item_code !== undefined ? String(body.item_code).trim() : '';
+  const name = body.item_name !== undefined ? String(body.item_name).trim() : '';
+
+  if (!isEdit && !code) errors.push('Item code is required');
+  if (code && !/^[A-Z0-9][A-Z0-9-]*$/.test(code)) {
+    errors.push('Item code must be uppercase letters/numbers with optional hyphens (no spaces)');
+  }
+  if (!isEdit && !name) errors.push('Item name is required');
+  if (name) {
+    if (name.length < 2) errors.push('Item name is too short');
+    else if (NAME_PLACEHOLDERS.has(name.toLowerCase())) {
+      errors.push(`Item name "${name}" is not meaningful — enter a real description`);
+    }
+  }
+
+  const nonNegative = {
+    standard_cost: body.standard_cost, mrp: body.mrp, rate: body.rate,
+    purchase_price: body.purchase_price, discount_percent: body.discount_percent,
+    gst_rate: body.gst_rate, lead_time_days: body.lead_time_days,
+    opening_stock: body.opening_stock, min_stock: body.min_stock, max_stock: body.max_stock,
+    reorder_level: body.reorder_level, min_order_qty: body.min_order_qty, reorder_qty: body.reorder_qty,
+  };
+  for (const [k, v] of Object.entries(nonNegative)) {
+    if (v === undefined || v === '') continue;
+    const n = Number(v);
+    if (Number.isNaN(n)) errors.push(`${k.replace(/_/g, ' ')} must be a number`);
+    else if (n < 0) errors.push(`${k.replace(/_/g, ' ')} cannot be negative`);
+  }
+
+  if (body.hsn_code) {
+    const h = String(body.hsn_code).trim();
+    if (!/^\d{4,8}$/.test(h)) errors.push('HSN code must be 4–8 digits');
+  }
+  if (body.gst_rate !== undefined && body.gst_rate !== '' && body.gst_rate !== null) {
+    if (!GST_SLABS.includes(Number(body.gst_rate))) {
+      warnings.push(`GST rate ${body.gst_rate}% is not a standard slab (common: 0, 5, 12, 18, 28)`);
+    }
+  }
+  if (body.abc_class && !['A', 'B', 'C'].includes(String(body.abc_class).toUpperCase())) {
+    errors.push('ABC class must be A, B or C');
+  }
+
+  if (body.make_buy !== undefined && body.make_buy !== null && body.make_buy !== '' &&
+      !['Buy', 'Make', 'Phantom'].includes(body.make_buy)) {
+    errors.push('make_buy must be Buy, Make or Phantom');
+  }
+
+  const group = body.group_id || body.category_id || null;
+  if (!group) warnings.push('No item group selected — classification is required for reports & stock');
+  if (!body.unit_id) warnings.push('No UOM (unit of measure) selected');
+  if (body.max_stock !== undefined && body.min_stock !== undefined && body.max_stock !== '' && body.min_stock !== '') {
+    const mx = Number(body.max_stock), mn = Number(body.min_stock);
+    if (!Number.isNaN(mx) && !Number.isNaN(mn) && mx < mn) warnings.push('Max stock is lower than Min stock');
+  }
+  return { errors, warnings };
+}
+
+exports.checkItemDuplicate = async (req, res) => {
+  try {
+    const { name, group_id, exclude } = req.query;
+    if (!name || String(name).trim().length < 3) return res.json({ matches: [] });
+    const like = `%${String(name).trim()}%`;
+    const where = { item_name: { [Op.iLike]: like } };
+    if (group_id) where.group_id = Number(group_id);
+    if (exclude) where.id = { [Op.ne]: Number(exclude) };
+    const matches = await ItemMaster.findAll({
+      where,
+      attributes: ['id', 'item_code', 'item_name', 'group_id'],
+      include: [{ model: ItemGroup, as: 'group', attributes: ['name'] }],
+      limit: 10,
+    });
+    res.json({ matches });
+  } catch (err) { console.error('checkItemDuplicate', err); res.status(500).json({ error: 'Failed to check duplicates' }); }
+};
+
 exports.createItem = async (req, res) => {
   const t = await db.sequelize.transaction();
   try {
-    const { item_code, item_name, group_id, subgroup_id, type_id, subtype_id, unit_id, category_id, ...rest } = req.body;
-    if (!item_code || !item_name) return res.status(400).json({ error: 'Item code and name are required' });
-    if (await ItemMaster.findOne({ where: { item_code } })) return res.status(409).json({ error: `Item code '${item_code}' already exists` });
+    const {
+      item_code, item_name, group_id, subgroup_id, type_id, subtype_id, unit_id, category_id, ...rest
+    } = req.body;
+    const { errors, warnings } = validateItemPayload(req.body, { isEdit: false });
+    if (errors.length) { await t.rollback(); return res.status(400).json({ error: errors[0], errors }); }
 
-    // Support both opening_stock (form field) and a raw current_stock as the
-    // initial quantity. The ledger posting below is the single source of truth,
-    // so the row is created at zero to avoid double-counting.
+    const code = String(item_code || '').trim().toUpperCase();
+    const name = String(item_name || '').trim();
+    const gid = group_id || category_id || null;
+    const sgid = subgroup_id || null;
+    const tid = type_id || null;
+    const stid = subtype_id || null;
+    const uid = unit_id || null;
+
+    if (await ItemMaster.findOne({ where: { item_code: code } })) {
+      await t.rollback(); return res.status(409).json({ error: `Item code '${code}' already exists` });
+    }
+    // Classification FK consistency: a child must belong to its parent.
+    if (sgid) {
+      const sg = await ItemSubGroup.findByPk(sgid);
+      if (!sg) { await t.rollback(); return res.status(400).json({ error: 'Selected sub group does not exist' }); }
+      if (gid && sg.group_id !== Number(gid)) { await t.rollback(); return res.status(400).json({ error: 'Sub group does not belong to the selected group' }); }
+    }
+    if (tid) {
+      const ty = await ItemType.findByPk(tid);
+      if (ty && sgid && ty.subgroup_id !== Number(sgid)) { await t.rollback(); return res.status(400).json({ error: 'Type does not belong to the selected sub group' }); }
+    }
+    // Group-specific guidance so the item is complete & usable downstream.
+    if (gid) {
+      const g = await ItemGroup.findByPk(gid);
+      const gn = (g?.name || '').toLowerCase();
+      if (gn.includes('finished') && (!rest.hsn_code || rest.gst_rate === undefined || rest.gst_rate === '' || rest.rate === undefined || rest.rate === '')) {
+        warnings.push('Finished Goods usually need HSN, GST % and a selling rate for billing');
+      }
+      if ((gn.includes('raw') || gn.includes('sub assembly')) && (rest.standard_cost === undefined || rest.standard_cost === '' || Number(rest.standard_cost) === 0)) {
+        warnings.push('Set a standard cost so valuation & MRP work correctly');
+      }
+      const mb = rest.make_buy;
+      if (mb === 'Make' && !(gn.includes('finished') || gn.includes('sub assembly'))) {
+        warnings.push('make_buy = Make is unusual for group "' + g?.name + '" — confirm it is manufactured, not purchased');
+      }
+      if ((gn.includes('finished') || gn.includes('sub assembly')) && mb === 'Buy') {
+        warnings.push('A "' + g?.name + '" item is usually manufactured — set make_buy = Make so MRP/BOM can plan it');
+      }
+      if (gn.includes('raw') && mb === 'Make') {
+        warnings.push('Raw Material is usually purchased — set make_buy = Buy unless it is produced in-house');
+      }
+    }
+
     const openingQty = Number(rest.opening_stock || (rest.current_stock ? rest.current_stock : 0) || 0);
     const item = await ItemMaster.create({
-      item_code, item_name,
-      group_id: group_id || category_id || null,
-      subgroup_id: subgroup_id || null,
-      type_id: type_id || null,
-      subtype_id: subtype_id || null,
-      unit_id: unit_id || null,
+      item_code: code, item_name: name,
+      group_id: gid, subgroup_id: sgid, type_id: tid, subtype_id: stid, unit_id: uid,
       ...rest,
       current_stock: 0,
     }, { transaction: t });
@@ -286,7 +408,7 @@ exports.createItem = async (req, res) => {
     }
 
     await t.commit();
-    res.status(201).json(item);
+    res.status(201).json({ ...item.toJSON(), warnings });
   } catch (err) {
     await t.rollback();
     console.error('createItem', err); res.status(500).json({ error: 'Failed to create item' });
@@ -297,12 +419,34 @@ exports.updateItem = async (req, res) => {
   try {
     const item = await ItemMaster.findByPk(req.params.id);
     if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    const { errors, warnings } = validateItemPayload(req.body, { isEdit: true });
+    if (errors.length) return res.status(400).json({ error: errors[0], errors });
+
     const { item_code } = req.body;
-    if (item_code && item_code !== item.item_code) {
-      if (await ItemMaster.findOne({ where: { item_code } })) return res.status(409).json({ error: `Item code '${item_code}' already exists` });
+    if (item_code && String(item_code).trim().toUpperCase() !== item.item_code) {
+      if (await ItemMaster.findOne({ where: { item_code: String(item_code).trim().toUpperCase() } })) {
+        return res.status(409).json({ error: `Item code '${item_code}' already exists` });
+      }
     }
+
+    const body = req.body;
+    const gid = body.group_id !== undefined ? (body.group_id || body.category_id || null) : item.group_id;
+    const sgid = body.subgroup_id !== undefined ? body.subgroup_id : item.subgroup_id;
+    const tid = body.type_id !== undefined ? body.type_id : item.type_id;
+    if (sgid) {
+      const sg = await ItemSubGroup.findByPk(sgid);
+      if (sg && gid && sg.group_id !== Number(gid)) return res.status(400).json({ error: 'Sub group does not belong to the selected group' });
+    }
+    if (tid) {
+      const ty = await ItemType.findByPk(tid);
+      if (ty && sgid && ty.subgroup_id !== Number(sgid)) return res.status(400).json({ error: 'Type does not belong to the selected sub group' });
+    }
+
     // Frontend sends the item group under `category_id`; map it to the model's `group_id`.
     const updateData = { ...req.body };
+    if (updateData.item_code) updateData.item_code = String(updateData.item_code).trim().toUpperCase();
+    if (updateData.item_name) updateData.item_name = String(updateData.item_name).trim();
     if (updateData.category_id !== undefined) {
       updateData.group_id = updateData.category_id || null;
       delete updateData.category_id;
@@ -320,7 +464,7 @@ exports.updateItem = async (req, res) => {
       }
     });
     await item.update(updateData);
-    res.json(item);
+    res.json({ ...item.toJSON(), warnings });
   } catch (err) { console.error('updateItem', err); res.status(500).json({ error: 'Failed to update item' }); }
 };
 

@@ -45,9 +45,13 @@ exports.login = async (req, res) => {
     }
 
     // Success - Regenerate session to prevent session fixation
-    const displayName = user.role === 'ADMIN'
-      ? (user.username || user.ename || user.employee?.ename || 'Administrator')
-      : (user.ename || user.employee?.ename || user.username || 'User');
+    // Prefer the linked EmployeeMaster name; fall back to the User's own
+    // ename, then username, then a role-based generic label.
+    const displayName =
+      user.employee?.ename ||
+      user.ename ||
+      user.username ||
+      (user.role === 'ADMIN' ? 'Administrator' : 'User');
 
     const mustChangePassword = !user.password_changed_at;
 
@@ -68,6 +72,8 @@ exports.login = async (req, res) => {
       }
 
       req.session.user = userData;
+      req.session.createdAt = Date.now();
+      req.session.lastActivity = Date.now();
 
       // Update login metadata
       const now = new Date();
@@ -184,6 +190,11 @@ exports.resetPassword = async (req, res) => {
     console.error('Reset password error:', err);
     res.status(500).json({ message: 'Failed to reset password.' });
   }
+};
+
+exports.me = (req, res) => {
+  if (!req.session || !req.session.user) return res.status(401).json({ message: 'Not authenticated' });
+  return res.json({ user: req.session.user });
 };
 
 exports.changePassword = async (req, res) => {

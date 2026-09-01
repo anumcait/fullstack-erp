@@ -24,10 +24,13 @@ export const CompanyProvider = ({ children }) => {
     });
     const [companyConfigured, setCompanyConfigured] = useState(false);
     const [companyLoading, setCompanyLoading] = useState(true);
+    const [companyError, setCompanyError] = useState(false);
 
     const fetchSettings = async () => {
         setCompanyLoading(true);
+        setCompanyError(false);
         let data = null;
+        let lastErr = null;
         // Retry transient failures — a single failed GET must not send an
         // already-configured instance to the "Create Company" setup screen.
         for (let attempt = 1; attempt <= 3; attempt++) {
@@ -36,6 +39,7 @@ export const CompanyProvider = ({ children }) => {
                 data = res.data;
                 break;
             } catch (err) {
+                lastErr = err;
                 console.error(`Error loading company settings (attempt ${attempt}):`, err);
                 if (attempt < 3) {
                     await new Promise(r => setTimeout(r, 400 * attempt));
@@ -45,8 +49,17 @@ export const CompanyProvider = ({ children }) => {
         if (data && data.company_name) {
             setCompanySettings(data);
             setCompanyConfigured(true);
-        } else {
+            setCompanyError(false);
+        } else if (lastErr) {
+            // The request failed (DB error / backend down / network) — this is NOT
+            // a fresh install. Do not redirect to the Create-Company setup screen;
+            // surface an error state so the user can retry.
+            setCompanyError(true);
             setCompanyConfigured(false);
+        } else {
+            // 200 response with no company_name => genuinely not configured yet.
+            setCompanyConfigured(false);
+            setCompanyError(false);
         }
         setCompanyLoading(false);
     };
@@ -66,6 +79,7 @@ export const CompanyProvider = ({ children }) => {
             companySettings,
             companyConfigured,
             companyLoading,
+            companyError,
             refreshCompanySettings: fetchSettings
         }}>
             {children}

@@ -9,7 +9,7 @@ module.exports = (sequelize) => {
     scheduled_date: { type: DataTypes.DATEONLY },
     shift: { type: DataTypes.STRING(20) },
     planned_qty: { type: DataTypes.DECIMAL(12, 2) },
-    status: { type: DataTypes.ENUM('Planned', 'InProgress', 'Completed', 'Cancelled'), defaultValue: 'Planned' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Planned' },
     notes: { type: DataTypes.TEXT },
   }, {
     tableName: 't_planning_schedule',

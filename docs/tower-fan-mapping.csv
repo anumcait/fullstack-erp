@@ -1,0 +1,48 @@
+item_code,component_name,qty,model,make_buy,unit,hsn_code,gst_rate,remark
+TFAN0001,Normal TOP (FRONT) White,1,Normal,Make,PCS,8414,18,Common
+TFAN0002,Doom TOP (FRONT) White,1,Doom,Make,PCS,8414,18,Variant
+TFAN0003,High Breeze TOP (FRONT) White,1,High Breeze,Make,PCS,8414,18,Variant
+TFAN0004,Perfume TOP (FRONT) White,1,Perfume,Make,PCS,8414,18,Variant
+TFAN0005,Colored front Panel,1,Perfume,Buy,PCS,,18,
+TFAN0006,BOTTOM (BACK) White,1,All,Make,PCS,8414,18,Common
+TFAN0007,Normal SWING PLATE (Slider),1,Normal,Buy,PCS,,18,
+TFAN0008,Doom SWING PLATE (Slider),1,Doom,Buy,PCS,,18,
+TFAN0009,Perfume SWING PLATE (Slider),1,Perfume,Buy,PCS,,18,
+TFAN0010,High Breeze SWING PLATE (Slider),1,High Breeze,Buy,PCS,,18,
+TFAN0011,STOPPER PLATE,1,Normal-Doom,Buy,PCS,,18,
+TFAN0012,LOWERS 2pcs,2,Normal-Doom-Perfume,Buy,PCS,,18,
+TFAN0013,High Breeze LOWERS STICK,1,High Breeze,Buy,PCS,,18,
+TFAN0014,High Breeze LOWERS UP DOWN,2,High Breeze,Buy,PCS,,18,
+TFAN0015,High Breeze LOWERS CONTROLLER SET,1,High Breeze,Buy,PCS,,18,
+TFAN0016,High breeze LOWERS 5pcs,5,High Breeze,Buy,PCS,,18,
+COMP0001,D plate,1,SA-DPLATE,Buy,PCS,,18,
+COMP0002,cap set bottom,1,SA-DPLATE,Buy,PCS,,18,
+COMP0003,cap set top,1,SA-DPLATE,Buy,PCS,,18,
+COMP0004,derlin round part,1,SA-DPLATE,Buy,PCS,,18,
+HARD0001,Nandus dipped in oil,1,SA-DPLATE,Buy,PCS,,18,
+HARD0002,spring,1,SA-DPLATE,Buy,PCS,,18,
+SA-DPLATE-01,D PLATE with CAP SET Assembly,1,All,Phantom,SET,,0,Sub-assembly
+TFAN0017,MOTOR BASE Black,1,All,Make,PCS,,18,
+SA-BLOWER-01,BLOWER Assembly,1,All,Phantom,SET,,0,Sub-assembly
+TFAN0018,blower top plate,1,SA-BLOWER,Buy,PCS,,18,
+HARD0003,pin insert for blower top plate,1,SA-BLOWER,Buy,PCS,,18,
+TFAN0019,blower bottom plate,1,SA-BLOWER,Buy,PCS,,18,
+HARD0004,blower bush rubber,1,SA-BLOWER,Buy,PCS,,18,
+TFAN0020,blower sections,5,SA-BLOWER,Buy,PCS,,18,
+HARD0005,Blower balancing pins,6,SA-BLOWER,Buy,PCS,,18,
+TFAN0021,Normal KNOBS White,2,Normal,Buy,PCS,,18,
+TFAN0022,Doom KNOBS White,2,Doom,Buy,PCS,,18,
+TFAN0023,High Breeze KNOBS White,2,High Breeze,Buy,PCS,,18,
+TFAN0024,Perfume KNOBS White,2,Perfume,Buy,PCS,,18,
+ELEC0001,MOTOR WITH 4MFD CAPACITOR,1,All,Buy,PCS,8501,18,Nirosha/Olympus
+ELEC0002,SWING MOTOR WITH BUSH,1,All,Buy,PCS,8501,18,Sara
+ELEC0003,ON/OFF SWITCH ELCOM,1,All,Buy,PCS,8536,18,
+ELEC0004,3 SPEED SWITCH ELCOM,1,All,Buy,PCS,8536,18,
+ELEC0005,POWER CORD 2.5m 2core,1,All,Buy,PCS,8544,18,
+HARD0010,RUBBER ITEMS BOTTOM BUSH 4+GROMET1,5,All,Buy,SET,4016,18,
+PACK0001,PACKING COVERS,1,All,Buy,PCS,,18,
+HARD0020,HARDWARE PACKING SET,1,All,Buy,SET,,18,SCREWS NUTS etc
+PACK0010,INNER CARTON,1,All,Buy,PCS,4819,18,
+PACK0011,Outer Carton,0.5,All,Buy,PCS,4819,18,
+PACK0012,MANUAL & WARRANTY CARD,1,All,Buy,PCS,4911,18,
+PACK0013,MRP AND OTHER LABELS,1,All,Buy,PCS,4911,18,

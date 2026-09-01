@@ -4,7 +4,7 @@ import {
   LinearProgress, Dialog, DialogTitle, DialogContent, DialogActions,
   Avatar, Tooltip, IconButton, Badge,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import StandardTable from '../Common/StandardTable.jsx';
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -127,7 +127,7 @@ export default function Approvals() {
         <CardContent>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
           <Box sx={{ height: 560, width: "100%" }}>
-            <DataGrid
+            <StandardTable title="Approvals"
               rows={visible} columns={columns} getRowId={(r) => `${r.type}-${r.id}`}
               pageSizeOptions={[10, 25, 50]} initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
               disableColumnMenu loading={loading}

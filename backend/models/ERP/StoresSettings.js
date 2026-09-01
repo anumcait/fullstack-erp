@@ -76,7 +76,9 @@ module.exports = (sequelize) => {
       allow_multi_warehouse: { type: DataTypes.BOOLEAN, defaultValue: true },
 
       // Valuation & Costing
-      valuation_method: { type: DataTypes.ENUM('FIFO', 'LIFO', 'WEIGHTED_AVERAGE', 'STANDARD'), defaultValue: 'WEIGHTED_AVERAGE' },
+      // Stored as VARCHAR (not a PG ENUM) to avoid enum-type cast migrations and
+      // to stay aligned with item-level valuation_method. Validated app-side.
+      valuation_method: { type: DataTypes.STRING(20), defaultValue: 'WEIGHTED_AVERAGE', validate: { isIn: [['FIFO', 'LIFO', 'WEIGHTED_AVERAGE', 'STANDARD', 'Moving Average']] } },
       standard_cost_update_on_grn: { type: DataTypes.BOOLEAN, defaultValue: false },
       decimal_precision_qty: { type: DataTypes.INTEGER, defaultValue: 3 },
       decimal_precision_cost: { type: DataTypes.INTEGER, defaultValue: 4 },

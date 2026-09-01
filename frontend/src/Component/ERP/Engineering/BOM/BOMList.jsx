@@ -4,7 +4,7 @@ import {
   Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   Table, TableHead, TableRow, TableCell, TableBody,
 } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import StandardTable from '../../../../Component/Common/StandardTable';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
@@ -100,7 +100,7 @@ export default function BOMList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'var(--heading-color)' }}>Bill of Materials</Typography>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'var(--heading-color)' }}>Product Assembly Master</Typography>
       <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -138,11 +138,13 @@ export default function BOMList() {
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
-          <Box sx={{ height: 520, width: '100%' }}>
-            <DataGrid rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
-              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} disableColumnMenu loading={loading}
-              sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { bgcolor: '#f2f4f7', fontWeight: 700 } }} />
-          </Box>
+          <StandardTable
+            title="Product Assembly Master"
+            rows={rows}
+            columns={columns}
+            getRowId={(r) => r.id}
+            loading={loading}
+          />
         </CardContent>
       </Card>
 

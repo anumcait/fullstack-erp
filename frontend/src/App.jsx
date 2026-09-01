@@ -14,7 +14,8 @@ import AddEmployeeForm from "./Component/HR/Employee/AddEmployee";
 import LeaveReport from "./Component/HR/LeaveApplication/LeaveReport";
 import DashBoard from "./Component/HR/DashBoard/DashBoard";
 import { ToastProvider } from "./context/ToastContext";
-import { CompanyProvider } from "./context/CompanyContext";
+import { CompanyProvider, useCompany } from "./context/CompanyContext";
+import CompanyErrorScreen from "./routes/CompanyErrorScreen";
 import { NavigationGuardProvider } from "./context/NavigationGuardContext";
 import MainLayout from "./Component/Layout/MainLayout";
 import OnDutyPreview from "./Component/HR/onduty/OnDutyPreview";
@@ -62,8 +63,9 @@ const SecureRoute = ({ children, fallback = '/dashboard' }) => {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
 
-  const adminRoles = ['admin', 'superadmin', 'administrator', 'IT'];
-  const isAdmin = userRole && adminRoles.some(r => userRole.toLowerCase().includes(r.toLowerCase()));
+  // Only the canonical ADMIN role bypasses permission checks (must match
+  // backend middleware/auth.js). A role like "HR_ADMIN" must NOT bypass.
+  const isAdmin = userRole && userRole.toUpperCase() === 'ADMIN';
   if (isAdmin) {
     return children;
   }
@@ -90,6 +92,32 @@ const SecureRoute = ({ children, fallback = '/dashboard' }) => {
 
 // Wrapper for layout routes
 const SecureLayout = ({ children }) => <SecureRoute>{children}</SecureRoute>;
+
+// Root route: if no company is configured yet, send the visitor to the
+// Create Company form before showing the login screen.
+const RootRoute = () => {
+  const { companyConfigured, companyLoading, companyError, refreshCompanySettings } = useCompany();
+  if (companyError) {
+    return <CompanyErrorScreen onRetry={refreshCompanySettings} />;
+  }
+  if (companyLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#eaf2ff]">
+        <div className="flex flex-col items-center gap-3">
+          <svg className="animate-spin h-8 w-8 text-[#56c7be]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="text-sm text-gray-500 font-semibold">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+  if (!companyConfigured) {
+    return <Navigate to="/company-setup" replace />;
+  }
+  return <LoginForm />;
+};
 import Reports from "./Component/Reports/Reports.jsx";
 import Settings from "./Component/Settings/Settings.jsx";
 import AccountsDashboard from "./Component/Accounts/AccountsDashboard.jsx";
@@ -149,6 +177,7 @@ import EngineeringDashboard from "./Component/ERP/Engineering/EngineeringDashboa
 import BOMList from "./Component/ERP/Engineering/BOM/BOMList.jsx";
 import BOMForm from "./Component/ERP/Engineering/BOM/BOMForm.jsx";
 import ProductMasterList from "./Component/ERP/Engineering/ProductMaster/ProductMasterList.jsx";
+import AssemblyTree from "./Component/ERP/Engineering/ProductMaster/AssemblyTree.jsx";
 import ProductMasterForm from "./Component/ERP/Engineering/ProductMaster/ProductMasterForm.jsx";
 import CategoryMaster from "./Component/ERP/Engineering/CategoryMaster/CategoryMaster.jsx";
 import MarketingDashboard from "./Component/ERP/Marketing/MarketingDashboard.jsx";
@@ -236,22 +265,55 @@ import ProfileUpdate from "./Component/Settings/ProfileUpdate.jsx";
 import ProfileRequestApproval from "./Component/HR/Employee/ProfileRequestApproval.jsx";
 
 import axios from "axios";
+axios.defaults.withCredentials = true;
+
+function useIdleLogout(timeoutMs = 30 * 60 * 1000) {
+  React.useEffect(() => {
+    if (!localStorage.getItem('userName')) return;
+    let timer;
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try { await axios.post('/api/auth/logout', {}, { withCredentials: true }); } catch {}
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/';
+      }, timeoutMs);
+    };
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [timeoutMs]);
+}
 
 function App() {
+  useIdleLogout();
+  React.useEffect(() => {
+    if (localStorage.getItem('userName')) {
+      axios.get('/api/auth/me', { withCredentials: true }).catch(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      });
+    }
+  }, []);
   React.useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           const isLoginRequest = error.config?.url?.includes('/api/auth/login');
-          const isAtLoginPath = window.location.pathname === '/';
+          const isMeRequest = error.config?.url?.includes('/api/auth/me');
+          const isAtLoginPath = window.location.pathname === '/' || window.location.pathname === '/login';
           const isAuthenticated = !!localStorage.getItem('userName');
 
-          if (isAuthenticated && !isLoginRequest && !isAtLoginPath) {
+          if (isAuthenticated && !isLoginRequest && !isMeRequest && !isAtLoginPath) {
             console.warn('Session expired or unauthorized, redirecting to login.');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userRole');
-            localStorage.removeItem('empName');
+            localStorage.clear();
+            sessionStorage.clear();
             window.location.href = "/";
           }
         }
@@ -269,7 +331,8 @@ function App() {
             <div className="App">
               <Router>
                 <Routes>
-                  <Route path="/" element={<LoginForm />} />
+                  <Route path="/" element={<RootRoute />} />
+                  <Route path="/login" element={<LoginForm />} />
                   <Route path="/company-setup" element={<CompanySetup />} />
                   <Route path="/change-password" element={<ChangePasswordForm />} />
                   <Route element={<CompanyGate />}>
@@ -448,6 +511,7 @@ function App() {
                     <Route path="/engineering/products/add" element={<ProductMasterForm />} />
                     <Route path="/engineering/products/view/:id" element={<ProductMasterForm />} />
                     <Route path="/engineering/products/edit/:id" element={<ProductMasterForm />} />
+                    <Route path="/engineering/products/:id/structure" element={<AssemblyTree />} />
                     <Route path="/engineering/bom" element={<BOMList />} />
                     <Route path="/engineering/bom/add" element={<BOMForm />} />
                     <Route path="/engineering/bom/view/:id" element={<BOMForm />} />

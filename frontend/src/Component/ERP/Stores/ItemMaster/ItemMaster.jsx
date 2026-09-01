@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
-  Box, Card, CardContent, Typography, TextField, Button,
+  Box, Card, Typography, TextField, Button,
   Dialog, DialogTitle, DialogContent, DialogActions,
+  Tabs, Tab,
   IconButton, Tooltip, Chip, LinearProgress, Alert
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import StandardTable from '../../../../Component/Common/StandardTable';
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -16,15 +17,51 @@ import { useNavigate } from "react-router-dom";
 
 const API = "/api/erp/stores/items";
 
+function naturalCompare(a, b) {
+  const am = String(a).match(/(\d+)|(\D+)/g) || [];
+  const bm = String(b).match(/(\d+)|(\D+)/g) || [];
+  for (let i = 0; i < Math.min(am.length, bm.length); i++) {
+    const x = am[i], y = bm[i];
+    const xn = /^\d+$/.test(x), yn = /^\d+$/.test(y);
+    if (xn && yn) {
+      const diff = Number(x) - Number(y);
+      if (diff !== 0) return diff;
+    } else if (xn !== yn) {
+      return xn ? -1 : 1;
+    } else {
+      const c = x.localeCompare(y);
+      if (c !== 0) return c;
+    }
+  }
+  return am.length - bm.length;
+}
+
+const CATEGORY_GROUPS = {
+  All: null,
+  Items: ["Raw Material", "Consumables", "Packing Material", "Spares"],
+  "Sub-Assemblies": ["Sub Assembly"],
+  Products: ["Finished Goods"],
+  "Needs Review": ["Needs Review"],
+};
+
 export default function ItemMaster() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [category, setCategory] = useState("All");
   const [itemTypes, setItemTypes] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const visibleItems = useMemo(() => {
+    const groups = CATEGORY_GROUPS[category];
+    if (!groups) return items;
+    return items.filter((it) => groups.includes(it?.group?.name));
+  }, [items, category]);
 
   const GROUP_COLORS = {
     "Raw Material": "default",
@@ -33,7 +70,13 @@ export default function ItemMaster() {
     "Packing Material": "warning",
     "Finished Goods": "success",
     "Spares": "error",
+    "Needs Review": "warning",
   };
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -42,8 +85,9 @@ export default function ItemMaster() {
       if (search) params.search = search;
       if (typeFilter) params.type_id = typeFilter;
       const { data } = await axios.get(API, { params });
+      data.sort((a, b) => naturalCompare(a.item_code, b.item_code));
       setItems(data.map((it, i) => ({ ...it, sno: i + 1 })));
-    } catch (err) {
+    } catch {
       showToast("Failed to load items", "error");
     } finally {
       setLoading(false);
@@ -53,6 +97,7 @@ export default function ItemMaster() {
   useEffect(() => {
     fetchItems();
     axios.get("/api/erp/stores/item-types").then(({ data }) => setItemTypes(data)).catch(() => {});
+    axios.get("/api/erp/stores/groups").then(({ data }) => setGroups(data)).catch(() => {});
   }, [fetchItems]);
 
   const handleDelete = async () => {
@@ -69,12 +114,30 @@ export default function ItemMaster() {
 
   const columns = [
     { field: "sno", headerName: "S.No", width: 70, sortable: false },
-    { field: "item_code", headerName: "Item Code", width: 130 },
-    { field: "item_name", headerName: "Item Name", width: 220 },
+    { field: "item_code", headerName: "Item Code", width: 130, sortComparator: (a, b) => naturalCompare(a, b) },
+    {
+      field: "item_name",
+      headerName: "Item Name",
+      width: 220,
+      editable: true,
+      renderCell: (params) => {
+        if (BLANK_NAME(params.value)) {
+          return (
+            <Typography component="span" sx={{ fontStyle: "italic", color: "text.disabled" }}>
+              {params.row.item_code}
+            </Typography>
+          );
+        }
+        return <>{params.value}</>;
+      },
+    },
     {
       field: "group",
       headerName: "Group",
-      width: 150,
+      width: 160,
+      editable: true,
+      type: "singleSelect",
+      valueOptions: groups.map((g) => ({ value: g.name, label: g.name })),
       valueGetter: (value, row) => row?.group?.name || "-",
       renderCell: (params) => (
         <Chip label={params.value || "-"} color={GROUP_COLORS[params.value] || "default"} size="small" />
@@ -150,65 +213,65 @@ export default function ItemMaster() {
     },
   ];
 
+  const BLANK_NAME = (v) => !v || v === "-" || v === ".";
+
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: "var(--heading-color)" }}>
-        Item Master
-      </Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", mb: 1.5, flexWrap: "wrap", gap: 1.5 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: "var(--heading-color)", lineHeight: 1.2 }}>
+            Item Master
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {visibleItems.length} item{visibleItems.length === 1 ? "" : "s"} listed
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+          <TextField
+            size="small"
+            placeholder="Search by code, name, HSN..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }}
+            sx={{ minWidth: 260 }}
+          />
+          <TextField
+            size="small"
+            select
+            label="Type"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            sx={{ minWidth: 160 }}
+          >
+            <option value="">All</option>
+            {itemTypes.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </TextField>
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchItems}>
+            Refresh
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/stores/item-master/add")}>
+            Add Item
+          </Button>
+        </Box>
+      </Box>
 
-      <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
-        <CardContent>
-          <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
-            <TextField
-              size="small"
-              placeholder="Search by code, name, HSN..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: "gray" }} /> }}
-              sx={{ minWidth: 300 }}
-            />
-              <TextField
-                size="small"
-                select
-                label="Type"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                sx={{ minWidth: 170 }}
-                SelectProps={{ native: true }}
-              >
-                <option value="">All</option>
-                {itemTypes.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </TextField>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/stores/item-master/add")}>
-              Add Item
-            </Button>
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchItems}>
-              Refresh
-            </Button>
-          </Box>
+      <Tabs value={category} onChange={(e, v) => setCategory(v)} sx={{ mb: 1.5 }}>
+        {Object.keys(CATEGORY_GROUPS).map((c) => (
+          <Tab key={c} value={c} label={c === "Items" ? "Item Master" : c === "Sub-Assemblies" ? "Sub-Assemblies" : c === "Products" ? "Products" : c} />
+        ))}
+      </Tabs>
 
-          {loading && <LinearProgress sx={{ mb: 1 }} />}
-
-          <div style={{ height: 520, width: "100%" }}>
-            <DataGrid
-              rows={items}
-              columns={columns}
-              getRowId={(row) => row.id}
-              pageSizeOptions={[10, 25, 50]}
-              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
-              disableColumnMenu
-              loading={loading}
-              sx={{
-                border: 0,
-                "& .MuiDataGrid-columnHeaders": { bgcolor: "#f2f4f7", fontWeight: 700 },
-                "& .MuiDataGrid-row:hover": { bgcolor: "#f8fafc" },
-                "& .MuiDataGrid-cell": { fontSize: ".92rem" },
-              }}
-            />
-          </div>
-        </CardContent>
+      <Card sx={{ borderRadius: 3, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", overflow: "hidden" }}>
+        <StandardTable
+          title="Item Master"
+          rows={visibleItems}
+          columns={columns}
+          getRowId={(row) => row.id}
+          loading={loading}
+        />
+        {loading && <LinearProgress />}
       </Card>
 
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>

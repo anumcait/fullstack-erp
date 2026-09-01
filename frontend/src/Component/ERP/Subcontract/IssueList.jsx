@@ -5,7 +5,7 @@ import {
   IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
   MenuItem, Select, FormControl, InputLabel
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import StandardTable from '../../../Component/Common/StandardTable';
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -99,10 +99,13 @@ export default function IssueList() {
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
           <div style={{ height: 520, width: "100%" }}>
-            <DataGrid rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
-              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} disableColumnMenu loading={loading}
-              sx={{ border: 0, "& .MuiDataGrid-columnHeaders": { bgcolor: "#f2f4f7", fontWeight: 700 },
-                "& .MuiDataGrid-row:hover": { bgcolor: "#f8fafc" }, "& .MuiDataGrid-cell": { fontSize: ".92rem" } }} />
+            <StandardTable
+              title="Subcontract Issues"
+              rows={rows}
+              columns={columns}
+              getRowId={(r) => r.id}
+              loading={loading}
+            />
           </div>
         </CardContent>
       </Card>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress, Tooltip, IconButton, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody, Checkbox } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import StandardTable from '../../../../Component/Common/StandardTable';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -196,12 +196,13 @@ export default function MaterialRequisitionList() {
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
           <Box sx={{ height: 520, width: '100%' }}>
-            <DataGrid rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
-              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} disableColumnMenu loading={loading}
-              sx={{
-                border: 0, '& .MuiDataGrid-columnHeaders': { bgcolor: '#f2f4f7', fontWeight: 700 },
-                '& .MuiDataGrid-cell--withRenderer:focus-within': { outline: 'none' },
-              }} />
+            <StandardTable
+              title="Material Requisition"
+              rows={rows}
+              columns={columns}
+              getRowId={(r) => r.id}
+              loading={loading}
+            />
           </Box>
         </CardContent>
       </Card>

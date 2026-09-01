@@ -5,6 +5,7 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import StarIcon from "@mui/icons-material/Star";
 import SearchIcon from "@mui/icons-material/Search";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -192,9 +193,16 @@ export default function AddSupplier() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 1, fontWeight: "bold", color: "var(--heading-color)" }}>
-        {isView ? form.party_type : isEdit ? `Edit ${form.party_type}` : `New ${form.party_type}`}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+        <Tooltip title="Back to Party Master">
+          <IconButton onClick={() => navigate("/purchase/vendors")} sx={{ mr: 0.5 }}>
+            <ArrowBackIcon />
+          </IconButton>
+        </Tooltip>
+        <Typography variant="h4" sx={{ fontWeight: "bold", color: "var(--heading-color)" }}>
+          {isView ? form.party_type : isEdit ? `Edit ${form.party_type}` : `New ${form.party_type}`}
+        </Typography>
+      </Box>
       <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
         {form.supplier_code && `${form.supplier_code} • `}{form.supplier_name || "Enter details below"}
       </Typography>

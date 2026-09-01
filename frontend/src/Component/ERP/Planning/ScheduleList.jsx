@@ -5,7 +5,7 @@ import {
   IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
   Tabs, Tab, MenuItem, Alert
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import StandardTable from '../../Common/StandardTable.jsx';
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -141,7 +141,7 @@ export default function ScheduleList() {
             {loading && <LinearProgress sx={{ mb: 1 }} />}
 
             <div style={{ height: 520, width: "100%" }}>
-              <DataGrid rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
+              <StandardTable title="ScheduleList" rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
                 initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} disableColumnMenu loading={loading}
                 sx={{
                   border: 0,

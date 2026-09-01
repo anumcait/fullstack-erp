@@ -12,7 +12,7 @@ module.exports = (sequelize) => {
     model_no: { type: DataTypes.STRING(100) },
     serial_no: { type: DataTypes.STRING(100) },
     installation_date: { type: DataTypes.DATEONLY },
-    status: { type: DataTypes.ENUM('Active', 'Inactive', 'Under Maintenance', 'Retired'), defaultValue: 'Active' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Active' },
     notes: { type: DataTypes.TEXT },
   }, {
     tableName: 'm_maintenance_machine',

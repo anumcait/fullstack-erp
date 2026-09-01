@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Typography, Grid, LinearProgress } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import StandardTable from '../../Common/StandardTable.jsx';
 import { FiPieChart, FiUsers, FiTrendingUp } from 'react-icons/fi';
 import axios from 'axios';
 
@@ -35,7 +35,7 @@ const SubcontractReports = () => {
                 <FiPieChart /> <Typography variant="h6">Order Status</Typography>
               </Box>
               <div style={{ height: 250 }}>
-                <DataGrid rows={orderStatus} columns={[
+                <StandardTable title="SubcontractReports" rows={orderStatus} columns={[
                   { field: 'status', headerName: 'Status', flex: 1 },
                   { field: 'count', headerName: 'Count', flex: 1 },
                 ]} getRowId={(r, i) => i} hideFooter disableColumnMenu
@@ -51,7 +51,7 @@ const SubcontractReports = () => {
                 <FiUsers /> <Typography variant="h6">Vendor Summary</Typography>
               </Box>
               <div style={{ height: 250 }}>
-                <DataGrid rows={vendorSummary} columns={[
+                <StandardTable title="SubcontractReports" rows={vendorSummary} columns={[
                   { field: 'vendor_name', headerName: 'Vendor', flex: 1 },
                   { field: 'order_count', headerName: 'Orders', width: 80 },
                   { field: 'total_amount', headerName: 'Total Amt', flex: 1 },
@@ -68,7 +68,7 @@ const SubcontractReports = () => {
                 <FiTrendingUp /> <Typography variant="h6">Monthly Trend</Typography>
               </Box>
               <div style={{ height: 250 }}>
-                <DataGrid rows={monthlyTrend} columns={[
+                <StandardTable title="SubcontractReports" rows={monthlyTrend} columns={[
                   { field: 'month', headerName: 'Month', flex: 1 },
                   { field: 'count', headerName: 'Orders', width: 100 },
                 ]} getRowId={(r, i) => i} hideFooter disableColumnMenu

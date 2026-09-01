@@ -4,7 +4,7 @@ module.exports = (sequelize) => {
   const ProductionDailyEntry = sequelize.define('ProductionDailyEntry', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     entry_date: { type: DataTypes.DATEONLY, allowNull: false },
-    shift: { type: DataTypes.ENUM('General', 'A', 'B', 'C'), defaultValue: 'General' },
+    shift: { type: DataTypes.STRING(30), defaultValue: 'General' },
     machine_id: { type: DataTypes.INTEGER },
     machine_code: { type: DataTypes.STRING(50) },
     machine_name: { type: DataTypes.STRING(200) },
@@ -19,7 +19,7 @@ module.exports = (sequelize) => {
     downtime_minutes: { type: DataTypes.INTEGER, defaultValue: 0 },
     downtime_reason: { type: DataTypes.TEXT },
     notes: { type: DataTypes.TEXT },
-    status: { type: DataTypes.ENUM('Pending', 'Completed', 'Approved'), defaultValue: 'Pending' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Pending' },
     recorded_by: { type: DataTypes.STRING(100) },
   }, {
     tableName: 't_production_daily_entry',

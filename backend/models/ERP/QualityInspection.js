@@ -4,7 +4,7 @@ module.exports = (sequelize) => {
   const QualityInspection = sequelize.define('QualityInspection', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     inspection_no: { type: DataTypes.STRING(50), allowNull: false, unique: true },
-    inspection_type: { type: DataTypes.ENUM('Incoming', 'In-Process', 'Final'), allowNull: false },
+    inspection_type: { type: DataTypes.STRING(30), allowNull: false },
     reference_type: { type: DataTypes.STRING(50) },
     reference_id: { type: DataTypes.INTEGER },
     reference_no: { type: DataTypes.STRING(50) },
@@ -17,7 +17,7 @@ module.exports = (sequelize) => {
     inspected_qty: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
     accepted_qty: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
     rejected_qty: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
-    status: { type: DataTypes.ENUM('Pending', 'In Progress', 'Passed', 'Partial', 'Rejected'), defaultValue: 'Pending' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Pending' },
     inspector: { type: DataTypes.STRING(100) },
     inspection_date: { type: DataTypes.DATEONLY },
     result: { type: DataTypes.TEXT },

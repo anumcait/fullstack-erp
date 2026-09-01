@@ -103,6 +103,10 @@ module.exports = (sequelize) => {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
       },
+      attributes: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+      },
     },
     {
       tableName: 'm_party_master',

@@ -167,7 +167,7 @@ exports.getSuppliers = async (req, res) => {
 
     const suppliers = await SupplierMaster.findAll({
       where,
-      order: [['supplier_name', 'ASC']],
+      order: [['supplier_code', 'ASC']],
     });
     res.json(suppliers);
   } catch (err) {

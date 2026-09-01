@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Card, CardContent, Typography, TextField, Button, LinearProgress, MenuItem } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import StandardTable from '../../../../Component/Common/StandardTable';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PrintIcon from '@mui/icons-material/Print';
 import axios from 'axios';
@@ -110,9 +110,13 @@ export default function StockStatement() {
           <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
             <CardContent>
               <Box sx={{ height: 560, width: '100%' }}>
-                <DataGrid rows={data.ledger} columns={columns} getRowId={(r, i) => i} pageSizeOptions={[25, 50, 100]}
-                  initialState={{ pagination: { paginationModel: { pageSize: 50 } } }} disableColumnMenu loading={loading}
-                  sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { bgcolor: '#f2f4f7', fontWeight: 700 } }} />
+                <StandardTable
+                  title="Stock Statement"
+                  rows={data.ledger}
+                  columns={columns}
+                  getRowId={(r, i) => i}
+                  loading={loading}
+                />
               </Box>
             </CardContent>
           </Card>

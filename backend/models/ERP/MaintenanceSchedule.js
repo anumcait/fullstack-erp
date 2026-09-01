@@ -11,7 +11,7 @@ module.exports = (sequelize) => {
     last_done_date: { type: DataTypes.DATEONLY },
     next_due_date: { type: DataTypes.DATEONLY },
     assigned_to: { type: DataTypes.STRING(100) },
-    status: { type: DataTypes.ENUM('Pending', 'Overdue', 'Completed'), defaultValue: 'Pending' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Pending' },
     notes: { type: DataTypes.TEXT },
   }, {
     tableName: 't_maintenance_schedule',

@@ -11,10 +11,11 @@ const PermissionRoute = ({ children, permission, fallback = '/unauthorized' }) =
     return <Navigate to="/" replace state={{ from: location }} />;
   }
 
-  // Super admin / admin bypass (optional - adjust role names as needed)
-  const adminRoles = ['admin', 'superadmin', 'administrator', 'IT'];
-  const isAdmin = userRole && adminRoles.some(r => userRole.toLowerCase().includes(r.toLowerCase()));
-  
+  // Only the canonical ADMIN role bypasses permission checks (must match
+  // backend middleware/auth.js). A role like "HR_ADMIN" must NOT bypass —
+  // it should be granted access via explicit permissions instead.
+  const isAdmin = userRole && userRole.toUpperCase() === 'ADMIN';
+
   if (isAdmin) {
     return children;
   }

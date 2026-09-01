@@ -5,8 +5,20 @@
 // - requirePermission: user must hold the given permission (ADMIN always passes)
 
 const requireAuth = (req, res, next) => {
-  if (req.session && req.session.user) return next();
-  return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+  if (!req.session || !req.session.user) return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+  const now = Date.now();
+  const idleMs = req.app.locals.SESSION_IDLE_TIMEOUT_MS || 30 * 60 * 1000;
+  const absMs = req.app.locals.SESSION_ABSOLUTE_TIMEOUT_MS || 8 * 60 * 60 * 1000;
+  if (req.session.createdAt && now - req.session.createdAt > absMs) {
+    req.session.destroy(() => {});
+    return res.status(401).json({ message: 'Session expired (max duration). Please log in again.' });
+  }
+  if (req.session.lastActivity && now - req.session.lastActivity > idleMs) {
+    req.session.destroy(() => {});
+    return res.status(401).json({ message: 'Session expired due to inactivity. Please log in again.' });
+  }
+  req.session.lastActivity = now;
+  return next();
 };
 
 const requireRole = (roles = []) => {

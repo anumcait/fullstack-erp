@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Card, CardContent, Typography, TextField, Button, Chip, LinearProgress, Tooltip, IconButton, MenuItem } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import StandardTable from '../../../Common/StandardTable.jsx';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -68,7 +68,7 @@ export default function GateEntryList() {
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}
           <Box sx={{ height: 520, width: '100%' }}>
-            <DataGrid rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
+            <StandardTable title="GateEntryList" rows={rows} columns={columns} getRowId={(r) => r.id} pageSizeOptions={[10, 25, 50]}
               initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} disableColumnMenu loading={loading}
               sx={{ border: 0, '& .MuiDataGrid-columnHeaders': { bgcolor: '#f2f4f7', fontWeight: 700 } }} />
           </Box>

@@ -78,7 +78,7 @@ const PAGE_TITLES = [
   ['/planning', 'Planning Dashboard'],
   ['/engineering/categories', 'Category Master'],
   ['/engineering/products', 'Product Master'],
-  ['/engineering/bom', 'Bill of Materials'],
+  ['/engineering/bom', 'Product Assembly Master'],
   ['/engineering/settings', 'Engineering Settings'],
   ['/engineering/reports', 'Engineering Reports'],
   ['/engineering', 'Engineering Dashboard'],

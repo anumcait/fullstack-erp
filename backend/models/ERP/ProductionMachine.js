@@ -14,7 +14,7 @@ module.exports = (sequelize) => {
     installation_date: { type: DataTypes.DATEONLY },
     capacity_per_hour: { type: DataTypes.DECIMAL(12, 2) },
     power_rating: { type: DataTypes.STRING(50) },
-    status: { type: DataTypes.ENUM('Active', 'Inactive', 'Under Maintenance', 'Retired'), defaultValue: 'Active' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Active' },
     last_maintenance_date: { type: DataTypes.DATEONLY },
     next_maintenance_date: { type: DataTypes.DATEONLY },
     notes: { type: DataTypes.TEXT },

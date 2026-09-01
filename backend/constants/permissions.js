@@ -1,7 +1,11 @@
 // backend/constants/permissions.js
-// Central ERP permission taxonomy. Controllers/routes reference these strings
-// via requirePermission(); the user-management UI assigns them to roles/users.
+// Central permission taxonomy. Controllers/routes reference these strings via
+// requirePermission(); the user-management UI assigns them to roles/users.
 // ADMIN always bypasses (see middleware/auth.js).
+//
+// HR/ERP permission STRING VALUES intentionally match the frontend taxonomy in
+// frontend/src/constants/permissions.js so the same stored `user.permissions`
+// array is enforced on both client and server.
 const ERP_PERMISSIONS = {
   PURCHASE: {
     REQUISITION_VIEW: 'purchase.requisition.view',
@@ -26,7 +30,23 @@ const ERP_PERMISSIONS = {
   },
 };
 
+const SETTINGS_PERMISSIONS = {
+  MANAGE: 'SETTINGS_MANAGE',
+};
+
+const HR_PERMISSIONS = {
+  PAYROLL_PROC: 'HR_PAYROLL_PROC',
+  EMP_MASTER: 'HR_EMP_MASTER',
+  ADD_EMP: 'HR_ADD_EMP',
+  LEAVE_APP: 'HR_LEAVE_APP',
+  LEAVE_APPROVE: 'HR_LEAVE_APPROVE',
+  ATT_ENTRY: 'HR_ATT_ENTRY',
+  ATT_MOD: 'HR_ATT_MOD',
+  PF_ACCOUNTING: 'HR_PAYROLL_PROC', // shares payroll permission
+  TAX: 'HR_PAYROLL_PROC',           // shares payroll permission
+};
+
 // Commonly grouped lists for convenience.
 ERP_PERMISSIONS.ALL = Object.values(ERP_PERMISSIONS).flatMap((g) => Object.values(g));
 
-module.exports = ERP_PERMISSIONS;
+module.exports = { ERP_PERMISSIONS, HR_PERMISSIONS, SETTINGS_PERMISSIONS };

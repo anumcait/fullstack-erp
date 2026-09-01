@@ -16,13 +16,13 @@ import { formatDate } from '../../../utils/format';
 
 const KPI_CONFIG = [
   { key: 'product_count', label: 'Products', icon: FiStar, color: '#3b82f6', to: '/engineering/products' },
-  { key: 'bom_count', label: 'Active BOMs', icon: FiLayout, color: '#10b981', to: '/engineering/bom' },
+  { key: 'bom_count', label: 'Active Assemblies', icon: FiLayout, color: '#10b981', to: '/engineering/bom' },
   { key: 'category_count', label: 'Categories', icon: FiGrid, color: '#f59e0b', to: '/engineering/categories' },
 ];
 
 const QUICK_LINKS = [
   { label: 'New Product', to: '/engineering/products/add', icon: FiPlus },
-  { label: 'New BOM', to: '/engineering/bom/add', icon: FiFileText },
+  { label: 'New Assembly', to: '/engineering/bom/add', icon: FiFileText },
   { label: 'Categories', to: '/engineering/categories', icon: FiGrid },
   { label: 'Reports', to: '/engineering/reports', icon: FiTrendingUp },
 ];
@@ -116,7 +116,7 @@ export default function EngineeringDashboard() {
             <Grid container spacing={2}>
               {[
                 { label: 'Total Products', value: stats?.product_count, color: '#3b82f6', to: '/engineering/products' },
-                { label: 'Active BOMs', value: stats?.bom_count, color: '#10b981', to: '/engineering/bom' },
+                { label: 'Active Assemblies', value: stats?.bom_count, color: '#10b981', to: '/engineering/bom' },
                 { label: 'Categories', value: stats?.category_count, color: '#f59e0b', to: '/engineering/categories' },
               ].map((h) => (
                 <Grid item xs={6} md={4} key={h.label}>
@@ -143,7 +143,7 @@ export default function EngineeringDashboard() {
 
             <Card sx={{ borderRadius: 2, boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5, fontSize: '.9rem' }}>Recent BOMs</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5, fontSize: '.9rem' }}>Recent Assemblies</Typography>
                 <DataTable columns={bomColumns} rows={boms} loading={loading} dense emptyMessage="No BOMs yet" />
               </CardContent>
             </Card>

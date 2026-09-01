@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, TextField, Button, Grid, IconButton,
@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import IndeterminateCheckBoxIcon from '@mui/icons-material/IndeterminateCheckBox';
@@ -18,6 +19,7 @@ import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import CountedTextArea from '../../../Common/CountedTextArea';
 import BOMSelectDialog from './BOMSelectDialog';
+import ItemSelectDialog from '../../Stores/ItemMaster/ItemSelectDialog';
 
 const API = '/api/erp/engineering/bom';
 const ITEMS_API = '/api/erp/stores/items';
@@ -42,8 +44,19 @@ export default function BOMForm() {
   const [productList, setProductList] = useState([]);
   const [bomList, setBomList] = useState([]);
   const [bomSelectOpen, setBomSelectOpen] = useState(false);
+  const [itemSelectOpen, setItemSelectOpen] = useState(false);
+  const [itemSelectTarget, setItemSelectTarget] = useState(null);
+
+  const assemblyProducts = useMemo(
+    () => productList.filter((p) => p.product_type === 'Assembly' || p.product_type === 'SFG'),
+    [productList]
+  );
+  const itemPickData = useMemo(() => ([
+    ...itemMasterList.map((i) => ({ ...i, _source: 'item', _type: i.group || 'Item' })),
+    ...assemblyProducts.map((p) => ({ ...p, _source: 'product', item_code: p.product_code, item_name: p.part_name, _type: 'Sub Assembly' })),
+  ]), [itemMasterList, assemblyProducts]);
   const [form, setForm] = useState({
-    bom_no: '', bom_name: '', product_id: '', product_item_id: '', product_code: '', product_name: '',
+    bom_no: '', bom_name: '', product_id: '', product_item_id: '', product_code: '', product_name: '', productSelect: '',
     output_quantity: 1, unit_id: '', status: 'Draft', version: '1.0', remarks: '',
     labour_cost: 0, overhead_cost: 0, overhead_is_percent: false, margin_percent: 0, selling_price: 0,
   });
@@ -58,7 +71,7 @@ export default function BOMForm() {
         setForm({
           bom_no: data.bom_no || '', bom_name: data.bom_name || '',
           product_id: data.product_id || '', product_item_id: data.product_item_id || '',
-          product_code: data.product_code || '',
+          product_code: data.product_code || '', productSelect: data.product_id ? String(data.product_id) : (data.product_item_id ? `sa:${data.product_item_id}` : ''),
           product_name: data.product_name || '', output_quantity: data.output_quantity || 1,
           unit_id: data.unit_id || '', status: data.status || 'Draft',
           version: data.version || '1.0', remarks: data.remarks || '',
@@ -95,9 +108,10 @@ export default function BOMForm() {
 
   const handleChange = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   const handleProductChange = (value) => {
-    const sel = productList.find((p) => p.id === value);
+    const id = Number(value);
+    const sel = productList.find((p) => p.id === id);
     if (sel) setForm((f) => ({
-      ...f,
+      ...f, productSelect: value,
       product_id: sel.id,
       product_code: sel.product_code || '',
       product_name: sel.part_name || '',
@@ -167,6 +181,45 @@ export default function BOMForm() {
     }));
   };
 
+  const openItemSelect = (targetTempId) => { setItemSelectTarget(targetTempId || 'new'); setItemSelectOpen(true); };
+
+  const handleItemPicked = (sel) => {
+    setItemSelectOpen(false);
+    const target = itemSelectTarget;
+    let newRow;
+    if (sel._source === 'product') {
+      const subBom = bomList.find((b) => b.product_id === sel.id);
+      newRow = {
+        tempId: target === 'new' ? newId() : target,
+        parentTempId: null,
+        item_id: null, component_product_id: sel.id,
+        item_code: sel.product_code || '', item_name: sel.part_name || '',
+        quantity: 1, lot_quantity: 1, unit_id: sel.unit_id || '',
+        wastage_percent: 0, is_phantom: false,
+        sub_bom_id: subBom ? subBom.id : '', section_name: '', color: '', sort_order: 0, remarks: '',
+        subBom: subBom ? { id: subBom.id, bom_no: subBom.bom_no, bom_name: subBom.bom_name } : null,
+      };
+      if (!subBom) showToast(`Sub-assembly "${sel.part_name}" has no BOM yet — create its assembly first`, 'warning');
+    } else {
+      newRow = {
+        tempId: target === 'new' ? newId() : target,
+        parentTempId: null,
+        item_id: sel.id, component_product_id: null,
+        item_code: sel.item_code || '', item_name: sel.item_name || '',
+        quantity: 1, lot_quantity: 1, unit_id: sel.unit_id || '',
+        wastage_percent: 0, is_phantom: false,
+        sub_bom_id: '', section_name: '', color: '', sort_order: 0, remarks: '',
+        subBom: null,
+      };
+    }
+    if (target === 'new') {
+      setRows((prev) => [...prev, { ...newRow, sort_order: prev.length }]);
+    } else {
+      setRows((prev) => prev.map((r) => (r.tempId === target ? { ...newRow, sort_order: r.sort_order } : r)));
+    }
+    setItemSelectTarget(null);
+  };
+
   const getIndent = (tempId) => {
     let depth = 0, current = rows.find((r) => r.tempId === tempId);
     while (current && current.parentTempId) {
@@ -179,6 +232,11 @@ export default function BOMForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    if (!form.productSelect) { showToast('Select a Product / Sub-Assembly', 'error'); setLoading(false); return; }
+    const unlinked = rows.find((r) => !r.is_phantom && !r.sub_bom_id && !r.item_id);
+    if (unlinked) { showToast('Every component must be linked to an Item Master item', 'error'); setLoading(false); return; }
+    const badSub = rows.find((r) => r.component_product_id && !r.sub_bom_id);
+    if (badSub) { showToast(`Sub-assembly "${badSub.item_name}" must have its BOM linked`, 'error'); setLoading(false); return; }
     const items = rows.map((r, idx) => ({
       parent_item_id: r.parentTempId ? (() => { const p = rows.find((x) => x.tempId === r.parentTempId); return rows.indexOf(p); })() : null,
       sub_bom_id: r.sub_bom_id || null,
@@ -198,6 +256,7 @@ export default function BOMForm() {
       remarks: r.remarks || '',
     }));
     const payload = { ...form, items };
+    delete payload.productSelect;
     try {
       if (isEdit) await axios.put(`${API}/${id}`, payload);
       else await axios.post(API, payload);
@@ -214,7 +273,7 @@ export default function BOMForm() {
       <Box display="flex" alignItems="center" gap={2} mb={3}>
         <IconButton onClick={() => navigate('/engineering/bom')}><ArrowBackIcon /></IconButton>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'var(--heading-color)' }}>
-          {isView ? 'View' : isEdit ? 'Edit' : 'New'} Bill of Materials
+          {isView ? 'View' : isEdit ? 'Edit' : 'New'} Product Assembly Master
         </Typography>
       </Box>
 
@@ -230,9 +289,9 @@ export default function BOMForm() {
                 <TextField label="BOM Name" size="small" fullWidth value={form.bom_name} onChange={handleChange('bom_name')} disabled={readOnly} required />
               </Grid>
               <Grid item xs={6} md={3}>
-                <TextField label="Product" select size="small" fullWidth value={form.product_id} onChange={(e) => handleProductChange(Number(e.target.value))} disabled={readOnly} required helperText="Finished product (Product Master)">
-                  <MenuItem value=""><em>Select Product</em></MenuItem>
-                  {productList.map((p) => <MenuItem key={p.id} value={p.id}>{p.product_uid || ''} - {p.part_name}</MenuItem>)}
+                <TextField label="Product / Assembly" select size="small" fullWidth value={form.productSelect} onChange={(e) => handleProductChange(e.target.value)} disabled={readOnly} required helperText="Finished Product or Sub Assembly (Product Master)">
+                  <MenuItem value=""><em>Select Product / Assembly</em></MenuItem>
+                  {productList.map((p) => <MenuItem key={p.id} value={p.id}>{p.product_uid || ''} - {p.part_name} ({p.product_type || 'Product'})</MenuItem>)}
                 </TextField>
               </Grid>
               <Grid item xs={6} md={1}>
@@ -287,8 +346,8 @@ export default function BOMForm() {
               <Typography variant="h6" sx={{ fontWeight: 600 }}>Components</Typography>
               {!readOnly && (
                 <Box display="flex" gap={1}>
-                  <Button startIcon={<AddBoxIcon />} onClick={() => addRow('group')} size="small" variant="outlined" color="secondary">Add Group</Button>
-                  <Button startIcon={<AddIcon />} onClick={() => addRow('item')} size="small" variant="outlined">Add Item</Button>
+                   <Button startIcon={<AddBoxIcon />} onClick={() => addRow('group')} size="small" variant="outlined" color="secondary">Add Group</Button>
+                   <Button startIcon={<AddIcon />} onClick={() => openItemSelect(null)} size="small" variant="outlined">Add Item from Master</Button>
                   <Button startIcon={<AccountTreeIcon />} onClick={() => setBomSelectOpen(true)} size="small" variant="outlined" color="info">Add Sub-BOM</Button>
                 </Box>
               )}
@@ -338,10 +397,17 @@ export default function BOMForm() {
                           {r.sub_bom_id && <Chip label="BOM" size="small" color="info" variant="outlined" sx={{ height: 20, fontSize: 10 }} />}
                           {readOnly ? (
                             <Typography variant="body2" sx={{ fontWeight: r.is_phantom ? 700 : 400 }}>{r.item_name}</Typography>
-                          ) : (
+                          ) : r.is_phantom ? (
                             <TextField size="small" fullWidth value={r.item_name}
                               onChange={(e) => handleRowChange(r.tempId, 'item_name', e.target.value)}
-                              placeholder={r.is_phantom ? 'Group name' : r.sub_bom_id ? 'Sub-BOM name' : 'Item name'} />
+                              placeholder="Group name" />
+                          ) : (
+                            <Box display="flex" alignItems="center" gap={0.5}>
+                              <Typography variant="body2" sx={{ flex: 1 }}>
+                                {r.item_name || <span style={{ color: 'gray' }}>— pick item —</span>}
+                              </Typography>
+                              <IconButton size="small" onClick={() => openItemSelect(r.tempId)}><EditIcon fontSize="small" /></IconButton>
+                            </Box>
                           )}
                         </Box>
                       </TableCell>
@@ -413,6 +479,14 @@ export default function BOMForm() {
       </form>
 
       <BOMSelectDialog open={bomSelectOpen} onClose={() => setBomSelectOpen(false)} onSelect={addSubBom} excludeId={id} />
+      <ItemSelectDialog
+        open={itemSelectOpen}
+        onClose={() => { setItemSelectOpen(false); setItemSelectTarget(null); }}
+        onSelect={handleItemPicked}
+        title="Select Item or Sub-Assembly"
+        data={itemPickData}
+        columns={[{ key: 'item_code', label: 'Code' }, { key: 'item_name', label: 'Name' }, { key: '_type', label: 'Type' }]}
+      />
     </Box>
   );
 }

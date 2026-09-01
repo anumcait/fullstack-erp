@@ -315,7 +315,7 @@ const Header = () => {
           items: [
             { label: 'Product Master', path: '/engineering/products' },
             { label: 'Category Master', path: '/engineering/categories' },
-            { label: 'Bill of Materials (BOM)', path: '/engineering/bom' },
+            { label: 'Product Assembly Master', path: '/engineering/bom' },
             { label: 'BOM Comparison', path: '/engineering/bom-diff' }
           ]
         },

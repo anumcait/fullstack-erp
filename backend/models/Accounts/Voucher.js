@@ -12,7 +12,7 @@ module.exports = (sequelize) => {
     narration: { type: DataTypes.TEXT, allowNull: true },
     total_debit: { type: DataTypes.DECIMAL(16, 2), defaultValue: 0 },
     total_credit: { type: DataTypes.DECIMAL(16, 2), defaultValue: 0 },
-    status: { type: DataTypes.ENUM('Draft', 'Posted', 'Cancelled'), defaultValue: 'Draft' },
+    status: { type: DataTypes.STRING(30), defaultValue: 'Draft' },
     created_by: { type: DataTypes.INTEGER, allowNull: true },
     approved_by: { type: DataTypes.INTEGER, allowNull: true },
     approved_at: { type: DataTypes.DATE, allowNull: true },

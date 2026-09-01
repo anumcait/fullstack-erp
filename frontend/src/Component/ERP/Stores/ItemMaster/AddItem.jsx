@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
   Box, Grid, Tabs, Tab, TextField, Button, MenuItem, LinearProgress,
-  IconButton, Checkbox, FormControlLabel, Switch, Divider, Typography,
-  Dialog, DialogTitle, DialogContent, DialogActions, InputAdornment
+  IconButton, Checkbox, FormControlLabel, Switch, Divider, Typography, Chip,
+  Dialog, DialogTitle, DialogContent, DialogActions, InputAdornment, Alert
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import SaveIcon from "@mui/icons-material/Save";
@@ -22,6 +22,9 @@ const UNITS_API = "/api/erp/stores/units";
 const ITEMTYPES_API = "/api/erp/stores/item-types";
 const ITEMS_API = "/api/erp/stores/items";
 const NEXT_CODE_API = "/api/erp/stores/items/next-code";
+const WAREHOUSES_API = "/api/erp/stores/warehouses";
+
+const MAKE_BUY_OPTIONS = ["Buy", "Make", "Phantom"];
 
 const TAB_LABELS = [
   "Item Details", "Adv. Config", "Alt. Units", "Inv. Control",
@@ -45,9 +48,12 @@ const Field = ({ label, children }) => (
   </div>
 );
 
-const NumField = ({ label, value, onChange, step }) => (
+const NumField = ({ label, value, onChange, step, helper }) => (
   <Field label={label}>
-    <TextField size="small" fullWidth type="number" value={value} onChange={onChange} inputProps={{ step: step || 1 }} />
+    <TextField size="small" fullWidth type="number" value={value} onChange={onChange} inputProps={{ step: step || 1 }}
+      helperText={helper}
+      FormHelperTextProps={{ sx: { mx: 0, color: 'text.secondary', fontSize: '0.72rem' } }}
+    />
   </Field>
 );
 
@@ -122,8 +128,10 @@ export default function AddItem() {
   const [subtypes, setSubtypes] = useState([]);
   const [units, setUnits] = useState([]);
   const [itemTypes, setItemTypes] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dup, setDup] = useState([]);
 
   const [form, setForm] = useState({
     item_code: "",
@@ -137,6 +145,15 @@ export default function AddItem() {
     criticality: "",
     brand: "",
     stock_category: "",
+    make_buy: "Buy",
+    is_purchase_item: true,
+    is_sales_item: false,
+    is_stock_item: true,
+    drawing_no: "",
+    revision: "",
+    default_warehouse_id: "",
+    alt_unit_id: "",
+    conversion_factor: 1,
     valuation_method: "FIFO",
     lead_time_days: 0,
     min_order_qty: 0,
@@ -167,18 +184,20 @@ export default function AddItem() {
   useEffect(() => {
     const loadMasterData = async () => {
       try {
-        const [catRes, subRes, subTypeRes, unitRes, typeRes] = await Promise.all([
+        const [catRes, subRes, subTypeRes, unitRes, typeRes, whRes] = await Promise.all([
           axios.get(CATEGORIES_API),
           axios.get("/api/erp/stores/subgroups"),
           axios.get("/api/erp/stores/subtypes"),
           axios.get(UNITS_API),
           axios.get(ITEMTYPES_API),
+          axios.get(WAREHOUSES_API),
         ]);
         setCategories(catRes.data);
         setSubgroups(subRes.data);
         setSubtypes(subTypeRes.data);
         setUnits(unitRes.data);
         setItemTypes(typeRes.data);
+        setWarehouses(Array.isArray(whRes.data) ? whRes.data : (whRes.data?.rows || []));
       } catch (err) {
         showToast("Failed to load master data", "error");
       }
@@ -203,6 +222,15 @@ export default function AddItem() {
             criticality: data.criticality || "",
             brand: data.brand || "",
             stock_category: data.stock_category || "",
+            make_buy: data.make_buy || "Buy",
+            is_purchase_item: data.is_purchase_item !== false,
+            is_sales_item: Boolean(data.is_sales_item),
+            is_stock_item: data.is_stock_item !== false,
+            drawing_no: data.drawing_no || "",
+            revision: data.revision || "",
+            default_warehouse_id: data.default_warehouse_id || "",
+            alt_unit_id: data.alt_unit_id || "",
+            conversion_factor: data.conversion_factor || 1,
             valuation_method: data.valuation_method || "FIFO",
             lead_time_days: data.lead_time_days || 0,
             min_order_qty: data.min_order_qty || 0,
@@ -235,8 +263,27 @@ export default function AddItem() {
     }
   }, [id, isEdit]);
 
+  useEffect(() => {
+    const nm = (form.item_name || "").trim();
+    if (nm.length < 3 || !form.category_id) { setDup([]); return; }
+    const to = setTimeout(async () => {
+      try {
+        const { data } = await axios.get(`${ITEMS_API}/check-duplicate`, {
+          params: { name: nm, group_id: form.category_id, exclude: id || "" },
+        });
+        setDup(data.matches || []);
+      } catch (_) { setDup([]); }
+    }, 400);
+    return () => clearTimeout(to);
+  }, [form.item_name, form.category_id, id]);
+
   const setField = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
   const handleChange = (field) => (e) => setField(field, e.target.value);
+  // Item code: keep it ERP-clean (uppercase A–Z, 0–9, hyphen only).
+  const onCodeChange = (e) => {
+    const v = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 50);
+    setField("item_code", v);
+  };
   const categoryLabel = (c) => (c.parent ? `${c.parent.name} / ${c.name}` : c.name);
 
   const applyAutoCode = async (groupId, subgroupId) => {
@@ -267,30 +314,54 @@ export default function AddItem() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.item_code || !form.item_name) {
-      showToast("Item code and name are required", "warning");
+    const itemName = (form.item_name || "").trim();
+    if (!form.item_code) {
+      showToast("Item code is required", "warning");
+      return;
+    }
+    if (!itemName || itemName === "-" || itemName === "." || itemName.length < 2) {
+      showToast("Enter a valid item name (cannot be blank, '-', or '.')", "warning");
+      return;
+    }
+    if (!form.category_id) {
+      showToast("Select an Item Group (classification) before saving", "warning");
+      return;
+    }
+    if (!form.unit_id) {
+      showToast("Select a UOM (unit of measure) before saving", "warning");
       return;
     }
     setSaving(true);
     try {
-      const payload = { ...form };
+      const payload = { ...form, item_name: itemName };
       if (!payload.category_id) payload.category_id = null;
       if (!payload.subgroup_id) payload.subgroup_id = null;
       if (!payload.type_id) payload.type_id = null;
       if (!payload.subtype_id) payload.subtype_id = null;
       if (!payload.unit_id) payload.unit_id = null;
+      if (!payload.default_warehouse_id) payload.default_warehouse_id = null;
+      else payload.default_warehouse_id = Number(payload.default_warehouse_id);
+      if (!payload.alt_unit_id) payload.alt_unit_id = null;
+      else payload.alt_unit_id = Number(payload.alt_unit_id);
+      payload.conversion_factor = Number(payload.conversion_factor) || 1;
+      if (!payload.drawing_no) payload.drawing_no = null;
+      if (!payload.revision) payload.revision = null;
       delete payload.current_stock;
 
+      let res;
       if (isEdit) {
-        await axios.put(`${ITEMS_API}/${id}`, payload);
+        res = await axios.put(`${ITEMS_API}/${id}`, payload);
         showToast("Item updated", "success");
       } else {
-        await axios.post(ITEMS_API, payload);
+        res = await axios.post(ITEMS_API, payload);
         showToast("Item created", "success");
       }
+      if (res?.data?.warnings?.length) showToast(res.data.warnings.join("  •  "), "warning");
       navigate("/stores/item-master");
     } catch (err) {
-      showToast(err.response?.data?.error || "Failed to save item", "error");
+      const errs = err.response?.data?.errors;
+      if (Array.isArray(errs) && errs.length) showToast(errs.join("  •  "), "error");
+      else showToast(err.response?.data?.error || "Failed to save item", "error");
     } finally {
       setSaving(false);
     }
@@ -384,6 +455,20 @@ export default function AddItem() {
           {TAB_LABELS.map((label, idx) => (<Tab key={idx} label={label} className="tab-label" />))}
         </Tabs>
 
+        {dup.length > 0 && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 2 }}
+            action={
+              <Button color="inherit" size="small" onClick={() => navigate(`/stores/item-master/edit/${dup[0].id}`)}>
+                Open existing
+              </Button>
+            }
+          >
+            Possible duplicate{dup.length > 1 ? "s" : ""}: {dup.map((d) => `${d.item_name} (${d.item_code})`).join(", ")}. Review before saving.
+          </Alert>
+        )}
+
         <Box className="item-class-banner">
           <Box className="banner-info">
             <Typography className="banner-title">Item Classification</Typography>
@@ -405,19 +490,19 @@ export default function AddItem() {
             <Box className="col-main">
               <Field label="Item Code">
                 <TextField size="small" fullWidth className="item-code-field"
-                  value={form.item_code} onChange={handleChange("item_code")} required
+                  value={form.item_code} onChange={onCodeChange} required
                   placeholder="Auto-generated after Sub Group"
                   InputProps={{ readOnly: !isEdit && Boolean(form.item_code) }}
                   inputProps={{ maxLength: 50 }}
-                  helperText={`${form.item_code.length} / 50  (auto-generated from ${subgroupDisplay || groupDisplay || "classification"})`}
-                  FormHelperTextProps={{ sx: { mx: 0, textAlign: 'right', color: 'text.secondary', fontSize: '0.75rem' } }}
+                  helperText={`${form.item_code.length} / 50  (A–Z, 0–9, hyphen, auto-generated from ${subgroupDisplay || groupDisplay || "classification"})`}
+                  FormHelperTextProps={{ sx: { mx: 0, textAlign: 'right', color: 'text.secondary', fontSize: '0.72rem' } }}
                 />
               </Field>
               <Field label="Item Name">
                 <TextField size="small" fullWidth value={form.item_name} onChange={handleChange("item_name")} required
                   inputProps={{ maxLength: 200 }}
-                  helperText={`${form.item_name.length} / 200  (${200 - form.item_name.length} left)`}
-                  FormHelperTextProps={{ sx: { mx: 0, textAlign: 'right', color: 'text.secondary' } }}
+                  helperText={`Describe clearly, e.g. "Table Fan 16 inch BLDC" · ${form.item_name.length}/200`}
+                  FormHelperTextProps={{ sx: { mx: 0, textAlign: 'right', color: 'text.secondary', fontSize: '0.72rem' } }}
                 />
               </Field>
               <div className="form-row-stacked desc-fill">
@@ -450,6 +535,22 @@ export default function AddItem() {
               </Field>
               <Field label="Brand"><TextField size="small" fullWidth value={form.brand} onChange={handleChange("brand")} /></Field>
               <Field label="Stock Category"><TextField size="small" fullWidth value={form.stock_category} onChange={handleChange("stock_category")} /></Field>
+              <Field label="Item Nature (Make/Buy)" helper>
+                <TextField size="small" fullWidth select value={form.make_buy} onChange={handleChange("make_buy")}
+                  helperText="Buy = purchased · Make = manufactured · Phantom = non-stocked sub-assembly"
+                  FormHelperTextProps={{ sx: { mx: 0, color: 'text.secondary', fontSize: '0.72rem' } }}>
+                  {MAKE_BUY_OPTIONS.map((m) => (<MenuItem key={m} value={m}>{m}</MenuItem>))}
+                </TextField>
+              </Field>
+              <Field label="Derived Flags">
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', pt: 0.5 }}>
+                  <Chip size="small" color={form.make_buy === 'Make' ? 'default' : 'primary'} variant={form.make_buy === 'Make' ? 'outlined' : 'filled'} label={`Purchase: ${form.make_buy === 'Phantom' || form.make_buy === 'Make' ? 'No' : 'Yes'}`} />
+                  <Chip size="small" color={form.is_sales_item ? 'success' : 'default'} variant={form.is_sales_item ? 'filled' : 'outlined'} label={`Sales: ${form.is_sales_item ? 'Yes' : 'No'}`} />
+                  <Chip size="small" color={form.make_buy === 'Phantom' ? 'default' : 'info'} variant={form.make_buy === 'Phantom' ? 'outlined' : 'filled'} label={`Stock: ${form.make_buy === 'Phantom' ? 'No' : 'Yes'}`} />
+                </Box>
+              </Field>
+              <Field label="Drawing No"><TextField size="small" fullWidth value={form.drawing_no} onChange={handleChange("drawing_no")} inputProps={{ maxLength: 50 }} /></Field>
+              <Field label="Revision"><TextField size="small" fullWidth value={form.revision} onChange={handleChange("revision")} inputProps={{ maxLength: 20 }} /></Field>
             </Box>
           </Box>
         )}
@@ -458,19 +559,25 @@ export default function AddItem() {
         {tabIndex === 1 && (
           <Box className="item-form two-col">
             <Box className="col-main">
-              <Field label="Valuation"><TextField size="small" fullWidth select value={form.valuation_method} onChange={handleChange("valuation_method")}>
+              <Field label="Valuation"><TextField size="small" fullWidth select value={form.valuation_method} onChange={handleChange("valuation_method")} helperText="How inventory cost is computed" FormHelperTextProps={{ sx: { mx: 0, color: 'text.secondary', fontSize: '0.72rem' } }}>
                 {VALUATION_METHODS.map((m) => (<MenuItem key={m} value={m}>{m}</MenuItem>))}
               </TextField></Field>
               <NumField label="Lead Time (days)" field="lead_time_days" value={form.lead_time_days} onChange={handleChange("lead_time_days")} />
               <NumField label="Min Order Qty" field="min_order_qty" value={form.min_order_qty} onChange={handleChange("min_order_qty")} />
               <NumField label="Reorder Qty" field="reorder_qty" value={form.reorder_qty} onChange={handleChange("reorder_qty")} />
-              <NumField label="Standard Cost" field="standard_cost" step="0.01" value={form.standard_cost} onChange={handleChange("standard_cost")} />
+              <NumField label="Standard Cost" field="standard_cost" step="0.01" value={form.standard_cost} onChange={handleChange("standard_cost")} helper="Purchase / landed cost per unit" />
             </Box>
             <Box className="col-side">
-              <Field label="ABC Class"><TextField size="small" fullWidth select value={form.abc_class} onChange={handleChange("abc_class")}>
+              <Field label="ABC Class"><TextField size="small" fullWidth select value={form.abc_class} onChange={handleChange("abc_class")} helperText="A = high value, B = medium, C = low" FormHelperTextProps={{ sx: { mx: 0, color: 'text.secondary', fontSize: '0.72rem' } }}>
                 {ABC_CLASSES.map((c) => (<MenuItem key={c} value={c}>{c}</MenuItem>))}
               </TextField></Field>
               <Field label="Default Location"><TextField size="small" fullWidth value={form.default_location} onChange={handleChange("default_location")} /></Field>
+              <Field label="Default Warehouse">
+                <TextField size="small" fullWidth select value={form.default_warehouse_id} onChange={handleChange("default_warehouse_id")}>
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  {warehouses.map((w) => (<MenuItem key={w.id} value={w.id}>{w.warehouse_name || w.warehouse_code}</MenuItem>))}
+                </TextField>
+              </Field>
               <FormControlLabel control={<Switch checked={form.track_serial} onChange={(e) => setField("track_serial", e.target.checked)} />} label="Track Serial No." />
               <FormControlLabel control={<Switch checked={form.track_batch} onChange={(e) => setField("track_batch", e.target.checked)} />} label="Track Batch / Lot" />
             </Box>
@@ -480,6 +587,19 @@ export default function AddItem() {
         {/* 2 - Alt. Units */}
         {tabIndex === 2 && (
           <Box className="item-form" sx={{ p: 1 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Primary Alternate UOM (stock ↔ purchase conversion)</Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={5}>
+                <TextField size="small" fullWidth select label="Alternate Unit" value={form.alt_unit_id} onChange={handleChange("alt_unit_id")}>
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  {units.map((u) => (<MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>))}
+                </TextField>
+              </Grid>
+              <Grid item xs={4}>
+                <TextField size="small" fullWidth type="number" label="Conversion Factor" value={form.conversion_factor}
+                  onChange={handleChange("conversion_factor")} inputProps={{ step: 0.0001 }} helperText="base unit × factor = alternate unit" />
+              </Grid>
+            </Grid>
             <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => addRow("alt_units", { unit_id: "", unit_name: "", conversion_factor: 1, is_base: false })}>
               Add Alternative Unit
             </Button>
@@ -532,10 +652,10 @@ export default function AddItem() {
         {tabIndex === 4 && (
           <Box className="item-form two-col">
             <Box className="col-main">
-              <Field label="HSN Code"><TextField size="small" fullWidth value={form.hsn_code} onChange={handleChange("hsn_code")} inputProps={{ maxLength: 20 }} /></Field>
+              <Field label="HSN Code"><TextField size="small" fullWidth value={form.hsn_code} onChange={handleChange("hsn_code")} inputProps={{ maxLength: 20 }} helperText="4–8 digit tariff code (e.g. 8414)" FormHelperTextProps={{ sx: { mx: 0, color: 'text.secondary', fontSize: '0.72rem' } }} /></Field>
             </Box>
             <Box className="col-side">
-              <NumField label="GST %" field="gst_rate" step="0.01" value={form.gst_rate} onChange={handleChange("gst_rate")} />
+              <NumField label="GST %" field="gst_rate" step="0.01" value={form.gst_rate} onChange={handleChange("gst_rate")} helper="Standard slabs: 0, 5, 12, 18, 28%" />
             </Box>
           </Box>
         )}

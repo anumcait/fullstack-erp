@@ -1,0 +1,1555 @@
+# Source Schema: AUCTOR (from 20260824_093001.dmp)
+Total tables: 42
+
+## T_JOBREQ
+| Column | Type | Constraint |
+|---|---|---|
+| INDENT_NO | NUMBER(22) | NOT NULL |
+| INDENT_DT | DATE |  |
+| ITEM_CODE | VARCHAR2(50) | NOT NULL |
+| OPN_1 | NUMBER(22) |  |
+| OPN_2 | NUMBER(22) |  |
+| OPN_3 | NUMBER(22) |  |
+| OPN_4 | NUMBER(22) |  |
+| OPN_5 | NUMBER(22) |  |
+| QTY | NUMBER(22) |  |
+| PURPOSE | VARCHAR2(100) |  |
+| DEL_DT | VARCHAR2(10) |  |
+| INDENT_BY | VARCHAR2(10) |  |
+| RECOM_DT | DATE |  |
+| RECOM_BY | VARCHAR2(10) |  |
+| RECOM_QTY | NUMBER(22) |  |
+| SANC_DT | DATE |  |
+| SANC_BY | VARCHAR2(10) |  |
+| SANC_QTY | NUMBER(22) |  |
+| STATUS | CHAR(1) |  |
+| REMARKS | VARCHAR2(500) |  |
+| JO_QTY | NUMBER(22) |  |
+| IND_TYP | CHAR(1) |  |
+| WO_NO | VARCHAR2(10) |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| FSANC_DT | DATE |  |
+| FSANC_BY | VARCHAR2(10) |  |
+| FSANC_QTY | NUMBER(22) |  |
+| UNIT_NO | VARCHAR2(8) | NOT NULL |
+| JO_NO | VARCHAR2(10) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| TIM | VARCHAR2(5) |  |
+| TYP_MAT | CHAR(2) |  |
+| UNIT_QTY | VARCHAR2(5) |  |
+| NO_KG | NUMBER(22) |  |
+| ACCP_STAT | CHAR(1) |  |
+| LEN | NUMBER(22) |  |
+| MATERIAL_TYPE | VARCHAR2(50) |  |
+| MATERIAL_DES | VARCHAR2(100) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| PURCH_TYP | CHAR(1) |  |
+| STOCK_QTY | NUMBER(22) |  |
+| YR | NUMBER(22) | NOT NULL |
+| IND_STAT | CHAR(1) |  |
+| SC_QTY | NUMBER(22) |  |
+| SC_DATE | DATE |  |
+| AMD_BY | NUMBER(22) |  |
+| SUB_DEPT | VARCHAR2(5) |  |
+| AUTH_BY | NUMBER(22) |  |
+| COMPR_ST_NO | VARCHAR2(8) |  |
+| AGM_MAINTENCE | VARCHAR2(15) |  |
+| PURCH_PTY | NUMBER(22) |  |
+| PURCH_PTY_DT | DATE |  |
+| LINO | VARCHAR2(10) |  |
+| EST_COST | NUMBER(22) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_VALUE | NUMBER(22) |  |
+| WO_NAME | VARCHAR2(250) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## T_IR
+| Column | Type | Constraint |
+|---|---|---|
+| MIS_NO | NUMBER(22) | NOT NULL |
+| MIS_DT | DATE |  |
+| RR_LR_NO | VARCHAR2(10) | NOT NULL |
+| RR_LR_DT | DATE |  |
+| DC_NO | VARCHAR2(10) | NOT NULL |
+| DC_DT | DATE |  |
+| PO_NO | VARCHAR2(10) |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| ITEM_CODE | VARCHAR2(50) | NOT NULL |
+| OPN_1 | NUMBER(22) |  |
+| OPN_2 | NUMBER(22) |  |
+| OPN_3 | NUMBER(22) |  |
+| OPN_4 | NUMBER(22) |  |
+| OPN_5 | NUMBER(22) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| QTY_REJ | NUMBER(22) |  |
+| QTY_RETF | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| RECVD_BY | VARCHAR2(10) |  |
+| REMARKS | VARCHAR2(100) |  |
+| INSP_AUTH | VARCHAR2(10) |  |
+| INSP_DT | DATE |  |
+| STATUS | VARCHAR2(1) |  |
+| PAID_STAT | VARCHAR2(1) | NOT NULL |
+| REJ_DCNO | VARCHAR2(10) |  |
+| BOX_NO | VARCHAR2(5) |  |
+| REJ_ERR | VARCHAR2(1) |  |
+| REJ_DIA | VARCHAR2(5) |  |
+| RET_ERR | VARCHAR2(1) |  |
+| RET_DIA | VARCHAR2(5) |  |
+| REJ_NO | NUMBER(22) |  |
+| QTY_LOST | NUMBER(22) |  |
+| WO_NO | VARCHAR2(10) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| PTY_NAME | VARCHAR2(100) |  |
+| REJ_RATE | NUMBER(22) |  |
+| ITEM_SR | NUMBER(22) |  |
+| ITEM_GRP | VARCHAR2(10) |  |
+| AGM_INSP | NUMBER(22) |  |
+| AGM_INSPDT | DATE |  |
+| QTY_PREJ | NUMBER(22) |  |
+| QTY_OREJ | NUMBER(22) |  |
+| QTY_ISS | NUMBER(22) |  |
+| NEWBOX_NO | VARCHAR2(50) |  |
+| UNIT_CD | CHAR(1) |  |
+| DEPT_CD | VARCHAR2(10) | NOT NULL |
+| QTY_REC | NUMBER(22) |  |
+| KG_REC | NUMBER(22) |  |
+| KG_ACCP | NUMBER(22) |  |
+| LEN | NUMBER(22) |  |
+| WID | NUMBER(22) |  |
+| THK | NUMBER(22) |  |
+| DIA | NUMBER(22) |  |
+| VAN_QUL_RAT | NUMBER(22) |  |
+| VAN_DSP_RAT | NUMBER(22) |  |
+| VAN_PRICE_RAT | NUMBER(22) |  |
+| VAN_SER_RAT | NUMBER(22) |  |
+| QTY_WTOPN | NUMBER(22) |  |
+| YR | NUMBER(22) | NOT NULL |
+| UT_REP_NO | VARCHAR2(10) |  |
+| PO_DT | DATE |  |
+| BILL_NO | VARCHAR2(20) |  |
+| BILL_DT | DATE |  |
+| REFNO | VARCHAR2(10) |  |
+
+## T_JOBREQ_DRAFT
+| Column | Type | Constraint |
+|---|---|---|
+| INDENT_NO | NUMBER(22) |  |
+| INDENT_DT | DATE |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| OPN_1 | NUMBER(22) |  |
+| OPN_2 | NUMBER(22) |  |
+| OPN_3 | NUMBER(22) |  |
+| OPN_4 | NUMBER(22) |  |
+| OPN_5 | NUMBER(22) |  |
+| QTY | NUMBER(22) |  |
+| PURPOSE | VARCHAR2(100) |  |
+| DEL_DT | VARCHAR2(10) |  |
+| INDENT_BY | VARCHAR2(10) |  |
+| RECOM_DT | DATE |  |
+| RECOM_BY | VARCHAR2(10) |  |
+| RECOM_QTY | NUMBER(22) |  |
+| SANC_DT | DATE |  |
+| SANC_BY | VARCHAR2(10) |  |
+| SANC_QTY | NUMBER(22) |  |
+| STATUS | CHAR(1) |  |
+| REMARKS | VARCHAR2(500) |  |
+| JO_QTY | NUMBER(22) |  |
+| IND_TYP | CHAR(1) |  |
+| WO_NO | VARCHAR2(10) |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| FSANC_DT | DATE |  |
+| FSANC_BY | VARCHAR2(10) |  |
+| FSANC_QTY | NUMBER(22) |  |
+| UNIT_NO | VARCHAR2(8) |  |
+| JO_NO | VARCHAR2(10) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| TIM | VARCHAR2(5) |  |
+| TYP_MAT | CHAR(2) |  |
+| UNIT_QTY | VARCHAR2(5) |  |
+| NO_KG | NUMBER(22) |  |
+| ACCP_STAT | CHAR(1) |  |
+| LEN | NUMBER(22) |  |
+| MATERIAL_TYPE | VARCHAR2(50) |  |
+| MATERIAL_DES | VARCHAR2(100) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| PURCH_TYP | CHAR(1) |  |
+| STOCK_QTY | NUMBER(22) |  |
+| YR | NUMBER(22) |  |
+| IND_STAT | CHAR(1) |  |
+| SC_QTY | NUMBER(22) |  |
+| SC_DATE | DATE |  |
+| AMD_BY | NUMBER(22) |  |
+| SUB_DEPT | VARCHAR2(5) |  |
+| AUTH_BY | NUMBER(22) |  |
+| COMPR_ST_NO | VARCHAR2(8) |  |
+| AGM_MAINTENCE | VARCHAR2(15) |  |
+| PURCH_PTY | NUMBER(22) |  |
+| PURCH_PTY_DT | DATE |  |
+| LINO | VARCHAR2(10) |  |
+| EST_COST | NUMBER(22) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_VALUE | NUMBER(22) |  |
+| WO_NAME | VARCHAR2(250) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## M_JOITM
+| Column | Type | Constraint |
+|---|---|---|
+| JO_NO | VARCHAR2(10) |  |
+| INDENT_NO | NUMBER(22) |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| OPN_1 | NUMBER(22) |  |
+| OPN_2 | NUMBER(22) |  |
+| OPN_3 | NUMBER(22) |  |
+| OPN_4 | NUMBER(22) |  |
+| OPN_5 | NUMBER(22) |  |
+| JO_QTY | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| DISC_PER | NUMBER(22) |  |
+| PF_PER | NUMBER(22) |  |
+| EXCISE_PER | NUMBER(22) |  |
+| ST_PER | NUMBER(22) |  |
+| FRGT_VAL | NUMBER(22) |  |
+| INS_PER | NUMBER(22) |  |
+| CUST_PER | NUMBER(22) |  |
+| OCT_PER | NUMBER(22) |  |
+| OTH_VAL | NUMBER(22) |  |
+| REJ_PER | NUMBER(22) |  |
+| REJ_COST | NUMBER(22) |  |
+| DEL_DT | DATE |  |
+| RMKS | VARCHAR2(100) |  |
+| TOT_VAL | NUMBER(22) |  |
+| QTY_DC | NUMBER(22) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| RECOM_DT | DATE |  |
+| RECOM_BY | NUMBER(22) |  |
+| RECOM_QTY | NUMBER(22) |  |
+| SANC_DT | DATE |  |
+| SANC_BY | NUMBER(22) |  |
+| SANC_QTY | NUMBER(22) |  |
+| STATUS | CHAR(1) |  |
+| WO_NO | VARCHAR2(10) |  |
+| JO_TYP | CHAR(1) |  |
+| UNIT_CD | VARCHAR2(10) |  |
+| DEPT_CD | VARCHAR2(8) |  |
+| APP_LEN | NUMBER(22) |  |
+| APP_WID | NUMBER(22) |  |
+| APP_THI | NUMBER(22) |  |
+| APP_WT | NUMBER(22) |  |
+| APP_VAL | NUMBER(22) |  |
+| APP_TYP | CHAR(1) |  |
+| ACT_WT | NUMBER(22) |  |
+| OFF_WT | NUMBER(22) |  |
+| DESC_RS | NUMBER(22) |  |
+| COST_CNT | VARCHAR2(2) |  |
+| JO_DT | DATE |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| JO_STAT | CHAR(1) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| CURRENCY | VARCHAR2(5) |  |
+| YR | NUMBER(22) |  |
+| CURR_RS | NUMBER(22) |  |
+| POC_NO | NUMBER(22) |  |
+| POC_DT | DATE |  |
+| CODE | VARCHAR2(8) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_CGST_PER | NUMBER(22) |  |
+| C_CGST_VAL | NUMBER(22) |  |
+| C_SGST_PER | NUMBER(22) |  |
+| C_SGST_VAL | NUMBER(22) |  |
+| C_IGST_PER | NUMBER(22) |  |
+| C_IGST_VAL | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## T_DBILL
+| Column | Type | Constraint |
+|---|---|---|
+| PTY_CODE | VARCHAR2(10) |  |
+| BILL_NO | VARCHAR2(20) |  |
+| BILL_DT | DATE |  |
+| WO_NO | VARCHAR2(10) |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| MISC_AMT | NUMBER(22) |  |
+| OPN_1 | NUMBER(22) |  |
+| OPN_2 | NUMBER(22) |  |
+| OPN_3 | NUMBER(22) |  |
+| OPN_4 | NUMBER(22) |  |
+| OPN_5 | NUMBER(22) |  |
+| MIS_NO | NUMBER(22) |  |
+| DC_NO | VARCHAR2(10) |  |
+| REJ_DCNO | NUMBER(22) |  |
+| UOM | VARCHAR2(10) |  |
+| WET | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| DES_RS | NUMBER(22) |  |
+| EXT_RS | NUMBER(22) |  |
+| STX_RS | NUMBER(22) |  |
+| PF_RS | NUMBER(22) |  |
+| FRE_RS | NUMBER(22) |  |
+| OTH_RS | NUMBER(22) |  |
+| SYS_NO | NUMBER(22) |  |
+| SYS_DATE | DATE |  |
+| QTY_RETF | NUMBER(22) |  |
+| PR_NO | NUMBER(22) |  |
+| YR | NUMBER(22) |  |
+| JOPN_NO | NUMBER(22) |  |
+| DEPT_CODE | VARCHAR2(10) |  |
+| VAT_RS | NUMBER(22) |  |
+| OPN_1_COST | NUMBER(22) |  |
+| OPN_2_COST | NUMBER(22) |  |
+| OPN_3_COST | NUMBER(22) |  |
+| OPN_4_COST | NUMBER(22) |  |
+| OPN_5_COST | NUMBER(22) |  |
+| DEBIT | NUMBER(22) |  |
+| REMARKS | VARCHAR2(300) |  |
+| DEBIT_DT | DATE |  |
+| MIS_DT | DATE |  |
+| PR_DT | DATE |  |
+| DC_DT | DATE |  |
+| BILL_TYPE | VARCHAR2(10) |  |
+| CGST_PER | NUMBER(22) |  |
+| SGST_PER | NUMBER(22) |  |
+| IGST_PER | NUMBER(22) |  |
+| CGST_RS | NUMBER(22) |  |
+| SGST_RS | NUMBER(22) |  |
+| IGST_RS | NUMBER(22) |  |
+| BASIC_AMT | NUMBER(22) |  |
+| TCS_PER | NUMBER(22) |  |
+| TCS_RS | NUMBER(22) |  |
+| BILL_BY | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## M_JO
+| Column | Type | Constraint |
+|---|---|---|
+| JO_NO | VARCHAR2(10) | NOT NULL |
+| JO_DT | DATE |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| INSP_AUTH1 | VARCHAR2(10) |  |
+| INSP_AUTH2 | VARCHAR2(10) |  |
+| INSP_AUTH3 | VARCHAR2(10) |  |
+| GRD_TOT | NUMBER(22) |  |
+| BILL_AMT | NUMBER(22) |  |
+| AMT_PAID | NUMBER(22) |  |
+| JO_TYP | CHAR(1) |  |
+| UNIT_NO | VARCHAR2(10) |  |
+| TYP_MAT | CHAR(1) |  |
+| SUB | VARCHAR2(30) |  |
+| REF | VARCHAR2(200) |  |
+| REM1 | VARCHAR2(100) |  |
+| REM2 | VARCHAR2(100) |  |
+| REM3 | VARCHAR2(100) |  |
+| EXECISE_DUTY | VARCHAR2(20) |  |
+| SALES_TEXT | VARCHAR2(20) |  |
+| PAYMENT_TERMS | VARCHAR2(1000) |  |
+| DELIVERY_PERIOD | VARCHAR2(70) |  |
+| INSURANCE | VARCHAR2(20) |  |
+| INSPECTION | VARCHAR2(20) |  |
+| P_N_F | VARCHAR2(20) |  |
+| DESP_TO | VARCHAR2(20) |  |
+| FREIGHT | VARCHAR2(100) |  |
+| ANY_OTHER_TERMS1 | VARCHAR2(1500) |  |
+| QCA_REQ | VARCHAR2(1500) |  |
+| FRIGHT_FORWARD | VARCHAR2(100) |  |
+| CURRENCY | VARCHAR2(5) |  |
+| YR | NUMBER(22) |  |
+| APGST | VARCHAR2(35) |  |
+| POC_NO | NUMBER(22) |  |
+| POC_DT | DATE |  |
+| WEIGH_BILL_NO | VARCHAR2(100) |  |
+| REF_DATE | DATE |  |
+| C_PTY_NAME | VARCHAR2(100) |  |
+| C_PTY_TYPE | VARCHAR2(2) |  |
+| C_PTY_ADD1 | VARCHAR2(30) |  |
+| C_PTY_ADD2 | VARCHAR2(30) |  |
+| C_PTY_ADD3 | VARCHAR2(30) |  |
+| C_PTY_PIN_CODE | NUMBER(22) |  |
+| C_PTY_CITY | VARCHAR2(20) |  |
+| C_PTY_STATE | VARCHAR2(20) |  |
+| C_PTY_STAX_NO | VARCHAR2(35) |  |
+| C_PTY_VCODE | VARCHAR2(20) |  |
+| C_PTY_CST_NO | VARCHAR2(35) |  |
+| C_PTY_CUST_CODE | VARCHAR2(20) |  |
+| C_PTY_TIN_NO | VARCHAR2(20) |  |
+| C_PTY_ECC_NO | VARCHAR2(30) |  |
+| C_PTY_PAN_NO | VARCHAR2(30) |  |
+| C_PTY_GST_NO | VARCHAR2(20) |  |
+| REFNO | VARCHAR2(10) |  |
+| DEPT_CD | VARCHAR2(8) |  |
+
+## T_STKISS
+| Column | Type | Constraint |
+|---|---|---|
+| ISS_NO | VARCHAR2(10) |  |
+| ISS_DT | DATE |  |
+| DIVI_NO | VARCHAR2(10) |  |
+| DEPT_NO | VARCHAR2(10) |  |
+| COST_CENTER | VARCHAR2(10) |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| RATE | NUMBER(22) |  |
+| QTY_REQ | NUMBER(22) |  |
+| QTY_ISS | NUMBER(22) |  |
+| RMKS | VARCHAR2(20) |  |
+| INDENT_TNO | NUMBER(22) |  |
+| APPRVD_TNO | NUMBER(22) |  |
+| ISSUE_TNO | NUMBER(22) |  |
+| RECVD_TNO | NUMBER(22) |  |
+| STATUS | CHAR(1) |  |
+| WO_NO | VARCHAR2(10) |  |
+| PR_NO | NUMBER(22) |  |
+| PR_ITEM_CODE | VARCHAR2(50) |  |
+| DIA | NUMBER(22) |  |
+| LEN | NUMBER(22) |  |
+| THK | NUMBER(22) |  |
+| WID | NUMBER(22) |  |
+| WET | NUMBER(22) |  |
+| PR_QTY | NUMBER(22) |  |
+| UNIT_RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| GRR_NO | NUMBER(22) |  |
+| YR | NUMBER(22) |  |
+| QTY_SAN | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## M_ITEM_MASTER
+| Column | Type | Constraint |
+|---|---|---|
+| ITEM_ID | NUMBER(22) |  |
+| PART_NAME | VARCHAR2(50) |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| ITEM_DESCRIPTION | VARCHAR2(150) |  |
+| UOM | VARCHAR2(10) |  |
+| MAT_CODE | VARCHAR2(50) |  |
+| MAT_DES | VARCHAR2(200) |  |
+| TYPE | VARCHAR2(50) |  |
+| SIZE | VARCHAR2(50) |  |
+| COLOR | VARCHAR2(50) |  |
+| MODEL | VARCHAR2(50) |  |
+| FINISH | VARCHAR2(150) |  |
+| RATE | NUMBER(22) |  |
+| NO_OF_PCS | VARCHAR2(20) |  |
+| LENGTH | NUMBER(22) |  |
+| WIDTH | NUMBER(22) |  |
+| THICKNESS | NUMBER(22) |  |
+| WEIGHT | NUMBER(22) |  |
+| STOCK_QTY | NUMBER(22) |  |
+| REORDER_QTY | NUMBER(22) |  |
+| TRANSIT_QTY | NUMBER(22) |  |
+| STATUS | VARCHAR2(10) |  |
+| IN_ASSEMBLY | CHAR(1) |  |
+| ENABLE_WEIGHT_CALC | CHAR(1) |  |
+| ITEM_GROUP | VARCHAR2(50) |  |
+| ITEM_CAT | VARCHAR2(50) |  |
+| CREATED_BY | NUMBER(22) |  |
+| CREATED_DATE | DATE |  |
+| UPDATE_BY | NUMBER(22) |  |
+| UPDATE_DATE | DATE |  |
+| ASSEMBLY_QTY | NUMBER(22) |  |
+| ITEM_TYPE | VARCHAR2(10) |  |
+| REJ_QTY | NUMBER(22) |  |
+| RW_QTY | NUMBER(22) |  |
+| SCRAP_QTY | NUMBER(22) |  |
+| MATERIAL_SEC | CHAR(1) |  |
+| IT_CAT | CHAR(1) |  |
+| M_P_IND | CHAR(1) |  |
+| LEN | NUMBER(22) |  |
+
+## M_PARTY
+| Column | Type | Constraint |
+|---|---|---|
+| PTY_CODE | VARCHAR2(10) |  |
+| PTY_NAME | VARCHAR2(100) |  |
+| PTY_TYPE | VARCHAR2(2) |  |
+| PTY_SGRP | VARCHAR2(3) |  |
+| PTY_ADD1 | VARCHAR2(30) |  |
+| PTY_ADD2 | VARCHAR2(30) |  |
+| PTY_ADD3 | VARCHAR2(30) |  |
+| PIN_CODE | NUMBER(22) |  |
+| CITY | VARCHAR2(20) |  |
+| PTY_STATE | VARCHAR2(20) |  |
+| PHONE_NO1 | VARCHAR2(15) |  |
+| PHONE_NO2 | VARCHAR2(15) |  |
+| FAX_NO | VARCHAR2(15) |  |
+| CONT_PER | VARCHAR2(35) |  |
+| CONT_DEGN | VARCHAR2(20) |  |
+| STAX_NO | VARCHAR2(35) |  |
+| CST_NO | VARCHAR2(35) |  |
+| ADV_AMT | NUMBER(22) |  |
+| BILL_AMT | NUMBER(22) |  |
+| SANC_AMT | NUMBER(22) |  |
+| PAID_AMT | NUMBER(22) |  |
+| BAL_AMT | NUMBER(22) |  |
+| SRNO | NUMBER(22) |  |
+| ECC_NO | VARCHAR2(35) |  |
+| MATE_CODE | NUMBER(22) |  |
+| V_CODE | VARCHAR2(8) |  |
+| PTY_JOB_DES | NUMBER(22) |  |
+| MAIN_GRP | NUMBER(22) |  |
+| DELIVERY_TIME | NUMBER(22) |  |
+| E_MAIL | VARCHAR2(50) |  |
+| MIN_TON | NUMBER(22) |  |
+| MAX_TON | NUMBER(22) |  |
+| EMERGENCY | NUMBER(22) |  |
+| REJECTED | NUMBER(22) |  |
+| DOCINTIME | NUMBER(22) |  |
+| PROMPTNESS | NUMBER(22) |  |
+| WITHOUCOMP | NUMBER(22) |  |
+| TOT_RAT | NUMBER(22) |  |
+| V_CODE_REQ | VARCHAR2(1) |  |
+| SER_RAT | NUMBER(22) |  |
+| REMARKS | CHAR(255) |  |
+| CSP_FLAG | NUMBER(22) |  |
+| C_CUST_CODE | VARCHAR2(20) |  |
+| C_TIN_NO | VARCHAR2(20) |  |
+| C_ECC_NO | VARCHAR2(30) |  |
+| C_PAN_NO | VARCHAR2(30) |  |
+| C_STATUS | CHAR(1) |  |
+| C_USERID | NUMBER(22) |  |
+| C_ENTRY_DATE | DATE |  |
+| C_LAST_UPDATE | DATE |  |
+| C_GST_NO | VARCHAR2(20) |  |
+
+## T_IR_MAIN
+| Column | Type | Constraint |
+|---|---|---|
+| MIS_NO | NUMBER(22) |  |
+| MIS_DT | DATE |  |
+| DEPT_CD | VARCHAR2(10) | NOT NULL |
+| YR | NUMBER(22) | NOT NULL |
+| REFNO | VARCHAR2(10) |  |
+| IR_BY | VARCHAR2(10) |  |
+| STATUS | VARCHAR2(1) |  |
+| PAID_STAT | VARCHAR2(1) | NOT NULL |
+| PTY_CODE | VARCHAR2(10) |  |
+| DC_NO | VARCHAR2(10) |  |
+| DC_DT | DATE |  |
+| INWARD_DT | DATE |  |
+
+## M_PRODUCT_ITEM_MASTER
+| Column | Type | Constraint |
+|---|---|---|
+| PRODUCT_ITEM_ID | NUMBER(22) |  |
+| PRODUCT_ID | NUMBER(22) |  |
+| ITEM_ID | NUMBER(22) |  |
+| QTY | NUMBER(22) |  |
+| WEIGHT | NUMBER(22) |  |
+| ITEM_TYPE | VARCHAR2(10) |  |
+| ADD_IN_ASSEMBLY | VARCHAR2(10) |  |
+| CREATED_BY | NUMBER(22) |  |
+| CREATED_DATE | DATE |  |
+| UPDATE_BY | NUMBER(22) |  |
+| UPDATE_DATE | DATE |  |
+| SR_NO | NUMBER(22) |  |
+| QTY_PER_PALLET | NUMBER(22) |  |
+
+## M_JOAMD
+| Column | Type | Constraint |
+|---|---|---|
+| AMD_NO | NUMBER(22) | NOT NULL |
+| AMD_DT | DATE |  |
+| AMD_BY | NUMBER(22) |  |
+| JO_NO | VARCHAR2(10) | NOT NULL |
+| INDENT_NO | NUMBER(22) | NOT NULL |
+| ITEM_CODE | VARCHAR2(50) | NOT NULL |
+| JO_QTY | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| DISC_PER | NUMBER(22) |  |
+| PF_PER | NUMBER(22) |  |
+| EXCISE_PER | NUMBER(22) |  |
+| ST_PER | NUMBER(22) |  |
+| FRGT_VAL | NUMBER(22) |  |
+| INS_PER | NUMBER(22) |  |
+| CUST_PER | NUMBER(22) |  |
+| OCT_PER | NUMBER(22) |  |
+| OTH_VAL | NUMBER(22) |  |
+| REJ_PER | NUMBER(22) |  |
+| REJ_COST | NUMBER(22) |  |
+| DEL_DT | DATE |  |
+| RMKS | VARCHAR2(100) |  |
+| TOT_VAL | NUMBER(22) |  |
+| QTY_DC | NUMBER(22) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| RECOM_DT | DATE |  |
+| RECOM_BY | NUMBER(22) |  |
+| RECOM_QTY | NUMBER(22) |  |
+| SANC_DT | DATE |  |
+| SANC_BY | NUMBER(22) |  |
+| SANC_QTY | NUMBER(22) |  |
+| STATUS | CHAR(1) |  |
+| WO_NO | VARCHAR2(10) |  |
+| JO_TYP | CHAR(1) | NOT NULL |
+| DEPT_CD | VARCHAR2(8) |  |
+| APP_LEN | NUMBER(22) |  |
+| APP_WID | NUMBER(22) |  |
+| APP_THI | NUMBER(22) |  |
+| APP_WT | NUMBER(22) |  |
+| APP_VAL | NUMBER(22) |  |
+| APP_TYP | CHAR(1) |  |
+| ACT_WT | NUMBER(22) |  |
+| OFF_WT | NUMBER(22) |  |
+| DESC_RS | NUMBER(22) |  |
+| COST_CNT | VARCHAR2(2) |  |
+| JO_DT | DATE |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| JO_STAT | CHAR(1) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| SRNO | NUMBER(22) |  |
+| YR | NUMBER(22) | NOT NULL |
+| CURR_RS | NUMBER(22) |  |
+| POC_NO | NUMBER(22) |  |
+| POC_DT | DATE |  |
+| C_PTY_GST_NO | VARCHAR2(20) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_CGST_PER | NUMBER(22) |  |
+| C_CGST_VAL | NUMBER(22) |  |
+| C_SGST_PER | NUMBER(22) |  |
+| C_SGST_VAL | NUMBER(22) |  |
+| C_IGST_PER | NUMBER(22) |  |
+| C_IGST_VAL | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+| UNIT_CD | VARCHAR2(10) | NOT NULL |
+
+## M_JOAMDAS
+| Column | Type | Constraint |
+|---|---|---|
+| AMD_NO | NUMBER(22) |  |
+| AMD_DT | DATE |  |
+| AMD_BY | NUMBER(22) |  |
+| JO_NO | VARCHAR2(10) |  |
+| INDENT_NO | NUMBER(22) |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| JO_QTY | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| DISC_PER | NUMBER(22) |  |
+| PF_PER | NUMBER(22) |  |
+| EXCISE_PER | NUMBER(22) |  |
+| ST_PER | NUMBER(22) |  |
+| FRGT_VAL | NUMBER(22) |  |
+| INS_PER | NUMBER(22) |  |
+| CUST_PER | NUMBER(22) |  |
+| OCT_PER | NUMBER(22) |  |
+| OTH_VAL | NUMBER(22) |  |
+| REJ_PER | NUMBER(22) |  |
+| REJ_COST | NUMBER(22) |  |
+| DEL_DT | DATE |  |
+| RMKS | VARCHAR2(100) |  |
+| TOT_VAL | NUMBER(22) |  |
+| QTY_DC | NUMBER(22) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| RECOM_DT | DATE |  |
+| RECOM_BY | NUMBER(22) |  |
+| RECOM_QTY | NUMBER(22) |  |
+| SANC_DT | DATE |  |
+| SANC_BY | NUMBER(22) |  |
+| SANC_QTY | NUMBER(22) |  |
+| STATUS | CHAR(1) |  |
+| WO_NO | VARCHAR2(10) |  |
+| JO_TYP | CHAR(1) |  |
+| UNIT_CD | VARCHAR2(10) |  |
+| DEPT_CD | VARCHAR2(8) |  |
+| APP_LEN | NUMBER(22) |  |
+| APP_WID | NUMBER(22) |  |
+| APP_THI | NUMBER(22) |  |
+| APP_WT | NUMBER(22) |  |
+| APP_VAL | NUMBER(22) |  |
+| APP_TYP | CHAR(1) |  |
+| ACT_WT | NUMBER(22) |  |
+| OFF_WT | NUMBER(22) |  |
+| DESC_RS | NUMBER(22) |  |
+| COST_CNT | VARCHAR2(2) |  |
+| JO_DT | DATE |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| JO_STAT | CHAR(1) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| SRNO | NUMBER(22) |  |
+| YR | NUMBER(22) |  |
+| CURR_RS | NUMBER(22) |  |
+| POC_NO | NUMBER(22) |  |
+| POC_DT | DATE |  |
+| C_PTY_GST_NO | VARCHAR2(20) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_CGST_PER | NUMBER(22) |  |
+| C_CGST_VAL | NUMBER(22) |  |
+| C_SGST_PER | NUMBER(22) |  |
+| C_SGST_VAL | NUMBER(22) |  |
+| C_IGST_PER | NUMBER(22) |  |
+| C_IGST_VAL | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## T_JOBREQ_MAIN
+| Column | Type | Constraint |
+|---|---|---|
+| INDENT_NO | NUMBER(22) |  |
+| INDENT_DT | DATE |  |
+| DEPT_CD | VARCHAR2(10) | NOT NULL |
+| SUB_DEPT | VARCHAR2(5) |  |
+| YR | NUMBER(22) | NOT NULL |
+| REFNO | VARCHAR2(10) |  |
+| INDENT_BY | VARCHAR2(10) |  |
+| STATUS | NUMBER(22) |  |
+
+## T_STKISS_MAIN
+| Column | Type | Constraint |
+|---|---|---|
+| ISS_NO | NUMBER(22) |  |
+| ISS_DT | DATE |  |
+| DEPT_CD | VARCHAR2(10) |  |
+| ISS_TYPE | VARCHAR2(10) |  |
+| YR | NUMBER(22) | NOT NULL |
+| REFNO | VARCHAR2(10) |  |
+
+## T_AMDJOBREQ
+| Column | Type | Constraint |
+|---|---|---|
+| AMD_NO | NUMBER(22) |  |
+| AMD_DT | DATE |  |
+| AMD_BY | NUMBER(22) |  |
+| INDENT_NO | NUMBER(22) |  |
+| INDENT_DT | DATE |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| OPN_1 | NUMBER(22) |  |
+| OPN_2 | NUMBER(22) |  |
+| OPN_3 | NUMBER(22) |  |
+| OPN_4 | NUMBER(22) |  |
+| OPN_5 | NUMBER(22) |  |
+| QTY | NUMBER(22) |  |
+| PURPOSE | VARCHAR2(100) |  |
+| DEL_DT | VARCHAR2(10) |  |
+| INDENT_BY | VARCHAR2(10) |  |
+| RECOM_DT | DATE |  |
+| RECOM_BY | VARCHAR2(10) |  |
+| RECOM_QTY | NUMBER(22) |  |
+| SANC_DT | DATE |  |
+| SANC_BY | VARCHAR2(10) |  |
+| SANC_QTY | NUMBER(22) |  |
+| STATUS | CHAR(1) |  |
+| REMARKS | VARCHAR2(30) |  |
+| JO_QTY | NUMBER(22) |  |
+| IND_TYP | CHAR(1) |  |
+| WO_NO | VARCHAR2(10) |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| FSANC_DT | DATE |  |
+| FSANC_BY | VARCHAR2(10) |  |
+| FSANC_QTY | NUMBER(22) |  |
+| UNIT_NO | VARCHAR2(8) |  |
+| JO_NO | VARCHAR2(10) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| TIM | VARCHAR2(5) |  |
+| TYP_MAT | CHAR(2) |  |
+| UNIT_QTY | VARCHAR2(3) |  |
+| NO_KG | NUMBER(22) |  |
+| ACCP_STAT | CHAR(1) |  |
+| LEN | NUMBER(22) |  |
+| MATERIAL_TYPE | VARCHAR2(20) |  |
+| MATERIAL_DES | VARCHAR2(100) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| YR | NUMBER(22) |  |
+| EST_COST | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## T_DBILL_MAIN
+| Column | Type | Constraint |
+|---|---|---|
+| SYS_NO | NUMBER(22) |  |
+| SYS_DT | DATE |  |
+| DEPT_CD | VARCHAR2(10) |  |
+| BILL_TYPE | VARCHAR2(10) |  |
+| YR | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## W_JOITM
+| Column | Type | Constraint |
+|---|---|---|
+| JO_NO | VARCHAR2(10) |  |
+| INDENT_NO | NUMBER(22) |  |
+| ITEM_CODE | VARCHAR2(50) | NOT NULL |
+| OPN_1 | NUMBER(22) |  |
+| OPN_2 | NUMBER(22) |  |
+| OPN_3 | NUMBER(22) |  |
+| OPN_4 | NUMBER(22) |  |
+| OPN_5 | NUMBER(22) |  |
+| JO_QTY | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| DISC_PER | NUMBER(22) |  |
+| PF_PER | NUMBER(22) |  |
+| EXCISE_PER | NUMBER(22) |  |
+| ST_PER | NUMBER(22) |  |
+| FRGT_VAL | NUMBER(22) |  |
+| INS_PER | NUMBER(22) |  |
+| CUST_PER | NUMBER(22) |  |
+| OCT_PER | NUMBER(22) |  |
+| OTH_VAL | NUMBER(22) |  |
+| REJ_PER | NUMBER(22) |  |
+| REJ_COST | NUMBER(22) |  |
+| DEL_DT | DATE |  |
+| RMKS | VARCHAR2(100) |  |
+| TOT_VAL | NUMBER(22) |  |
+| QTY_DC | NUMBER(22) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| RECOM_DT | DATE |  |
+| RECOM_BY | NUMBER(22) |  |
+| RECOM_QTY | NUMBER(22) |  |
+| SANC_DT | DATE |  |
+| SANC_BY | NUMBER(22) |  |
+| SANC_QTY | NUMBER(22) |  |
+| STATUS | CHAR(1) |  |
+| WO_NO | VARCHAR2(10) |  |
+| JO_TYP | CHAR(1) |  |
+| UNIT_CD | VARCHAR2(10) |  |
+| DEPT_CD | VARCHAR2(8) |  |
+| APP_LEN | NUMBER(22) |  |
+| APP_WID | NUMBER(22) |  |
+| APP_THI | NUMBER(22) |  |
+| APP_WT | NUMBER(22) |  |
+| APP_VAL | NUMBER(22) |  |
+| APP_TYP | CHAR(1) |  |
+| ACT_WT | NUMBER(22) |  |
+| OFF_WT | NUMBER(22) |  |
+| DESC_RS | NUMBER(22) |  |
+| COST_CNT | VARCHAR2(2) |  |
+| JO_DT | DATE |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| JO_STAT | CHAR(1) |  |
+| ITEM_DES | VARCHAR2(150) |  |
+| CURRENCY | VARCHAR2(5) |  |
+| YR | NUMBER(22) |  |
+| CURR_RS | NUMBER(22) |  |
+| POC_NO | NUMBER(22) |  |
+| POC_DT | DATE |  |
+| CODE | VARCHAR2(8) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_CGST_PER | NUMBER(22) |  |
+| C_CGST_VAL | NUMBER(22) |  |
+| C_SGST_PER | NUMBER(22) |  |
+| C_SGST_VAL | NUMBER(22) |  |
+| C_IGST_PER | NUMBER(22) |  |
+| C_IGST_VAL | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## T_DCDESP
+| Column | Type | Constraint |
+|---|---|---|
+| DC_NO | VARCHAR2(10) |  |
+| DC_DT | DATE |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| ORDER_NO | VARCHAR2(100) |  |
+| WO_NO | VARCHAR2(10) |  |
+| ISS_V_NO | VARCHAR2(15) |  |
+| CUST_ITEM_CODE | VARCHAR2(255) |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| QTY_ISS | NUMBER(22) |  |
+| QTY_REJ | NUMBER(22) |  |
+| T_NO | NUMBER(22) |  |
+| STATUS | VARCHAR2(1) |  |
+| RMKS | VARCHAR2(300) |  |
+| UNIT_QTY | VARCHAR2(3) |  |
+| THROUGH | VARCHAR2(30) |  |
+| TYPE | VARCHAR2(4) |  |
+| PO_NO | VARCHAR2(10) |  |
+| JO_NO | VARCHAR2(10) |  |
+| CST_DCNO | VARCHAR2(10) |  |
+| DEPT_CD | VARCHAR2(10) |  |
+| VALUE | NUMBER(22) |  |
+| MRR_NO | NUMBER(22) |  |
+| DC_TYPE | CHAR(3) |  |
+| YR | NUMBER(22) |  |
+| C_CANCEL_ID | NUMBER(22) |  |
+| C_CANCEL_DATE | DATE |  |
+| C_CANCEL_REMARKS | VARCHAR2(255) |  |
+| C_CANCEL_STATUS | VARCHAR2(20) |  |
+| QTY_PROD | NUMBER(22) |  |
+| DC_STATUS | CHAR(1) |  |
+| QTY_REMAIN | NUMBER(22) |  |
+| C_PTY_NAME | VARCHAR2(100) |  |
+| C_PTY_TYPE | VARCHAR2(2) |  |
+| C_PTY_ADD1 | VARCHAR2(30) |  |
+| C_PTY_ADD2 | VARCHAR2(30) |  |
+| C_PTY_ADD3 | VARCHAR2(30) |  |
+| C_PTY_PIN_CODE | NUMBER(22) |  |
+| C_PTY_CITY | VARCHAR2(20) |  |
+| C_PTY_STATE | VARCHAR2(20) |  |
+| C_PTY_STAX_NO | VARCHAR2(35) |  |
+| C_PTY_VCODE | VARCHAR2(20) |  |
+| C_PTY_CST_NO | VARCHAR2(35) |  |
+| C_PTY_CUST_CODE | VARCHAR2(20) |  |
+| C_PTY_TIN_NO | VARCHAR2(20) |  |
+| C_PTY_ECC_NO | VARCHAR2(30) |  |
+| C_PTY_PAN_NO | VARCHAR2(30) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_PTY_GST_NO | VARCHAR2(20) |  |
+| C_ITEM_SRNO | NUMBER(22) |  |
+| C_UPD_BY | NUMBER(22) |  |
+| C_UPD_DATE | DATE |  |
+| C_AUTH_DATE | DATE |  |
+| AUTH_BY | NUMBER(22) |  |
+| C_REFNO | VARCHAR2(20) |  |
+| MRR_DT | DATE |  |
+| RATE | NUMBER(22) |  |
+
+## T_DCHLN
+| Column | Type | Constraint |
+|---|---|---|
+| DC_NO | NUMBER(22) | NOT NULL |
+| DC_DT | DATE |  |
+| DC_TYP | CHAR(1) |  |
+| PTY_CD | VARCHAR2(10) |  |
+| ITEM_GRP | VARCHAR2(10) |  |
+| JO_NO | VARCHAR2(10) |  |
+| ITEM_CODE | VARCHAR2(50) | NOT NULL |
+| ITEM_DES | VARCHAR2(150) |  |
+| OPN_1 | NUMBER(22) |  |
+| OPN_2 | NUMBER(22) |  |
+| OPN_3 | NUMBER(22) |  |
+| OPN_4 | NUMBER(22) |  |
+| OPN_5 | NUMBER(22) |  |
+| BOX_NO | VARCHAR2(8) |  |
+| BOX_QTY | NUMBER(22) |  |
+| WO_NO | VARCHAR2(10) |  |
+| TAG | CHAR(1) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| ITEM_SR | NUMBER(22) |  |
+| REMARKS | VARCHAR2(100) |  |
+| STATUS | CHAR(1) |  |
+| T_NO | NUMBER(22) |  |
+| ISS_VNO | VARCHAR2(15) |  |
+| DEPT_CODE | VARCHAR2(7) | NOT NULL |
+| DEL_DT | DATE |  |
+| YR | NUMBER(22) |  |
+| AUTH_BY | NUMBER(22) |  |
+| UOM | VARCHAR2(5) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| C_PTY_NAME | VARCHAR2(100) |  |
+| C_PTY_TYPE | VARCHAR2(2) |  |
+| C_PTY_ADD1 | VARCHAR2(30) |  |
+| C_PTY_ADD2 | VARCHAR2(30) |  |
+| C_PTY_ADD3 | VARCHAR2(30) |  |
+| C_PTY_PIN_CODE | NUMBER(22) |  |
+| C_PTY_CITY | VARCHAR2(20) |  |
+| C_PTY_STATE | VARCHAR2(20) |  |
+| C_PTY_STAX_NO | VARCHAR2(35) |  |
+| C_PTY_VCODE | VARCHAR2(20) |  |
+| C_PTY_CST_NO | VARCHAR2(35) |  |
+| C_PTY_CUST_CODE | VARCHAR2(20) |  |
+| C_PTY_TIN_NO | VARCHAR2(20) |  |
+| C_PTY_ECC_NO | VARCHAR2(30) |  |
+| C_PTY_PAN_NO | VARCHAR2(30) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_PTY_GST_NO | VARCHAR2(20) |  |
+| C_ITEM_SRNO | NUMBER(22) |  |
+| C_UPD_BY | NUMBER(22) |  |
+| C_UPD_DATE | DATE |  |
+| C_AUTH_DATE | DATE |  |
+| C_CANCEL_BY | NUMBER(22) |  |
+| C_CANCEL_DATE | DATE |  |
+| C_REFNO | VARCHAR2(20) |  |
+
+## M_EMP_MASTER
+| Column | Type | Constraint |
+|---|---|---|
+| EMPID | NUMBER(22) |  |
+| EMPTYPE | VARCHAR2(30) |  |
+| UNO | NUMBER(22) |  |
+| DIVNO | NUMBER(22) |  |
+| DEPTNO | NUMBER(22) |  |
+| SECNO | NUMBER(22) |  |
+| GENDER | CHAR(1) |  |
+| MARITAL_STATUS | VARCHAR2(10) |  |
+| ENAME | VARCHAR2(100) |  |
+| FNAME | VARCHAR2(100) |  |
+| DOB | DATE |  |
+| POB | VARCHAR2(50) |  |
+| BGROUP | VARCHAR2(10) |  |
+| MOTHER_TOUNGUE | VARCHAR2(20) |  |
+| IDFM1 | VARCHAR2(100) |  |
+| IDFM2 | VARCHAR2(100) |  |
+| LANG_KNOWN | VARCHAR2(100) |  |
+| CADD_SA | VARCHAR2(150) |  |
+| CADD_CITY | VARCHAR2(50) |  |
+| CADD_STATE | VARCHAR2(50) |  |
+| CADD_PHONE | NUMBER(22) |  |
+| CADD_MOBILE | NUMBER(22) |  |
+| CADD_PIN | NUMBER(22) |  |
+| CADD_EMAIL | VARCHAR2(30) |  |
+| PADD_SA | VARCHAR2(150) |  |
+| PADD_CITY | VARCHAR2(50) |  |
+| PADD_STATE | VARCHAR2(50) |  |
+| PADD_PHONE | NUMBER(22) |  |
+| PADD_MOBILE | NUMBER(22) |  |
+| PADD_PIN | NUMBER(22) |  |
+| PADD_EMAIL | VARCHAR2(30) |  |
+| PHOTO | BLOB |  |
+| UNAME | VARCHAR2(40) |  |
+| DIVNAME | VARCHAR2(40) |  |
+| DEPTNAME | VARCHAR2(40) |  |
+| SECNAME | VARCHAR2(40) |  |
+| C_EMP_LEFT_STATUS | CHAR(1) |  |
+| C_EMP_LEFT_DATE | DATE |  |
+| C_LAST_UPDATE | DATE |  |
+| C_UPD_USERID | NUMBER(22) |  |
+| C_GEMPID | VARCHAR2(40) |  |
+| EMPLOYEE_PROFILE | CLOB |  |
+| APPLICATIONS | CLOB |  |
+| IMG_BLOB | BLOB |  |
+| IMG_NAME | VARCHAR2(512) |  |
+| IMG_MIMETYPE | VARCHAR2(512) |  |
+| IMG_CHARSET | VARCHAR2(512) |  |
+| IMG_LASTUPD | DATE |  |
+| CREATED | TIMESTAMP |  |
+| CREATED_BY | VARCHAR2(255) |  |
+| UPDATED | TIMESTAMP |  |
+| UPDATED_BY | VARCHAR2(255) |  |
+| SUMMARY | VARCHAR2(4000) |  |
+| CATEGORY_ID | NUMBER(22) |  |
+| EMP_STATUS | CHAR(1) |  |
+
+## M_JOBORDER_INFO
+| Column | Type | Constraint |
+|---|---|---|
+| JO_NO | NUMBER(22) | NOT NULL |
+| JO_DT | DATE |  |
+| COMM_DT | DATE |  |
+| DEPT_CD | VARCHAR2(10) | NOT NULL |
+| PTY_CD | VARCHAR2(10) |  |
+| SUBJECT | VARCHAR2(100) |  |
+| REFERENCE | VARCHAR2(200) |  |
+| RMKS_1 | VARCHAR2(100) |  |
+| RMKS_2 | VARCHAR2(100) |  |
+| RMKS_3 | VARCHAR2(100) |  |
+| QCA_REQ | VARCHAR2(1500) |  |
+| DEL_PERIOD | VARCHAR2(70) |  |
+| PAY_TERM | VARCHAR2(1000) |  |
+| INSURANCE | VARCHAR2(50) |  |
+| INSPECTION | VARCHAR2(50) |  |
+| DESP_TO | VARCHAR2(50) |  |
+| FREIGHT | VARCHAR2(100) |  |
+| APGST | VARCHAR2(50) |  |
+| FREIGHT_FOR | VARCHAR2(100) |  |
+| OTHER_TERMS | VARCHAR2(1500) |  |
+| T_NO | NUMBER(22) |  |
+| DRAFTSTATUS | NUMBER(22) |  |
+| YR | NUMBER(22) | NOT NULL |
+| WARRANTY | VARCHAR2(100) |  |
+| C_CANCELSTATUS | CHAR(1) |  |
+| C_CANCEL_EMPID | NUMBER(22) |  |
+| C_CANCEL_DATE | DATE |  |
+| C_PTY_NAME | VARCHAR2(100) |  |
+| C_PTY_TYPE | VARCHAR2(2) |  |
+| C_PTY_ADD1 | VARCHAR2(30) |  |
+| C_PTY_ADD2 | VARCHAR2(30) |  |
+| C_PTY_ADD3 | VARCHAR2(30) |  |
+| C_PTY_PIN_CODE | NUMBER(22) |  |
+| C_PTY_CITY | VARCHAR2(20) |  |
+| C_PTY_STATE | VARCHAR2(20) |  |
+| C_PTY_STAX_NO | VARCHAR2(35) |  |
+| C_PTY_VCODE | VARCHAR2(20) |  |
+| C_PTY_CST_NO | VARCHAR2(35) |  |
+| C_PTY_CUST_CODE | VARCHAR2(20) |  |
+| C_PTY_TIN_NO | VARCHAR2(20) |  |
+| C_PTY_ECC_NO | VARCHAR2(30) |  |
+| C_PTY_PAN_NO | VARCHAR2(30) |  |
+| C_PTY_GST_NO | VARCHAR2(20) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## M_JOB_ORDER
+| Column | Type | Constraint |
+|---|---|---|
+| JO_NO | NUMBER(22) |  |
+| WO_NO | VARCHAR2(10) |  |
+| ITEM_GRP | VARCHAR2(10) |  |
+| ITEM_DES | VARCHAR2(200) |  |
+| UOM | VARCHAR2(3) |  |
+| QTY | NUMBER(22) |  |
+| RATE | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| JO_TYP | CHAR(1) |  |
+| STATUS | CHAR(1) |  |
+| ST_VAL | NUMBER(22) |  |
+| ST_PER | NUMBER(22) |  |
+| DRAFTSTATUS | NUMBER(22) |  |
+| VAT_PER | NUMBER(22) |  |
+| VAT_RS | NUMBER(22) |  |
+| C_CANCELSTATUS | CHAR(1) |  |
+| C_CANCEL_EMPID | NUMBER(22) |  |
+| C_CANCEL_DATE | DATE |  |
+| C_DIS_PER | NUMBER(22) |  |
+| C_DIS_RS | NUMBER(22) |  |
+| C_HS_CODE | VARCHAR2(10) |  |
+| C_CGST_PER | NUMBER(22) |  |
+| C_CGST_VAL | NUMBER(22) |  |
+| C_SGST_PER | NUMBER(22) |  |
+| C_SGST_VAL | NUMBER(22) |  |
+| C_IGST_PER | NUMBER(22) |  |
+| C_IGST_VAL | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+| SL_NO | NUMBER(22) |  |
+| YR | NUMBER(22) |  |
+
+## HSCODES_MASTER
+| Column | Type | Constraint |
+|---|---|---|
+| C_SNO | NUMBER(22) |  |
+| C_HSCODE | NUMBER(22) |  |
+| C_MATERIAL | VARCHAR2(500) |  |
+| C_SUB_GROUP | VARCHAR2(200) |  |
+| C_GROUP | VARCHAR2(100) |  |
+| C_GST_RATE | NUMBER(22) |  |
+| C_CGST_RATE | NUMBER(22) |  |
+| C_SGST_RATE | NUMBER(22) |  |
+| C_IGST_RATE | NUMBER(22) |  |
+| C_REMARKS | VARCHAR2(100) |  |
+| C_CREATE_DT | DATE |  |
+| C_EMPID | NUMBER(22) |  |
+| C_STATUS | NUMBER(22) |  |
+
+## T_OPN
+| Column | Type | Constraint |
+|---|---|---|
+| CODE | VARCHAR2(7) |  |
+| OPN_NO | NUMBER(22) |  |
+| OPN_DES | VARCHAR2(150) |  |
+| OPN_CODE | VARCHAR2(10) |  |
+| STATUS | CHAR(1) |  |
+
+## T_PRODUCT_ITEM_BOM
+| Column | Type | Constraint |
+|---|---|---|
+| PRODUCT_ITEM_BOM_ID | NUMBER(22) |  |
+| BOM_NO | NUMBER(22) |  |
+| BOM_DATE | DATE |  |
+| PRODUCT_ID | NUMBER(22) |  |
+| BOM_QTY | NUMBER(22) |  |
+| BOM_TYPE | VARCHAR2(10) |  |
+| PRODUCT_ITEM_ID | NUMBER(22) |  |
+| ITEM_ID | NUMBER(22) |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| DESCRIPTION | VARCHAR2(500) |  |
+| PART_NAME | VARCHAR2(50) |  |
+| ITEM_QTY | NUMBER(22) |  |
+| UOM | VARCHAR2(10) |  |
+| WEIGHT | NUMBER(22) |  |
+| MATERIAL | VARCHAR2(50) |  |
+| COLOR | VARCHAR2(50) |  |
+| TYPE | VARCHAR2(50) |  |
+| FINISH | VARCHAR2(150) |  |
+| ORDER_ID | NUMBER(22) |  |
+| ORDER_QTY | NUMBER(22) |  |
+| SCHEDULE_ID | NUMBER(22) |  |
+| SCHEDULE_QTY | NUMBER(22) |  |
+| STATUS | VARCHAR2(20) |  |
+| PR_NO | NUMBER(22) |  |
+| ASSEMBLY_QTY | NUMBER(22) |  |
+| DISPATCH_QTY | NUMBER(22) |  |
+| CREATED_BY | NUMBER(22) |  |
+| CREATED_DATE | DATE |  |
+| UPDATE_BY | NUMBER(22) |  |
+| LAST_UPDATE | DATE |  |
+| ACT_BOM_QTY | NUMBER(22) |  |
+| ISSUE_QTY | NUMBER(22) |  |
+
+## M_PARAM
+| Column | Type | Constraint |
+|---|---|---|
+| TYPE | VARCHAR2(30) |  |
+| CODE | VARCHAR2(50) |  |
+| DES | VARCHAR2(200) |  |
+| TYPE_DES | VARCHAR2(500) |  |
+| STATUS | CHAR(2) |  |
+| MC_NO1 | VARCHAR2(20) |  |
+| UT_REQ | VARCHAR2(2) |  |
+| LEAD_TIME | NUMBER(22) |  |
+| TOT_AVAIL_HRS | VARCHAR2(5) |  |
+
+## M_ITEM_OPENBAL_DAY_INFO
+| Column | Type | Constraint |
+|---|---|---|
+| SNO | NUMBER(22) |  |
+| PROD_DATE | DATE |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| ITEM_DESCRIPTION | VARCHAR2(150) |  |
+| OPEN_BAL | NUMBER(22) |  |
+| PROD_QTY | NUMBER(22) |  |
+| TOT_QTY | NUMBER(22) |  |
+| ISS_QTY | NUMBER(22) |  |
+| REJ_QTY | NUMBER(22) |  |
+| ASS_QTY | NUMBER(22) |  |
+| TOTAL_BAL | NUMBER(22) |  |
+| MONTH | VARCHAR2(10) |  |
+| YEAR | NUMBER(22) |  |
+| FYEAR | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+| ENTRY_BY | NUMBER(22) |  |
+| ENTRY_DATE | DATE |  |
+
+## T_CSTMRR
+| Column | Type | Constraint |
+|---|---|---|
+| MRR_NO | NUMBER(22) |  |
+| MRR_DT | DATE |  |
+| DC_NO | VARCHAR2(20) |  |
+| DC_DT | DATE |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| PO_NO | VARCHAR2(10) |  |
+| REL_NO | VARCHAR2(10) |  |
+| JO_NO | VARCHAR2(10) |  |
+| ITEM_CODE | VARCHAR2(30) |  |
+| UOM | VARCHAR2(5) |  |
+| QTY | NUMBER(22) |  |
+| TARIFF_HEAD | NUMBER(22) |  |
+| VALUE | NUMBER(22) |  |
+| REC_BY | NUMBER(22) |  |
+| DEPT_CD | VARCHAR2(8) |  |
+| QTY_SUPP | NUMBER(22) |  |
+| CUST_ITEM_CODE | VARCHAR2(30) |  |
+| QTY_ISS | NUMBER(22) |  |
+| ACT_ITEM_CODE | VARCHAR2(35) |  |
+| JO_DATE | DATE |  |
+| ACT_DCNO | NUMBER(22) |  |
+| CUST_ITEM_DESC | VARCHAR2(100) |  |
+| PR_NO | VARCHAR2(8) |  |
+| STATUS | CHAR(1) |  |
+| TRNS_NAME | VARCHAR2(100) |  |
+| SRNO | NUMBER(22) |  |
+| YR | NUMBER(22) |  |
+| REFNO | VARCHAR2(10) |  |
+
+## T_NEWBOX
+| Column | Type | Constraint |
+|---|---|---|
+| BOX_NO | VARCHAR2(5) |  |
+| ITEM_CODE | VARCHAR2(50) |  |
+| WO_NO | VARCHAR2(10) |  |
+| OPN_NO | NUMBER(22) |  |
+| BOX_QTY | NUMBER(22) |  |
+| QTY_PROD | NUMBER(22) |  |
+| QTY_ACCP | NUMBER(22) |  |
+| QTY_RW | NUMBER(22) |  |
+| QTY_REJ | NUMBER(22) |  |
+| LAST_DC_NO | VARCHAR2(10) |  |
+| LAST_IR_NO | VARCHAR2(10) |  |
+| STATUS | CHAR(1) |  |
+| BOX_CREAT_DT | DATE |  |
+| LAST_DC_DT | DATE |  |
+| LAST_IR_DT | DATE |  |
+| OPT_NO | NUMBER(22) |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| IN_TIME | VARCHAR2(5) |  |
+| OUT_TIME | VARCHAR2(5) |  |
+| PLND_TIM | NUMBER(22) |  |
+| PLND_DT | DATE |  |
+| PPC_NO | NUMBER(22) |  |
+| ACT_TIM | NUMBER(22) |  |
+| PROD_DT | DATE |  |
+| OPN_COST | NUMBER(22) |  |
+| SR_NO | NUMBER(22) |  |
+| QTY_WTOPN | NUMBER(22) |  |
+| YR | NUMBER(22) |  |
+
+## T_ORDER_DETAILS
+| Column | Type | Constraint |
+|---|---|---|
+| ORDER_ID | NUMBER(22) |  |
+| PTY_CODE | NUMBER(22) |  |
+| CUSTOMER_NAME | VARCHAR2(150) |  |
+| ORDER_NO | VARCHAR2(30) |  |
+| ORDER_DATE | DATE |  |
+| PRODUCT_ID | NUMBER(22) |  |
+| ORDER_QTY | NUMBER(22) |  |
+| STATUS | VARCHAR2(10) |  |
+| DISPATCH_QTY | NUMBER(22) |  |
+| SCHEDULE_QTY | NUMBER(22) |  |
+| TARGET_DT | DATE |  |
+| ASSEMBLY_QTY | NUMBER(22) |  |
+| UOM | VARCHAR2(10) |  |
+| ORDER_DESCRIPTION | VARCHAR2(1000) |  |
+| NO_OF_BOX | NUMBER(22) |  |
+| QTY_EACH_BOX | NUMBER(22) |  |
+| PART_SKU_NO | VARCHAR2(100) |  |
+| PO_ITEM_SLNO | VARCHAR2(20) |  |
+| PRODUCT_ITEM_ID | VARCHAR2(20) |  |
+| ORDER_TYPE | VARCHAR2(20) |  |
+| CREATED_BY | NUMBER(22) |  |
+| CREATED_DATE | DATE |  |
+| UPDATE_BY | NUMBER(22) |  |
+| UPDATE_DATE | DATE |  |
+
+## M_PRODUCT_MASTER
+| Column | Type | Constraint |
+|---|---|---|
+| PRODUCT_ID | NUMBER(22) |  |
+| PRODUCT_UCODE | VARCHAR2(10) |  |
+| PRODUCT_TYPE | VARCHAR2(50) |  |
+| PRODUCT_CODE | VARCHAR2(50) |  |
+| PRODUCT_MODEL | VARCHAR2(50) |  |
+| DESCRIPTION | VARCHAR2(500) |  |
+| PRODUCT_SIZE | VARCHAR2(50) |  |
+| PRODUCT_COLOR | VARCHAR2(50) |  |
+| PRODUCT_MATERIAL | VARCHAR2(50) |  |
+| FINISH_TYPE | VARCHAR2(20) |  |
+| ASSEMBLY_QTY | NUMBER(22) |  |
+| CREATED_BY | NUMBER(22) |  |
+| CREATED_DATE | DATE |  |
+| UPDATE_BY | NUMBER(22) |  |
+| UPDATE_DATE | DATE |  |
+| PART_NAME | VARCHAR2(50) |  |
+
+## M_MACHINE
+| Column | Type | Constraint |
+|---|---|---|
+| MACHINE_NO | VARCHAR2(10) |  |
+| MACHINE_DES | VARCHAR2(35) |  |
+| MAKE | VARCHAR2(30) |  |
+| STATUS | CHAR(1) |  |
+| HUR_RAT | NUMBER(22) |  |
+| IST_COST | NUMBER(22) |  |
+| DEPT_CD | VARCHAR2(2) |  |
+| NO_HUR | NUMBER(22) |  |
+| MCH_GRP | VARCHAR2(10) |  |
+| SUB_GRP | VARCHAR2(10) |  |
+| MACHINE_TYPE | VARCHAR2(3) |  |
+| MACHINE_DATE | DATE |  |
+| SUB_TYP | CHAR(1) |  |
+| MODEL | VARCHAR2(50) |  |
+| TRAVERSES | VARCHAR2(20) |  |
+| SAFELOAD | VARCHAR2(30) |  |
+| MANFACT_YEAR | NUMBER(22) |  |
+| HP | NUMBER(22) |  |
+| NO_OF_SHIFTS | NUMBER(22) |  |
+| MACHINE_ONO | VARCHAR2(10) |  |
+| UNIT | VARCHAR2(10) |  |
+| MACHINE_GRP | VARCHAR2(30) |  |
+
+## M_USERS
+| Column | Type | Constraint |
+|---|---|---|
+| C_USRID | NUMBER(22) | NOT NULL |
+| C_PASSWORD | VARCHAR2(512) |  |
+| C_LAST_LOGON | DATE |  |
+| C_PSW_CHG_DT | DATE |  |
+| C_SHIFT_STATUS | VARCHAR2(20) |  |
+| C_UNO | NUMBER(22) |  |
+| C_DIVNO | NUMBER(22) |  |
+| C_EMP_CAT | VARCHAR2(20) |  |
+| C_USER_NAME | VARCHAR2(100) |  |
+| C_DEPT | VARCHAR2(400) |  |
+| C_UNIT | VARCHAR2(40) |  |
+| C_DIVISION | VARCHAR2(40) |  |
+| C_DEPARTMENT | VARCHAR2(40) |  |
+| EMPTYPE | VARCHAR2(30) |  |
+| C_GEMPID | VARCHAR2(40) |  |
+| C_APEX_ADMIN | VARCHAR2(1000) |  |
+| C_APEX_USER | VARCHAR2(1000) |  |
+
+## T_POAMD
+| Column | Type | Constraint |
+|---|---|---|
+| AMD_NO | NUMBER(22) |  |
+| AMD_DT | DATE |  |
+| PO_NO | VARCHAR2(10) |  |
+| UNIT_NO | CHAR(1) |  |
+| DEPT_CD | VARCHAR2(8) |  |
+| PTY_CD | VARCHAR2(10) |  |
+| SUBJECT | VARCHAR2(50) |  |
+| REF | VARCHAR2(50) |  |
+| MAIN_BODY1 | VARCHAR2(500) |  |
+| MAIN_BODY2 | VARCHAR2(150) |  |
+| MAIN_BODY3 | VARCHAR2(50) |  |
+| YR | NUMBER(22) |  |
+
+## M_USER_PAGE_ACCESS
+| Column | Type | Constraint |
+|---|---|---|
+| USER_ID | NUMBER(22) |  |
+| APPLICATION_ID | VARCHAR2(10) |  |
+| PAGE_ID | VARCHAR2(1000) |  |
+
+## T_DCHLN_MAIN
+| Column | Type | Constraint |
+|---|---|---|
+| DC_NO | NUMBER(22) |  |
+| DC_DT | DATE |  |
+| DEPT_CD | VARCHAR2(10) |  |
+| DC_TYPE | VARCHAR2(10) | NOT NULL |
+| YR | NUMBER(22) | NOT NULL |
+| REFNO | VARCHAR2(10) |  |
+| PTY_CD | VARCHAR2(10) |  |
+| STATUS | VARCHAR2(10) |  |
+| REQ_DT | DATE |  |
+
+## T_DCDESP_MAIN
+| Column | Type | Constraint |
+|---|---|---|
+| DC_NO | NUMBER(22) |  |
+| DC_DT | DATE |  |
+| DEPT_CD | VARCHAR2(10) |  |
+| DC_TYPE | VARCHAR2(10) |  |
+| YR | NUMBER(22) | NOT NULL |
+| REFNO | VARCHAR2(10) |  |
+| PTY_CD | VARCHAR2(10) |  |
+| TYPE | VARCHAR2(4) |  |
+| STATUS | VARCHAR2(10) |  |
+
+## T_CSTMRR_MAIN
+| Column | Type | Constraint |
+|---|---|---|
+| MRR_NO | NUMBER(22) |  |
+| MRR_DT | DATE |  |
+| DEPT_CD | VARCHAR2(10) |  |
+| YR | NUMBER(22) | NOT NULL |
+| REFNO | VARCHAR2(10) |  |
+| PTY_CODE | VARCHAR2(10) |  |
+| CSP_STATUS | VARCHAR2(1) |  |
+
+## M_LASTNO
+| Column | Type | Constraint |
+|---|---|---|
+| TYPE | VARCHAR2(10) |  |
+| CODE | NUMBER(22) |  |
+| DES | VARCHAR2(30) |  |
+| RNUM | NUMBER(22) |  |
+| UPDATE_STATUS | CHAR(1) |  |
+
+## TEST_TAB
+| Column | Type | Constraint |
+|---|---|---|
+| C_NUMBER | VARCHAR2(10) |  |
+| C_YEAR | VARCHAR2(10) |  |
+
+## SYS_EXPORT_SCHEMA_02
+| Column | Type | Constraint |
+|---|---|---|
+| ABORT_STEP | NUMBER(22) |  |
+| ACCESS_METHOD | VARCHAR2(16) |  |
+| ANCESTOR_OBJECT_NAME | VARCHAR2(128) |  |
+| ANCESTOR_OBJECT_SCHEMA | VARCHAR2(128) |  |
+| ANCESTOR_OBJECT_TYPE | VARCHAR2(128) |  |
+| ANCESTOR_PROCESS_ORDER | NUMBER(22) |  |
+| BASE_OBJECT_NAME | VARCHAR2(128) |  |
+| BASE_OBJECT_SCHEMA | VARCHAR2(128) |  |
+| BASE_OBJECT_TYPE | VARCHAR2(128) |  |
+| BASE_PROCESS_ORDER | NUMBER(22) |  |
+| BLOCK_SIZE | NUMBER(22) |  |
+| CLUSTER_OK | NUMBER(22) |  |
+| COMPLETED_BYTES | NUMBER(22) |  |
+| COMPLETED_ROWS | NUMBER(22) |  |
+| COMPLETION_TIME | DATE |  |
+| CONTROL_QUEUE | VARCHAR2(128) |  |
+| CREATION_LEVEL | NUMBER(22) |  |
+| CREATION_TIME | DATE |  |
+| CUMULATIVE_TIME | NUMBER(22) |  |
+| DATA_BUFFER_SIZE | NUMBER(22) |  |
+| DATA_IO | NUMBER(22) |  |
+| DATAOBJ_NUM | NUMBER(22) |  |
+| DB_VERSION | VARCHAR2(60) |  |
+| DEGREE | NUMBER(22) |  |
+| DOMAIN_PROCESS_ORDER | NUMBER(22) |  |
+| DUMP_ALLOCATION | NUMBER(22) |  |
+| DUMP_FILEID | NUMBER(22) |  |
+| DUMP_LENGTH | NUMBER(22) |  |
+| DUMP_ORIG_LENGTH | NUMBER(22) |  |
+| DUMP_POSITION | NUMBER(22) |  |
+| DUPLICATE | NUMBER(22) |  |
+| ELAPSED_TIME | NUMBER(22) |  |
+| ERROR_COUNT | NUMBER(22) |  |
+| EXTEND_SIZE | NUMBER(22) |  |
+| FILE_MAX_SIZE | NUMBER(22) |  |
+| FILE_NAME | VARCHAR2(4000) |  |
+| FILE_TYPE | NUMBER(22) |  |
+| FLAGS | NUMBER(22) |  |
+| GRANTOR | VARCHAR2(128) |  |
+| GRANULES | NUMBER(22) |  |
+| GUID | RAW(16) |  |
+| IN_PROGRESS | CHAR(1) |  |
+| INSTANCE | VARCHAR2(60) |  |
+| INSTANCE_ID | NUMBER(22) |  |
+| IS_DEFAULT | NUMBER(22) |  |
+| JOB_MODE | VARCHAR2(21) |  |
+| JOB_VERSION | VARCHAR2(60) |  |
+| LAST_FILE | NUMBER(22) |  |
+| LAST_UPDATE | DATE |  |
+| LOAD_METHOD | NUMBER(22) |  |
+| METADATA_BUFFER_SIZE | NUMBER(22) |  |
+| METADATA_IO | NUMBER(22) |  |
+| NAME | VARCHAR2(128) |  |
+| OBJECT_INT_OID | VARCHAR2(130) |  |
+| OBJECT_LONG_NAME | VARCHAR2(4000) |  |
+| OBJECT_NAME | VARCHAR2(200) |  |
+| OBJECT_NUMBER | NUMBER(22) |  |
+| OBJECT_PATH_SEQNO | NUMBER(22) |  |
+| OBJECT_ROW | NUMBER(22) |  |
+| OBJECT_SCHEMA | VARCHAR2(128) |  |
+| OBJECT_TABLESPACE | VARCHAR2(128) |  |
+| OBJECT_TYPE | VARCHAR2(128) |  |
+| OBJECT_TYPE_PATH | VARCHAR2(200) |  |
+| OLD_VALUE | VARCHAR2(4000) |  |
+| OPERATION | VARCHAR2(8) |  |
+| OPTION_TAG | VARCHAR2(128) |  |
+| ORIG_BASE_OBJECT_NAME | VARCHAR2(128) |  |
+| ORIG_BASE_OBJECT_SCHEMA | VARCHAR2(128) |  |
+| ORIGINAL_OBJECT_NAME | VARCHAR2(128) |  |
+| ORIGINAL_OBJECT_SCHEMA | VARCHAR2(128) |  |
+| PACKET_NUMBER | NUMBER(22) |  |
+| PARALLELIZATION | NUMBER(22) |  |
+| PARENT_OBJECT_NAME | VARCHAR2(128) |  |
+| PARENT_OBJECT_SCHEMA | VARCHAR2(128) |  |
+| PARENT_PROCESS_ORDER | NUMBER(22) |  |
+| PARTITION_NAME | VARCHAR2(128) |  |
+| PHASE | NUMBER(22) |  |
+| PLATFORM | VARCHAR2(101) |  |
+| PROCESS_NAME | VARCHAR2(128) |  |
+| PROCESS_ORDER | NUMBER(22) |  |
+| PROCESSING_STATE | CHAR(1) |  |
+| PROCESSING_STATUS | CHAR(1) |  |
+| PROPERTY | NUMBER(22) |  |
+| PROXY_SCHEMA | VARCHAR2(128) |  |
+| PROXY_VIEW | VARCHAR2(128) |  |
+| QUEUE_TABNUM | NUMBER(22) |  |
+| REMOTE_LINK | VARCHAR2(128) |  |
+| SCN | NUMBER(22) |  |
+| SEED | NUMBER(22) |  |
+| SERVICE_NAME | VARCHAR2(64) |  |
+| SIZE_ESTIMATE | NUMBER(22) |  |
+| SRC_COMPAT | VARCHAR2(60) |  |
+| START_TIME | DATE |  |
+| STATE | VARCHAR2(12) |  |
+| STATUS_QUEUE | VARCHAR2(128) |  |
+| SUBPARTITION_NAME | VARCHAR2(128) |  |
+| TARGET_XML_CLOB | CLOB |  |
+| TDE_REWRAPPED_KEY | RAW(2000) |  |
+| TEMPLATE_TABLE | VARCHAR2(128) |  |
+| TIMEZONE | VARCHAR2(64) |  |
+| TOTAL_BYTES | NUMBER(22) |  |
+| TRIGFLAG | NUMBER(22) |  |
+| UNLOAD_METHOD | NUMBER(22) |  |
+| USER_DIRECTORY | VARCHAR2(4000) |  |
+| USER_FILE_NAME | VARCHAR2(4000) |  |
+| USER_NAME | VARCHAR2(128) |  |
+| VALUE_N | NUMBER(22) |  |
+| VALUE_T | VARCHAR2(4000) |  |
+| VERSION | NUMBER(22) |  |
+| WORK_ITEM | VARCHAR2(21) |  |
+| XML_CLOB | CLOB |  |
+
+

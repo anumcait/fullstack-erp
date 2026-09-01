@@ -14,7 +14,7 @@ const prSanctionController = require('../../controllers/ERP/prSanctionController
 const purchaseReturnController = require('../../controllers/ERP/purchaseReturnController');
 const costCenterController = require('../../controllers/ERP/costCenterController');
 const { requirePermission } = require('../../middleware/auth');
-const P = require('../../constants/permissions').PURCHASE;
+const P = require('../../constants/permissions').ERP_PERMISSIONS.PURCHASE;
 
 // ── Dashboard ──
 router.get('/dashboard', purchaseController.getDashboardStats);

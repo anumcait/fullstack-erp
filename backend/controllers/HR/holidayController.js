@@ -16,9 +16,22 @@ exports.getAllHolidays = async (req, res) => {
   }
 };
 
+// Empty strings from forms can't be cast to BIGINT/INTEGER. The `hno` column
+// is an auto-increment serial, so an empty `hno` must be omitted entirely
+// (let the sequence assign the next number); other empties become null
+// (e.g. nullable `c_gen_user`).
+function sanitizeHoliday(input) {
+  const out = {};
+  for (const [k, v] of Object.entries(input)) {
+    if (k === 'hno' && (v === '' || v === null || v === undefined)) continue;
+    out[k] = v === '' ? null : v;
+  }
+  return out;
+}
+
 exports.saveHoliday = async (req, res) => {
   try {
-    const holidayData = req.body;
+    const holidayData = sanitizeHoliday(req.body);
     await Holiday.upsert(holidayData);
     res.json({ message: 'Holiday saved successfully' });
   } catch (error) {
@@ -32,7 +45,7 @@ exports.saveBulkHolidays = async (req, res) => {
   try {
     const holidays = req.body;
     for (const h of holidays) {
-      await Holiday.upsert(h, { transaction: t });
+      await Holiday.upsert(sanitizeHoliday(h), { transaction: t });
     }
     await t.commit();
     res.json({ message: 'Holidays saved successfully', count: holidays.length });

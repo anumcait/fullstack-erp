@@ -19,6 +19,7 @@ module.exports = (sequelize) => {
     credit_limit: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },
     credit_days: { type: DataTypes.INTEGER, defaultValue: 0 },
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    attributes: { type: DataTypes.JSONB, allowNull: true },
   }, {
     tableName: 'm_customer_master',
 

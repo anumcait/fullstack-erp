@@ -1,9 +1,14 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useCompany } from '../context/CompanyContext';
+import CompanyErrorScreen from './CompanyErrorScreen';
 
 const CompanyGate = () => {
-  const { companyConfigured, companyLoading } = useCompany();
+  const { companyConfigured, companyLoading, companyError, refreshCompanySettings } = useCompany();
+
+  if (companyError) {
+    return <CompanyErrorScreen onRetry={refreshCompanySettings} />;
+  }
 
   if (companyLoading) {
     return (

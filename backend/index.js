@@ -26,6 +26,7 @@ async function startServer(retries = MAX_RETRIES) {
   const db = require('./models');
   const erpDb = require('./models/ERP');
   const accountsDb = require('./models/Accounts');
+  const oracleDb = require('./models/Oracle');
 
   while (retries > 0) {
     try {
@@ -35,6 +36,19 @@ async function startServer(retries = MAX_RETRIES) {
 
       await erpDb.sequelize.authenticate({ logging: console.log });
       console.log(`✅ Connected to ${ENV} database (ERP)`);
+
+      try {
+        await oracleDb.sequelizeHr.authenticate();
+        await oracleDb.sequelizeErp.authenticate();
+        console.log(`✅ Connected to ${ENV} database (Oracle/legacy)`);
+        // Enable real-time dual-write so Postgres writes also land in the
+        // parallel Oracle HR/ERP mirror.
+        require('./services/oracleReplicator').setEnabled(true);
+      } catch (oracleErr) {
+        console.warn(`⚠️ Oracle DB not reachable (dual-write disabled): ${oracleErr.message}`);
+      }
+      // Register dual-write hooks regardless; they no-op while disabled.
+      require('./services/oracleReplicator').registerHooks();
 
       const FORCE_SYNC = process.env.DB_SYNC_FORCE === 'true';
       // Use safe sync (create missing tables only, no destructive alters).
@@ -67,17 +81,65 @@ async function startServer(retries = MAX_RETRIES) {
         `ALTER TABLE IF EXISTS t_bom ADD COLUMN IF NOT EXISTS product_id INTEGER`,
         `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS item_id INTEGER`,
         `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS category_id INTEGER`,
+
+        // ── Item Master: nature, engineering & alternate-UOM columns (idempotent) ──
+        `ALTER TABLE IF EXISTS m_item_master ADD COLUMN IF NOT EXISTS make_buy VARCHAR(10) NOT NULL DEFAULT 'Buy'`,
+        `ALTER TABLE IF NOT EXISTS m_item_master ADD COLUMN IF NOT EXISTS is_purchase_item BOOLEAN NOT NULL DEFAULT true`,
+        `ALTER TABLE IF NOT EXISTS m_item_master ADD COLUMN IF NOT EXISTS is_sales_item BOOLEAN NOT NULL DEFAULT false`,
+        `ALTER TABLE IF NOT EXISTS m_item_master ADD COLUMN IF NOT EXISTS is_stock_item BOOLEAN NOT NULL DEFAULT true`,
+        `ALTER TABLE IF NOT EXISTS m_item_master ADD COLUMN IF NOT EXISTS drawing_no VARCHAR(50)`,
+        `ALTER TABLE IF NOT EXISTS m_item_master ADD COLUMN IF NOT EXISTS revision VARCHAR(20)`,
+        `ALTER TABLE IF NOT EXISTS m_item_master ADD COLUMN IF NOT EXISTS default_warehouse_id INTEGER`,
+        `ALTER TABLE IF NOT EXISTS m_item_master ADD COLUMN IF NOT EXISTS alt_unit_id INTEGER`,
+        `ALTER TABLE IF NOT EXISTS m_item_master ADD COLUMN IF NOT EXISTS conversion_factor DECIMAL(14,4) NOT NULL DEFAULT 1`,
+
+        // ── Product Master: assembly tree columns (idempotent) ──
+        `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS level INTEGER`,
+        `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS drawing_no VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS revision VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS default_bom_id INTEGER`,
+        `ALTER TABLE IF EXISTS m_product_master ADD COLUMN IF NOT EXISTS is_subassembly BOOLEAN NOT NULL DEFAULT false`,
+        `ALTER TABLE IF EXISTS m_product_master ALTER COLUMN part_name TYPE VARCHAR(255)`,
+        `ALTER TABLE IF EXISTS m_product_master ALTER COLUMN product_code TYPE VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS m_product_master ALTER COLUMN color TYPE VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS m_product_master ALTER COLUMN finish_type TYPE VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS m_product_master ALTER COLUMN drawing_no TYPE VARCHAR(100)`,
+        `ALTER TABLE IF EXISTS m_product_master ALTER COLUMN revision TYPE VARCHAR(50)`,
+
+        // ── ProductItemMaster: support hierarchical sub-assemblies ──
+        `ALTER TABLE IF NOT EXISTS m_product_item_master ADD COLUMN IF NOT EXISTS parent_item_id INTEGER`,
+        `ALTER TABLE IF NOT EXISTS m_product_item_master ADD COLUMN IF NOT EXISTS component_product_id INTEGER`,
+        `ALTER TABLE IF NOT EXISTS m_product_item_master ADD COLUMN IF NOT EXISTS is_subassembly BOOLEAN NOT NULL DEFAULT false`,
+        `ALTER TABLE IF NOT EXISTS m_product_item_master ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0`,
+        `ALTER TABLE IF NOT EXISTS m_product_item_master ADD COLUMN IF NOT EXISTS serial_no INTEGER`,
+        `ALTER TABLE IF NOT EXISTS m_product_item_master ADD COLUMN IF NOT EXISTS remark VARCHAR(200)`,
+        `ALTER TABLE IF NOT EXISTS m_product_item_master ADD COLUMN IF NOT EXISTS color VARCHAR(50)`,
+        `ALTER TABLE IF NOT EXISTS m_product_item_master ADD COLUMN IF NOT EXISTS item_description TEXT`,
+
+        // ── Rename reserved-word column: level → tree_level (Oracle compat) ──
+        `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='m_product_master' AND column_name='level') THEN ALTER TABLE m_product_master RENAME COLUMN "level" TO tree_level; END IF; END $$`,
+
+        // ── Indexes for the new columns (idempotent, non-concurrent) ──
+        `CREATE INDEX IF NOT EXISTS idx_item_make_buy ON m_item_master(make_buy)`,
+        `CREATE INDEX IF NOT EXISTS idx_item_subtype ON m_item_master(subtype_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_item_group_active ON m_item_master(group_id, is_active)`,
+        `CREATE INDEX IF NOT EXISTS idx_product_parent ON m_product_master(parent_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_product_node_type ON m_product_master(node_type)`,
+        `CREATE INDEX IF NOT EXISTS idx_product_item ON m_product_master(item_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_product_item_parent ON m_product_item_master(parent_item_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_product_item_component ON m_product_item_master(component_product_id)`,
         // ── Item Master rebuild: drop legacy item tables ONLY when explicitly requested.
         // Running this on every boot would wipe imported item data, so it is gated behind
         // the REBUILD_ITEM_MASTER env flag (set it to 'true' for a one-time fresh rebuild). ──
         ...(process.env.REBUILD_ITEM_MASTER === 'true'
           ? [
-              `DROP TABLE IF EXISTS m_item_subtype CASCADE`,
-              `DROP TABLE IF EXISTS m_item_type CASCADE`,
-              `DROP TABLE IF EXISTS m_item_category CASCADE`,
-              `DROP TABLE IF EXISTS m_item_subgroup CASCADE`,
-              `DROP TABLE IF EXISTS m_item_master CASCADE`,
-            ]
+            `DROP TABLE IF EXISTS m_item_subtype CASCADE`,
+            `DROP TABLE IF EXISTS m_item_type CASCADE`,
+            `DROP TABLE IF EXISTS m_item_category CASCADE`,
+            `DROP TABLE IF EXISTS m_item_subgroup CASCADE`,
+            `DROP TABLE IF EXISTS m_item_master CASCADE`,
+          ]
           : []),
         // ── Item Master audit columns (idempotent; safe to run every boot) ──
         `ALTER TABLE IF EXISTS m_item_master ADD COLUMN IF NOT EXISTS created_by VARCHAR(100)`,
@@ -137,11 +199,11 @@ async function startServer(retries = MAX_RETRIES) {
         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS approved_date DATE`,
         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS cancel_remarks TEXT`,
         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS cancel_by VARCHAR(100)`,
-         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS cancel_date TIMESTAMPTZ`,
-         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS inward_date DATE`,
-         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS approval_remarks TEXT`,
-         `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS work_order VARCHAR(50)`,
-         `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS opening DECIMAL(12,3) DEFAULT 0`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS cancel_date TIMESTAMPTZ`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS inward_date DATE`,
+        `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS approval_remarks TEXT`,
+        `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS work_order VARCHAR(50)`,
+        `ALTER TABLE IF EXISTS ir_item ADD COLUMN IF NOT EXISTS opening DECIMAL(12,3) DEFAULT 0`,
         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS qa_status VARCHAR(20) NOT NULL DEFAULT 'Pending'`,
         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS qa_by VARCHAR(100)`,
         `ALTER TABLE IF EXISTS ir ADD COLUMN IF NOT EXISTS qa_date DATE`,
@@ -268,6 +330,9 @@ END $$;`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS enforce_bin_on_issue BOOLEAN NOT NULL DEFAULT FALSE`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS allow_multi_warehouse BOOLEAN NOT NULL DEFAULT TRUE`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS valuation_method VARCHAR(20) NOT NULL DEFAULT 'WEIGHTED_AVERAGE'`,
+        // Legacy column may still be a Postgres ENUM (valuation_method_enum); convert
+        // it to plain VARCHAR so the model (STRING) and DB agree. USING ::text always works.
+        `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'm_stores_settings' AND column_name = 'valuation_method' AND data_type <> 'character varying') THEN ALTER TABLE m_stores_settings ALTER COLUMN valuation_method TYPE VARCHAR(20) USING valuation_method::text; END IF; END $$`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS standard_cost_update_on_grn BOOLEAN NOT NULL DEFAULT FALSE`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS decimal_precision_qty INTEGER NOT NULL DEFAULT 3`,
         `ALTER TABLE IF EXISTS m_stores_settings ADD COLUMN IF NOT EXISTS decimal_precision_cost INTEGER NOT NULL DEFAULT 4`,
