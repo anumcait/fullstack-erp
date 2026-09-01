@@ -475,6 +475,11 @@ END $$;`,
       for (const sql of erpMigrations) {
         try { await erpDb.sequelize.query(sql); } catch (_) { /* ignore */ }
       }
+      try {
+        await erpDb.sequelize.query(`UPDATE t_bom SET product_id = NULL WHERE product_id IS NOT NULL AND product_id NOT IN (SELECT id FROM m_product_master)`);
+        await erpDb.sequelize.query(`UPDATE t_bom_item SET component_product_id = NULL WHERE component_product_id IS NOT NULL AND component_product_id NOT IN (SELECT id FROM m_product_master)`);
+        await erpDb.sequelize.query(`UPDATE t_bom_item SET sub_bom_id = NULL WHERE sub_bom_id IS NOT NULL AND sub_bom_id NOT IN (SELECT id FROM t_bom)`);
+      } catch (_) { /* ignore if tables not yet created */ }
 
       // 4b2. HR DB migrations (m_company_settings lives in the HR database)
       try {

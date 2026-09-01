@@ -18,14 +18,25 @@ function sanitizeHeader(header) {
 }
 
 async function resolveProduct(header) {
-  if (header.product_id) {
-    const product = await ProductMaster.findByPk(header.product_id);
-    if (product) {
+  if (header.product_id === '' || header.product_id === 0 || header.product_id === '0') header.product_id = null;
+  if (header.product_id != null) {
+    const pid = Number(header.product_id);
+    if (!Number.isFinite(pid) || pid <= 0) header.product_id = null;
+    else {
+      const product = await ProductMaster.findByPk(pid);
+      if (!product) {
+        const e = new Error(`product_id ${pid} not found in m_product_master`);
+        e.statusCode = 400;
+        throw e;
+      }
+      header.product_id = product.id;
       header.product_code = product.product_code || header.product_code || '';
       header.product_name = product.part_name || header.product_name || '';
       if (!header.product_item_id && product.item_id) header.product_item_id = product.item_id;
     }
   }
+  if (header.product_id == null) header.product_id = null;
+  if (header.product_item_id === '' ) header.product_item_id = null;
   return header;
 }
 
@@ -276,7 +287,7 @@ exports.create = async (req, res) => {
   try {
     let { items, ...header } = req.body;
     header = sanitizeHeader(header);
-    header = await resolveProduct(header);
+    try { header = await resolveProduct(header); } catch (e) { if (e.statusCode === 400) return res.status(400).json({ error: e.message }); throw e; }
     if (!header.bom_no) {
       const count = await BOM.count();
       header.bom_no = `PROD-${String(count + 1).padStart(4, '0')}`;
@@ -318,7 +329,9 @@ exports.update = async (req, res) => {
     const doc = await BOM.findByPk(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Not found' });
     const { items, ...header } = req.body;
-    await doc.update(await resolveProduct(sanitizeHeader(header)));
+    let resolved;
+    try { resolved = await resolveProduct(sanitizeHeader(header)); } catch (e) { if (e.statusCode === 400) return res.status(400).json({ error: e.message }); throw e; }
+    await doc.update(resolved);
     await BOMItem.destroy({ where: { bom_id: doc.id } });
     if (items && items.length > 0) {
       const rows = items.map((it, idx) => ({
