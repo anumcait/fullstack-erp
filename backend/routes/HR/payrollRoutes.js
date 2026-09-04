@@ -23,5 +23,7 @@ router.get('/pf-report', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payroll
 router.get('/pt-report', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getPtReport);
 router.get('/earnings-deductions', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getEarningsDeductions);
 router.get('/meals-coupon', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getMealsCoupon);
+router.get('/my-payslips', payrollController.getMyPayslips);
+router.get('/my-payslip/download', payrollController.downloadMyPayslip);
 
 module.exports = router;

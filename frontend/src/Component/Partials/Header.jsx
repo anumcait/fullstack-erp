@@ -200,11 +200,14 @@ const Header = () => {
         {
           title: 'Attendance',
           items: [
-            { label: 'HR Attendance', path: '/hr-attendance' },
-            { label: 'Correction', path: '/attendance-mod' },
-            { label: 'Shift Schedule', path: '/shiftschedule' },
-            { label: 'Muster Roll', path: '/muster-roll' },
-            { label: 'OT Approval', path: '/ot-approval' }
+            { label: 'HR Attendance', path: '/hr-attendance', permission: 'HR_ATT_ENTRY' },
+            { label: 'Correction', path: '/attendance-mod', permission: 'HR_ATT_MOD' },
+            { label: 'Shift Schedule', path: '/shiftschedule', permission: 'HR_SHIFT_SCHED' },
+            { label: 'Muster Roll', path: '/muster-roll', permission: 'HR_MUSTER' },
+            { label: 'OT Approval', path: '/ot-approval', permission: 'HR_OT_APP' },
+            { label: 'My Attendance (Self)', path: '/my-attendance', permission: 'HR_ATTENDANCE_REQUEST' },
+            { label: 'Attendance Approval', path: '/attendance-requests', permission: 'HR_ATTENDANCE_APPROVE' },
+            { label: 'Attendance Collector', path: '/attendance-collector', permission: 'HR_ATT_COLLECTOR' }
           ]
         },
         {
@@ -222,7 +225,8 @@ const Header = () => {
             { label: 'On-Duty Requests', path: '/onduty' },
             { label: 'Tour Applications', path: '/tour' },
             { label: 'Shift Change', path: '/shiftchange' },
-            { label: 'W-Off Change', path: '/woffchange' }
+            { label: 'W-Off Change', path: '/woffchange' },
+            { label: 'My Reports', path: '/my-reports', permission: 'HR_REPORTS_EMP' }
           ]
         }
       ]

@@ -50,26 +50,20 @@ exports.submitRequest = async (req, res) => {
 
 exports.getPendingRequests = async (req, res) => {
   try {
-    // Repair existing requests with NULL status
     await ProfileUpdateRequest.update(
       { status: 'Pending' },
       { where: { status: { [Op.is]: null } } }
     );
-
-    const totalCount = await ProfileUpdateRequest.count();
-    const pendingCount = await ProfileUpdateRequest.count({ where: { status: 'Pending' } });
-    const nullStatusCount = await ProfileUpdateRequest.count({ where: { status: null } });
-
-    console.log(`[ProfileRequestDebug] Total: ${totalCount}, Pending: ${pendingCount}, Null: ${nullStatusCount}`);
-
+    const { status } = req.query;
+    let where = {};
+    if (!status || status === 'Pending') where.status = 'Pending';
+    else if (status !== 'All') where.status = status;
     const allRequests = await ProfileUpdateRequest.findAll({
+      where: Object.keys(where).length ? where : undefined,
       order: [['created', 'DESC']],
       raw: true,
     });
-
-    console.log(`[ProfileRequestDebug] Found ${allRequests.length} total requests in DB`);
-
-    const requests = allRequests.filter(r => r.status === 'Pending' || r.status === null);
+    const requests = allRequests;
 
     const empIds = [...new Set(requests.map(r => r.empid))];
     const employees = await EmployeeMaster.findAll({

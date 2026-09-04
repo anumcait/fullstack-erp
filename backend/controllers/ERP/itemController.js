@@ -431,16 +431,22 @@ exports.updateItem = async (req, res) => {
     }
 
     const body = req.body;
-    const gid = body.group_id !== undefined ? (body.group_id || body.category_id || null) : item.group_id;
-    const sgid = body.subgroup_id !== undefined ? body.subgroup_id : item.subgroup_id;
-    const tid = body.type_id !== undefined ? body.type_id : item.type_id;
+    const gid = body.group_id !== undefined ? (body.group_id || null) : (body.category_id !== undefined ? (body.category_id || null) : item.group_id);
+    const sgid = body.subgroup_id !== undefined ? (body.subgroup_id || null) : item.subgroup_id;
+    const tid = body.type_id !== undefined ? (body.type_id || null) : item.type_id;
+    const stid = body.subtype_id !== undefined ? (body.subtype_id || null) : item.subtype_id;
     if (sgid) {
       const sg = await ItemSubGroup.findByPk(sgid);
-      if (sg && gid && sg.group_id !== Number(gid)) return res.status(400).json({ error: 'Sub group does not belong to the selected group' });
+      if (!sg) return res.status(400).json({ error: 'Selected sub group does not exist' });
+      if (gid && sg.group_id !== Number(gid)) return res.status(400).json({ error: `Sub group "${sg.name}" belongs to group "${(await ItemGroup.findByPk(sg.group_id))?.name}" — not the selected group` });
     }
     if (tid) {
       const ty = await ItemType.findByPk(tid);
       if (ty && sgid && ty.subgroup_id !== Number(sgid)) return res.status(400).json({ error: 'Type does not belong to the selected sub group' });
+    }
+    if (stid) {
+      const st = await ItemSubType.findByPk(stid);
+      if (st && tid && st.type_id !== Number(tid)) return res.status(400).json({ error: 'Section does not belong to the selected type' });
     }
 
     // Frontend sends the item group under `category_id`; map it to the model's `group_id`.

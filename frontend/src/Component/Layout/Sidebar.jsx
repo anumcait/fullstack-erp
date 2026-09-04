@@ -66,7 +66,7 @@ const SUBMENUS = {
   accInv: ["/invoice/sales", "/invoice/purchase", "/invoice/debit-note", "/invoice/credit-note"],
   accVouch: ["/accounts/payment", "/accounts/receipt", "/accounts/journal", "/accounts/contra"],
   hrMaster: ["/employees", "/shift-master", "/holidays", "/leaves-master", "/profile-requests", "/training", "/pms", "/disciplinary", "/exit-settlement"],
-  hrAtt: ["/hr-attendance", "/attendance-mod", "/shiftschedule", "/muster-roll", "/ot-approval", "/attendance-collector"],
+  hrAtt: ["/hr-attendance", "/attendance-mod", "/shiftschedule", "/muster-roll", "/ot-approval", "/attendance-collector", "/my-attendance", "/attendance-requests"],
   hrPayroll: ["/advance", "/payroll", "/esileave", "/tax"],
   hrTrans: ["/leave", "/onduty", "/tour", "/shiftchange", "/woffchange"],
   hrRecruit: ["/recruitment"],
@@ -81,7 +81,7 @@ const SUBMENUS = {
   purPR: ["/purchase/requisitions"],
   purProc: ["/purchase/rfq", "/purchase/orders"],
   purVend: ["/purchase/vendors", "/purchase/prices", "/purchase/rating"],
-  prodFloor: ["/production/daily-entry", "/production/machines", "/production/downtime"],
+  prodFloor: ["/production/daily-entry", "/production/machines", "/production/downtime", "/production/order-plan"],
   planProd: ["/planning/schedule", "/planning/mrp", "/planning/capacity"],
   engData: ["/engineering/products", "/engineering/categories", "/engineering/bom", "/engineering/bom-diff"],
   engProc: ["/engineering/routing", "/engineering/work-centers"],
@@ -359,7 +359,7 @@ const Sidebar = () => {
               </li>
             )}
 
-            {(hasPermission('HR_EMP_MASTER') || hasPermission('HR_SHIFT_MASTER') || hasPermission('HR_HOLIDAY_MASTER') || hasPermission('HR_LEAVE_MASTER')) && (
+            {(hasPermission('HR_EMP_MASTER') || hasPermission('HR_SHIFT_MASTER') || hasPermission('HR_HOLIDAY_MASTER') || hasPermission('HR_LEAVE_MASTER') || hasPermission('HR_TRAINING') || hasPermission('HR_PMS') || hasPermission('HR_DISCIPLINARY') || hasPermission('HR_EXIT') || hasPermission('HR_PROFILE_APPROVE')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "hrMaster" ? "open" : ""} ${isSubmenuActive("hrMaster") ? "sidebar-active-parent" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrMaster")}>
                   <FiUsers />
@@ -377,16 +377,16 @@ const Sidebar = () => {
                     {hasPermission('HR_HOLIDAY_MASTER') && <SubItem to="/holidays" label="Holiday Master" icon={FiCalendar} />}
                     {hasPermission('HR_LEAVE_MASTER') && <SubItem to="/leaves-master" label="Leaves Master" icon={FiCheckSquare} />}
                     {hasPermission('HR_PROFILE_APPROVE') && <SubItem to="/profile-requests" label="Profile Requests" icon={FiRefreshCw} />}
-                    <SubItem to="/training" label="Training & Skills" icon={FiBookOpen} />
-                    <SubItem to="/pms" label="PMS & Appraisals" icon={FiTarget} />
-                    <SubItem to="/disciplinary" label="Disciplinary Mgmt" icon={FiAlertTriangle} />
-                    <SubItem to="/exit-settlement" label="Exit & Settlement" icon={FiLogOut} />
+                    {hasPermission('HR_TRAINING') && <SubItem to="/training" label="Training & Skills" icon={FiBookOpen} />}
+                    {hasPermission('HR_PMS') && <SubItem to="/pms" label="PMS & Appraisals" icon={FiTarget} />}
+                    {hasPermission('HR_DISCIPLINARY') && <SubItem to="/disciplinary" label="Disciplinary Mgmt" icon={FiAlertTriangle} />}
+                    {hasPermission('HR_EXIT') && <SubItem to="/exit-settlement" label="Exit & Settlement" icon={FiLogOut} />}
                   </ul>
                 )}
               </li>
             )}
 
-            {(hasPermission('HR_ATT_ENTRY') || hasPermission('HR_ATT_MOD') || hasPermission('HR_SHIFT_SCHED') || hasPermission('HR_MUSTER') || hasPermission('HR_OT_APP')) && (
+            {(hasPermission('HR_ATT_ENTRY') || hasPermission('HR_ATT_MOD') || hasPermission('HR_SHIFT_SCHED') || hasPermission('HR_MUSTER') || hasPermission('HR_OT_APP') || hasPermission('HR_ATT_COLLECTOR') || hasPermission('HR_ATTENDANCE_REQUEST') || hasPermission('HR_ATTENDANCE_APPROVE')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "hrAtt" ? "open" : ""} ${isSubmenuActive("hrAtt") ? "sidebar-active-parent" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrAtt")}>
                   <FiClock />
@@ -404,7 +404,9 @@ const Sidebar = () => {
                     {hasPermission('HR_SHIFT_SCHED') && <SubItem to="/shiftschedule" label="Shift Schedule" icon={FiCalendar} />}
                     {hasPermission('HR_MUSTER') && <SubItem to="/muster-roll" label="Muster Roll" icon={FiClipboard} />}
                     {hasPermission('HR_OT_APP') && <SubItem to="/ot-approval" label="OT Approval" icon={FiCheckSquare} />}
-                    <SubItem to="/attendance-collector" label="Attendance Collector" icon={FiCamera} />
+                    {hasPermission('HR_ATT_COLLECTOR') && <SubItem to="/attendance-collector" label="Attendance Collector" icon={FiCamera} />}
+                    <SubItem to="/my-attendance" label="My Attendance (Self)" icon={FiUser} />
+                    {hasPermission('HR_ATTENDANCE_APPROVE') && <SubItem to="/attendance-requests" label="Attendance Approval" icon={FiCheckSquare} />}
                   </ul>
                 )}
               </li>
@@ -455,6 +457,7 @@ const Sidebar = () => {
               </li>
             )}
 
+            {hasPermission('HR_RECRUITMENT') && (
             <li className={`sidebar-menu-item ${openSubmenu === "hrRecruit" ? "open" : ""} ${isSubmenuActive("hrRecruit") ? "sidebar-active-parent" : ""}`}>
               <div className="sidebar-menu-link" onClick={() => toggleSubmenu("hrRecruit")}>
                 <FiUsers />
@@ -471,13 +474,23 @@ const Sidebar = () => {
                 </ul>
               )}
             </li>
+            )}
 
-            <li className="sidebar-menu-item">
-              <SideNavLink to="/hr/reports" label="Reports" icon={FiPieChart} exact />
-            </li>
-            <li className="sidebar-menu-item">
-              <SideNavLink to="/pf-accounting" label="PF Accounting" icon={FiFileText} />
-            </li>
+            {hasPermission('HR_REPORTS') && (
+              <li className="sidebar-menu-item">
+                <SideNavLink to="/hr/reports" label="Reports" icon={FiPieChart} exact />
+              </li>
+            )}
+            {hasPermission('HR_REPORTS_EMP') && (
+              <li className="sidebar-menu-item">
+                <SideNavLink to="/my-reports" label="My Reports" icon={FiFileText} />
+              </li>
+            )}
+            {hasPermission('HR_PF_ACCOUNTING') && (
+              <li className="sidebar-menu-item">
+                <SideNavLink to="/pf-accounting" label="PF Accounting" icon={FiFileText} />
+              </li>
+            )}
           </>
         )}
 
@@ -804,6 +817,9 @@ const Sidebar = () => {
                 <SideNavLink to="/production/orders" label="Production Orders" icon={FiLayers} />
               </li>
             )}
+            <li className="sidebar-menu-item">
+              <SideNavLink to="/production/order-plan" label="Order Plan (Qty Explosion)" icon={FiTarget} />
+            </li>
             {(hasPermission('PROD_DAILY') || hasPermission('PROD_MACHINES') || hasPermission('PROD_DOWNTIME')) && (
               <li className={`sidebar-menu-item ${openSubmenu === "prodFloor" ? "open" : ""} ${isSubmenuActive("prodFloor") ? "sidebar-active-parent" : ""}`}>
                 <div className="sidebar-menu-link" onClick={() => toggleSubmenu("prodFloor")}>

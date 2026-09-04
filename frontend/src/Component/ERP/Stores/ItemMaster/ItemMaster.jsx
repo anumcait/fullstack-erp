@@ -122,14 +122,33 @@ export default function ItemMaster() {
       editable: true,
       renderCell: (params) => {
         if (BLANK_NAME(params.value)) {
+          const fallback = params.row.item_description && !BLANK_NAME(params.row.item_description) ? params.row.item_description : params.row.item_code;
           return (
-            <Typography component="span" sx={{ fontStyle: "italic", color: "text.disabled" }}>
-              {params.row.item_code}
-            </Typography>
+            <Tooltip title={params.row.item_description || ""} arrow>
+              <Typography component="span" sx={{ fontStyle: "italic", color: params.row.item_description ? "text.secondary" : "text.disabled" }}>
+                {fallback}
+              </Typography>
+            </Tooltip>
           );
         }
-        return <>{params.value}</>;
+        return (
+          <Tooltip title={params.row.item_description || ""} arrow>
+            <span>{params.value}</span>
+          </Tooltip>
+        );
       },
+    },
+    {
+      field: "item_description",
+      headerName: "Description",
+      width: 280,
+      renderCell: (params) => (
+        <Tooltip title={params.value || ""} arrow>
+          <Typography variant="body2" sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: params.value ? "text.primary" : "text.disabled", fontStyle: params.value ? "normal" : "italic" }}>
+            {params.value || "—"}
+          </Typography>
+        </Tooltip>
+      ),
     },
     {
       field: "group",

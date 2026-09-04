@@ -26,7 +26,8 @@ export default function ProductionOrderList() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = search ? { search } : {};
+      const params = { order_type: 'Production Order' };
+      if (search) params.search = search;
       const { data } = await axios.get(API, { params });
       setRows(data);
     } catch { showToast('Failed to load', 'error'); }
@@ -44,20 +45,21 @@ export default function ProductionOrderList() {
   };
 
   const columns = [
-    { field: 'order_no', headerName: 'Order #', width: 130 },
+    { field: 'order_no', headerName: 'Production Order #', width: 150 },
     { field: 'product_code', headerName: 'Product', width: 120 },
     { field: 'product_name', headerName: 'Product Name', width: 200 },
     { field: 'planned_quantity', headerName: 'Planned', width: 90 },
     { field: 'produced_quantity', headerName: 'Produced', width: 90 },
+    { field: 'order_type', headerName: 'Type', width: 130, renderCell: p => <Chip label={p.value || 'Production Order'} size="small" variant="outlined" color={p.value === 'Production Order' ? 'success' : 'default'} /> },
     {
       field: 'status', headerName: 'Status', width: 120,
       renderCell: (p) => <Chip label={p.value} size="small" color={statusColors[p.value] || 'default'} />,
     },
     {
-      field: 'actions', headerName: 'Actions', width: 200, sortable: false,
+      field: 'actions', headerName: 'Actions', width: 220, sortable: false,
       renderCell: (p) => (
         <>
-          <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/purchase/job-orders/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title="View Production Order"><IconButton size="small" onClick={() => navigate(`/production/orders/view/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
           {p.row.status === 'Planning' && (
             <Tooltip title="Release"><IconButton size="small" color="success" onClick={() => handleStatusChange(p.row.id, 'Released')}><Chip label="Release" size="small" color="success" variant="outlined" sx={{ height: 24 }} /></IconButton></Tooltip>
           )}
@@ -75,9 +77,9 @@ export default function ProductionOrderList() {
       <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            <TextField size="small" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <TextField size="small" placeholder="Search production order..." value={search} onChange={(e) => setSearch(e.target.value)}
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'gray' }} /> }} sx={{ minWidth: 300 }} />
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/purchase/job-orders/add')}>New Job Order</Button>
+            <Button variant="contained" color="success" startIcon={<AddIcon />} onClick={() => navigate('/production/orders/add')}>New Production Order</Button>
             <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
           </Box>
           {loading && <LinearProgress sx={{ mb: 1 }} />}

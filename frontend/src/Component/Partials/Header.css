@@ -196,9 +196,13 @@
 .mega-menu {
   position: absolute;
   top: 100%;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   background: var(--dropdown-bg);
   width: 1000px;
+  max-width: 95vw;
+  max-height: 75vh;
+  overflow-y: auto;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
   border-radius: 0 0 8px 8px;
   padding: 25px;
@@ -207,10 +211,17 @@
   border-top: 3px solid var(--accent);
 }
 
-/* Align right-side menus to prevent overflow */
+/* Keep right-side menus from overflowing viewport */
 .nav-item:nth-last-child(-n+3) .mega-menu {
   left: auto;
   right: 0;
+  transform: none;
+}
+.nav-item:first-child .mega-menu,
+.nav-item:nth-child(2) .mega-menu {
+  left: 0;
+  transform: none;
+  max-width: 92vw;
 }
 
 .nav-item.mega:hover .mega-menu {

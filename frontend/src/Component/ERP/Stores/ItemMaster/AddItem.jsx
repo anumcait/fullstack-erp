@@ -308,7 +308,8 @@ export default function AddItem() {
   const sectionDisplay = subtypes.find((s) => String(s.id) === String(form.subtype_id))?.name || "";
 
   const groupOptions = categories;
-  const subGroupOptions = subgroups.filter((s) => !form.category_id || String(s.group_id) === String(form.category_id));
+  const subGroupOptionsRaw = subgroups.filter((s) => !form.category_id || String(s.group_id) === String(form.category_id));
+  const subGroupOptions = subGroupOptionsRaw.map((s) => ({ ...s, group_name: s.group?.name || categories.find((c) => String(c.id) === String(s.group_id))?.name || '' }));
   const typeOptions = itemTypes.filter((t) => !form.subgroup_id || String(t.subgroup_id) === String(form.subgroup_id));
   const sectionOptions = subtypes.filter((s) => !form.subgroup_id || (s.type && String(s.type.subgroup_id) === String(form.subgroup_id)));
 
@@ -879,7 +880,9 @@ export default function AddItem() {
           }
           columns={lookup === "unit"
             ? [{ key: "short_name", label: "Code" }, { key: "name", label: "Name" }]
-            : [{ key: "id", label: "ID" }, { key: "name", label: "Name" }]
+            : lookup === "subgroup"
+              ? [{ key: "name", label: "Name" }, { key: "group_name", label: "Group" }]
+              : [{ key: "id", label: "ID" }, { key: "name", label: "Name" }]
           }
         />
       </form>

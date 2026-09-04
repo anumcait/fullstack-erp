@@ -1,39 +1,52 @@
--- Fill Tower Fan item names before FREEZE — run after filling docs/tower-fan-mapping.csv
--- This script updates the 38 distinct components from docs/test.md
--- It is idempotent and keeps item_code immutable.
-
 BEGIN;
 
--- Example: update blank TFAN/ELEC/PACK codes to descriptive names.
--- Replace TFAN0001 etc with your chosen blank codes from mapping.
-
-UPDATE m_item_master SET item_name='Normal TOP (FRONT) White', item_description='Tower Fan Normal Model - Front Top White', make_buy='Make', unit_id=1, hsn_code='8414', gst_rate=18 WHERE item_code='TFAN0001' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='Doom TOP (FRONT) White', item_description='Tower Fan Doom Model - Front Top White', make_buy='Make', unit_id=1, hsn_code='8414', gst_rate=18 WHERE item_code='TFAN0002' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='High Breeze TOP (FRONT) White', item_description='High Breeze Model - Front Top White', make_buy='Make', unit_id=1 WHERE item_code='TFAN0003' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='Perfume TOP (FRONT) White', item_description='Perfume Model - Front Top White', make_buy='Make', unit_id=1 WHERE item_code='TFAN0004' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='Colored front Panel', item_description='Perfume model colored panel', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0005' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='BOTTOM (BACK) White', item_description='Common Bottom Back White', make_buy='Make', unit_id=1 WHERE item_code='TFAN0006' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='SWING PLATE (Slider)', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0007' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='STOPPER PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0011' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='LOWERS', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0012' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='D PLATE with CAP SET Assembly', item_description='Sub-assembly Black - D Plate + Cap Set', make_buy='Phantom', is_stock_item=false, is_purchase_item=false, unit_id=1 WHERE item_code='COMP0001' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='MOTOR BASE Black', make_buy='Make', unit_id=1 WHERE item_code='TFAN0017' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='BLOWER Assembly', item_description='Blower Assembly Black', make_buy='Phantom', is_stock_item=false, unit_id=1 WHERE item_code='TFAN0018' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='Normal KNOBS White', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0021' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='MOTOR WITH 4MFD CAPACITOR', item_description='Motor Nirosha/Olympus/China + Tibcon Capacitor', make_buy='Buy', unit_id=1, hsn_code='8501' WHERE item_code='ELEC0001' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='SWING MOTOR WITH BUSH', item_description='Sara Oscillation Motor', make_buy='Buy', unit_id=1 WHERE item_code='ELEC0002' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='ON/OFF SWITCH ELCOM', make_buy='Buy', unit_id=1 WHERE item_code='ELEC0003' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='3 SPEED SWITCH ELCOM', make_buy='Buy', unit_id=1 WHERE item_code='ELEC0004' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='POWER CORD 2.5m 2core', make_buy='Buy', unit_id=1 WHERE item_code='ELEC0005' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='INNER CARTON', make_buy='Buy', unit_id=1 WHERE item_code='PACK0010' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='Outer Carton', make_buy='Buy', unit_id=1 WHERE item_code='PACK0011' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='MANUAL & WARRANTY CARD', make_buy='Buy', unit_id=1 WHERE item_code='PACK0012' AND item_name IN ('-','.') ;
-UPDATE m_item_master SET item_name='MRP AND OTHER LABELS', make_buy='Buy', unit_id=1 WHERE item_code='PACK0013' AND item_name IN ('-','.') ;
-
--- Verify no blanks remain in TFAN range
--- SELECT item_code, item_name FROM m_item_master WHERE item_code LIKE 'TFAN%' AND item_name IN ('-','.') ORDER BY item_code;
+UPDATE m_item_master SET item_name='NORMAL TOP (FRONT) WHITE', item_description='Normal 1', make_buy='Make', unit_id=1, hsn_code='8414', gst_rate=18 WHERE item_code='TFAN0001' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='BOTTOM (BACK) WHITE', item_description='Normal 2', make_buy='Make', unit_id=1 WHERE item_code='TFAN0002' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='NORMAL SWING PLATE (SLIDER)', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0003' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='STOPPER PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0004' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='LOWERS 2PCS', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0005' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='D PLATE', item_description='Normal 6-1 Sub Assembly 0001', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0006' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='CAP SET BOTTOM', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0007' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='CAP SET TOP', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0008' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='DERLIN ROUND PART', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0009' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='NANDUS DIPPED IN OIL', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0010' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='SPRING', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0011' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='MOTOR BASE BLACK', make_buy='Make', unit_id=1 WHERE item_code='TFAN0012' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='BLOWER TOP PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0013' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='PIN INSERT FOR BLOWER TOP PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0014' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='BLOWER BOTTOM PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0015' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='BLOWER BUSH RUBBER', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0016' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='BLOWER SECTIONS', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0017' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='BLOWER BALANCING PINS', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0018' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='NORMAL KNOBS WHITE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0019' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='NORMAL ON OFF PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0020' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='RUBBER ITEMS BOTTOM BUSH 4+GROMET1', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0021' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='PACKING COVERS', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0022' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='MOTOR WITH 4MFD CAPACITOR', make_buy='Buy', unit_id=1, hsn_code='8501' WHERE item_code='TFAN0023' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='SWING MOTOR WITH BUSH', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0024' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='ON/OFF SWITCH ELCOM', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0025' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='3 SPEED SWITCH ELCOM', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0026' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='POWER CORD 2.5M 2CORE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0027' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HARDWARE PACKING SET', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0028' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='INNER CARTON', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0029' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='OUTER CARTON', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0030' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='MANUAL & WARRANTY CARD', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0031' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='MRP AND OTHER LABELS', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0032' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='DOOM TOP (FRONT) WHITE', make_buy='Make', unit_id=1 WHERE item_code='TFAN0033' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='DOOM KNOBS WHITE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0034' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='DOOM ON OFF PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0035' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HIGH BREEZE TOP (FRONT) WHITE', make_buy='Make', unit_id=1 WHERE item_code='TFAN0036' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HIGH BREEZE SWING PLATE (SLIDER)', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0037' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HIGH BREEZE LOWERS STICK', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0038' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HIGH BREEZE LOWERS UP DOWN', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0039' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HIGH BREEZE LOWERS CONTROLLER SET', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0040' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HIGH BREEZE LOWERS 5PCS', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0041' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HIGH BREEZE KNOBS WHITE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0042' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='HIGH BREEZE ON OFF PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0043' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='PERFUME TOP (FRONT) WHITE', make_buy='Make', unit_id=1 WHERE item_code='TFAN0044' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='COLORED FRONT PANEL', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0045' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='PERFUME SWING PLATE (SLIDER)', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0046' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='PERFUME KNOBS WHITE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0047' AND item_name IN ('-','.') ;
+UPDATE m_item_master SET item_name='PERFUME ON OFF PLATE', make_buy='Buy', unit_id=1 WHERE item_code='TFAN0048' AND item_name IN ('-','.') ;
 
 COMMIT;
-
--- After this, FREEZE: 
--- ALTER TABLE m_item_master ADD CONSTRAINT chk_freeze CHECK (true); -- app-level hook will enforce

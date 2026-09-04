@@ -17,6 +17,8 @@ const API = import.meta.env.VITE_API_URL || '';
 export default function ProfileRequestApproval() {
   const { showToast } = useToast();
   const [requests, setRequests] = useState([]);
+  const [all, setAll] = useState([]);
+  const [filter, setFilter] = useState('Pending');
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -25,13 +27,17 @@ export default function ProfileRequestApproval() {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    fetchRequests(filter);
+  }, [filter]);
 
-  const fetchRequests = async () => {
+  const fetchRequests = async (f = filter) => {
     try {
-      const res = await axios.get(`${API}/api/employees/profile-requests`, { withCredentials: true });
-      setRequests(res.data);
+      const [filtered, allRes] = await Promise.all([
+        axios.get(`${API}/api/employees/profile-requests`, { params: { status: f }, withCredentials: true }),
+        axios.get(`${API}/api/employees/profile-requests`, { params: { status: 'All' }, withCredentials: true }),
+      ]);
+      setRequests(filtered.data);
+      setAll(allRes.data);
     } catch (err) {
       console.error('Error fetching requests:', err);
       showToast(getErrorMessage(err, 'Failed to load requests'), 'error');

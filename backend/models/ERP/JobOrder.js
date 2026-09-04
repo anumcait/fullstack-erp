@@ -19,6 +19,15 @@ module.exports = (sequelize) => {
     req_date: { type: DataTypes.DATEONLY, allowNull: true },
     jo_date: { type: DataTypes.DATEONLY, allowNull: true },
     department: { type: DataTypes.STRING(100), allowNull: true },
+    machine_id: { type: DataTypes.INTEGER, allowNull: true },
+    work_center: { type: DataTypes.STRING(100), allowNull: true },
+    shift: { type: DataTypes.STRING(30), allowNull: true },
+    priority: { type: DataTypes.STRING(20), allowNull: true, defaultValue: 'Medium' },
+    scheduled_start: { type: DataTypes.DATE, allowNull: true },
+    scheduled_end: { type: DataTypes.DATE, allowNull: true },
+    estimated_hours: { type: DataTypes.DECIMAL(8, 2), allowNull: true },
+    instructions: { type: DataTypes.TEXT, allowNull: true },
+    operations: { type: DataTypes.JSONB, allowNull: true },
     remarks: { type: DataTypes.TEXT, allowNull: true },
     subject: { type: DataTypes.STRING(300), allowNull: true },
     reference: { type: DataTypes.STRING(200), allowNull: true },
@@ -46,6 +55,7 @@ module.exports = (sequelize) => {
 
   JobOrder.associate = (models) => {
     JobOrder.hasMany(models.JobOrderItem, { foreignKey: 'order_id', as: 'items' });
+    JobOrder.belongsTo(models.ProductionMachine, { foreignKey: 'machine_id', as: 'machine' });
   };
 
   return JobOrder;

@@ -52,6 +52,8 @@ import PMSDashboard from "./Component/HR/PMS/PMSDashboard.jsx";
 import DisciplinaryDashboard from "./Component/HR/Disciplinary/DisciplinaryDashboard.jsx";
 import AttendanceCollectorDashboard from "./Component/HR/AttendanceCollector/AttendanceCollectorDashboard.jsx";
 import PfAccountingDashboard from "./Component/HR/PFAccounting/PfAccountingDashboard.jsx";
+import AttendanceRequestDashboard from "./Component/HR/AttendanceRequest/AttendanceRequestDashboard.jsx";
+import EmployeeReports from "./Component/HR/EmployeeReports/EmployeeReports.jsx";
 
 // Wrapper combining auth + permission check (dynamic based on current location)
 const SecureRoute = ({ children, fallback = '/dashboard' }) => {
@@ -249,6 +251,8 @@ import MaterialReturnList from "./Component/ERP/Stores/MaterialReturn/MaterialRe
 import MaterialReturnForm from "./Component/ERP/Stores/MaterialReturn/MaterialReturnForm.jsx";
 import ProductionReports from "./Component/ERP/Production/ProductionReports.jsx";
 import ProductionSettings from "./Component/ERP/Production/ProductionSettings.jsx";
+import OrderProductionPlan from "./Component/ERP/Production/OrderProductionPlan.jsx";
+import ProductionOrderForm from "./Component/ERP/Production/JobOrder/ProductionOrderForm.jsx";
 import PlanningReports from "./Component/ERP/Planning/PlanningReports.jsx";
 import PlanningSettings from "./Component/ERP/Planning/PlanningSettings.jsx";
 import EngineeringReports from "./Component/ERP/Engineering/EngineeringReports.jsx";
@@ -481,7 +485,11 @@ function App() {
                     <Route path="/stores/misc-voucher-billing" element={<MiscVoucherBilling />} />
                     <Route path="/stores/cancellations" element={<Cancellations />} />
                     <Route path="/production" element={<ProductionDashboard />} />
+                    <Route path="/production/order-plan" element={<OrderProductionPlan />} />
                     <Route path="/production/orders" element={<ProductionOrderList />} />
+                    <Route path="/production/orders/add" element={<ProductionOrderForm />} />
+                    <Route path="/production/orders/view/:id" element={<ProductionOrderForm />} />
+                    <Route path="/production/orders/edit/:id" element={<ProductionOrderForm />} />
                     <Route path="/production/machines" element={<MachineList />} />
                     <Route path="/production/machines/add" element={<MachineForm />} />
                     <Route path="/production/machines/view/:id" element={<MachineForm />} />
@@ -640,6 +648,9 @@ function App() {
                     <Route path="/shiftschedule" element={<ShiftSchedule />} />
                     <Route path="/muster-roll" element={<MusterRoll />} />
                     <Route path="/ot-approval" element={<OTApproval />} />
+                    <Route path="/my-attendance" element={<AttendanceRequestDashboard />} />
+                    <Route path="/attendance-requests" element={<AttendanceRequestDashboard />} />
+                    <Route path="/my-reports" element={<EmployeeReports />} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/leave-report" element={<LeaveReport />} />
                     <Route path="/useraccess" element={<UserAccess />} />

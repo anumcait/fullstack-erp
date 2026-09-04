@@ -10,6 +10,7 @@ const settingsController = require('../../controllers/ERP/productionSettingsCont
 
 router.get('/dashboard', dashboardController.stats);
 
+router.get('/order-plan', jobOrderController.getOrderPlan);
 router.get('/job-orders', jobOrderController.getList);
 router.get('/job-orders/:id', jobOrderController.getOne);
 router.post('/job-orders', jobOrderController.create);

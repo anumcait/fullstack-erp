@@ -1166,6 +1166,32 @@ exports.getEarningsDeductions = async (req, res) => {
   }
 };
 
+exports.getMyPayslips = async (req, res) => {
+  try {
+    const empid = req.session?.user?.empid || parseInt(req.query.empid);
+    if (!empid) return res.status(401).json({ message: 'Not authenticated' });
+    const data = await Payslip.findAll({ where: { C_EMPID: empid }, order: [['C_YEAR','DESC'], [Sequelize.literal(`CASE WHEN "C_MONTH"='JAN' THEN 1 WHEN "C_MONTH"='FEB' THEN 2 WHEN "C_MONTH"='MAR' THEN 3 WHEN "C_MONTH"='APR' THEN 4 WHEN "C_MONTH"='MAY' THEN 5 WHEN "C_MONTH"='JUN' THEN 6 WHEN "C_MONTH"='JUL' THEN 7 WHEN "C_MONTH"='AUG' THEN 8 WHEN "C_MONTH"='SEP' THEN 9 WHEN "C_MONTH"='OCT' THEN 10 WHEN "C_MONTH"='NOV' THEN 11 WHEN "C_MONTH"='DEC' THEN 12 ELSE 13 END`), 'DESC']], include: [{ model: EmployeeMaster, as: 'employee', attributes: ['ename'] }] });
+    res.json(data);
+  } catch (error) { console.error('getMyPayslips', error); res.status(500).json({ message: 'Error fetching my payslips' }); }
+};
+
+exports.downloadMyPayslip = async (req, res) => {
+  try {
+    const sessionEmpid = req.session?.user?.empid;
+    const qEmpid = parseInt(req.query.empid);
+    const { month, year } = req.query;
+    if (!sessionEmpid) return res.status(401).json({ message: 'Not authenticated' });
+    if (qEmpid && qEmpid !== sessionEmpid && req.session?.user?.role !== 'ADMIN') return res.status(403).json({ message: 'Can only download own payslip' });
+    const empid = qEmpid || sessionEmpid;
+    const y = parseInt(year); const m = parseInt(month);
+    if (!y || !m) return res.status(400).json({ message: 'month and year required' });
+    const monthStr = getMonthName(m);
+    const payslip = await Payslip.findOne({ where: { C_EMPID: empid, C_YEAR: y, C_MONTH: monthStr } });
+    if (!payslip) return res.status(404).json({ message: 'Payslip not found' });
+    res.json(payslip);
+  } catch (error) { console.error('downloadMyPayslip', error); res.status(500).json({ message: 'Error fetching payslip' }); }
+};
+
 exports.getMealsCoupon = async (req, res) => {
   try {
     const { month, year } = req.query;

@@ -1,0 +1,14 @@
+const express = require('express');
+const router = express.Router();
+const c = require('../../controllers/HR/attendanceRequestController');
+router.post('/create', c.createRequest);
+router.post('/bulk', c.createBulkRequests);
+router.get('/my', c.getMyRequests);
+router.get('/pending', c.getPending);
+router.get('/all', c.getAllRequests);
+router.post('/approve', c.approve);
+router.post('/reject', c.reject);
+router.put('/:id', c.updateRequest);
+router.post('/cancel', c.cancel);
+router.post('/bulk-approve', c.bulkApprove);
+module.exports = router;

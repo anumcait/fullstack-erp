@@ -112,7 +112,7 @@ const EmployeeDashboard = () => {
             <FaPlaneDeparture /> Apply Leave
           </button>
           <button
-            onClick={() => navigate('/payroll?tab=payslips')}
+            onClick={() => navigate('/my-reports?tab=payslips')}
             className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition"
           >
             <FaDownload /> Payslip

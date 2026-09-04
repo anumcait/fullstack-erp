@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import {
   FiCpu, FiPlay, FiCheckCircle, FiAlertTriangle, FiClock,
-  FiPlus, FiRefreshCw, FiChevronRight, FiArrowRight, FiTool,
+  FiPlus, FiRefreshCw, FiChevronRight, FiArrowRight, FiTool, FiTarget,
 } from 'react-icons/fi';
 import axios from 'axios';
 import { useToast } from '../../../context/ToastContext';
@@ -17,6 +17,7 @@ import { formatDate } from '../../../utils/format';
 
 const QUICK_LINKS = [
   { label: 'New Job Order', to: '/purchase/job-orders/add', icon: FiPlus },
+  { label: 'Order Plan', to: '/production/order-plan', icon: FiTarget },
   { label: 'Daily Entry', to: '/production/daily-entry/add', icon: FiClock },
   { label: 'Downtime', to: '/production/downtime/add', icon: FiAlertTriangle },
   { label: 'Machines', to: '/production/machines', icon: FiCpu },

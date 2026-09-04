@@ -118,6 +118,7 @@ export default function ProductMasterForm() {
   const [bomOptions, setBomOptions] = useState([]);
   const [usedIn, setUsedIn] = useState([]);
   const [itemDialog, setItemDialog] = useState({ open: false, targetTempId: null, code: '', name: '', make_buy: 'Buy', description: '', unit_id: '', hsn_code: '', gst_rate: '', saving: false, error: '' });
+  const [editItemDialog, setEditItemDialog] = useState({ open: false, id: null, code: '', name: '', description: '', unit_id: '', hsn_code: '', gst_rate: '', saving: false, error: '' });
   const [units, setUnits] = useState([]);
   const [groups, setGroups] = useState([]);
 
@@ -180,9 +181,9 @@ export default function ProductMasterForm() {
     (p) => ['SUB_ASSEMBLY', 'PHANTOM'].includes(p.node_type) && String(p.id) !== String(id)
   );
 
-  /* Make items choices search-friendly */
+  /* Make items choices search-friendly — hide inactive duplicates */
   const itemOptions = useMemo(() =>
-    itemMasterList.map((im) => ({
+    itemMasterList.filter((im) => im.is_active !== false).map((im) => ({
       id: im.id,
       label: `${im.item_code} — ${im.item_name} ${im.unit?.short_name ? `(${im.unit.short_name})` : ''}`,
       item_code: im.item_code,
@@ -372,6 +373,46 @@ export default function ProductMasterForm() {
     setItemDialog({ open: true, targetTempId, code: '', name: '', make_buy: 'Buy', description: '', unit_id: '', hsn_code: '', gst_rate: '', saving: false, error: '' });
   };
 
+  const openEditItemDialog = async (itemId) => {
+    if (!itemId) return;
+    if (!units.length) axios.get('/api/erp/stores/units').then(({ data }) => setUnits(data)).catch(() => { });
+    try {
+      const { data } = await axios.get(`${ITEMS_API}/${itemId}`);
+      setEditItemDialog({ open: true, id: data.id, code: data.item_code || '', name: data.item_name || '', description: data.item_description || '', unit_id: data.unit_id || '', hsn_code: data.hsn_code || '', gst_rate: data.gst_rate ?? '', saving: false, error: '' });
+    } catch {
+      const fallback = itemMasterList.find((im) => String(im.id) === String(itemId));
+      if (fallback) setEditItemDialog({ open: true, id: fallback.id, code: fallback.item_code || '', name: fallback.item_name || '', description: fallback.item_description || '', unit_id: fallback.unit_id || '', hsn_code: fallback.hsn_code || '', gst_rate: fallback.gst_rate ?? '', saving: false, error: '' });
+      else showToast('Failed to load item details', 'error');
+    }
+  };
+
+  const handleUpdateItem = async () => {
+    const name = String(editItemDialog.name || '').trim();
+    if (!name || name.length < 2) return setEditItemDialog((d) => ({ ...d, error: 'Item name is too short' }));
+    const codeStr = String(editItemDialog.code || '').trim();
+    if (codeStr && !/^[A-Z0-9][A-Z0-9-]*$/.test(codeStr.toUpperCase())) return setEditItemDialog((d) => ({ ...d, error: 'Code must be uppercase letters/numbers with hyphens' }));
+    setEditItemDialog((d) => ({ ...d, saving: true, error: '' }));
+    try {
+      const payload = { item_name: name };
+      if (codeStr) payload.item_code = codeStr.toUpperCase();
+      payload.item_description = String(editItemDialog.description || '').trim() || null;
+      if (editItemDialog.unit_id) payload.unit_id = Number(editItemDialog.unit_id);
+      const hsnStr = String(editItemDialog.hsn_code || '').trim();
+      if (hsnStr) payload.hsn_code = hsnStr;
+      if (editItemDialog.gst_rate !== '' && editItemDialog.gst_rate !== null && editItemDialog.gst_rate !== undefined) payload.gst_rate = Number(editItemDialog.gst_rate) || 0;
+      const { data } = await axios.put(`${ITEMS_API}/${editItemDialog.id}`, payload);
+      const updated = data.item || data;
+      setItemMasterList((prev) => prev.map((im) => String(im.id) === String(updated.id) ? { ...im, ...updated } : im));
+      setItems((prev) => prev.map((it) => String(it.item_id) === String(updated.id) ? { ...it, item_code: updated.item_code ?? it.item_code, item_name: updated.item_name ?? it.item_name, item_description: updated.item_description ?? it.item_description, unit_id: updated.unit_id ?? it.unit_id } : it));
+      setCompDialog((cd) => cd.draft && String(cd.draft.item_id) === String(updated.id) ? { ...cd, draft: { ...cd.draft, item_code: updated.item_code ?? cd.draft.item_code, item_name: updated.item_name ?? cd.draft.item_name, item_description: updated.item_description ?? cd.draft.item_description } } : cd);
+      axios.get(ITEMS_API).then(({ data: list }) => setItemMasterList(list)).catch(() => { });
+      setEditItemDialog((d) => ({ ...d, open: false, saving: false }));
+      showToast('Item updated — BOM refreshed instantly', 'success');
+    } catch (e) {
+      setEditItemDialog((d) => ({ ...d, saving: false, error: e?.response?.data?.error || e?.response?.data?.errors?.[0] || 'Failed to update item' }));
+    }
+  };
+
   const handleCreateItem = async () => {
     const code = itemDialog.code.trim().toUpperCase();
     const name = itemDialog.name.trim();
@@ -445,6 +486,7 @@ export default function ProductMasterForm() {
         rows.push({
           id: `L-${n.id}-${level}-${rows.length}`,
           tempId: null,
+          item_id: n.item_id || null,
           level,
           sno: ++seq,
           serial_no: n.serial_no,
@@ -470,6 +512,7 @@ export default function ProductMasterForm() {
         rows.push({
           id: it.tempId,
           tempId: it.tempId,
+          item_id: it.item_id || null,
           level,
           sno: ++seq,
           serial_no: it.serial_no,
@@ -551,8 +594,8 @@ export default function ProductMasterForm() {
 
   const bomTableWidth = useMemo(() => {
     const colsSum = Object.values(bomColWidths).reduce((acc, w) => acc + w, 0);
-    return colsSum + (readOnly ? 0 : 150);
-  }, [bomColWidths, readOnly]);
+    return colsSum + 150;
+  }, [bomColWidths]);
 
   // Mark rows that have child rows, and filter based on expand/collapse state.
   // By default all rows are EXPANDED; bomCollapsed tracks explicitly collapsed nodes.
@@ -831,19 +874,32 @@ export default function ProductMasterForm() {
                     renderInput={(params) => <TextField {...params} label="Sub Category *" placeholder="Select or type..." />}
                   />
                 </Box>
-                <Box sx={{ flex: '1 1 200px' }}>
+                <Box sx={{ flex: '1 1 200px', display: 'flex', gap: 0.5, alignItems: 'flex-start' }}>
                   <TextField
                     label="Linked Inventory Item" select size="small" fullWidth
                     value={form.item_id} onChange={handleChange('item_id')}
                     disabled={readOnly}
                   >
                     <MenuItem value=""><em>Not Linked</em></MenuItem>
-                    {itemMasterList.map((im) => (
+                    {itemMasterList.filter((im) => im.is_active !== false).map((im) => (
                       <MenuItem key={im.id} value={im.id}>
                         {im.item_code} - {im.item_name} {im.unit?.short_name ? `(${im.unit.short_name})` : ''}
                       </MenuItem>
                     ))}
                   </TextField>
+                  <Box display="flex" flexDirection="column" gap={0.25}>
+                    <Tooltip title={form.item_id ? "Edit linked Item Master" : "Add new Item Master"}>
+                      <IconButton size="small" onClick={() => form.item_id ? openEditItemDialog(form.item_id) : openItemDialog(null)}
+                        sx={{ bgcolor: form.item_id ? '#eff6ff' : '#f0fdf4', color: form.item_id ? '#2563eb' : '#16a34a', border: '1px solid #e2e8f0', width: 30, height: 30 }}>
+                        {form.item_id ? <EditIcon sx={{ fontSize: 16 }} /> : <AddIcon sx={{ fontSize: 16 }} />}
+                      </IconButton>
+                    </Tooltip>
+                    {form.item_id && (
+                      <Tooltip title="Create new Item">
+                        <IconButton size="small" onClick={() => openItemDialog(null)} sx={{ bgcolor: '#f0fdf4', color: '#16a34a', border: '1px solid #e2e8f0', width: 30, height: 22 }}><AddIcon sx={{ fontSize: 14 }} /></IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
                 </Box>
                 <Box sx={{ flex: '2 1 260px' }}>
                   <CountedTextArea
@@ -1068,7 +1124,7 @@ export default function ProductMasterForm() {
                             />
                           </th>
                         ))}
-                        {!readOnly && <th style={{ width: 150, minWidth: 150, verticalAlign: 'top' }}>Actions</th>}
+                        <th style={{ width: 150, minWidth: 150, verticalAlign: 'top' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1121,30 +1177,40 @@ export default function ProductMasterForm() {
                               <span>{r.remark || '—'}</span>
                             </Tooltip>
                           </td>
-                          {/* Actions */}
-                          {!readOnly && (
-                            <td>
-                              {r.readOnly ? (
-                                r.component_product_id ? (
+                          {/* Actions — Item Master edit always available even in View mode */}
+                          <td>
+                            {r.readOnly ? (
+                              <Box display="flex" gap={0.5} justifyContent="center">
+                                {r.item_id && (
+                                  <Tooltip title="Edit Item Master (fix description)">
+                                    <IconButton size="small" onClick={() => openEditItemDialog(r.item_id)} sx={{ bgcolor: '#fff7ed', color: '#ea580c', '&:hover': { bgcolor: '#ffedd5' } }}><SettingsIcon sx={{ fontSize: 14 }} /></IconButton>
+                                  </Tooltip>
+                                )}
+                                {r.component_product_id ? (
                                   <Button size="small" variant="text" sx={{ textTransform: 'none', fontSize: 12 }} onClick={() => navigate(`/engineering/products/edit/${r.component_product_id}`)}>Open</Button>
-                                ) : null
-                              ) : (
-                                <Box display="flex" gap={0.5} justifyContent="center">
-                                  {r.is_subassembly && r.level === 0 && (
-                                    <Tooltip title="Add sub-component">
-                                      <IconButton size="small" onClick={() => openAddComponent(r.tempId)} sx={{ bgcolor: '#f0fdf4', color: 'success.main', '&:hover': { bgcolor: '#dcfce7' } }}><LayersIcon sx={{ fontSize: 16 }} /></IconButton>
-                                    </Tooltip>
-                                  )}
-                                  <Tooltip title="Edit">
-                                    <IconButton size="small" color="primary" onClick={() => openEditComponent(items.find((i) => i.tempId === r.tempId))} sx={{ bgcolor: '#eff6ff', '&:hover': { bgcolor: '#dbeafe' } }}><EditIcon sx={{ fontSize: 16 }} /></IconButton>
+                                ) : null}
+                              </Box>
+                            ) : (
+                              <Box display="flex" gap={0.5} justifyContent="center">
+                                {r.is_subassembly && r.level === 0 && (
+                                  <Tooltip title="Add sub-component">
+                                    <IconButton size="small" onClick={() => openAddComponent(r.tempId)} sx={{ bgcolor: '#f0fdf4', color: 'success.main', '&:hover': { bgcolor: '#dcfce7' } }}><LayersIcon sx={{ fontSize: 16 }} /></IconButton>
                                   </Tooltip>
-                                  <Tooltip title="Remove">
-                                    <IconButton size="small" color="error" onClick={() => removeItem(r.tempId)} sx={{ bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' } }}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
+                                )}
+                                {r.item_id && (
+                                  <Tooltip title="Edit Item Master — fix wrong description/name">
+                                    <IconButton size="small" onClick={() => openEditItemDialog(r.item_id)} sx={{ bgcolor: '#fff7ed', color: '#ea580c', '&:hover': { bgcolor: '#ffedd5' } }}><SettingsIcon sx={{ fontSize: 16 }} /></IconButton>
                                   </Tooltip>
-                                </Box>
-                              )}
-                            </td>
-                          )}
+                                )}
+                                <Tooltip title="Edit component line (qty/remark)">
+                                  <IconButton size="small" color="primary" onClick={() => openEditComponent(items.find((i) => i.tempId === r.tempId))} sx={{ bgcolor: '#eff6ff', '&:hover': { bgcolor: '#dbeafe' } }}><EditIcon sx={{ fontSize: 16 }} /></IconButton>
+                                </Tooltip>
+                                <Tooltip title="Remove">
+                                  <IconButton size="small" color="error" onClick={() => removeItem(r.tempId)} sx={{ bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' } }}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
+                                </Tooltip>
+                              </Box>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1256,6 +1322,44 @@ export default function ProductMasterForm() {
         </DialogActions>
       </Dialog>
 
+      {/* ── Item Master Quick Edit (fix wrong description from Product) ── */}
+      <Dialog open={editItemDialog.open} onClose={() => setEditItemDialog((d) => ({ ...d, open: false }))} maxWidth="sm" fullWidth
+        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Edit Item Master
+          <Chip size="small" label={editItemDialog.code} sx={{ fontFamily: 'monospace', fontWeight: 700 }} />
+        </DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} sx={{ mt: 1.5 }}>
+            <TextField label="Item Code" size="small" fullWidth value={editItemDialog.code}
+              onChange={(e) => setEditItemDialog((d) => ({ ...d, code: e.target.value }))} inputProps={{ maxLength: 50 }} helperText="Leave blank to keep existing code" />
+            <TextField label="Item Name *" size="small" fullWidth value={editItemDialog.name}
+              onChange={(e) => setEditItemDialog((d) => ({ ...d, name: e.target.value }))} inputProps={{ maxLength: 200 }} />
+            <TextField label="Description — fix wrong description here" size="small" fullWidth multiline rows={3} value={editItemDialog.description}
+              onChange={(e) => setEditItemDialog((d) => ({ ...d, description: e.target.value }))} placeholder="Correct the description shown in BOM" inputProps={{ maxLength: 2000 }} />
+            <Box display="flex" gap={2}>
+              <TextField label="UOM" select size="small" fullWidth value={editItemDialog.unit_id}
+                onChange={(e) => setEditItemDialog((d) => ({ ...d, unit_id: e.target.value }))}>
+                <MenuItem value=""><em>None</em></MenuItem>
+                {units.map((u) => <MenuItem key={u.id} value={u.id}>{u.short_name || u.name}</MenuItem>)}
+              </TextField>
+              <TextField label="HSN" size="small" fullWidth value={editItemDialog.hsn_code}
+                onChange={(e) => setEditItemDialog((d) => ({ ...d, hsn_code: e.target.value }))} inputProps={{ maxLength: 20 }} />
+              <TextField label="GST %" type="number" size="small" fullWidth value={editItemDialog.gst_rate}
+                onChange={(e) => setEditItemDialog((d) => ({ ...d, gst_rate: e.target.value }))} />
+            </Box>
+            <Alert severity="info" sx={{ py: 0.5 }}>Saving updates Item Master globally — all Products using this item will show the new description.</Alert>
+            {editItemDialog.error && <Alert severity="error">{editItemDialog.error}</Alert>}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditItemDialog((d) => ({ ...d, open: false }))} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button size="small" variant="outlined" onClick={() => window.open(`/stores/item-master/edit/${editItemDialog.id}`, '_blank')} sx={{ textTransform: 'none' }}>Full Edit →</Button>
+          <Button variant="contained" onClick={handleUpdateItem} disabled={editItemDialog.saving}
+            sx={{ fontWeight: 700, px: 3, textTransform: 'none' }}>{editItemDialog.saving ? 'Saving...' : 'Update Item'}</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* ── Component (BOM item) Edit Dialog ── */}
       <Dialog open={compDialog.open} onClose={() => setCompDialog((d) => ({ ...d, open: false }))} maxWidth="sm" fullWidth
         PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
@@ -1265,31 +1369,45 @@ export default function ProductMasterForm() {
         <DialogContent>
           {compDialog.draft && (
             <Box display="flex" flexDirection="column" gap={2.25} sx={{ mt: 1.5 }}>
-              <Autocomplete size="small" fullWidth
-                options={itemOptions}
-                getOptionLabel={(o) => typeof o === 'string' ? o : o.item_code || ''}
-                isOptionEqualToValue={(o, v) => String(o.id) === String(v.id)}
-                filterOptions={cap}
-                value={itemOptions.find((o) => String(o.id) === String(compDialog.draft.item_id)) || null}
-                onChange={(_, val) => setCompDialog((cd) => {
-                  const d = { ...cd.draft, item_id: val ? String(val.id) : '' };
-                  if (val) {
-                    d.item_code = val.item_code;
-                    d.item_name = val.item_name;
-                    d.item_description = val.item_description || '';
-                    d.unit_id = val.unit_id;
-                  }
-                  return { ...cd, draft: d };
-                })}
-                renderOption={(props, option) => (
-                  <Box component="li" {...props} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', py: 0.75, borderBottom: '1px solid #f1f5f9' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace', color: '#1e293b' }}>{option.item_code}</Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>{option.item_name}</Typography>
-                    <Typography variant="caption" sx={{ color: '#94a3b8' }}>{option.item_description || '—'}</Typography>
-                  </Box>
-                )}
-                renderInput={(params) => <TextField {...params} label="Item Code" />}
-              />
+              <Box display="flex" gap={1} alignItems="center">
+                <Box sx={{ flex: 1 }}>
+                  <Autocomplete size="small" fullWidth
+                    options={itemOptions}
+                    getOptionLabel={(o) => typeof o === 'string' ? o : o.item_code || ''}
+                    isOptionEqualToValue={(o, v) => String(o.id) === String(v.id)}
+                    filterOptions={cap}
+                    value={itemOptions.find((o) => String(o.id) === String(compDialog.draft.item_id)) || null}
+                    onChange={(_, val) => setCompDialog((cd) => {
+                      const d = { ...cd.draft, item_id: val ? String(val.id) : '' };
+                      if (val) {
+                        d.item_code = val.item_code;
+                        d.item_name = val.item_name;
+                        d.item_description = val.item_description || '';
+                        d.unit_id = val.unit_id;
+                      }
+                      return { ...cd, draft: d };
+                    })}
+                    renderOption={(props, option) => (
+                      <Box component="li" {...props} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', py: 0.75, borderBottom: '1px solid #f1f5f9' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace', color: '#1e293b' }}>{option.item_code}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>{option.item_name}</Typography>
+                        <Typography variant="caption" sx={{ color: '#94a3b8' }}>{option.item_description || '—'}</Typography>
+                      </Box>
+                    )}
+                    renderInput={(params) => <TextField {...params} label="Item Code" />}
+                  />
+                </Box>
+                <Tooltip title={compDialog.draft.item_id ? "Edit Item Master (wrong description?)" : "Create new Item Master"}>
+                  <IconButton size="small" onClick={() => compDialog.draft.item_id ? openEditItemDialog(compDialog.draft.item_id) : openItemDialog(compDialog.draft.tempId)}
+                    sx={{ bgcolor: compDialog.draft.item_id ? '#fff7ed' : '#f0fdf4', color: compDialog.draft.item_id ? '#ea580c' : '#16a34a', border: '1px solid #e2e8f0' }}>
+                    {compDialog.draft.item_id ? <EditIcon sx={{ fontSize: 18 }} /> : <AddIcon sx={{ fontSize: 18 }} />}
+                  </IconButton>
+                </Tooltip>
+              </Box>
+              <Box display="flex" gap={1}>
+                <Button size="small" variant="text" onClick={() => openItemDialog(compDialog.draft.tempId)} sx={{ textTransform: 'none', fontSize: 12 }}>+ New Item Master</Button>
+                {compDialog.draft.item_id && <Button size="small" variant="text" onClick={() => window.open(`/stores/item-master/edit/${compDialog.draft.item_id}`, '_blank')} sx={{ textTransform: 'none', fontSize: 12 }}>Full Edit →</Button>}
+              </Box>
               {compDialog.draft && compDialog.draft.item_id && (() => {
                 const sel = itemOptions.find((o) => String(o.id) === String(compDialog.draft.item_id));
                 return sel ? (

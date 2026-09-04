@@ -2,77 +2,74 @@
 
 **Date:** 2026-08-31
 **Source:** `docs/test.md` (4 models) vs `m_item_master` (822 codes)
+**Order:** Normal → Doom → High Breeze → Perfume as per `test.md`
 
 ## 1. Current State
-- `m_item_master` has 822 codes but ~90% have `item_name='-'` / `'.'` (blanks) — see `TFAN0001-0195`, `ELEC0001-0031`, `PACK0001-0032` all blank.
-- `test.md` defines 30 distinct purchasable/manufactured components + 2 sub-assemblies (12 sub-parts).
+- `m_item_master` has 822 codes but ~90% have `item_name='-'` / `'.'` (blanks) — see `TFAN0001-0195` all blank.
+- `test.md` defines Normal 22, Doom 22, High Breeze 24, Perfume 22 items with 2 Sub Assemblies (12 sub-parts).
 - No deterministic mapping `Component → item_code` exists yet → if you freeze now, transactions will reference blank codes forever.
 
-## 2. Distinct Components (from test.md)
-| # | Component (as per test.md) | Variants | Recommended Code | UOM | make_buy |
-|---|---------------------------|----------|----------------|-----|----------|
-| 1 | Normal TOP (FRONT) White | Normal/Doom/HiBreeze/Perfume | TFAN0001..04 | PCS | Make |
-| 2 | Colored front Panel | Perfume only | TFAN0005 | PCS | Buy |
-| 3 | BOTTOM (BACK) White | Common | TFAN0006 | PCS | Make |
-| 4 | SWING PLATE (Slider) | Normal/Doom/HiBreeze/Perfume | TFAN0007..10 | PCS | Buy |
-| 5 | STOPPER PLATE | Normal/Doom | TFAN0011 | PCS | Buy |
-| 6 | LOWERS (2) | Normal/Doom/Perfume | TFAN0012 | PCS | Buy |
-| 7 | HiBreeze LOWERS STICK | HiBreeze only | TFAN0013 | PCS | Buy |
-| 8 | HiBreeze LOWERS UP DOWN | HiBreeze only | TFAN0014 | PCS | Buy |
-| 9 | HiBreeze LOWERS CONTROLLER SET | HiBreeze only | TFAN0015 | PCS | Buy |
-|10 | HiBreeze LOWERS (5) | HiBreeze only | TFAN0016 | PCS | Buy |
-|11 | D PLATE with CAP SET Assembly (SA) | Common SA | SA-DPLATE-01 | SET | Phantom |
-|12 |  D plate | SA child | COMP0001 | PCS | Buy |
-|13 |  cap set bottom | SA child | COMP0002 | PCS | Buy |
-|14 |  cap set top | SA child | COMP0003 | PCS | Buy |
-|15 |  derlin round part | SA child | COMP0004 | PCS | Buy |
-|16 |  Nandus dipped in oil | SA child | HARD0001 | PCS | Buy |
-|17 |  spring | SA child | HARD0002 | PCS | Buy |
-|18 | MOTOR BASE Black | Common | TFAN0017 | PCS | Make |
-|19 | BLOWER Assembly (SA) | Common SA | SA-BLOWER-01 | SET | Phantom |
-|20 |  blower top plate | SA child | TFAN0018 | PCS | Buy |
-|21 |  pin insert | SA child | HARD0003 | PCS | Buy |
-|22 |  blower bottom plate | SA child | TFAN0019 | PCS | Buy |
-|23 |  blower bush rubber | SA child | ELEC0010 | PCS | Buy |
-|24 |  blower sections (5) | SA child | TFAN0020 | PCS | Buy |
-|25 |  Blower balancing pins (6) | SA child | HARD0004 | PCS | Buy |
-|26 | KNOBS White | Normal/Doom/HiBreeze/Perfume | TFAN0021..24 | PCS | Buy |
-|27 | on off Plate | Variants | TFAN0025..28 | PCS | Buy |
-|28 | RUBBER ITEMS (BUSH 4+ GROMET 1) | Common | HARD0010 | SET | Buy |
-|29 | PACKING COVERS | Common | PACK0001 | PCS | Buy |
-|30 | MOTOR WITH 4MFD CAPACITOR | Common | ELEC0001 | PCS | Buy |
-|31 | SWING MOTOR WITH BUSH | Common | ELEC0002 | PCS | Buy |
-|32 | ON/OFF SWITCH ELCOM | Common | ELEC0003 | PCS | Buy |
-|33 | 3 SPEED SWITCH ELCOM | Common | ELEC0004 | PCS | Buy |
-|34 | POWER CORD 2.5m 2core | Common | ELEC0005 | PCS | Buy |
-|35 | HARDWARE / PACKING SET | Common | HARD0020 | SET | Buy |
-|36 | INNER CARTON | Common | PACK0010 | PCS | Buy |
-|37 | Outer Carton 0.5 | Common | PACK0011 | PCS | Buy |
-|38 | MANUAL & WARRANTY CARD | Common | PACK0012 | PCS | Buy |
-|39 | MRP AND OTHER LABELS | Common | PACK0013 | PCS | Buy |
+## 2. Distinct Components — TFAN Serial Continuation (Normal → Doom → High Breeze → Perfume)
+| # | Component (as per test.md) | Model | TFAN Code | UOM | make_buy |
+|---|---------------------------|-------|-----------|-----|----------|
+| 1 | Normal TOP (FRONT) White | Normal 1 | TFAN0001 | PCS | Make |
+| 2 | BOTTOM (BACK) White | Normal 2 | TFAN0002 | PCS | Make |
+| 3 | SWING PLATE (Slider) Normal | Normal 3 | TFAN0003 | PCS | Buy |
+| 4 | STOPPER PLATE | Normal 4 | TFAN0004 | PCS | Buy |
+| 5 | LOWERS 2pcs | Normal 5 | TFAN0005 | PCS | Buy |
+| 6 | D plate 0001 | Normal 6 Sub Assembly 1 | TFAN0006 | PCS | Buy |
+| 7 | cap set bottom 0002 | Normal 6 Sub Assembly 2 | TFAN0007 | PCS | Buy |
+| 8 | cap set top 0003 | Normal 6 Sub Assembly 3 | TFAN0008 | PCS | Buy |
+| 9 | derlin round part 0004 | Normal 6 Sub Assembly 4 | TFAN0009 | PCS | Buy |
+|10 | Nandus dipped in oil 0005 | Normal 6 Sub Assembly 5 | TFAN0010 | PCS | Buy |
+|11 | spring 0006 | Normal 6 Sub Assembly 6 | TFAN0011 | PCS | Buy |
+|12 | MOTOR BASE Black | Normal 7 | TFAN0012 | PCS | Make |
+|13 | blower top plate 0001 | Normal 8 Sub Assembly 1 | TFAN0013 | PCS | Buy |
+|14 | pin insert 0002 | Normal 8 Sub Assembly 2 | TFAN0014 | PCS | Buy |
+|15 | blower bottom plate 0003 | Normal 8 Sub Assembly 3 | TFAN0015 | PCS | Buy |
+|16 | blower bush rubber 0004 | Normal 8 Sub Assembly 4 | TFAN0016 | PCS | Buy |
+|17 | blower sections 0005 | Normal 8 Sub Assembly 5 | TFAN0017 | PCS | Buy |
+|18 | Blower balancing pins 0006 | Normal 8 Sub Assembly 6 | TFAN0018 | PCS | Buy |
+|19 | Normal KNOBS White 2pcs | Normal 9 | TFAN0019 | PCS | Buy |
+|20 | Normal on off Plate | Normal 10 | TFAN0020 | PCS | Buy |
+|21 | RUBBER ITEMS BUSH 4+GROMET1 | Normal 11 | TFAN0021 | SET | Buy |
+|22 | PACKING COVERS | Normal 12 | TFAN0022 | PCS | Buy |
+|23 | MOTOR WITH 4MFD CAPACITOR | Normal 13 | TFAN0023 | PCS | Buy |
+|24 | SWING MOTOR WITH BUSH | Normal 14 | TFAN0024 | PCS | Buy |
+|25 | ON/OFF SWITCH ELCOM | Normal 15 | TFAN0025 | PCS | Buy |
+|26 | 3 SPEED SWITCH ELCOM | Normal 16 | TFAN0026 | PCS | Buy |
+|27 | POWER CORD 2.5m 2core | Normal 17 | TFAN0027 | PCS | Buy |
+|28 | HARDWARE PACKING SET | Normal 18 | TFAN0028 | SET | Buy |
+|29 | INNER CARTON | Normal 19 | TFAN0029 | PCS | Buy |
+|30 | Outer Carton 0.5 | Normal 20 | TFAN0030 | PCS | Buy |
+|31 | MANUAL & WARRANTY CARD | Normal 21 | TFAN0031 | PCS | Buy |
+|32 | MRP AND OTHER LABELS | Normal 22 | TFAN0032 | PCS | Buy |
+|33 | Doom TOP (FRONT) White | Doom 1 | TFAN0033 | PCS | Make |
+|34 | Doom KNOBS White 2pcs | Doom 9 | TFAN0034 | PCS | Buy |
+|35 | Doom on off Plate | Doom 10 | TFAN0035 | PCS | Buy |
+|36 | High Breeze TOP (FRONT) White | High Breeze 1 | TFAN0036 | PCS | Make |
+|37 | High Breeze SWING PLATE (Slider) | High Breeze 3 | TFAN0037 | PCS | Buy |
+|38 | High Breeze LOWERS STICK 1pc | High Breeze 4 | TFAN0038 | PCS | Buy |
+|39 | High Breeze LOWERS UP DOWN 2pcs | High Breeze 5 | TFAN0039 | PCS | Buy |
+|40 | High Breeze LOWERS CONTROLLER SET | High Breeze 6 | TFAN0040 | PCS | Buy |
+|41 | High breeze LOWERS 5pcs | High Breeze 7 | TFAN0041 | PCS | Buy |
+|42 | High Breeze KNOBS White 2pcs | High Breeze 11 | TFAN0042 | PCS | Buy |
+|43 | High Breeze on off Plate 2pcs | High Breeze 12 | TFAN0043 | PCS | Buy |
+|44 | Perfume TOP (FRONT) White | Perfume 1 | TFAN0044 | PCS | Make |
+|45 | Colored front Panel | Perfume 2 | TFAN0045 | PCS | Buy |
+|46 | Perfume SWING PLATE (Slider) | Perfume 4 | TFAN0046 | PCS | Buy |
+|47 | Perfume KNOBS White 2pcs | Perfume 9 | TFAN0047 | PCS | Buy |
+|48 | Perfume on off Plate | Perfume 10 | TFAN0048 | PCS | Buy |
 
-## 3. Best Freeze Procedure (cannot change code after transactions start)
+Note: D PLATE with CAP SET Assembly and BLOWER Assembly are Sub Assemblies — not item codes, children are TFAN0006-0011 and TFAN0013-0018 with serial 0001-0006 inside each.
 
-**Principle:** `item_code` = immutable business key (referenced by `m_product_item_master`, `t_stock_ledger`, `t_grn`). Freeze code, allow name/desc/UOM edits.
-
+## 3. Best Freeze Procedure
 Steps:
-1. **DRAFT phase (now):** Fill the mapping CSV (`docs/tower-fan-mapping.csv`) — assign each component above to a blank TFAN/ELEC/PACK code. Run `scripts/fill-tower-fan-names.sql` to update `item_name`, `item_description`, `make_buy`, `unit_id`, `hsn`.
-2. **Validate:** `SELECT item_code FROM m_item_master WHERE item_name IN ('-','.')` must be 0 for TFAN/ELEC/PACK ranges. Check `m_product_item_master` not yet referenced by stock transactions (`SELECT COUNT(*) FROM t_stock_ledger` =0).
-3. **Freeze flag:** Set `erp_settings.freeze_item_codes = true` (or `is_active` lock) — backend `POST /api/erp/stores/items` rejects new code format, `PUT` rejects `item_code` change if transactions exist. Implemented via `ItemMaster.beforeUpdate` hook.
-4. **BOM versioning:** Create 4 ProductMasters (NORMAL-GY-001, DOOM-GY-001, HIBREEZE-GY-001, PERFUME-GY-001) + 2 Phantom SAs. Use `sort_order`/`serial_no` locked. Future changes = new revision (`drawing_no` + `revision`), not code rename.
-5. **Soft-deprecate:** Never `DELETE` code, set `is_active=false`.
+1. Fill `docs/tower-fan-mapping.csv` — TFAN0001-0048 as above. Run `scripts/fill-tower-fan-names.sql`.
+2. Validate blank TFAN 0.
+3. Freeze via `ItemMaster.beforeUpdate` hook.
+4. Create 4 BOMs: NORMAL (TFAN0001-0032), DOOM (reuse common + TFAN0033-0035), HIBREEZE (TFAN0036-0043), PERFUME (TFAN0044-0048).
 
-## 4. Missing Today
-- 4 TOP variants need 4 distinct TFAN codes (currently only TFAN0001/02 exist with blank names — needs rename).
-- High-Breeze & Perfume unique parts have no codes reserved.
-- All items have no UOM/HSN/GST — must set before GRN entry.
-
-## 5. Next Actions
-- Fill `docs/tower-fan-mapping.csv` (template generated)
+## 4. Next Actions
 - Run: `docker exec hr_postgres psql -U postgres -d erpdb -f scripts/fill-tower-fan-names.sql`
-- Verify: `docker exec hr_postgres psql -U postgres -d erpdb -c "SELECT item_code,item_name FROM m_item_master WHERE item_code LIKE 'TFAN%' AND item_name != '-' LIMIT 20"`
-- Freeze: `UPDATE erp_settings SET freeze_item_codes=true` (or apply hook)
-
-## 6. Guardrails Added
-- `ProductMasterForm` quick-create now saves `description/unit/hsn/gst` and has `Open Full Item Master →` to use 10-tab form for full classification before freeze.
-- Unique constraint `item_code` + `item_name` duplicate check via `/api/erp/stores/items/check-duplicate`.
+- Verify: `SELECT item_code,item_name FROM m_item_master WHERE item_code LIKE 'TFAN00%' ORDER BY item_code`
