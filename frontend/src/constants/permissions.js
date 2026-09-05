@@ -38,7 +38,7 @@ export const PERMISSIONS = {
     { id: 'HR_ATTENDANCE_REQUEST', label: 'Self Attendance Request' },
     { id: 'HR_ATTENDANCE_APPROVE', label: 'Self Attendance Approval' },
     { id: 'HR_REPORTS', label: 'Reports' },
-    { id: 'HR_REPORTS_EMP', label: 'My Reports' },
+    { id: 'HR_REPORTS_EMP', label: 'Employee Reports' },
     { id: 'HR_SETTINGS', label: 'Settings' },
   ],
   ACCOUNTS: [

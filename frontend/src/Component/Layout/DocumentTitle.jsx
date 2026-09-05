@@ -142,6 +142,7 @@ const PAGE_TITLES = [
   ['/ot-approval', 'OT Approval'],
   ['/photo', 'Photo Upload'],
   ['/useraccess', 'User Access'],
+  ['/my-reports', 'Employee Reports'],
   ['/profile', 'My Profile'],
   ['/change-password', 'Change Password'],
   ['/hr/settings', 'HR Settings'],

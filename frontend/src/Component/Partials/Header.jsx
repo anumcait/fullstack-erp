@@ -226,7 +226,7 @@ const Header = () => {
             { label: 'Tour Applications', path: '/tour' },
             { label: 'Shift Change', path: '/shiftchange' },
             { label: 'W-Off Change', path: '/woffchange' },
-            { label: 'My Reports', path: '/my-reports', permission: 'HR_REPORTS_EMP' }
+            { label: 'Employee Reports', path: '/my-reports', permission: 'HR_REPORTS_EMP' }
           ]
         }
       ]

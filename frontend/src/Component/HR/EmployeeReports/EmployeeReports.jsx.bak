@@ -1,0 +1,204 @@
+import React, { useState, useEffect } from "react";
+import { Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, TextField, Button, Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
+import axios from "axios";
+import { useLocation } from "react-router-dom";
+import ModuleTabBar from "../common/ModuleTabBar";
+import { FaCalendarCheck, FaUmbrellaBeach, FaMoneyBill, FaClock, FaFileAlt, FaDownload, FaEye } from "react-icons/fa";
+import CloseIcon from "@mui/icons-material/Close";
+import logo from "../../../assets/images/EQIC_Image.jpg";
+import { useCompany } from "../../../context/CompanyContext";
+import "../payroll/PayslipPreview.css";
+import PrintIcon from "@mui/icons-material/Print";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+const TabIcon = ({ icon }) => <span style={{ fontSize: 11 }}>{icon}</span>;
+
+export default function EmployeeReports() {
+  const theme = useTheme();
+  const { companyName } = useCompany();
+  const location = useLocation();
+  const empid = localStorage.getItem("empId");
+  const [tab, setTab] = useState(() => new URLSearchParams(location.search).get("tab") || "attendance");
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewData, setViewData] = useState(null);
+  const fmt = (v) => { const n = Number(v); return isNaN(n) ? "0" : n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); };
+
+  const tabs = [
+    { label: "My Attendance", value: "attendance", icon: <FaCalendarCheck /> },
+    { label: "My Leaves", value: "leaves", icon: <FaUmbrellaBeach /> },
+    { label: "My Payslips", value: "payslips", icon: <FaMoneyBill /> },
+    { label: "My OT / Requests", value: "ot", icon: <FaClock /> },
+  ];
+
+  const fetchData = async () => {
+    if (!empid) return;
+    setLoading(true);
+    try {
+      if (tab === "attendance") {
+        const r = await axios.get(`${import.meta.env.VITE_API_URL}/api/attendance`, { params: { empid, month, year }, withCredentials: true });
+        setData(r.data.records || r.data || []);
+      } else if (tab === "leaves") {
+        const r = await axios.get(`${import.meta.env.VITE_API_URL}/api/leave/my`, { params: { empid }, withCredentials: true }).catch(async () => await axios.get(`${import.meta.env.VITE_API_URL}/api/leave`, { params: { empid }, withCredentials: true }));
+        setData(Array.isArray(r.data) ? r.data : r.data.records || []);
+      } else if (tab === "payslips") {
+        const r = await axios.get(`${import.meta.env.VITE_API_URL}/api/payroll/my-payslips`, { params: { empid }, withCredentials: true });
+        setData(Array.isArray(r.data) ? r.data : r.data.payslips || r.data.records || []);
+      } else if (tab === "ot") {
+        const r = await axios.get(`${import.meta.env.VITE_API_URL}/api/attendance-requests/my`, { params: { empid }, withCredentials: true });
+        setData(r.data || []);
+      }
+    } catch { setData([]); }
+    setLoading(false);
+  };
+  useEffect(() => { const p = new URLSearchParams(location.search).get("tab"); if (p && ["attendance","leaves","payslips","ot"].includes(p)) setTab(p); }, [location.search]);
+  useEffect(() => { fetchData(); }, [tab, month, year]);
+
+  const formatCurrency = (v) => { const n = Number(v); return isNaN(n) ? "0" : n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); };
+  const MONTHS3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const formatDOJ = (d) => { if(!d) return ''; try { let s = d instanceof Date ? d.toISOString().split('T')[0] : String(d).split('T')[0]; const p = s.split('-'); if(p.length===3 && parseInt(p[0],10) >= 2000) { const mi = parseInt(p[1],10)-1; if(mi>=0&&mi<12) return `${parseInt(p[2],10)}-${MONTHS3[mi]}-${p[0].slice(2)}`; } } catch(e){} const dt=new Date(d); if(isNaN(dt)||dt.getFullYear()<2000) return ''; return `${dt.getDate()}-${MONTHS3[dt.getMonth()]}-${String(dt.getFullYear()).slice(2)}`; };
+  const daySuffix = (n) => { const v=n%100; if(v>=11&&v<=13) return "th"; switch(n%10){case 1:return"st";case 2:return"nd";case 3:return"rd";default:return"th";}};
+  const pad2 = (n) => String(n).padStart(2,"0");
+  const fmtDate = (d) => { if(!d) return "—"; const dt=new Date(d); if(!isNaN(dt)&&dt.getFullYear()>2000) return `${pad2(dt.getDate())}-${pad2(dt.getMonth()+1)}-${dt.getFullYear()}`; const s=String(d).slice(0,10); const p=s.split("-"); if(p.length===3) return `${pad2(p[2])}-${pad2(p[1])}-${p[0]}`; return s; };
+  const otherDed = (p) => Math.ceil(Number(p.C_DED_OTH)||0);
+  const payslipHtml = (p) => {
+    const emp = p.employee || {}; const off = emp.official || {};
+    return `<html><head><title>Payslip_${p.C_EMPID}_${p.C_MONTH}_${p.C_YEAR}</title><style>body{font-family:Arial,sans-serif;padding:10px} .payslip-table{width:100%;border-collapse:collapse;font-size:11px} .payslip-table td{border:1px solid #aaa;padding:4px 6px} .payslip-bg-grey{background:#f5f5f5} .payslip-bold{font-weight:700} .payslip-text-center{text-align:center} .payslip-text-right{text-align:right} .payslip-logo-img{height:42px} .payslip-company-title{font-size:14px;text-align:center}</style></head><body>${document.getElementById('payslip-template-'+p.C_EMPID+'-'+p.C_MONTH)?.outerHTML || ''}<script>window.print()</script></body></html>`;
+  };
+  const downloadPayslip = async (r) => {
+    const m = r.C_MONTH || r.month; const y = r.C_YEAR || r.year;
+    const monthNum = { JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12 }[String(m).toUpperCase().slice(0,3)] || parseInt(m) || 1;
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/payroll/my-payslip/download`, { params: { empid, month: monthNum, year: y }, withCredentials: true });
+      const p = res.data;
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const html = `<div id="tmp-payslip" style="font-family:Arial,sans-serif;font-size:11px;width:1000px"><table style="width:100%;border-collapse:collapse;font-size:11px"><colgroup><col style="width:9%"/><col style="width:9%"/><col style="width:13%"/><col style="width:7%"/><col style="width:14%"/><col style="width:5%"/><col style="width:8%"/><col style="width:8%"/><col style="width:17%"/><col style="width:10%"/></colgroup>
+        <tr><td colspan="2" style="border:1px solid #aaa;padding:4px"><img src="${logo}" style="height:36px"/></td><td colspan="8" style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">${companyName || "AUCTOR HOME APPLIANCES LLP"}<br/><span style="font-size:10px;font-weight:400">Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</span></td></tr>
+        <tr><td colspan="10" style="border:1px solid #aaa;padding:4px;background:#f5f5f5;text-align:center;font-weight:700">Salary Slip For The Month of : ${p.C_MONTH} - ${p.C_YEAR}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:4px;font-weight:700">Employee ID</td><td colspan="2" style="border:1px solid #aaa;padding:4px;font-weight:700">${p.C_EMPID}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">D O J :</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Designation:</td><td colspan="3" style="border:1px solid #aaa;padding:4px">${p.C_DESIG||""}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:4px">Employee Name</td><td colspan="2" style="border:1px solid #aaa;padding:4px;font-weight:700">${p.C_ENAME}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">${formatDOJ(p.employee?.official?.doj)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Department:</td><td colspan="3" style="border:1px solid #aaa;padding:4px">${p.C_DEPT||""}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:4px">Total Days</td><td style="border:1px solid #aaa;padding:4px;text-align:center">${Math.round(p.C_TOT_DAYS)}</td><td style="border:1px solid #aaa;padding:4px">Days Present:</td><td style="border:1px solid #aaa;padding:4px;text-align:center">${Math.round(p.C_DAYS_PRESENT)}</td><td style="border:1px solid #aaa;padding:4px">Leaves Allowed:</td><td style="border:1px solid #aaa;padding:4px;text-align:center">${Math.round(p.C_LEAVES_ALLOWED||0)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">UAN Number</td><td colspan="2" style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">${p.employee?.official?.c_uan_no || "N/A"}</td></tr>
+        <tr style="background:#f5f5f5;font-weight:700;text-align:center"><td colspan="2" style="border:1px solid #aaa;padding:4px">Fixed Salary</td><td colspan="4" style="border:1px solid #aaa;padding:4px">Earnings Salary</td><td colspan="4" style="border:1px solid #aaa;padding:4px">Deductions</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:4px">Basic</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_BASIC)}</td><td style="border:1px solid #aaa;padding:4px">Basic</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_EARNED_BASIC)}</td><td style="border:1px solid #aaa;padding:4px">Attendance Bonus</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_EARNED_BONUS)}</td><td style="border:1px solid #aaa;padding:4px">P.F</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_DED_PF)}</td><td style="border:1px solid #aaa;padding:4px">Income tax</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_DED_TAX)}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:4px">HRA</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_HRA)}</td><td style="border:1px solid #aaa;padding:4px">HRA</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_EARNED_HRA)}</td><td style="border:1px solid #aaa;padding:4px">Extra Wage</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_EARNED_OT)}</td><td style="border:1px solid #aaa;padding:4px">E.S.I</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_DED_ESI)}</td><td style="border:1px solid #aaa;padding:4px">Advance</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_DED_ADV)}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:4px;font-weight:700">Total Fixed Salary</td><td style="border:1px solid #aaa;padding:4px;text-align:right;font-weight:700">${formatCurrency(p.C_TOT_SAL)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Total Earnings :</td><td colspan="2" style="border:1px solid #aaa;padding:4px;text-align:right;font-weight:700">${formatCurrency(p.C_EARNED_GROSS)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Total Deduction:</td><td colspan="2" style="border:1px solid #aaa;padding:4px;text-align:right;font-weight:700">${formatCurrency(p.C_TOT_DED)}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:4px;font-weight:700">NET Salary :</td><td style="border:1px solid #aaa;padding:4px;text-align:right;font-weight:700">${formatCurrency(p.C_NET_AMT)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Payment Mode :</td><td colspan="2" style="border:1px solid #aaa;padding:4px">${p.C_PAY_TYPE || "Bank"}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Bank A/c No :</td><td colspan="2" style="border:1px solid #aaa;padding:4px">${p.C_BANK_ACNO || "-"}</td></tr>
+        </table></div>`;
+      const div = document.createElement("div"); div.style.position = "fixed"; div.style.left = "0"; div.style.top = "0"; div.style.width = "1000px"; div.style.background = "white"; div.style.zIndex = "9999"; div.innerHTML = html; document.body.appendChild(div);
+      await doc.html(div, { callback: (d) => { const blob = d.output("blob"); const url = URL.createObjectURL(blob); window.open(url, "_blank"); document.body.removeChild(div); }, x: 10, y: 10, width: 800, windowWidth: 1000, autoPaging: "text" });
+    } catch (e) { alert(e.response?.data?.message || "Payslip not found"); }
+  };
+
+  return (
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f4f6f8" }}>
+      <ModuleTabBar title="My Reports" tabs={tabs} active={tab} onChange={setTab} />
+      <Box sx={{ p: 2, maxWidth: 1100, mx: "auto" }}>
+        {tab === "attendance" && (
+          <Paper elevation={0} sx={{ p: 1.5, mb: 1.5, border: "1px solid #e0e0e0", borderRadius: 1, display: "flex", gap: 1, alignItems: "center" }}>
+            <TextField size="small" type="number" label="Month" value={month} onChange={e => setMonth(parseInt(e.target.value) || 1)} inputProps={{ min: 1, max: 12 }} sx={{ width: 90 }} />
+            <TextField size="small" type="number" label="Year" value={year} onChange={e => setYear(parseInt(e.target.value) || 2026)} sx={{ width: 100 }} />
+            <Button size="small" variant="contained" onClick={fetchData} sx={{ fontWeight: 600 }}>Load</Button>
+            <Chip label={`${data.length} days`} size="small" sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 600 }} />
+          </Paper>
+        )}
+        <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: 1, overflow: "hidden" }}>
+          {loading ? <Box sx={{ p: 4, textAlign: "center" }}><CircularProgress size={22} /></Box> :
+            tab === "attendance" ? (
+              <Table size="small"><TableHead><TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08) }}><TableCell sx={{ fontWeight: 600 }}>Date</TableCell><TableCell sx={{ fontWeight: 600 }}>Status</TableCell><TableCell sx={{ fontWeight: 600 }}>In</TableCell><TableCell sx={{ fontWeight: 600 }}>Out</TableCell><TableCell sx={{ fontWeight: 600 }}>Late</TableCell><TableCell sx={{ fontWeight: 600 }}>OT</TableCell></TableRow></TableHead>
+                <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No records</TableCell></TableRow> : data.map((r, i) => (
+                  <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{(r.att_date || r.attendance_date || "").toString().slice(0, 10).split("-").reverse().join("-")}</TableCell><TableCell><Chip size="small" label={r.status || r.att_status || "-"} sx={{ height: 18, fontSize: 10, fontWeight: 600 }} /></TableCell><TableCell sx={{ fontSize: 12 }}>{r.in_time ? r.in_time.slice(0, 5) : "-"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.out_time ? r.out_time.slice(0, 5) : "-"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.late_hrs ? parseFloat(r.late_hrs).toFixed(2) : "0.00"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.ot_hrs ? parseFloat(r.ot_hrs).toFixed(2) : "0.00"}</TableCell></TableRow>
+                ))}</TableBody></Table>
+            ) : tab === "leaves" ? (
+              <Table size="small" stickyHeader><TableHead>
+                <TableRow sx={{ bgcolor: "#a3a380" }}>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} rowSpan={2}>SNo</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} rowSpan={2}>Emp Id</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} rowSpan={2}>Employee Name</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} rowSpan={2}>Lapp No</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} rowSpan={2}>Lapp Date</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} rowSpan={2}>Leave Date</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} rowSpan={2}>No of Days</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} colSpan={3}>Sanctioned</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }} colSpan={3}>Balance as on today</TableCell>
+                </TableRow>
+                <TableRow sx={{ bgcolor: "#a3a380" }}>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }}>CLS</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }}>ELS</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }}>LOP</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }}>CLS</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }}>ELS</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "white", bgcolor: "#a3a380", textAlign: "center" }}>Total</TableCell>
+                </TableRow>
+              </TableHead>
+                <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={13} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No leaves</TableCell></TableRow> : data.flatMap((r, appIdx) => {
+                  const details = r.leaveDetails?.length ? r.leaveDetails : [{ frmdt: r.from_date || r.leave_date, nod: 1, ltype: r.leave_type || "" }];
+                  return details.map((d, di) => {
+                    const isFirst = di===0;
+                    const sCls = String(d.ltype||"").toUpperCase()==="CL" ? d.nod : 0;
+                    const sEls = String(d.ltype||"").toUpperCase()==="EL" ? d.nod : 0;
+                    return <TableRow key={`${r.lno||r.id||appIdx}-${di}`} hover>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{isFirst ? appIdx+1 : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{isFirst ? (r.empid || empid) : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11 }}>{isFirst ? (r.ename || "") : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center", fontWeight: 700 }}>{isFirst ? (r.lno || r.id) : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{isFirst ? fmtDate(r.ldate || r.applied_at) : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{fmtDate(d.frmdt)}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{d.nod || 1}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{sCls || 0}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{sEls || 0}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>0</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{isFirst ? (r.clBal ?? 3.5) : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{isFirst ? (r.elBal ?? 6) : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center", fontWeight: 700 }}>{isFirst ? ((Number(r.clBal||3.5)+Number(r.elBal||6)).toFixed(1)) : ""}</TableCell>
+                    </TableRow>;
+                  });
+                })}
+                </TableBody></Table>
+            ) : tab === "payslips" ? (
+              <><Table size="small"><TableHead><TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08) }}><TableCell sx={{ fontWeight: 600 }}>Month/Year</TableCell><TableCell sx={{ fontWeight: 600 }}>Net Pay</TableCell><TableCell sx={{ fontWeight: 600 }}>Status</TableCell><TableCell sx={{ fontWeight: 600 }}>Actions</TableCell></TableRow></TableHead>
+                <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={4} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No payslips</TableCell></TableRow> : data.map((r, i) => (
+                  <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{r.C_MONTH || r.month || r.pay_month || "-"} {r.C_YEAR || r.year || ""}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{r.C_NET_AMT ? `₹${Number(r.C_NET_AMT).toLocaleString("en-IN")}` : (r.NET_PAY || r.net_pay || "-")}</TableCell><TableCell><Chip size="small" label={r.C_FINAL_STATUS === 2 ? "Final" : r.status || "Generated"} sx={{ height: 18, fontSize: 10 }} /></TableCell><TableCell><Box sx={{ display: "flex", gap: 0.5 }}><Button size="small" variant="outlined" startIcon={<FaEye />} onClick={() => { setViewData(r); setViewOpen(true); }} sx={{ fontSize: 10, fontWeight: 600, minWidth: 0, px: 1 }}>Show</Button><Button size="small" variant="contained" startIcon={<FaDownload />} onClick={() => downloadPayslip(r)} sx={{ fontSize: 10, fontWeight: 600, minWidth: 0, px: 1 }}>Download</Button></Box></TableCell></TableRow>
+                ))}</TableBody></Table>
+                <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth>
+                  <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 600 }}>Payslip — {viewData?.C_ENAME} ({viewData?.C_EMPID}) — {viewData?.C_MONTH} {viewData?.C_YEAR} <IconButton size="small" onClick={() => setViewOpen(false)}><CloseIcon /></IconButton></DialogTitle>
+                  <DialogContent dividers sx={{ p: 1 }}>
+                    {viewData && (() => { const p = viewData; const emp = p.employee || {}; const off = emp.official || {}; return (
+                      <Box id="my-payslip-print" sx={{ fontSize: 11 }}>
+                        <table className="payslip-table payslip-outer-border" style={{ width: "100%", borderCollapse: "collapse" }}>
+                          <colgroup><col style={{width:"9%"}}/><col style={{width:"9%"}}/><col style={{width:"13%"}}/><col style={{width:"7%"}}/><col style={{width:"14%"}}/><col style={{width:"5%"}}/><col style={{width:"8%"}}/><col style={{width:"8%"}}/><col style={{width:"17%"}}/><col style={{width:"10%"}}/></colgroup>
+                          <tbody>
+                            <tr><td className="payslip-logo-cell" colSpan={2} style={{border:"1px solid #aaa",padding:4}}><img src={logo} alt="logo" style={{height:36}}/></td><td className="payslip-company-cell" colSpan={8} style={{border:"1px solid #aaa",padding:4,textAlign:"center",fontWeight:700}}>{companyName || "AUCTOR HOME APPLIANCES LLP"}<br/><span style={{fontSize:10,fontWeight:400}}>Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</span></td></tr>
+                            <tr><td colSpan={10} style={{border:"1px solid #aaa",padding:4,background:"#f5f5f5",textAlign:"center",fontWeight:700}}>Salary Slip For The Month of : {p.C_MONTH} - {p.C_YEAR}</td></tr>
+                            <tr><td style={{border:"1px solid #aaa",padding:4,fontWeight:700}}>Employee ID</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4,fontWeight:700}}>{p.C_EMPID}</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>D O J :</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>Designation:</td><td colSpan={3} style={{border:"1px solid #aaa",padding:4}}>{p.C_DESIG}</td></tr>
+                            <tr><td style={{border:"1px solid #aaa",padding:4}}>Employee Name</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4,fontWeight:700}}>{p.C_ENAME}</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>{formatDOJ(off.doj)}</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>Department:</td><td colSpan={3} style={{border:"1px solid #aaa",padding:4}}>{p.C_DEPT}</td></tr>
+                            <tr><td style={{border:"1px solid #aaa",padding:4}}>Total Days</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"center"}}>{Math.round(p.C_TOT_DAYS)}</td><td style={{border:"1px solid #aaa",padding:4}}>Days Present:</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"center"}}>{Math.round(p.C_DAYS_PRESENT)}</td><td style={{border:"1px solid #aaa",padding:4}}>Leaves Allowed:</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"center"}}>{Math.round(p.C_LEAVES_ALLOWED||0)}</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>UAN Number</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4,textAlign:"center",fontWeight:700}}>{off.c_uan_no || "N/A"}</td></tr>
+                            <tr className="payslip-bg-grey" style={{background:"#f5f5f5",fontWeight:700,textAlign:"center"}}><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>Fixed Salary</td><td colSpan={4} style={{border:"1px solid #aaa",padding:4}}>Earnings Salary</td><td colSpan={4} style={{border:"1px solid #aaa",padding:4}}>Deductions</td></tr>
+                            <tr><td style={{border:"1px solid #aaa",padding:4}}>Basic</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_BASIC)}</td><td style={{border:"1px solid #aaa",padding:4}}>Basic</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_EARNED_BASIC)}</td><td style={{border:"1px solid #aaa",padding:4}}>Attendance Bonus</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_EARNED_BONUS)}</td><td style={{border:"1px solid #aaa",padding:4}}>P.F</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_DED_PF)}</td><td style={{border:"1px solid #aaa",padding:4}}>Income tax</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_DED_TAX)}</td></tr>
+                            <tr><td style={{border:"1px solid #aaa",padding:4}}>HRA</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_HRA)}</td><td style={{border:"1px solid #aaa",padding:4}}>HRA</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_EARNED_HRA)}</td><td style={{border:"1px solid #aaa",padding:4}}>Extra Wage</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_EARNED_OT)}</td><td style={{border:"1px solid #aaa",padding:4}}>E.S.I</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_DED_ESI)}</td><td style={{border:"1px solid #aaa",padding:4}}>Advance</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right"}}>{formatCurrency(p.C_DED_ADV)}</td></tr>
+                            <tr><td style={{border:"1px solid #aaa",padding:4,fontWeight:700}}>Total Fixed Salary</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right",fontWeight:700}}>{formatCurrency(p.C_TOT_SAL)}</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>Total Earnings :</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4,textAlign:"right",fontWeight:700}}>{formatCurrency(p.C_EARNED_GROSS)}</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>Total Deduction:</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4,textAlign:"right",fontWeight:700}}>{formatCurrency(p.C_TOT_DED)}</td></tr>
+                            <tr><td style={{border:"1px solid #aaa",padding:4,fontWeight:700}}>NET Salary :</td><td style={{border:"1px solid #aaa",padding:4,textAlign:"right",fontWeight:700}}>{formatCurrency(p.C_NET_AMT)}</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>Payment Mode :</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>{p.C_PAY_TYPE || "Bank"}</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>Bank A/c No :</td><td colSpan={2} style={{border:"1px solid #aaa",padding:4}}>{p.C_BANK_ACNO || "-"}</td></tr>
+                          </tbody>
+                        </table>
+                      </Box>
+                    ); })()}
+                  </DialogContent>
+                  <Box sx={{ p: 1.2, display: "flex", justifyContent: "flex-end", gap: 1 }}><Button variant="contained" startIcon={<PrintIcon />} onClick={() => window.print()}>Print</Button><Button variant="contained" startIcon={<FaDownload />} onClick={() => downloadPayslip(viewData)}>Download / Print</Button><Button variant="outlined" onClick={() => setViewOpen(false)}>Close</Button></Box>
+                </Dialog>
+              </>
+            ) : (
+              <Table size="small"><TableHead><TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08) }}><TableCell sx={{ fontWeight: 600 }}>Date</TableCell><TableCell sx={{ fontWeight: 600 }}>In/Out</TableCell><TableCell sx={{ fontWeight: 600 }}>Status</TableCell><TableCell sx={{ fontWeight: 600 }}>HR Status</TableCell></TableRow></TableHead>
+                <TableBody>{data.length === 0 ? <TableRow><TableCell colSpan={4} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No requests</TableCell></TableRow> : data.map(r => (
+                  <TableRow key={r.id} hover><TableCell sx={{ fontSize: 12 }}>{r.att_date.slice(0, 10).split("-").reverse().join("-")}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.in_time ? r.in_time.slice(0, 5) : "-"} - {r.out_time ? r.out_time.slice(0, 5) : "-"}</TableCell><TableCell><Chip size="small" label={r.status} sx={{ height: 18, fontSize: 10 }} /></TableCell><TableCell><Chip size="small" label={r.request_status} sx={{ height: 18, fontSize: 10, bgcolor: r.request_status === "Approved" ? "#e8f5e9" : r.request_status === "Pending" ? "#fff8e1" : "#ffebee", color: r.request_status === "Approved" ? "#2e7d32" : r.request_status === "Pending" ? "#ef6c00" : "#c62828", fontWeight: 600 }} /></TableCell></TableRow>
+                ))}</TableBody></Table>
+            )}
+        </Paper>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>Self-service reports • Data from live HR tables • Use filters above for month.</Typography>
+      </Box>
+    </Box>
+  );
+}

@@ -330,6 +330,9 @@ const formatLeaveApp = (app) => {
 
     let statusStr = app.status || "Pending";
 
+    const totalNod = details.reduce((sum, d) => sum + Number(d.nod || 0), 0);
+    const sanctioned = statusStr === "Approved" ? totalNod : 0;
+    const lop = 0;
     return {
       id: app.lno,
       ldate: app.ldate,
@@ -344,6 +347,11 @@ const formatLeaveApp = (app) => {
       to: to,
       clBal: app.leaveMaster?.cls_balance || 0,
       elBal: app.leaveMaster?.els_balance || 0,
+      clsBalance: app.leaveMaster?.cls_balance || 0,
+      elsBalance: app.leaveMaster?.els_balance || 0,
+      sanctioned: sanctioned,
+      lop: lop,
+      totalBalance: Number((Number(app.leaveMaster?.cls_balance || 0) + Number(app.leaveMaster?.els_balance || 0)).toFixed(1)),
       status: statusStr,
       remarks: app.remarks || "",
       entry: app.ldate,
@@ -394,8 +402,8 @@ exports.getAllLeaveApplications = async (req, res) => {
   try {
     const apps = await LeaveApplication.findAll({
       include: [
-        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks'] },
-        { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance'] }
+        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'ltype'] },
+        { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance', 'cls_eligible', 'els_eligible', 'cls_utilised', 'els_utilised'] }
       ],
       order: [['lno', 'DESC']]
     });

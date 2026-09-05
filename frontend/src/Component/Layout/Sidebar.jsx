@@ -483,7 +483,7 @@ const Sidebar = () => {
             )}
             {hasPermission('HR_REPORTS_EMP') && (
               <li className="sidebar-menu-item">
-                <SideNavLink to="/my-reports" label="My Reports" icon={FiFileText} />
+                <SideNavLink to="/my-reports" label="Employee Reports" icon={FiFileText} />
               </li>
             )}
             {hasPermission('HR_PF_ACCOUNTING') && (

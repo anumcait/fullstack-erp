@@ -112,7 +112,9 @@ const LeavePreview = ({ data, onClose }) => {
   if (ldateRaw && firstFromDate) {
     const ldate = new Date(ldateRaw);
     const fdate = new Date(firstFromDate);
-    if (ldate > fdate) {
+    ldate.setHours(0, 0, 0, 0);
+    fdate.setHours(0, 0, 0, 0);
+    if (ldate < fdate) {
       submissionStatus = "BEFORE SUBMISSION";
     } else {
       submissionStatus = "AFTER SUBMISSION";
