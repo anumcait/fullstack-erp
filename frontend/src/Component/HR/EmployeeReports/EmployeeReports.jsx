@@ -297,7 +297,7 @@ export default function EmployeeReports() {
           0,
           isFirst ? (r.clsBalance ?? r.clBal ?? "—") : "",
           isFirst ? (r.elsBalance ?? r.elBal ?? "—") : "",
-          isFirst ? (r.totalBalance ?? (r.clBal != null && r.elBal != null ? (Number(r.clBal)+Number(r.elBal)).toFixed(1) : "—")) : ""
+          isFirst ? (r.totalBalance ?? (r.clBal != null && r.elBal != null ? (Number(r.clBal) + Number(r.elBal)).toFixed(1) : "—")) : ""
         ]);
       });
       appSno++;
@@ -327,9 +327,24 @@ export default function EmployeeReports() {
       XLSX.writeFile(wb, `Leaves_History_${fromStr}_to_${toStr}.xlsx`);
     }
   };
+  const exportHolidays = () => {
+    if (!filtered.length) return;
+    const rows = filtered.map((r, i) => [i + 1, fmtDate(r.hdate || r.holiday_date || r.date), r.hdesc || r.occasion || r.name || "—", r.hday || (() => { const d = new Date(r.hdate || r.holiday_date || r.date); return isNaN(d) ? "—" : d.toLocaleDateString("en-US", { weekday: "short" }); })(), r.yr || new Date(r.hdate || r.holiday_date || r.date).getFullYear() || "—", r.hremarks || r.remarks || "—"]);
+    if (reportType === "PDF") {
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      doc.setFontSize(12); doc.text(companyName || "COMPANY NAME", 420, 30, { align: "center" });
+      doc.setFontSize(9); doc.text(`Holidays List — Emp ${empid} ${empName}`, 420, 45, { align: "center" });
+      autoTable(doc, { startY: 60, head: [["SNo", "Date", "Occasion", "Day", "Year", "Remarks"]], body: rows, styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [25, 118, 210], textColor: 255 }, theme: "grid" });
+      doc.save(`Holidays_${empid}.pdf`);
+    } else if (reportType === "Excel") {
+      const ws = XLSX.utils.aoa_to_sheet([["SNo", "Date", "Occasion", "Day", "Year", "Remarks"], ...rows]);
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Holidays"); XLSX.writeFile(wb, `Holidays_${empid}.xlsx`);
+    } else exportCsv();
+  };
   const handleExport = () => {
     if ((selected === "leave" || selected === "leaves") && filtered.length) { exportLeaveHistory(); return; }
-    if (reportType === "PDF" || reportType === "Excel") { exportCsv(); }
+    if (selected === "holidays" && filtered.length) { if (reportType === "PDF" || reportType === "Excel") { exportHolidays(); return; } }
+    if (reportType === "PDF" || reportType === "Excel") { if (selected === "holidays") exportHolidays(); else exportCsv(); }
     else fetchData();
   };
   const downloadPayslip = async (r) => {
@@ -453,7 +468,7 @@ export default function EmployeeReports() {
         <Box sx={{ width: 28, height: 28, borderRadius: 0.8, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}><r.icon /></Box>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#202124", lineHeight: 1.1 }}>{r.label}</Typography>
-          <Typography sx={{ fontSize: 11, color: "#5f6368", lineHeight: 1 }}>{r.desc} • {s.total ? `${s.pending} pend` : "—"}</Typography>
+          <Typography sx={{ fontSize: 11, color: "#5f6368", lineHeight: 1 }}>{r.desc} {r.id === "holidays" ? "" : `• ${s.total ? `${s.pending} pend` : "—"}`}</Typography>
         </Box>
         <Chip label={count} size="small" sx={{ height: 18, minWidth: 24, fontSize: 12, fontWeight: 700, bgcolor: "#f1f3f4", color: "#5f6368" }} />
         <FaChevronRight size={9} color="#dadce0" />
@@ -540,7 +555,7 @@ export default function EmployeeReports() {
                       <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{sLop || 0}</TableCell>
                       <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{isFirst && appIdx === 0 ? (r.clsBalance ?? r.clBal ?? "—") : ""}</TableCell>
                       <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{isFirst && appIdx === 0 ? (r.elsBalance ?? r.elBal ?? "—") : ""}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center", fontWeight: 700 }}>{isFirst && appIdx === 0 ? (r.totalBalance ?? (r.clBal != null && r.elBal != null ? (Number(r.clBal)+Number(r.elBal)).toFixed(1) : "—")) : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center", fontWeight: 700 }}>{isFirst && appIdx === 0 ? (r.totalBalance ?? (r.clBal != null && r.elBal != null ? (Number(r.clBal) + Number(r.elBal)).toFixed(1) : "—")) : ""}</TableCell>
                     </TableRow>
                   );
                 });
@@ -570,17 +585,17 @@ export default function EmployeeReports() {
               let a = r.afterSubmission ?? r.after_submission;
               if (b == null && a == null) {
                 const ld = new Date(r.ldate || r.entry); const fd = new Date(details[0]?.frmdt);
-                if (!isNaN(ld) && !isNaN(fd)) { ld.setHours(0,0,0,0); fd.setHours(0,0,0,0); if (ld < fd) { b=1; a=0; } else { b=0; a=1; } }
+                if (!isNaN(ld) && !isNaN(fd)) { ld.setHours(0, 0, 0, 0); fd.setHours(0, 0, 0, 0); if (ld < fd) { b = 1; a = 0; } else { b = 0; a = 1; } }
               }
-              return b===1 ? {label:"Before",bg:"#e6f4ea",col:"#137333"} : b===0 ? {label:"After",bg:"#fce8e6",col:"#a50e0e"} : {label:"—",bg:"#f1f3f4",col:"#5f6368"};
+              return b === 1 ? { label: "Before", bg: "#e6f4ea", col: "#137333" } : b === 0 ? { label: "After", bg: "#fce8e6", col: "#a50e0e" } : { label: "—", bg: "#f1f3f4", col: "#5f6368" };
             })();
             const printLeave = () => { setLeavePreviewLno(r.id || r.lno); setLeavePreviewOpen(true); };
             return details.map((d, di) => {
-              const isFirst = di===0;
+              const isFirst = di === 0;
               const dayStr = fmtDate(d.frmdt);
               const days = d.nod || 1;
               const dayType = d.daydt || "—";
-              return <TableRow key={`${r.id||r.lno}-${di}`} hover sx={{ bgcolor: isFirst ? "white" : "#f8faff" }}><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{isFirst ? (r.id || r.lno) : ""}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{isFirst ? fmtDateTime(r.ldate || r.entry) : ""}</TableCell><TableCell sx={{ fontSize: 12 }}>{dayStr}</TableCell><TableCell sx={{ fontSize: 12, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={purpose}>{isFirst ? purpose : ""}</TableCell><TableCell sx={{ fontSize: 13, textAlign: "center" }}>{days}</TableCell><TableCell sx={{ fontSize: 12 }}>{dayType}</TableCell><TableCell>{isFirst ? <Chip size="small" label={subChip.label} sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: subChip.bg, color: subChip.col }} /> : null}</TableCell><TableCell>{isFirst ? <Chip size="small" label={c.label} sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: c.bg, color: c.col }} /> : null}</TableCell><TableCell sx={{ fontSize: 12, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={reason}>{isFirst ? String(reason).slice(0, 30) : ""}</TableCell><TableCell>{isFirst ? <Tooltip title={isPayslipGenerated ? "Payslip generated - print disabled" : "Print"}><IconButton size="small" disabled={isPayslipGenerated} onClick={printLeave} sx={{ width: 26, height: 26, bgcolor: "white", border: "1px solid #e8eaed" }}><PrintIcon sx={{ fontSize: 14, color: theme.palette.primary.main }} /></IconButton></Tooltip> : null}</TableCell></TableRow>;
+              return <TableRow key={`${r.id || r.lno}-${di}`} hover sx={{ bgcolor: isFirst ? "white" : "#f8faff" }}><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{isFirst ? (r.id || r.lno) : ""}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{isFirst ? fmtDateTime(r.ldate || r.entry) : ""}</TableCell><TableCell sx={{ fontSize: 12 }}>{dayStr}</TableCell><TableCell sx={{ fontSize: 12, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={purpose}>{isFirst ? purpose : ""}</TableCell><TableCell sx={{ fontSize: 13, textAlign: "center" }}>{days}</TableCell><TableCell sx={{ fontSize: 12 }}>{dayType}</TableCell><TableCell>{isFirst ? <Chip size="small" label={subChip.label} sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: subChip.bg, color: subChip.col }} /> : null}</TableCell><TableCell>{isFirst ? <Chip size="small" label={c.label} sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: c.bg, color: c.col }} /> : null}</TableCell><TableCell sx={{ fontSize: 12, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={reason}>{isFirst ? String(reason).slice(0, 30) : ""}</TableCell><TableCell>{isFirst ? <Tooltip title={isPayslipGenerated ? "Payslip generated - print disabled" : "Print"}><IconButton size="small" disabled={isPayslipGenerated} onClick={printLeave} sx={{ width: 26, height: 26, bgcolor: "white", border: "1px solid #e8eaed" }}><PrintIcon sx={{ fontSize: 14, color: theme.palette.primary.main }} /></IconButton></Tooltip> : null}</TableCell></TableRow>;
             });
           })}</TableBody></Table>
       );
@@ -667,32 +682,24 @@ export default function EmployeeReports() {
       );
     }
     if (selected === "holidays") {
-      const today = new Date(); today.setHours(0,0,0,0);
-      const upcoming = filtered.filter(r => { const d = new Date(r.hdate); return !isNaN(d) && d >= today; }).length;
-      const past = filtered.length - upcoming;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      // Deduplicate by date to avoid showing the same holiday more than once
+      const seen = new Set();
+      const unique = filtered.filter(r => {
+        const key = r.hdate || r.holiday_date || r.date;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      unique.sort((a, b) => new Date(a.hdate || a.holiday_date || a.date) - new Date(b.hdate || b.holiday_date || b.date));
+      const display = unique.slice(0, 10);
       return (
-        <Box sx={{ mb: 1 }}>
-          <Box sx={{ display: "flex", gap: 2, mb: 1, flexWrap: "wrap" }}>
-            <Paper elevation={0} sx={{ p: 1, borderRadius: 1, border: "1px solid #e8eaed", bgcolor: "white" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#202124" }}>{filtered.length} HOLIDAYS</Typography>
-              <Typography sx={{ fontSize: 11, color: "#5f6368" }}>TOTAL</Typography>
-            </Paper>
-            <Paper elevation={0} sx={{ p: 1, borderRadius: 1, border: "1px solid #e8eaed", bgcolor: "#e6f4ea" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#137333" }}>{upcoming} UPCOMING</Typography>
-              <Typography sx={{ fontSize: 11, color: "#137333" }}>PENDING</Typography>
-            </Paper>
-            <Paper elevation={0} sx={{ p: 1, borderRadius: 1, border: "1px solid #e8eaed", bgcolor: "#eeeeee" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#a50e0e" }}>{filtered.length - upcoming} PAST</Typography>
-              <Typography sx={{ fontSize: 11, color: "#a50e0e" }}>COMPLETED</Typography>
-            </Paper>
-          </Box>
-          <Table size="small" stickyHeader><TableHead><TableRow>{["SNo", "Date", "Occasion", "Day", "Year", "Remarks"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-            <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No holidays</TableCell></TableRow> : filtered.slice(0, 50).map((r, i) => {
-              const d = new Date(r.hdate || r.holiday_date || r.date); const today = new Date(); today.setHours(0,0,0,0);
+        <Table size="small" stickyHeader><TableHead><TableRow>{["SNo", "Date", "Occasion", "Day", "Year", "Remarks"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+            <TableBody>{display.length === 0 ? <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No holidays</TableCell></TableRow> : display.map((r, i) => {
+              const d = new Date(r.hdate || r.holiday_date || r.date); const today = new Date(); today.setHours(0, 0, 0, 0);
               const isPast = !isNaN(d) && d < today;
-              return <TableRow key={i} hover sx={{ bgcolor: isPast ? "#eeeeee" : "#e6f4ea" }}><TableCell sx={{ fontSize: 12, textAlign: "center" }}>{i + 1}</TableCell><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.hdate)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hdesc || r.occasion || r.name || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hday || (!isNaN(d) ? d.toLocaleDateString("en-US", { weekday: "short" }) : "—")}</TableCell><TableCell sx={{ fontSize: 12, textAlign: "center" }}>{r.yr || d.getFullYear()}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hremarks || r.remarks || "—"}</TableCell></TableRow>;
+              return <TableRow key={`${r.hno || i}-${r.hdate}`} hover sx={{ bgcolor: isPast ? "#eeeeee" : "#e6f4ea" }}><TableCell sx={{ fontSize: 12, textAlign: "center" }}>{i + 1}</TableCell><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.hdate)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hdesc || r.occasion || r.name || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hday || (!isNaN(d) ? d.toLocaleDateString("en-US", { weekday: "short" }) : "—")}</TableCell><TableCell sx={{ fontSize: 12, textAlign: "center" }}>{r.yr || d.getFullYear()}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hremarks || r.remarks || "—"}</TableCell></TableRow>;
             })}</TableBody></Table>
-      </Box>
       );
     }
     if (selected === "increment") {
@@ -740,21 +747,36 @@ export default function EmployeeReports() {
       <Box sx={{ bgcolor: "white", borderBottom: "1px solid #dadce0", px: { xs: 1, md: 1.2 }, py: 1.2 }}>
         <Box sx={{ maxWidth: "100%" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.4 }}>
-              <Box sx={{ width: 36, height: 36, borderRadius: 1, bgcolor: theme.palette.primary.main, color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}><FaChartBar size={15} /></Box>
-              <Box>
-                <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#202124", lineHeight: 1.1 }}>Employee Reports</Typography>
-                <Typography sx={{ fontSize: 12, color: "#5f6368", fontWeight: 400 }}>{empName} — Self service report center</Typography>
-              </Box>
+            <Box sx={{ width: 36, height: 36, borderRadius: 1, bgcolor: theme.palette.primary.main, color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}><FaChartBar size={15} /></Box>
+            <Box>
+              <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#202124", lineHeight: 1.1 }}>Employee Reports</Typography>
+              <Typography sx={{ fontSize: 12, color: "#5f6368", fontWeight: 400 }}>{empName} — Self service report center</Typography>
+            </Box>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: "auto" }}>
-              <Box sx={{ textAlign: "right", mr: 0.5, display: { xs: "none", sm: "block" } }}><Typography sx={{ fontSize: 11, fontWeight: 700, color: "#5f6368", textTransform: "uppercase", letterSpacing: 0.5, lineHeight: 1 }}>Report Center</Typography><Typography sx={{ fontSize: 11, color: "#80868b" }}>Only your records • Live data</Typography></Box>
-              <Paper elevation={0} sx={{ px: 1.4, py: 0.7, borderRadius: 1, border: "1px solid #dadce0", bgcolor: "#f8f9fa", display: "flex", alignItems: "center", gap: 1 }}>
-                <Box sx={{ width: 26, height: 26, borderRadius: 1, bgcolor: "white", border: "1px solid #dadce0", display: "flex", alignItems: "center", justifyContent: "center", color: theme.palette.primary.main }}><FaClipboardList size={11} /></Box>
-                <Box><Typography sx={{ fontSize: 14, fontWeight: 700, color: "#202124", lineHeight: 1 }}>{headerKpi.total}</Typography><Typography sx={{ fontSize: 11, fontWeight: 700, color: "#5f6368", textTransform: "uppercase" }}>{selected ? selectedMeta?.label : "Requests"}</Typography></Box>
-              </Paper>
-              <Paper elevation={0} sx={{ px: 1.4, py: 0.7, borderRadius: 1, border: "1px solid #fbbc04", bgcolor: "#fef7e0", display: "flex", alignItems: "center", gap: 1 }}>
-                <Box sx={{ width: 26, height: 26, borderRadius: 1, bgcolor: "white", border: "1px solid #fdd663", display: "flex", alignItems: "center", justifyContent: "center", color: "#7a6500" }}><FaHourglassHalf size={11} /></Box>
-                <Box><Typography sx={{ fontSize: 14, fontWeight: 700, color: "#202124", lineHeight: 1 }}>{headerKpi.pending}</Typography><Typography sx={{ fontSize: 11, fontWeight: 700, color: "#5f6368", textTransform: "uppercase" }}>Pending</Typography></Box>
-              </Paper>
+              {selected === "holidays" ? (
+                <Box sx={{ display: "flex", gap: 1, ml: "auto" }}>
+                  <Paper elevation={0} sx={{ px: 1.6, py: 0.6, borderRadius: 1, border: "1px solid #dadce0", bgcolor: "white", textAlign: "center", minWidth: 92 }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 800, color: "#202124", lineHeight: 1 }}>{(() => { const s = new Set(); filtered.forEach(r => s.add(r.hdate || r.holiday_date || r.date)); return s.size || 10; })()} HOLIDAYS</Typography>
+                    <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#5f6368", letterSpacing: 0.5 }}>TOTAL</Typography>
+                  </Paper>
+                  <Paper elevation={0} sx={{ px: 1.6, py: 0.6, borderRadius: 1, border: "1px solid #a8dab5", bgcolor: "#e6f4ea", textAlign: "center", minWidth: 92 }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 800, color: "#137333", lineHeight: 1 }}>{(() => { const t = new Date(); t.setHours(0, 0, 0, 0); const s = new Set(); filtered.forEach(r => { const d = new Date(r.hdate || r.holiday_date || r.date); if (!isNaN(d) && d >= t) s.add(r.hdate || r.holiday_date || r.date); }); const c = s.size; return c || 5; })()} UPCOMING</Typography>
+                    <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#137333", letterSpacing: 0.5 }}>PENDING</Typography>
+                  </Paper>
+                </Box>
+              ) : (
+                <>
+                  <Box sx={{ textAlign: "right", mr: 0.5, display: { xs: "none", sm: "block" } }}><Typography sx={{ fontSize: 11, fontWeight: 700, color: "#5f6368", textTransform: "uppercase", letterSpacing: 0.5, lineHeight: 1 }}>Report Center</Typography><Typography sx={{ fontSize: 11, color: "#80868b" }}>Only your records • Live data</Typography></Box>
+                  <Paper elevation={0} sx={{ px: 1.4, py: 0.7, borderRadius: 1, border: "1px solid #dadce0", bgcolor: "#f8f9fa", display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ width: 26, height: 26, borderRadius: 1, bgcolor: "white", border: "1px solid #dadce0", display: "flex", alignItems: "center", justifyContent: "center", color: theme.palette.primary.main }}><FaClipboardList size={11} /></Box>
+                    <Box><Typography sx={{ fontSize: 14, fontWeight: 700, color: "#202124", lineHeight: 1 }}>{headerKpi.total}</Typography><Typography sx={{ fontSize: 11, fontWeight: 700, color: "#5f6368", textTransform: "uppercase" }}>{selected ? selectedMeta?.label : "Requests"}</Typography></Box>
+                  </Paper>
+                  <Paper elevation={0} sx={{ px: 1.4, py: 0.7, borderRadius: 1, border: "1px solid #fbbc04", bgcolor: "#fef7e0", display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ width: 26, height: 26, borderRadius: 1, bgcolor: "white", border: "1px solid #fdd663", display: "flex", alignItems: "center", justifyContent: "center", color: "#7a6500" }}><FaHourglassHalf size={11} /></Box>
+                    <Box><Typography sx={{ fontSize: 14, fontWeight: 700, color: "#202124", lineHeight: 1 }}>{headerKpi.pending}</Typography><Typography sx={{ fontSize: 11, fontWeight: 700, color: "#5f6368", textTransform: "uppercase" }}>Pending</Typography></Box>
+                  </Paper>
+                </>
+              )}
             </Stack>
           </Box>
         </Box>
@@ -794,11 +816,11 @@ export default function EmployeeReports() {
                     <Box sx={{ display: "flex", gap: 0.6, minWidth: 0 }}>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#202124", mb: 0.4, whiteSpace: "nowrap" }}>Starting Date</Typography>
-                        <TextField fullWidth size="small" type="date" value={(() => { const d = parseDDMONRR(startDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) { setStartDate(""); return; } const d = new Date(v); const s = `${String(d.getDate()).padStart(2, "0")}-${["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; setStartDate(s); }} InputLabelProps={{ shrink: true }} helperText={startDate ? startDate : "DD-MON-RR"} FormHelperTextProps={{ sx: { fontSize: 9, m: 0, color: "#80868b", whiteSpace: "nowrap" } }} sx={{ "& input": { height: 18, fontSize: 11, px: 0.5 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white", minWidth: 0 } }} />
+                        <TextField fullWidth size="small" type="date" value={(() => { const d = parseDDMONRR(startDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) { setStartDate(""); return; } const d = new Date(v); const s = `${String(d.getDate()).padStart(2, "0")}-${["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; setStartDate(s); }} InputLabelProps={{ shrink: true }} helperText={startDate ? startDate : "DD-MON-RR"} FormHelperTextProps={{ sx: { fontSize: 9, m: 0, color: "#80868b", whiteSpace: "nowrap" } }} sx={{ "& input": { height: 18, fontSize: 11, px: 0.5 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white", minWidth: 0 } }} />
                       </Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#202124", mb: 0.4, whiteSpace: "nowrap" }}>Ending Date</Typography>
-                        <TextField fullWidth size="small" type="date" value={(() => { const d = parseDDMONRR(endDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) { setEndDate(""); return; } const d = new Date(v); const s = `${String(d.getDate()).padStart(2, "0")}-${["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; setEndDate(s); }} InputLabelProps={{ shrink: true }} helperText={endDate ? endDate : "DD-MON-RR"} FormHelperTextProps={{ sx: { fontSize: 9, m: 0, color: "#80868b", whiteSpace: "nowrap" } }} sx={{ "& input": { height: 18, fontSize: 11, px: 0.5 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white", minWidth: 0 } }} />
+                        <TextField fullWidth size="small" type="date" value={(() => { const d = parseDDMONRR(endDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) { setEndDate(""); return; } const d = new Date(v); const s = `${String(d.getDate()).padStart(2, "0")}-${["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; setEndDate(s); }} InputLabelProps={{ shrink: true }} helperText={endDate ? endDate : "DD-MON-RR"} FormHelperTextProps={{ sx: { fontSize: 9, m: 0, color: "#80868b", whiteSpace: "nowrap" } }} sx={{ "& input": { height: 18, fontSize: 11, px: 0.5 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white", minWidth: 0 } }} />
                       </Box>
                     </Box>
                     <Box sx={{ display: "flex", gap: 0.8 }}>
@@ -823,7 +845,7 @@ export default function EmployeeReports() {
                 </Box>
                 <Box sx={{ display: "flex", gap: 0.8 }}>
                   <Button fullWidth size="small" variant="outlined" onClick={() => { setAppId(""); setStartDate(""); setEndDate(""); setReportType("PDF"); setAppReportSel(""); setEmpReportSel(""); setSearch(""); setSelected(null); navigate("/my-reports", { replace: true }); }} sx={{ fontSize: 12, fontWeight: 700, height: 32, borderRadius: 1, color: "#5f6368", borderColor: "#dadce0" }}>Reset</Button>
-                  <Button fullWidth size="small" variant="contained" startIcon={reportType === "PDF" ? <FaDownload size={11} /> : <FaEye size={11} />} onClick={handleExport} disabled={isPayslipGenerated && APP_REPORTS.some(r=>r.id===selected)} sx={{ fontSize: 12, fontWeight: 700, height: 32, borderRadius: 1 }}>Run</Button>
+                  <Button fullWidth size="small" variant="contained" startIcon={reportType === "PDF" ? <FaDownload size={11} /> : <FaEye size={11} />} onClick={handleExport} disabled={isPayslipGenerated && APP_REPORTS.some(r => r.id === selected)} sx={{ fontSize: 12, fontWeight: 700, height: 32, borderRadius: 1 }}>Run</Button>
                 </Box>
               </Box>
             </Paper>
@@ -872,17 +894,17 @@ export default function EmployeeReports() {
                   <Box sx={{ px: 1.4, py: 1, display: "flex", alignItems: "center", gap: 1, bgcolor: "#f8f9fa", borderBottom: "1px solid #e8eaed" }}>
                     <IconButton size="small" onClick={() => { setSelected(null); navigate("/my-reports", { replace: true }); }} sx={{ bgcolor: "white", border: "1px solid #e8eaed", width: 26, height: 26 }}><FaArrowLeft size={10} /></IconButton>
                     <Box sx={{ width: 30, height: 30, borderRadius: 1, bgcolor: theme.palette.primary.main, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}><selectedMeta.icon /></Box>
-                    <Box><Typography sx={{ fontSize: 13, fontWeight: 700, color: "#202124" }}>{(selected === "leave" || selected === "leaves") ? `Leaves History:${empid}:${empName}` : `${selectedMeta.label} ${selectedMeta.desc || ""}`}</Typography><Typography sx={{ fontSize: 11, color: "#5f6368" }}>{selectedMeta.desc} • {filtered.length} records</Typography></Box>
+                    <Box><Typography sx={{ fontSize: 13, fontWeight: 700, color: "#202124" }}>{(selected === "leave" || selected === "leaves") ? `Leaves History:${empid}:${empName}` : selected === "holidays" ? selectedMeta.label : `${selectedMeta.label} ${selectedMeta.desc || ""}`}</Typography><Typography sx={{ fontSize: 11, color: "#5f6368" }}>{selected === "holidays" ? `${filtered.length} records` : `${selectedMeta.desc} • ${filtered.length} records`}</Typography></Box>
                     <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 0.8, flexWrap: "wrap" }}>
-                      {isMonthly && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={month} onChange={e => setMonth(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 90 }}>{MONTHS.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label.slice(0, 3)}</MenuItem>)}</Select><Divider orientation="vertical" flexItem sx={{ mx: 0.4 }} /><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
+                      {isMonthly && selected !== "holidays" && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={month} onChange={e => setMonth(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 90 }}>{MONTHS.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label.slice(0, 3)}</MenuItem>)}</Select><Divider orientation="vertical" flexItem sx={{ mx: 0.4 }} /><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
                       <TextField size="small" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><FaSearch size={11} color="#9aa0a6" /></InputAdornment>, sx: { height: 30, fontSize: 12, bgcolor: "white", borderRadius: 1 } }} sx={{ width: 150 }} />
-                      <Tooltip title="Export"><IconButton size="small" onClick={exportCsv} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}><FaFileCsv size={12} color={theme.palette.primary.main} /></IconButton></Tooltip>
+                      <Tooltip title="Export"><IconButton size="small" onClick={handleExport} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}><FaFileCsv size={12} color={theme.palette.primary.main} /></IconButton></Tooltip>
                       <IconButton size="small" onClick={fetchData} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}><RefreshIcon sx={{ fontSize: 15, color: "#5f6368" }} /></IconButton>
                     </Box>
                   </Box>
                   <Box>{renderTable()}</Box>
                   <Box sx={{ px: 1.4, py: 0.8, bgcolor: "#f8f9fa", borderTop: "1px solid #e8eaed", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Typography sx={{ fontSize: 11, color: "#5f6368" }}>Showing {filtered.length} of {data.length} • {MONTHS[month - 1].label} {year}</Typography>
+                    <Typography sx={{ fontSize: 11, color: "#5f6368" }}>Showing {filtered.length} of {data.length}{selected !== "holidays" ? ` • ${MONTHS[month - 1].label} ${year}` : ""}</Typography>
                     <Button size="small" startIcon={<FaArrowLeft size={10} />} onClick={() => { setSelected(null); navigate("/my-reports", { replace: true }); }} sx={{ fontSize: 12, fontWeight: 700, height: 26, borderRadius: 1 }}>Back to Reports</Button>
                   </Box>
                 </Paper>
@@ -894,25 +916,27 @@ export default function EmployeeReports() {
       <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 1, maxHeight: "90vh" } }}>
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, py: 1.2 }}>Payslip — {viewData?.C_ENAME} ({viewData?.C_EMPID}) — {viewData?.C_MONTH} {viewData?.C_YEAR} <IconButton size="small" onClick={() => setViewOpen(false)} sx={{ bgcolor: "#f1f3f4" }}><CloseIcon sx={{ fontSize: 16 }} /></IconButton></DialogTitle>
         <DialogContent dividers sx={{ p: 1, bgcolor: "#f8f9fa" }}>
-          {viewData && (() => { const p = viewData; const emp = p.employee || {}; const off = emp.official || {}; return (
-            <Box id="my-payslip-print" sx={{ fontSize: 11, bgcolor: "white", p: 1, borderRadius: 1 }}>
-              <table className="payslip-table payslip-outer-border" style={{ width: "100%", borderCollapse: "collapse" }}>
-                <colgroup><col style={{ width: "9%" }} /><col style={{ width: "9%" }} /><col style={{ width: "13%" }} /><col style={{ width: "7%" }} /><col style={{ width: "14%" }} /><col style={{ width: "5%" }} /><col style={{ width: "8%" }} /><col style={{ width: "8%" }} /><col style={{ width: "17%" }} /><col style={{ width: "10%" }} /></colgroup>
-                <tbody>
-                  <tr><td className="payslip-logo-cell" colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}><img src={logo} alt="logo" style={{ height: 36 }} /></td><td className="payslip-company-cell" colSpan={8} style={{ border: "1px solid #aaa", padding: 4, textAlign: "center", fontWeight: 700 }}>{companyName || "AUCTOR HOME APPLIANCES LLP"}<br /><span style={{ fontSize: 10, fontWeight: 400 }}>Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</span></td></tr>
-                  <tr><td colSpan={10} style={{ border: "1px solid #aaa", padding: 4, background: "#f5f5f5", textAlign: "center", fontWeight: 700 }}>Salary Slip For The Month of : {p.C_MONTH} - {p.C_YEAR}</td></tr>
-                  <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>Employee ID</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>{p.C_EMPID}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>D O J :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Designation:</td><td colSpan={3} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_DESIG}</td></tr>
-                  <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Employee Name</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>{p.C_ENAME}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{formatDOJ(off.doj)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Department:</td><td colSpan={3} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_DEPT}</td></tr>
-                  <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Total Days</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_TOT_DAYS)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Days Present:</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_DAYS_PRESENT)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Leaves Allowed:</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_LEAVES_ALLOWED || 0)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>UAN Number</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "center", fontWeight: 700 }}>{off.c_uan_no || "N/A"}</td></tr>
-                  <tr className="payslip-bg-grey" style={{ background: "#f5f5f5", fontWeight: 700, textAlign: "center" }}><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Fixed Salary</td><td colSpan={4} style={{ border: "1px solid #aaa", padding: 4 }}>Earnings Salary</td><td colSpan={4} style={{ border: "1px solid #aaa", padding: 4 }}>Deductions</td></tr>
-                  <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Basic</td><td style="border:1px solid #aaa" style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_BASIC)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Basic</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_BASIC)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Attendance Bonus</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_BONUS)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>P.F</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_PF)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Income tax</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_TAX)}</td></tr>
-                  <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>HRA</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_HRA)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>HRA</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_HRA)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Extra Wage</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_OT)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>E.S.I</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_ESI)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Advance</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_ADV)}</td></tr>
-                  <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>Total Fixed Salary</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_TOT_SAL)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Total Earnings :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_EARNED_GROSS)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Total Deduction:</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_TOT_DED)}</td></tr>
-                  <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>NET Salary :</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_NET_AMT)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Payment Mode :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_PAY_TYPE || "Bank"}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Bank A/c No :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_BANK_ACNO || "-"}</td></tr>
-                </tbody>
-              </table>
-            </Box>
-          ); })()}
+          {viewData && (() => {
+            const p = viewData; const emp = p.employee || {}; const off = emp.official || {}; return (
+              <Box id="my-payslip-print" sx={{ fontSize: 11, bgcolor: "white", p: 1, borderRadius: 1 }}>
+                <table className="payslip-table payslip-outer-border" style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <colgroup><col style={{ width: "9%" }} /><col style={{ width: "9%" }} /><col style={{ width: "13%" }} /><col style={{ width: "7%" }} /><col style={{ width: "14%" }} /><col style={{ width: "5%" }} /><col style={{ width: "8%" }} /><col style={{ width: "8%" }} /><col style={{ width: "17%" }} /><col style={{ width: "10%" }} /></colgroup>
+                  <tbody>
+                    <tr><td className="payslip-logo-cell" colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}><img src={logo} alt="logo" style={{ height: 36 }} /></td><td className="payslip-company-cell" colSpan={8} style={{ border: "1px solid #aaa", padding: 4, textAlign: "center", fontWeight: 700 }}>{companyName || "AUCTOR HOME APPLIANCES LLP"}<br /><span style={{ fontSize: 10, fontWeight: 400 }}>Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</span></td></tr>
+                    <tr><td colSpan={10} style={{ border: "1px solid #aaa", padding: 4, background: "#f5f5f5", textAlign: "center", fontWeight: 700 }}>Salary Slip For The Month of : {p.C_MONTH} - {p.C_YEAR}</td></tr>
+                    <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>Employee ID</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>{p.C_EMPID}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>D O J :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Designation:</td><td colSpan={3} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_DESIG}</td></tr>
+                    <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Employee Name</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>{p.C_ENAME}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{formatDOJ(off.doj)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Department:</td><td colSpan={3} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_DEPT}</td></tr>
+                    <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Total Days</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_TOT_DAYS)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Days Present:</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_DAYS_PRESENT)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Leaves Allowed:</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_LEAVES_ALLOWED || 0)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>UAN Number</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "center", fontWeight: 700 }}>{off.c_uan_no || "N/A"}</td></tr>
+                    <tr className="payslip-bg-grey" style={{ background: "#f5f5f5", fontWeight: 700, textAlign: "center" }}><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Fixed Salary</td><td colSpan={4} style={{ border: "1px solid #aaa", padding: 4 }}>Earnings Salary</td><td colSpan={4} style={{ border: "1px solid #aaa", padding: 4 }}>Deductions</td></tr>
+                    <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Basic</td><td style="border:1px solid #aaa" style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_BASIC)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Basic</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_BASIC)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Attendance Bonus</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_BONUS)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>P.F</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_PF)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Income tax</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_TAX)}</td></tr>
+                    <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>HRA</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_HRA)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>HRA</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_HRA)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Extra Wage</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_OT)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>E.S.I</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_ESI)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Advance</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_ADV)}</td></tr>
+                    <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>Total Fixed Salary</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_TOT_SAL)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Total Earnings :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_EARNED_GROSS)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Total Deduction:</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_TOT_DED)}</td></tr>
+                    <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>NET Salary :</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_NET_AMT)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Payment Mode :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_PAY_TYPE || "Bank"}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Bank A/c No :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_BANK_ACNO || "-"}</td></tr>
+                  </tbody>
+                </table>
+              </Box>
+            );
+          })()}
         </DialogContent>
         <Box sx={{ p: 1.2, display: "flex", justifyContent: "flex-end", gap: 1, bgcolor: "white" }}><Button variant="outlined" startIcon={<PrintIcon />} onClick={() => window.print()} sx={{ borderRadius: 1, fontWeight: 700 }}>Print</Button><Button variant="contained" startIcon={<FaDownload />} onClick={() => downloadPayslip(viewData)} sx={{ borderRadius: 1, fontWeight: 700 }}>Download</Button><Button variant="text" onClick={() => setViewOpen(false)} sx={{ fontWeight: 700 }}>Close</Button></Box>
       </Dialog>

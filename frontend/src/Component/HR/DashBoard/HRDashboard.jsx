@@ -184,20 +184,20 @@ const HRDashboard = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchAll}
-             className="px-3 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[var(--primary-main)] transition"
+            className="px-3 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[var(--primary-main)] transition"
           >
             <FaChartLine /> Refresh
           </button>
           <button
             onClick={exportCSV}
-             className="px-3 py-1.5 bg-[var(--primary-main)] hover:opacity-90 text-white rounded-lg shadow-sm flex items-center gap-2 text-xs font-bold"
+            className="px-3 py-1.5 bg-[var(--primary-main)] hover:opacity-90 text-white rounded-lg shadow-sm flex items-center gap-2 text-xs font-bold"
           >
             <FaFileExport /> Export
           </button>
           <div className="relative">
             <button
               onClick={() => navigate('/leave?action=approval')}
-               className="px-2 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[var(--primary-main)] transition"
+              className="px-2 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[var(--primary-main)] transition"
             >
               <FaBell />
               <span>Alerts</span>
@@ -340,7 +340,7 @@ const HRDashboard = () => {
 
         <InfoList
           title="Upcoming Holidays"
-          data={(insights.upcomingHolidays || []).map((h) => ({
+          data={(insights.upcomingHolidays || []).slice(0, 5).map((h) => ({
             label: h.hdesc || h.hname || 'Holiday',
             value: h.hdate ? new Date(h.hdate).toLocaleDateString() : '',
           }))}
