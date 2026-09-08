@@ -60,7 +60,7 @@ const LEGACY_MAP = { attendance: "attendance-log", leaves: "leaves", payslips: "
 
 export default function EmployeeReports() {
   const theme = useTheme();
-  const { companyName } = useCompany();
+  const { companyName, companySettings } = useCompany();
   const location = useLocation();
   const navigate = useNavigate();
   const empid = localStorage.getItem("empId");
@@ -152,10 +152,10 @@ export default function EmployeeReports() {
       musterroll: axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }).catch(() => ({ data: [] })),
       "ot-register": axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }).catch(() => ({ data: [] })),
       "onduty-movement": axios.get(`${API}/api/onduty/all`, cfg).catch(() => ({ data: [] })),
-      "leaves-info": axios.get(`${API}/api/leave/report`, { params: { empid }, withCredentials: true }).catch(() => ({ data: [] })),
+      "leaves-info": axios.get(`${API}/api/leave/balance/${empid}`, cfg).then(r => ({ data: r.data?.balance ? [r.data.balance] : r.data && !Array.isArray(r.data) && r.data.empid ? [r.data] : Array.isArray(r.data) ? r.data : [] })).catch(() => ({ data: [] })),
       holidays: axios.get(`${API}/api/holidays`, { withCredentials: true }).catch(async () => await axios.get(`${API}/api/holidays/list`, { withCredentials: true }).catch(() => ({ data: [] }))),
       increment: axios.get(`${API}/api/payroll/my-payslips`, cfg).catch(() => ({ data: [] })),
-      encashment: axios.get(`${API}/api/leave/report`, { params: { empid }, withCredentials: true }).catch(() => ({ data: [] })),
+      encashment: axios.get(`${API}/api/leave/balance/${empid}`, cfg).then(r => ({ data: r.data?.balance ? [r.data.balance] : r.data && !Array.isArray(r.data) && r.data.empid ? [r.data] : Array.isArray(r.data) ? r.data : [] })).catch(() => ({ data: [] })),
       "att-percentage": axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }).catch(() => ({ data: [] })),
     };
     Promise.all(Object.entries(calls).map(([k, p]) => p.then(r => [k, r]))).then(entries => {
@@ -211,7 +211,7 @@ export default function EmployeeReports() {
       else if (selected === "profile") { const r = await axios.get(`${API}/api/employees/my-profile-requests`, cfg); raw = r.data || []; }
       else if (["attendance-log", "movement", "musterroll", "ot-register", "att-percentage"].includes(selected)) { const r = await axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }); raw = r.data.records || r.data || []; }
       else if (selected === "onduty-movement") { const r = await axios.get(`${API}/api/onduty/all`, cfg); raw = r.data || []; }
-      else if (selected === "leaves-info" || selected === "encashment") { const r = await axios.get(`${API}/api/leave/report`, { params: { empid }, withCredentials: true }).catch(async () => await axios.get(`${API}/api/leave/all-leaves`, cfg)); raw = Array.isArray(r.data) ? r.data : r.data.data || r.data.records || []; }
+      else if (selected === "leaves-info" || selected === "encashment") { const r = await axios.get(`${API}/api/leave/balance/${empid}`, cfg).catch(async () => await axios.get(`${API}/api/leave/report`, { params: { empid }, withCredentials: true })); const d = r.data?.balance || r.data; raw = Array.isArray(d) ? d : d && d.empid ? [d] : d?.data || d?.records || []; }
       else if (selected === "holidays") { const r = await axios.get(`${API}/api/holidays`, { withCredentials: true }).catch(() => ({ data: [] })); raw = Array.isArray(r.data) ? r.data : r.data.data || []; }
       else if (selected === "increment") { const r = await axios.get(`${API}/api/payroll/my-payslips`, cfg); raw = Array.isArray(r.data) ? r.data : r.data.payslips || []; }
       setData(onlyMine(Array.isArray(raw) ? raw : []));
@@ -406,11 +406,35 @@ export default function EmployeeReports() {
     const title = `OnDuty Movement — ${MONTHS[month - 1].label} ${year} — ${empid}`;
     if (reportType === "PDF") { const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" }); doc.text(companyName || "Company", 420, 30, { align: "center" }); doc.text(title, 420, 45, { align: "center" }); autoTable(doc, { startY: 60, head: [head], body: rows.length ? rows : [["No records", "", "", "", "", "", "", "", "", "", ""]], styles: { fontSize: 6, cellPadding: 2 }, headStyles: { fillColor: [25, 118, 210] }, theme: "grid" }); doc.save(`OndutyMovement_${year}_${month}.pdf`); } else { const flat = []; let s2 = 1; Object.keys(empGroups).sort().forEach(empK => { const emp = empGroups[empK]; flat.push([`${emp.eId} — ${emp.eName}`, "", "", "", "", "", "", "", "", "", ""]); Object.keys(emp.byStatus).sort().forEach(k => { flat.push([`${k.toUpperCase()} — ${emp.byStatus[k].length}`, "", "", "", "", "", "", "", "", "", ""]); emp.byStatus[k].forEach(r => { const entry2 = r.created || r.created_at || r.created_dt || r.entry_date || r.applied_date || r.movement_created || r.od_created || r.movement_date; flat.push([s2++, r.empid || emp.eId, r.ename || emp.eName, r.movement_id || r.id || "—", entry2 ? fmtDateTime(entry2) : "—", fmtDate(r.movement_date || r.act_date || r.actual_date), String(r.perm_ftime || r.from_time || r.ftime || "").slice(0, 5) || "—", String(r.perm_ttime || r.to_time || r.ttime || "").slice(0, 5) || "—", r.place || r.location || "—", r.purpose || r.reason || "—", r.status || "—"]); }); }); }); const ws = XLSX.utils.aoa_to_sheet([[companyName || "Company"], [title], head, ...flat]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Onduty Movement"); XLSX.writeFile(wb, `OndutyMovement_${year}_${month}.xlsx`); }
   };
-  const exportLeavesInfo = () => {
-    const groups = {}; filtered.forEach(r => { const k = String(r.ltype || r.leave_type || "Other").toUpperCase(); (groups[k] = groups[k] || []).push(r); });
-    const head = ["Leave Type", "Eligible", "Availed", "Balance", "Status"]; const rows = []; Object.keys(groups).sort().forEach(k => { const arr = groups[k]; const totEl = arr.reduce((s, r) => s + (Number(r.eligible || r.cls_eligible || 0)), 0); const totAv = arr.reduce((s, r) => s + (Number(r.utilised || r.cls_utilised || 0)), 0); const totBal = arr.reduce((s, r) => s + (Number(r.balance || r.cls_balance || r.clBal || 0)), 0); rows.push([{ content: `${k} — ${arr.length} | El:${totEl} Av:${totAv} Bal:${totBal}`, colSpan: 5, styles: { fillColor: [248, 249, 250], fontStyle: "bold" } }]); arr.forEach(r => rows.push([r.ltype || r.leave_type || k, r.eligible || r.cls_eligible || "—", r.utilised || r.cls_utilised || "—", r.balance || r.cls_balance || r.clBal || "—", r.status || "Info"])); });
-    const title = `Leaves Information — ${empid} ${empName}`;
-    if (reportType === "PDF") { const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" }); doc.text(companyName || "Company", 420, 30, { align: "center" }); doc.text(title, 420, 45, { align: "center" }); autoTable(doc, { startY: 60, head: [head], body: rows.length ? rows : [["No records", "", "", "", ""]], styles: { fontSize: 7, cellPadding: 3 }, headStyles: { fillColor: [25, 118, 210] }, theme: "grid" }); doc.save(`LeavesInfo_${empid}.pdf`); } else { const flat = []; Object.keys(groups).sort().forEach(k => { const arr = groups[k]; const totEl = arr.reduce((s, r) => s + (Number(r.eligible || r.cls_eligible || 0)), 0); const totAv = arr.reduce((s, r) => s + (Number(r.utilised || r.cls_utilised || 0)), 0); const totBal = arr.reduce((s, r) => s + (Number(r.balance || r.cls_balance || r.clBal || 0)), 0); flat.push([`${k} — ${arr.length}`, totEl || "—", totAv || "—", totBal || "—", `${arr.length} rec`]); arr.forEach(r => flat.push([r.ltype || r.leave_type || k, r.eligible || r.cls_eligible || "—", r.utilised || r.cls_utilised || "—", r.balance || r.cls_balance || r.clBal || "—", r.status || "Info"])); }); const ws = XLSX.utils.aoa_to_sheet([[companyName || "Company"], [title], head, ...flat]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Leaves Info"); XLSX.writeFile(wb, `LeavesInfo_${empid}.xlsx`); }
+  const exportLeavesInfo = async () => {
+    const r = leaveBal || filtered[0] || store["leaves-info"]?.[0] || store["encashment"]?.[0] || {};
+    const clsBal = Number(r.cls_balance ?? r.clsBalance ?? r.clBal ?? 0);
+    const clsAv = Number(r.cls_utilised ?? r.clsUtilised ?? r.cls_utilized ?? 0);
+    const clsEl = Number(r.cls_eligible ?? r.clsEligible ?? (r.cls_balance != null || r.clsBalance != null ? clsBal + clsAv : 0));
+    const elsBal = Number(r.els_balance ?? r.elsBalance ?? r.elBal ?? 0);
+    const elsAv = Number(r.els_utilised ?? r.elsUtilised ?? r.els_utilized ?? 0);
+    const elsEl = Number(r.els_eligible ?? r.elsEligible ?? (r.els_balance != null || r.elsBalance != null ? elsBal + elsAv : 0));
+    const headTop = [{ content: "Emp ID", rowSpan: 2, styles: { halign: "center", valign: "middle" } }, { content: "Name", rowSpan: 2, styles: { halign: "center", valign: "middle" } }, { content: "CL", colSpan: 3, styles: { halign: "center" } }, { content: "EL", colSpan: 3, styles: { halign: "center" } }, { content: "Total Balance", rowSpan: 2, styles: { halign: "center", valign: "middle" } }];
+    const headSub = [{ content: "Eligible", styles: { halign: "center" } }, { content: "Availed", styles: { halign: "center" } }, { content: "Balance", styles: { halign: "center" } }, { content: "Eligible", styles: { halign: "center" } }, { content: "Availed", styles: { halign: "center" } }, { content: "Balance", styles: { halign: "center" } }];
+    const headFlat = ["Emp ID", "Name", "CL Eligible", "CL Availed", "CL Balance", "EL Eligible", "EL Availed", "EL Balance", "Total Balance"];
+    const row = [r.empid || r.gempid || empid, r.ename || r.empname || empName, clsEl.toString(), clsAv.toString(), clsBal.toString(), elsEl.toString(), elsAv.toString(), elsBal.toString(), Number(clsBal + elsBal).toString()];
+    const title = `Leaves Information — ${empid} ${empName} — ${year}`;
+    if (reportType === "PDF") {
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const logoUrl = companySettings?.logo_url || logo;
+      if (logoUrl) {
+        try {
+          let logoData = logoUrl;
+          if (!logoUrl.startsWith("data:")) {
+            const res = await fetch(logoUrl);
+            const blob = await res.blob();
+            logoData = await new Promise(resv => { const fr = new FileReader(); fr.onload = () => resv(fr.result); fr.readAsDataURL(blob); });
+          }
+          doc.addImage(logoData, "JPEG", 40, 10, 68, 30);
+        } catch {}
+      }
+      doc.setFontSize(11); doc.text(companyName || "Company", 420, 28, { align: "center" }); doc.setFontSize(9); doc.text(title, 420, 42, { align: "center" }); autoTable(doc, { startY: 60, head: [headTop, headSub], body: [row], styles: { fontSize: 7, cellPadding: 3, halign: "center", valign: "middle" }, headStyles: { fillColor: [25, 118, 210], halign: "center", valign: "middle" }, theme: "grid" }); doc.save(`LeavesInfo_${empid}_${year}.pdf`);
+    } else { const wsData = [[companyName || "Company"], [title], ["", "", "CL", "", "", "EL", "", "", ""], headFlat, row]; const ws = XLSX.utils.aoa_to_sheet(wsData); ws["!merges"] = [{ s: { r: 2, c: 2 }, e: { r: 2, c: 4 } }, { s: { r: 2, c: 5 }, e: { r: 2, c: 7 } }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Leaves Info"); XLSX.writeFile(wb, `LeavesInfo_${empid}_${year}.xlsx`); }
   };
   const handleExport = () => {
     if ((selected === "leave" || selected === "leaves") && filtered.length) { exportLeaveHistory(); return; }
@@ -489,11 +513,16 @@ export default function EmployeeReports() {
     return { total, pending, att: attSummary, payslip: payslipSummary };
   }, [store, attSummary, payslipSummary]);
 
+  const YEAR_ONLY = ["leaves-info", "encashment"];
   const headerKpi = useMemo(() => {
     if (!selected) return kpi;
+    if (YEAR_ONLY.includes(selected)) {
+      const hasRec = !!(filtered[0] || store[selected]?.[0] || leaveBal);
+      return { total: hasRec ? 1 : 0, pending: 0 };
+    }
     const s = statsOf(store[selected] || filtered);
     return { total: s.total, pending: s.pending };
-  }, [selected, store, filtered, kpi]);
+  }, [selected, store, filtered, kpi, leaveBal]);
 
   const isPayslipGenerated = useMemo(() => {
     const arr = store.payslips || [];
@@ -541,13 +570,13 @@ export default function EmployeeReports() {
     const s = statsOf(arr);
     const isApprovedOT = (x) => x && (x.ot_status === "Approved" || x.ot_approved == 1 || x.app_status === "Approved" || x.hr_app_status === "Approved" || x.is_ot_approved == 1 || x.ot_approved_status === "Approved");
     const otApproved = arr.filter(x => isApprovedOT(x) && Number(x.ot_hrs) > 0).length;
-    const count = r.id === "ot-register" ? otApproved : r.id === "attendance" || r.id === "attendance-log" ? attSummary?.total ?? arr.length : arr.length;
+    const count = r.id === "leaves-info" ? 1 : r.id === "ot-register" ? otApproved : r.id === "attendance" || r.id === "attendance-log" ? attSummary?.total ?? arr.length : arr.length;
     return (
       <Box onClick={() => selectReport(r.id)} sx={{ display: "flex", alignItems: "center", gap: 0.9, px: 1.1, py: 0.7, borderRadius: 1, cursor: "pointer", border: "1px solid #e8eaed", bgcolor: "white", "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.04), borderColor: alpha(theme.palette.primary.main, 0.3) } }}>
         <Box sx={{ width: 28, height: 28, borderRadius: 0.8, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}><r.icon /></Box>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#202124", lineHeight: 1.1 }}>{r.label}</Typography>
-          <Typography sx={{ fontSize: 11, color: "#5f6368", lineHeight: 1 }}>{r.desc} {["holidays", "attendance-log", "attendance", "musterroll", "movement", "ot-register", "att-percentage", "onduty-movement"].includes(r.id) ? "" : `• ${s.total ? `${s.pending} pend` : "—"}`}</Typography>
+          <Typography sx={{ fontSize: 11, color: "#5f6368", lineHeight: 1 }}>{r.desc} {["holidays", "attendance-log", "attendance", "musterroll", "movement", "ot-register", "att-percentage", "onduty-movement", "leaves-info"].includes(r.id) ? "" : `• ${s.total ? `${s.pending} pend` : "—"}`}</Typography>
         </Box>
         <Chip label={count} size="small" sx={{ height: 18, minWidth: 24, fontSize: 12, fontWeight: 700, bgcolor: "#f1f3f4", color: "#5f6368" }} />
         <FaChevronRight size={9} color="#dadce0" />
@@ -899,20 +928,33 @@ export default function EmployeeReports() {
       );
     }
     if (["leaves-info", "encashment"].includes(selected)) {
-      const groups = {};
-      filtered.forEach(r => { const k = String(r.ltype || r.leave_type || "Other").toUpperCase(); (groups[k] = groups[k] || []).push(r); });
-      const keys = Object.keys(groups).sort();
+      const r = leaveBal || filtered[0] || store["leaves-info"]?.[0] || store["encashment"]?.[0] || {};
+      const isEmpty = !r || Object.keys(r).length === 0 || (r.cls_balance == null && r.clsBalance == null && r.els_balance == null);
+      const clsBal = Number(r.cls_balance ?? r.clsBalance ?? r.clBal ?? 0);
+      const clsAv = Number(r.cls_utilised ?? r.clsUtilised ?? r.cls_utilized ?? 0);
+      const clsEl = Number(r.cls_eligible ?? r.clsEligible ?? (r.cls_balance != null || r.clsBalance != null ? clsBal + clsAv : 0));
+      const elsBal = Number(r.els_balance ?? r.elsBalance ?? r.elBal ?? 0);
+      const elsAv = Number(r.els_utilised ?? r.elsUtilised ?? r.els_utilized ?? 0);
+      const elsEl = Number(r.els_eligible ?? r.elsEligible ?? (r.els_balance != null || r.elsBalance != null ? elsBal + elsAv : 0));
       return (
-        <Table size="small" stickyHeader sx={{ "& th, & td": { textAlign: "center" } }}><TableHead><TableRow>{["Leave Type", "Eligible", "Availed", "Balance", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No leave info</TableCell></TableRow> : keys.map(k => {
-            const arr = groups[k]; const totEl = arr.reduce((s, r) => s + (Number(r.eligible || r.cls_eligible || 0)), 0); const totAv = arr.reduce((s, r) => s + (Number(r.utilised || r.cls_utilised || 0)), 0); const totBal = arr.reduce((s, r) => s + (Number(r.balance || r.cls_balance || r.clBal || 0)), 0);
-            return (
-              <React.Fragment key={k}>
-                <TableRow sx={{ bgcolor: "#f8f9fa" }}><TableCell sx={{ fontSize: 12, fontWeight: 800, color: theme.palette.primary.main }}>{k} — {arr.length}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{totEl || "—"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{totAv || "—"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 800 }}>{totBal || "—"}</TableCell><TableCell><Chip size="small" label={`${arr.length} rec`} sx={{ height: 18, fontSize: 11 }} /></TableCell></TableRow>
-                {arr.slice(0, 20).map((r, i) => <TableRow key={i} hover><TableCell sx={{ fontSize: 12, pl: 3 }}>{r.ltype || r.leave_type || k}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.eligible || r.cls_eligible || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.utilised || r.cls_utilised || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.balance || r.cls_balance || r.clBal || "—"}</TableCell><TableCell><Chip size="small" label={r.status || "Info"} sx={{ height: 18, fontSize: 11 }} /></TableCell></TableRow>)}
-              </React.Fragment>
-            );
-          })}</TableBody></Table>
+        <Table size="small" stickyHeader sx={{ "& th, & td": { textAlign: "center", border: "1px solid #e8eaed" }, minWidth: 900 }}><TableHead>
+          <TableRow>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap" }} rowSpan={2}>Emp ID</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap" }} rowSpan={2}>Name</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap", bgcolor: "#e8f5e9" }} colSpan={3}>CL</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap", bgcolor: "#e3f2fd" }} colSpan={3}>EL</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap" }} rowSpan={2}>Total Balance</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap", bgcolor: "#e8f5e9" }}>Eligible</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap", bgcolor: "#e8f5e9" }}>Availed</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap", bgcolor: "#e8f5e9" }}>Balance</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap", bgcolor: "#e3f2fd" }}>Eligible</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap", bgcolor: "#e3f2fd" }}>Availed</TableCell>
+            <TableCell sx={{ ...headSx, whiteSpace: "nowrap", bgcolor: "#e3f2fd" }}>Balance</TableCell>
+          </TableRow>
+        </TableHead>
+          <TableBody>{isEmpty ? <TableRow><TableCell colSpan={9} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No leave info</TableCell></TableRow> : <TableRow hover><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{r.empid || r.gempid || empid}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.ename || r.empname || empName}</TableCell><TableCell sx={{ fontSize: 12 }}>{clsEl.toString()}</TableCell><TableCell sx={{ fontSize: 12 }}>{clsAv.toString()}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700, color: "#137333" }}>{clsBal.toString()}</TableCell><TableCell sx={{ fontSize: 12 }}>{elsEl.toString()}</TableCell><TableCell sx={{ fontSize: 12 }}>{elsAv.toString()}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700, color: "#137333" }}>{elsBal.toString()}</TableCell><TableCell sx={{ fontSize: 13, fontWeight: 800, bgcolor: "#e8f5e9" }}>{Number(clsBal + elsBal).toString()}</TableCell></TableRow>}</TableBody></Table>
       );
     }
     if (selected === "holidays") {
@@ -1005,10 +1047,10 @@ export default function EmployeeReports() {
                     <Box sx={{ width: 26, height: 26, borderRadius: 1, bgcolor: "white", border: "1px solid #dadce0", display: "flex", alignItems: "center", justifyContent: "center", color: theme.palette.primary.main }}><FaClipboardList size={11} /></Box>
                     <Box><Typography sx={{ fontSize: 14, fontWeight: 700, color: "#202124", lineHeight: 1 }}>{headerKpi.total}</Typography><Typography sx={{ fontSize: 11, fontWeight: 700, color: "#5f6368", textTransform: "uppercase" }}>{selected ? selectedMeta?.label : "Requests"}</Typography></Box>
                   </Paper>
-                  <Paper elevation={0} sx={{ px: 1.4, py: 0.7, borderRadius: 1, border: "1px solid #fbbc04", bgcolor: "#fef7e0", display: "flex", alignItems: "center", gap: 1 }}>
+                  {!YEAR_ONLY.includes(selected) && <Paper elevation={0} sx={{ px: 1.4, py: 0.7, borderRadius: 1, border: "1px solid #fbbc04", bgcolor: "#fef7e0", display: "flex", alignItems: "center", gap: 1 }}>
                     <Box sx={{ width: 26, height: 26, borderRadius: 1, bgcolor: "white", border: "1px solid #fdd663", display: "flex", alignItems: "center", justifyContent: "center", color: "#7a6500" }}><FaHourglassHalf size={11} /></Box>
                     <Box><Typography sx={{ fontSize: 14, fontWeight: 700, color: "#202124", lineHeight: 1 }}>{headerKpi.pending}</Typography><Typography sx={{ fontSize: 11, fontWeight: 700, color: "#5f6368", textTransform: "uppercase" }}>Pending</Typography></Box>
-                  </Paper>
+                  </Paper>}
                 </>
               )}
             </Stack>
@@ -1058,10 +1100,10 @@ export default function EmployeeReports() {
                       </Box>
                     </Box>
                     <Box sx={{ display: "flex", gap: 0.8 }}>
-                      <Box sx={{ flex: 1 }}>
+                      {!YEAR_ONLY.includes(selected) && <Box sx={{ flex: 1 }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#202124", mb: 0.4 }}>Month</Typography>
                         <Select id="monthSelect" fullWidth size="small" value={month} onChange={e => setMonth(e.target.value)} sx={{ height: 34, fontSize: 12, bgcolor: "white", borderRadius: 1 }}>{MONTHS.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label.slice(0, 3)}</MenuItem>)}</Select>
-                      </Box>
+                      </Box>}
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#202124", mb: 0.4 }}>Year</Typography>
                         <TextField fullWidth size="small" type="number" value={year} onChange={e => setYear(parseInt(e.target.value) || 2026)} sx={{ "& input": { height: 18, fontSize: 12 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white" } }} />
@@ -1131,7 +1173,8 @@ export default function EmployeeReports() {
                     <Box sx={{ width: 30, height: 30, borderRadius: 1, bgcolor: theme.palette.primary.main, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}><selectedMeta.icon /></Box>
                     <Box><Typography sx={{ fontSize: 13, fontWeight: 700, color: "#202124" }}>{(selected === "leave" || selected === "leaves") ? `Leaves History:${empid}:${empName}` : selected === "holidays" ? selectedMeta.label : `${selectedMeta.label} ${selectedMeta.desc || ""}`}</Typography><Typography sx={{ fontSize: 11, color: "#5f6368" }}>{selected === "holidays" ? `${filtered.length} records` : `${selectedMeta.desc} • ${filtered.length} records`}</Typography></Box>
                     <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 0.8, flexWrap: "wrap" }}>
-                      {isMonthly && selected !== "holidays" && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={month} onChange={e => setMonth(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 90 }}>{MONTHS.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label.slice(0, 3)}</MenuItem>)}</Select><Divider orientation="vertical" flexItem sx={{ mx: 0.4 }} /><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
+                      {isMonthly && selected !== "holidays" && !YEAR_ONLY.includes(selected) && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={month} onChange={e => setMonth(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 90 }}>{MONTHS.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label.slice(0, 3)}</MenuItem>)}</Select><Divider orientation="vertical" flexItem sx={{ mx: 0.4 }} /><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
+                      {isMonthly && YEAR_ONLY.includes(selected) && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
                       <TextField size="small" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><FaSearch size={11} color="#9aa0a6" /></InputAdornment>, sx: { height: 30, fontSize: 12, bgcolor: "white", borderRadius: 1 } }} sx={{ width: 150 }} />
                       <Tooltip title="Export"><IconButton size="small" onClick={handleExport} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}><FaFileCsv size={12} color={theme.palette.primary.main} /></IconButton></Tooltip>
                       <IconButton size="small" onClick={fetchData} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}><RefreshIcon sx={{ fontSize: 15, color: "#5f6368" }} /></IconButton>
@@ -1139,7 +1182,7 @@ export default function EmployeeReports() {
                   </Box>
                   <Box>{renderTable()}</Box>
                   <Box sx={{ px: 1.4, py: 0.8, bgcolor: "#f8f9fa", borderTop: "1px solid #e8eaed", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Typography sx={{ fontSize: 11, color: "#5f6368" }}>Showing {filtered.length} of {data.length}{selected !== "holidays" ? ` • ${MONTHS[month - 1].label} ${year}` : ""}</Typography>
+                    <Typography sx={{ fontSize: 11, color: "#5f6368" }}>Showing {YEAR_ONLY.includes(selected) ? 1 : filtered.length} of {YEAR_ONLY.includes(selected) ? 1 : data.length}{selected === "holidays" ? "" : YEAR_ONLY.includes(selected) ? ` • ${year}` : ` • ${MONTHS[month - 1].label} ${year}`}</Typography>
                     <Button size="small" startIcon={<FaArrowLeft size={10} />} onClick={() => { setSelected(null); navigate("/my-reports", { replace: true }); }} sx={{ fontSize: 12, fontWeight: 700, height: 26, borderRadius: 1 }}>Back to Reports</Button>
                   </Box>
                 </Paper>
