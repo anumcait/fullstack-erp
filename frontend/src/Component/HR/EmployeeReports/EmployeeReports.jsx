@@ -44,7 +44,7 @@ const MONTHLY_REPORTS = [
   { id: "attendance-log", label: "Attendance Log", desc: "Punch in/out log", icon: FaClock },
   { id: "movement", label: "Movement Report", desc: "In/Out movements", icon: FaExchangeAlt },
   { id: "musterroll", label: "Muster Roll", desc: "Daily muster", icon: FaCalendarCheck },
-  { id: "ot-register", label: "OT Register", desc: "Overtime register", icon: FaClock },
+  { id: "ot-register", label: "OT Register", desc: "", icon: FaClock },
   { id: "onduty-movement", label: "OnDuty Movement", desc: "OD movements", icon: FaBriefcase },
   { id: "leaves", label: "Leaves History", desc: "Monthly leave history", icon: FaRegCalendar },
   { id: "leaves-info", label: "Leaves Information", desc: "Leave balances & info", icon: FaUmbrellaBeach },
@@ -73,6 +73,7 @@ export default function EmployeeReports() {
   });
   const [month, setMonth] = useState(() => { const v = localStorage.getItem("er_month"); return v ? parseInt(v) : new Date().getMonth() + 1; });
   const [year, setYear] = useState(() => { const v = localStorage.getItem("er_year"); return v ? parseInt(v) : new Date().getFullYear(); });
+  const [otView, setOtView] = useState("both");
   useEffect(() => { localStorage.setItem("er_month", String(month)); }, [month]);
   useEffect(() => { localStorage.setItem("er_year", String(year)); }, [year]);
   const [data, setData] = useState([]);
@@ -465,7 +466,9 @@ export default function EmployeeReports() {
   const MonthlyRow = ({ r }) => {
     const arr = store[r.id] || [];
     const s = statsOf(arr);
-    const count = r.id === "attendance" || r.id === "attendance-log" ? attSummary?.total ?? arr.length : arr.length;
+    const isApprovedOT = (x) => x && (x.ot_status === "Approved" || x.ot_approved == 1 || x.app_status === "Approved" || x.hr_app_status === "Approved" || x.is_ot_approved == 1 || x.ot_approved_status === "Approved");
+    const otApproved = arr.filter(x => isApprovedOT(x) && Number(x.ot_hrs) > 0).length;
+    const count = r.id === "ot-register" ? otApproved : r.id === "attendance" || r.id === "attendance-log" ? attSummary?.total ?? arr.length : arr.length;
     return (
       <Box onClick={() => selectReport(r.id)} sx={{ display: "flex", alignItems: "center", gap: 0.9, px: 1.1, py: 0.7, borderRadius: 1, cursor: "pointer", border: "1px solid #e8eaed", bgcolor: "white", "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.04), borderColor: alpha(theme.palette.primary.main, 0.3) } }}>
         <Box sx={{ width: 28, height: 28, borderRadius: 0.8, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}><r.icon /></Box>
@@ -703,7 +706,7 @@ export default function EmployeeReports() {
       const byDay = {}; filtered.forEach(r => { const d = new Date(r.att_date).getDate(); if (d >= 1 && d <= dim) byDay[d] = r; });
       const statuses = Array.from({ length: dim }, (_, i) => getShort(byDay[i + 1]?.status || ""));
       const display = statuses.map((s, i) => { if (s !== "W" && s !== "H") return s; const prev = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i - 1]); const next = i < dim - 1 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i + 1]); return prev || next ? s : "A"; });
-      let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; else if (s === "W" && d === "A") lop++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; if (r?.ot_hrs) ot += Number(r.ot_hrs); }); const total = p + h + w + cl + el;
+      let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; else if (s === "W" && d === "A") lop++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; const approved = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved" || r.is_ot_approved == 1 || r.ot_approved_status === "Approved"); if (approved && r?.ot_hrs) ot += Number(r.ot_hrs); }); const total = p + h + w + cl + el;
       return (
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small" stickyHeader sx={{ minWidth: 900, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px" } }}>
@@ -711,7 +714,7 @@ export default function EmployeeReports() {
               <TableRow>{Array.from({ length: dim + 2 }, (_, i) => <TableCell key={i} sx={{ ...headSx, py: 0.5, fontSize: 9 }} align="center">{i < 2 ? "" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(year, month - 1, i - 1).getDay()]}</TableCell>)}<TableCell colSpan={7} sx={headSx}></TableCell></TableRow></TableHead>
             <TableBody>
               <TableRow hover><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{empid}</TableCell><TableCell sx={{ fontSize: 12 }}>{empName}</TableCell>{display.map((d, i) => { const c = getClr(d); return <TableCell key={i} align="center" sx={{ bgcolor: c.bg, color: c.col, fontWeight: 700 }}>{d || "-"}</TableCell>; })}<TableCell align="center" sx={{ bgcolor: "#e8f5e9", fontWeight: 700 }}>{p}</TableCell><TableCell align="center" sx={{ bgcolor: "#e3f2fd", fontWeight: 700 }}>{h + w}</TableCell><TableCell align="center" sx={{ bgcolor: "#fff8e1", fontWeight: 700 }}>{cl}</TableCell><TableCell align="center" sx={{ bgcolor: "#e0f2f1", fontWeight: 700 }}>{el}</TableCell><TableCell align="center" sx={{ bgcolor: "#ffcdd2", fontWeight: 700 }}>{lop}</TableCell><TableCell align="center" sx={{ bgcolor: "#eceff1", fontWeight: 700 }}>{total}</TableCell><TableCell align="center" sx={{ bgcolor: "#fff9c4", fontWeight: 700 }}>{ot.toFixed(1)}</TableCell></TableRow>
-              <TableRow><TableCell colSpan={2} align="right" sx={{ fontSize: 11, fontWeight: 700, bgcolor: "#fff3e0" }}>OT</TableCell>{Array.from({ length: dim }, (_, i) => { const r = byDay[i + 1]; const v = r?.ot_hrs ? Number(r.ot_hrs).toFixed(1) : ""; return <TableCell key={i} align="center" sx={{ fontSize: 10, color: "#e65100", bgcolor: v ? "#ffe0b2" : "inherit" }}>{v}</TableCell>; })}<TableCell colSpan={7}></TableCell></TableRow>
+              <TableRow><TableCell colSpan={2} align="right" sx={{ fontSize: 11, fontWeight: 700, bgcolor: "#fff3e0" }}>OT</TableCell>{Array.from({ length: dim }, (_, i) => { const r = byDay[i + 1]; const approved = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved" || r.is_ot_approved == 1 || r.ot_approved_status === "Approved"); const v = approved && r?.ot_hrs ? Number(r.ot_hrs).toFixed(1) : ""; return <TableCell key={i} align="center" sx={{ fontSize: 10, color: "#e65100", bgcolor: v ? "#ffe0b2" : "inherit" }}>{v}</TableCell>; })}<TableCell colSpan={7}></TableCell></TableRow>
             </TableBody></Table>
         </Box>
       );
@@ -719,27 +722,37 @@ export default function EmployeeReports() {
     if (selected === "ot-register") {
       const dim = new Date(year, month, 0).getDate();
       const byDay = {}; filtered.forEach(r => { const d = new Date(r.att_date).getDate(); if (d >= 1 && d <= dim) byDay[d] = r; });
-      let tot = 0; Object.values(byDay).forEach(r => { if (r?.ot_hrs) tot += Number(r.ot_hrs); });
+      const isApproved = (r) => r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved" || r.is_ot_approved == 1 || r.ot_approved_status === "Approved");
+      let totActual = 0, totApproved = 0; Object.values(byDay).forEach(r => { if (r?.ot_hrs) totActual += Number(r.ot_hrs); if (isApproved(r) && r?.ot_hrs) totApproved += Number(r.ot_hrs); });
       return (
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small" stickyHeader sx={{ minWidth: 800, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px" } }}>
-            <TableHead><TableRow><TableCell sx={headSx}>Emp ID</TableCell><TableCell sx={headSx}>Name</TableCell>{Array.from({ length: dim }, (_, i) => <TableCell key={i} align="center" sx={headSx}>{String(i + 1).padStart(2, "0")}</TableCell>)}<TableCell sx={{ ...headSx, bgcolor: "#fff9c4" }} align="center">Total OT</TableCell></TableRow></TableHead>
-            <TableBody><TableRow hover><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{empid}</TableCell><TableCell sx={{ fontSize: 12 }}>{empName}</TableCell>{Array.from({ length: dim }, (_, i) => { const r = byDay[i + 1]; const v = r?.ot_hrs ? Number(r.ot_hrs).toFixed(1) : ""; return <TableCell key={i} align="center" sx={{ color: "#e65100", bgcolor: v ? "#ffe0b2" : "inherit", fontWeight: v ? 700 : 400 }}>{v || "-"}</TableCell>; })}<TableCell align="center" sx={{ bgcolor: "#fff9c4", fontWeight: 800 }}>{tot.toFixed(1)}</TableCell></TableRow></TableBody></Table>
+            <TableHead><TableRow><TableCell sx={headSx}>Emp ID</TableCell><TableCell sx={headSx}>Name</TableCell><TableCell sx={headSx}>Type</TableCell>{Array.from({ length: dim }, (_, i) => <TableCell key={i} align="center" sx={headSx}>{String(i + 1).padStart(2, "0")}</TableCell>)}<TableCell sx={{ ...headSx, bgcolor: "#fff9c4", display: otView === "actual" ? "none" : "table-cell" }} align="center">Approved OT</TableCell><TableCell sx={{ ...headSx, bgcolor: "#e0f2f1", display: otView === "approved" ? "none" : "table-cell" }} align="center">Actual OT</TableCell></TableRow></TableHead>
+            <TableBody>
+              <TableRow><TableCell colSpan={3 + dim + 2} sx={{ p: 0 }}><Box sx={{ display: "flex", gap: 0.8, px: 1, py: 0.6, bgcolor: "#f8f9fa", alignItems: "center" }}><Chip size="small" label={`Approved: ${totApproved.toFixed(2)}h`} sx={{ height: 20, fontWeight: 700, bgcolor: "#fff9c4", color: "#a65c00", display: otView === "actual" ? "none" : "flex" }} /><Chip size="small" label={`Actual: ${totActual.toFixed(2)}h`} sx={{ height: 20, fontWeight: 700, bgcolor: "#e0f2f1", color: "#00695c", display: otView === "approved" ? "none" : "flex" }} /><Select size="small" value={otView} onChange={e => setOtView(e.target.value)} sx={{ height: 24, fontSize: 11, bgcolor: "white", ml: 1 }}><MenuItem value="both" sx={{ fontSize: 11 }}>Both</MenuItem><MenuItem value="approved" sx={{ fontSize: 11 }}>Approved only</MenuItem><MenuItem value="actual" sx={{ fontSize: 11 }}>Actual only</MenuItem></Select><Box sx={{ flex: 1 }} /></Box></TableCell></TableRow>
+              <TableRow hover sx={{ display: otView === "actual" ? "none" : "table-row" }}><TableCell sx={{ fontSize: 12, fontWeight: 700 }} rowSpan={otView === "both" ? 2 : 1}>{empid}</TableCell><TableCell sx={{ fontSize: 12 }} rowSpan={otView === "both" ? 2 : 1}>{empName}</TableCell><TableCell sx={{ fontSize: 11, fontWeight: 600, color: "#a65c00" }}>Approved</TableCell>{Array.from({ length: dim }, (_, i) => { const r = byDay[i + 1]; const v = isApproved(r) && r?.ot_hrs ? Number(r.ot_hrs).toFixed(2) : ""; return <TableCell key={i} align="center" sx={{ color: "#a65c00", bgcolor: v ? "#fff9c4" : "inherit", fontSize: 11, fontWeight: 700 }}>{v || "-"}</TableCell>; })}<TableCell align="center" sx={{ bgcolor: "#fff9c4", fontWeight: 800, display: otView === "actual" ? "none" : "table-cell" }}>{totApproved.toFixed(2)}</TableCell><TableCell align="center" sx={{ bgcolor: "#e0f2f1", fontWeight: 800, display: otView === "approved" ? "none" : "table-cell" }}>-</TableCell></TableRow>
+              <TableRow hover sx={{ display: otView === "approved" ? "none" : "table-row" }}><TableCell sx={{ fontSize: 11, fontWeight: 600, color: "#00695c" }}>Actual</TableCell>{Array.from({ length: dim }, (_, i) => { const r = byDay[i + 1]; const v = r?.ot_hrs ? Number(r.ot_hrs).toFixed(2) : ""; return <TableCell key={i} align="center" sx={{ color: "#00695c", bgcolor: v ? "#e0f2f1" : "inherit", fontSize: 11 }}>{v || "-"}</TableCell>; })}<TableCell align="center" sx={{ bgcolor: "#fff9c4", fontWeight: 700, display: otView === "actual" ? "none" : "table-cell" }}>-</TableCell><TableCell align="center" sx={{ bgcolor: "#e0f2f1", fontWeight: 800, display: otView === "approved" ? "none" : "table-cell" }}>{totActual.toFixed(2)}</TableCell></TableRow>
+            </TableBody></Table>
         </Box>
       );
     }
     if (selected === "movement") {
       const groups = {};
-      filtered.forEach(r => { const k = fmtDate(r.att_date) || "—"; (groups[k] = groups[k] || []).push(r); });
-      const keys = Object.keys(groups).sort((a, b) => new Date(a.split("-").reverse().join("-")) - new Date(b.split("-").reverse().join("-")));
+      filtered.forEach(r => { const d = fmtDate(r.att_date) || "—"; const k = `${empid}|${empName}|${d}|${r.shift || "—"}`; (groups[k] = groups[k] || []).push(r); });
+      const keys = Object.keys(groups).sort();
       return (
-        <Table size="small" stickyHeader><TableHead><TableRow>{["Date", "Punch In", "Punch Out", "Lunch Out", "Lunch In", "Status", "Hours"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No movements</TableCell></TableRow> : keys.map(k => (
-            <React.Fragment key={k}>
-              <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06) }}><TableCell colSpan={7} sx={{ fontSize: 12, fontWeight: 800, color: theme.palette.primary.main, py: 0.6 }}>{k} — {groups[k].length} record(s)</TableCell></TableRow>
-              {groups[k].map((r, i) => <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{k}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.in_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.out_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.lunch_out?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.lunch_in?.slice(0, 5) || "—"}</TableCell><TableCell><Chip size="small" label={r.status || "—"} sx={{ height: 18, fontSize: 11, bgcolor: statusChip(r.status).bg, color: statusChip(r.status).col }} /></TableCell><TableCell sx={{ fontSize: 12 }}>{r.work_hrs || r.ot_hrs || "—"}</TableCell></TableRow>)}
-            </React.Fragment>
-          ))}</TableBody></Table>
+        <Table size="small" stickyHeader><TableHead><TableRow>{["Emp ID", "Name", "Date", "Shift", "Punch Time", "In/Out", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No movements</TableCell></TableRow> : keys.map(k => {
+            const [eId, eName, eDate, eShift] = k.split("|"); const rows = groups[k];
+            const punches = []; rows.forEach(r => { if (r.in_time) punches.push({ t: r.in_time.slice(0, 5), label: "In" }); if (r.lunch_out) punches.push({ t: r.lunch_out.slice(0, 5), label: "Lunch Out" }); if (r.lunch_in) punches.push({ t: r.lunch_in.slice(0, 5), label: "Lunch In" }); if (r.out_time) punches.push({ t: r.out_time.slice(0, 5), label: "Out" }); if (r.punch_time) punches.push({ t: String(r.punch_time).slice(0, 5), label: r.punch_type || "Punch" }); });
+            if (punches.length === 0) punches.push({ t: "—", label: "—" });
+            return (
+              <React.Fragment key={k}>
+                <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.07) }}><TableCell sx={{ fontSize: 12, fontWeight: 800 }}>{eId}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{eName}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{eDate}</TableCell><TableCell sx={{ fontSize: 12 }}>{eShift}</TableCell><TableCell colSpan={3} sx={{ fontSize: 11, fontWeight: 700, color: theme.palette.primary.main }}>{punches.length} punch(s)</TableCell></TableRow>
+                {punches.map((p, i) => <TableRow key={i} hover><TableCell sx={{ fontSize: 12, color: "#9e9e9e" }}>{i === 0 ? eId : ""}</TableCell><TableCell></TableCell><TableCell></TableCell><TableCell></TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{p.t}</TableCell><TableCell sx={{ fontSize: 11 }}>{p.label}</TableCell><TableCell><Chip size="small" label={rows[0]?.status || "—"} sx={{ height: 18, fontSize: 11, bgcolor: statusChip(rows[0]?.status).bg, color: statusChip(rows[0]?.status).col }} /></TableCell></TableRow>)}
+              </React.Fragment>
+            );
+          })}</TableBody></Table>
       );
     }
     if (selected === "onduty-movement") {
