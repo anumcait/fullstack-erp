@@ -20,6 +20,7 @@ import ShiftChangePreview from "../shiftchange/ShiftChangePreview";
 import WoffChangePreview from "../woffchange/WoffChangePreview";
 import AdvancePreview from "../advance/AdvancePreview";
 import ESILeavePreview from "../esileave/ESILeavePreview";
+import PayslipView from "../payroll/PayslipView";
 
 const API = import.meta.env.VITE_API_URL || "";
 const MONTHS = [
@@ -197,7 +198,7 @@ export default function EmployeeReports() {
         const r = await axios.get(`${API}/api/leave/report`, { params: { empid }, withCredentials: true }).catch(async () => await axios.get(`${API}/api/leave/all-leaves`, cfg));
         raw = Array.isArray(r.data) ? r.data : r.data.data || r.data.records || [];
       } else if (selected === "payslips") {
-        const r = await axios.get(`${API}/api/payroll/my-payslips`, cfg);
+        const r = await axios.get(`${API}/api/payroll/my-payslips`, { params: empid ? { empid } : {}, withCredentials: true });
         raw = Array.isArray(r.data) ? r.data : r.data.payslips || r.data.records || [];
       } else if (selected === "ot" || selected === "att-req") {
         const r = await axios.get(`${API}/api/attendance-requests/my`, cfg);
@@ -456,7 +457,7 @@ export default function EmployeeReports() {
       const p = res.data;
       const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
       const html = `<div style="font-family:Arial,sans-serif;font-size:11px;width:1000px"><table style="width:100%;border-collapse:collapse;font-size:11px"><colgroup><col style="width:9%"/><col style="width:9%"/><col style="width:13%"/><col style="width:7%"/><col style="width:14%"/><col style="width:5%"/><col style="width:8%"/><col style="width:8%"/><col style="width:17%"/><col style="width:10%"/></colgroup>
-        <tr><td colspan="2" style="border:1px solid #aaa;padding:4px"><img src="${logo}" style="height:36px"/></td><td colspan="8" style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">${companyName || "AUCTOR HOME APPLIANCES LLP"}<br/><span style="font-size:10px;font-weight:400">Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</span></td></tr>
+        <tr><td colspan="2" style="border:1px solid #aaa;padding:4px"><img src="${logo}" style="height:44px"/></td><td colspan="8" style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">${companyName || "AUCTOR HOME APPLIANCES LLP"}<br/><span style="font-size:10px;font-weight:400">Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</span></td></tr>
         <tr><td colspan="10" style="border:1px solid #aaa;padding:4px;background:#f5f5f5;text-align:center;font-weight:700">Salary Slip For The Month of : ${p.C_MONTH} - ${p.C_YEAR}</td></tr>
         <tr><td style="border:1px solid #aaa;padding:4px;font-weight:700">Employee ID</td><td colspan="2" style="border:1px solid #aaa;padding:4px;font-weight:700">${p.C_EMPID}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">D O J :</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Designation:</td><td colspan="3" style="border:1px solid #aaa;padding:4px">${p.C_DESIG || ""}</td></tr>
         <tr><td style="border:1px solid #aaa;padding:4px">Employee Name</td><td colspan="2" style="border:1px solid #aaa;padding:4px;font-weight:700">${p.C_ENAME}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">${formatDOJ(p.employee?.official?.doj)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Department:</td><td colspan="3" style="border:1px solid #aaa;padding:4px">${p.C_DEPT || ""}</td></tr>
@@ -1191,32 +1192,14 @@ export default function EmployeeReports() {
           </Grid>
         </Grid>
       </Box>
-      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 1, maxHeight: "90vh" } }}>
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, py: 1.2 }}>Payslip — {viewData?.C_ENAME} ({viewData?.C_EMPID}) — {viewData?.C_MONTH} {viewData?.C_YEAR} <IconButton size="small" onClick={() => setViewOpen(false)} sx={{ bgcolor: "#f1f3f4" }}><CloseIcon sx={{ fontSize: 16 }} /></IconButton></DialogTitle>
-        <DialogContent dividers sx={{ p: 1, bgcolor: "#f8f9fa" }}>
-          {viewData && (() => {
-            const p = viewData; const emp = p.employee || {}; const off = emp.official || {}; return (
-              <Box id="my-payslip-print" sx={{ fontSize: 11, bgcolor: "white", p: 1, borderRadius: 1 }}>
-                <table className="payslip-table payslip-outer-border" style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <colgroup><col style={{ width: "9%" }} /><col style={{ width: "9%" }} /><col style={{ width: "13%" }} /><col style={{ width: "7%" }} /><col style={{ width: "14%" }} /><col style={{ width: "5%" }} /><col style={{ width: "8%" }} /><col style={{ width: "8%" }} /><col style={{ width: "17%" }} /><col style={{ width: "10%" }} /></colgroup>
-                  <tbody>
-                    <tr><td className="payslip-logo-cell" colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}><img src={logo} alt="logo" style={{ height: 36 }} /></td><td className="payslip-company-cell" colSpan={8} style={{ border: "1px solid #aaa", padding: 4, textAlign: "center", fontWeight: 700 }}>{companyName || "AUCTOR HOME APPLIANCES LLP"}<br /><span style={{ fontSize: 10, fontWeight: 400 }}>Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</span></td></tr>
-                    <tr><td colSpan={10} style={{ border: "1px solid #aaa", padding: 4, background: "#f5f5f5", textAlign: "center", fontWeight: 700 }}>Salary Slip For The Month of : {p.C_MONTH} - {p.C_YEAR}</td></tr>
-                    <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>Employee ID</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>{p.C_EMPID}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>D O J :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Designation:</td><td colSpan={3} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_DESIG}</td></tr>
-                    <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Employee Name</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>{p.C_ENAME}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{formatDOJ(off.doj)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Department:</td><td colSpan={3} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_DEPT}</td></tr>
-                    <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Total Days</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_TOT_DAYS)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Days Present:</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_DAYS_PRESENT)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Leaves Allowed:</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "center" }}>{Math.round(p.C_LEAVES_ALLOWED || 0)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>UAN Number</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "center", fontWeight: 700 }}>{off.c_uan_no || "N/A"}</td></tr>
-                    <tr className="payslip-bg-grey" style={{ background: "#f5f5f5", fontWeight: 700, textAlign: "center" }}><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Fixed Salary</td><td colSpan={4} style={{ border: "1px solid #aaa", padding: 4 }}>Earnings Salary</td><td colSpan={4} style={{ border: "1px solid #aaa", padding: 4 }}>Deductions</td></tr>
-                    <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>Basic</td><td style="border:1px solid #aaa" style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_BASIC)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Basic</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_BASIC)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Attendance Bonus</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_BONUS)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>P.F</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_PF)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Income tax</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_TAX)}</td></tr>
-                    <tr><td style={{ border: "1px solid #aaa", padding: 4 }}>HRA</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_HRA)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>HRA</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_HRA)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Extra Wage</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_EARNED_OT)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>E.S.I</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_ESI)}</td><td style={{ border: "1px solid #aaa", padding: 4 }}>Advance</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right" }}>{formatCurrency(p.C_DED_ADV)}</td></tr>
-                    <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>Total Fixed Salary</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_TOT_SAL)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Total Earnings :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_EARNED_GROSS)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Total Deduction:</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_TOT_DED)}</td></tr>
-                    <tr><td style={{ border: "1px solid #aaa", padding: 4, fontWeight: 700 }}>NET Salary :</td><td style={{ border: "1px solid #aaa", padding: 4, textAlign: "right", fontWeight: 700 }}>{formatCurrency(p.C_NET_AMT)}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Payment Mode :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_PAY_TYPE || "Bank"}</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>Bank A/c No :</td><td colSpan={2} style={{ border: "1px solid #aaa", padding: 4 }}>{p.C_BANK_ACNO || "-"}</td></tr>
-                  </tbody>
-                </table>
-              </Box>
-            );
-          })()}
+      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 1, maxHeight: "95vh", maxWidth: "1080px" } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Payslip - {viewData?.C_ENAME}
+          <IconButton onClick={() => setViewOpen(false)}><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, bgcolor: "white", overflow: "auto" }}>
+          {viewData && <PayslipView data={viewData} onClose={() => setViewOpen(false)} />}
         </DialogContent>
-        <Box sx={{ p: 1.2, display: "flex", justifyContent: "flex-end", gap: 1, bgcolor: "white" }}><Button variant="outlined" startIcon={<PrintIcon />} onClick={() => window.print()} sx={{ borderRadius: 1, fontWeight: 700 }}>Print</Button><Button variant="contained" startIcon={<FaDownload />} onClick={() => downloadPayslip(viewData)} sx={{ borderRadius: 1, fontWeight: 700 }}>Download</Button><Button variant="text" onClick={() => setViewOpen(false)} sx={{ fontWeight: 700 }}>Close</Button></Box>
       </Dialog>
       <Dialog open={leavePreviewOpen} onClose={() => setLeavePreviewOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 1, maxHeight: "90vh" } }}>
         <DialogContent sx={{ p: 0, bgcolor: "white" }}>
