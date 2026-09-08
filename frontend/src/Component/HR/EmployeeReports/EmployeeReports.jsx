@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, TextField, Button, Dialog, DialogTitle, DialogContent, IconButton, Grid, Tooltip, Select, MenuItem, InputAdornment, Divider, Stack } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import axios from "axios";
@@ -74,6 +74,7 @@ export default function EmployeeReports() {
   const [month, setMonth] = useState(() => { const v = localStorage.getItem("er_month"); return v ? parseInt(v) : new Date().getMonth() + 1; });
   const [year, setYear] = useState(() => { const v = localStorage.getItem("er_year"); return v ? parseInt(v) : new Date().getFullYear(); });
   const [otView, setOtView] = useState("both");
+  const topBarRef = useRef(null); const tableBoxRef = useRef(null);
   useEffect(() => { localStorage.setItem("er_month", String(month)); }, [month]);
   useEffect(() => { localStorage.setItem("er_year", String(year)); }, [year]);
   const [data, setData] = useState([]);
@@ -83,6 +84,8 @@ export default function EmployeeReports() {
   const [viewData, setViewData] = useState(null);
   const [leavePreviewOpen, setLeavePreviewOpen] = useState(false);
   const [leavePreviewLno, setLeavePreviewLno] = useState(null);
+  const [leaveBal, setLeaveBal] = useState(null);
+  useEffect(() => { if (!empid) return; const cfg = { withCredentials: true }; axios.get(`${API}/api/leave/balance/${empid}`, cfg).then(r => setLeaveBal(r.data?.balance || r.data)).catch(() => setLeaveBal(null)); }, [empid]);
   const [appPreviewOpen, setAppPreviewOpen] = useState(false);
   const [appPreviewType, setAppPreviewType] = useState(null);
   const [appPreviewData, setAppPreviewData] = useState(null);
@@ -284,28 +287,43 @@ export default function EmployeeReports() {
     const reportTitle = `Leaves History:${empid}:${empName}  From : ${fromStr} To : ${toStr}`;
     const rows = [];
     let appSno = 1;
-    filtered.forEach(r => {
-      const base = { empId: r.empid || empid, empName: r.ename || r.empName || empName, lappNo: r.id || r.lno, lappDate: fmtDate(r.ldate || r.entry) };
-      const details = r.leaveDetails?.length ? r.leaveDetails : [{ frmdt: r.from || r.from_date, nod: r.nod || 1, ltype: r.ltype || "", daydt: r.daydt || "" }];
+    filtered.forEach((r, appIdx) => {
+      const base = { empId: r.empid || empid, empName: r.ename || r.empName || empName, lappNo: r.id || r.lno, lappDate: fmtDateTime(r.ldate || r.entry || r.created) };
+      const details = r.leaveDetails?.length ? r.leaveDetails : [{ frmdt: r.from || r.from_date, nod: r.nod || 1, ltype: r.ltype || "", daydt: "" }];
       details.forEach((d, di) => {
         const isFirst = di === 0;
+        const isTop = isFirst && appIdx === 0;
+        const dayType = (() => { const v = String(d.daydt || "").trim().toLowerCase(); if (!v) return "Full Day"; if (v.includes("half") || v === "h" || v === "0.5") return "Half Day"; if (v.includes("full") || v === "f" || v === "1") return "Full Day"; return d.daydt; })();
+        const leaveDate = (() => { if (d.nod > 1 && d.frmdt) { const to = new Date(d.frmdt); if (!isNaN(to)) { to.setDate(to.getDate() + Number(d.nod) - 1); return `${fmtDate(d.frmdt)} to ${fmtDate(to)}`; } } return fmtDate(d.frmdt); })();
+        let sCls = 0, sEls = 0, sLop = 0; const isApp = String(d.c_hr_app_status || r.status || "").trim().toUpperCase() === "APPROVED"; if (isApp) { if (d.c_cl_sanction != null || d.c_el_sanction != null) { sCls = Number(d.c_cl_sanction ?? 0); sEls = Number(d.c_el_sanction ?? 0); sLop = Number((Number(d.nod || 0) - sCls - sEls).toFixed(2)); if (sLop < 0) sLop = 0; } else { const t = String(d.ltype || "").trim().toUpperCase(); if (t.includes("CL")) sCls = Number(d.nod || 0); else if (t.includes("EL") || t.includes("SL")) sEls = Number(d.nod || 0); else if (t.includes("LOP")) sLop = Number(d.nod || 0); } }
         rows.push([
           isFirst ? appSno : "",
-          isFirst ? base.empId : "",
-          isFirst ? base.empName : "",
+          isFirst && appIdx === 0 ? base.empId : "",
+          isFirst && appIdx === 0 ? base.empName : "",
           isFirst ? base.lappNo : "",
           isFirst ? base.lappDate : "",
-          d.nod || r.nod || 1,
-          fmtDate(d.frmdt || d.todate),
-          isFirst ? (String(r.status).toLowerCase() === "approved" ? d.nod || 1 : 0) : d.nod || 0,
-          0,
-          isFirst ? (r.clsBalance ?? r.clBal ?? "—") : "",
-          isFirst ? (r.elsBalance ?? r.elBal ?? "—") : "",
-          isFirst ? (r.totalBalance ?? (r.clBal != null && r.elBal != null ? (Number(r.clBal) + Number(r.elBal)).toFixed(1) : "—")) : ""
+          isFirst ? (r.address || r.remarks || r.reason || "—") : "",
+          isFirst ? (r.purpose || r.pofl || "—") : "",
+          leaveDate,
+          dayType,
+          Number(d.nod || 1).toString(),
+          sCls ? Number(sCls).toString() : 0,
+          sEls ? Number(sEls).toString() : 0,
+          sLop ? Number(sLop).toString() : 0,
+          isTop ? Number(leaveBal?.cls_balance ?? 2).toString() : "",
+          isTop ? Number(leaveBal?.els_balance ?? 0).toString() : "",
+          isTop ? Number(Number(leaveBal?.cls_balance ?? 2) + Number(leaveBal?.els_balance ?? 0)).toString() : ""
         ]);
       });
       appSno++;
     });
+    const totDays = rows.reduce((s, r) => s + (Number(r[9]) || 0), 0);
+    const totCls = rows.reduce((s, r) => s + (Number(r[10]) || 0), 0);
+    const totEls = rows.reduce((s, r) => s + (Number(r[11]) || 0), 0);
+    const totLop = rows.reduce((s, r) => s + (Number(r[12]) || 0), 0);
+    const balCls = leaveBal?.cls_balance ?? "2", balEls = leaveBal?.els_balance ?? "0", balTot = leaveBal ? Number(Number(balCls) + Number(balEls)).toString() : "2";
+    rows.push(["", "", "", "", "", "", "", "Total", "", Number(totDays).toString(), Number(totCls).toString(), Number(totEls).toString(), Number(totLop).toString(), Number(balCls).toString(), Number(balEls).toString(), Number(balTot).toString()]);
+    const head = ["SNo", "Emp Id", "Employee Name", "Lapp No", "Lapp Date", "Address/Reason", "Leave Purpose", "Leave Date", "Day Type", "No of Days", "CLS", "ELS", "LOP", "CLS Bal", "ELS Bal", "Total Bal"];
     if (reportType === "PDF") {
       const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
       doc.setFontSize(12); doc.text(companyName || "COMPANY NAME", 420, 30, { align: "center" });
@@ -313,18 +331,18 @@ export default function EmployeeReports() {
       doc.setFontSize(8); doc.text(`Emp Id : ${empid}  Employee Name : ${empName}`, 40, 60);
       autoTable(doc, {
         startY: 70,
-        head: [["SNo", "Emp Id", "Employee Name", "Lapp No", "Lapp Date", "No of Days", "Leave Date", "Sanctioned", "LOP", "CLS", "ELS", "Total"]],
-        body: rows.length ? rows : [["", "", "", "No records", "", "", "", "", "", "", "", ""]],
-        styles: { fontSize: 7, cellPadding: 3 },
-        headStyles: { fillColor: [25, 118, 210], textColor: 255, fontSize: 7 },
+        head: [head],
+        body: rows.length ? rows : [["", "", "", "No records", "", "", "", "", "", "", "", "", "", "", "", ""]],
+        styles: { fontSize: 6, cellPadding: 2, halign: "center", valign: "middle" },
+        headStyles: { fillColor: [25, 118, 210], textColor: 255, fontSize: 6, halign: "center" },
+        columnStyles: { 0: { halign: "center" }, 1: { halign: "center" }, 2: { halign: "center" }, 3: { halign: "center" }, 4: { halign: "center" }, 5: { halign: "center" }, 6: { halign: "center" }, 7: { halign: "center" }, 8: { halign: "center" }, 9: { halign: "center" }, 10: { halign: "center" }, 11: { halign: "center" }, 12: { halign: "center" }, 13: { halign: "center" }, 14: { halign: "center" }, 15: { halign: "center" } },
         theme: "grid",
       });
       const y = doc.lastAutoTable.finalY + 12;
       doc.setFontSize(7); doc.text(`Report Dated : ${new Date().toLocaleString("en-IN", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}   Page 1 of 1`, 40, y);
       doc.save(`Leaves_History_${fromStr}_to_${toStr}.pdf`);
     } else {
-      const header = ["SNo", "Emp Id", "Employee Name", "Lapp No", "Lapp Date", "No of Days", "Leave Date", "Sanctioned", "LOP", "CLS", "ELS", "Total"];
-      const wsData = [[companyName || "COMPANY NAME"], [reportTitle], header, ...rows];
+      const wsData = [[companyName || "COMPANY NAME"], [reportTitle], head, ...rows];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Leaves History");
@@ -546,7 +564,7 @@ export default function EmployeeReports() {
         <Typography sx={{ fontSize: 12, color: "#5f6368", mt: 0.4 }}>{isMonthly ? "No data for selected month. Try another period." : "You haven’t submitted any requests yet."}</Typography>
       </Box>
     );
-    const headSx = { fontWeight: 700, fontSize: 12, color: "#5f6368", whiteSpace: "nowrap", bgcolor: "#f8f9fa", borderBottom: "1px solid #e8eaed", py: 1 };
+    const headSx = { fontWeight: 700, fontSize: 12, color: "#5f6368", whiteSpace: "nowrap", bgcolor: "#f8f9fa", borderBottom: "1px solid #e8eaed", py: 1, textAlign: "center" };
     if (selected === "attendance" || selected === "attendance-log") {
       const cnt = (() => {
         let Ps = 0, As = 0, W = 0, H = 0, CL = 0, EL = 0;
@@ -590,27 +608,39 @@ export default function EmployeeReports() {
         const totals = (() => {
           let totDays = 0, sCls = 0, sEls = 0, sLop = 0;
           filtered.forEach(r => {
-            (r.leaveDetails || [{ nod: r.nod || 0, ltype: "" }]).forEach(d => {
+            const isAppR = String(r.status || "").trim().toUpperCase() === "APPROVED";
+            (r.leaveDetails || [{ nod: r.nod || 0 }]).forEach(d => {
               const n = Number(d.nod || 0);
               totDays += n;
-              const t = String(d.ltype || "").trim().toUpperCase();
-              if (t === "CLS" || t === "CL") sCls += n;
-              else if (t === "ELS" || t === "EL" || t === "SL" || t === "SLS") sEls += n;
-              else if (t === "LOP") sLop += n;
+              if (!isAppR && String(d.c_hr_app_status || "").trim().toUpperCase() !== "APPROVED") return;
+              let c, e, l;
+              if (d.c_cl_sanction != null || d.c_el_sanction != null) {
+                c = Number(d.c_cl_sanction ?? 0); e = Number(d.c_el_sanction ?? 0); l = Number((n - c - e).toFixed(2)); if (l < 0) l = 0;
+              } else {
+                const t = String(d.ltype || d.type || "").trim().toUpperCase();
+                c = t.includes("CL") ? n : 0; e = t.includes("EL") || t.includes("SL") ? n : 0; l = t.includes("LOP") ? n : 0;
+              }
+              sCls += c; sEls += e; sLop += l;
             });
           });
           return { totDays, sCls, sEls, sLop };
         })();
         return (
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
-                <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>SNo</TableCell>
+          <Box>
+            <Box ref={topBarRef} onScroll={e => { if (tableBoxRef.current) tableBoxRef.current.scrollLeft = e.target.scrollLeft; }} sx={{ overflowX: "auto", overflowY: "hidden", height: 12, mb: 0.5, "&::-webkit-scrollbar": { height: 8 }, "&::-webkit-scrollbar-thumb": { bgcolor: "#dadce0", borderRadius: 4 } }}><Box sx={{ minWidth: 1300, height: 1 }} /></Box>
+            <Box ref={tableBoxRef} onScroll={e => { if (topBarRef.current) topBarRef.current.scrollLeft = e.target.scrollLeft; }} sx={{ overflowX: "auto" }}>
+              <Table size="small" stickyHeader sx={{ minWidth: 1300, borderCollapse: "collapse", "& th, & td": { border: "1px solid #e0e6ef" } }}>
+              <TableHead>
+                <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+                  <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>SNo</TableCell>
                 <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>Emp Id</TableCell>
                 <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>Employee Name</TableCell>
                 <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>Lapp No</TableCell>
                 <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>Lapp Date</TableCell>
+                <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>Address/Reason</TableCell>
+                <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>Leave Purpose</TableCell>
                 <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>Leave Date</TableCell>
+                <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>Day Type</TableCell>
                 <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} rowSpan={2}>No of Days</TableCell>
                 <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} colSpan={3}>Sanctioned</TableCell>
                 <TableCell sx={{ ...headSx, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, textAlign: "center", border: "1px solid #e8eaed" }} colSpan={3}>Balance as on today</TableCell>
@@ -629,39 +659,56 @@ export default function EmployeeReports() {
                 const details = r.leaveDetails?.length ? r.leaveDetails : [{ frmdt: r.from || r.from_date || r.ldate, nod: r.nod || 1, ltype: r.ltype || "", daydt: "" }];
                 return details.map((d, di) => {
                   const isFirst = di === 0;
-                  const t = String(d.ltype || "").trim().toUpperCase();
-                  const sCls = t === "CLS" || t === "CL" ? d.nod : 0;
-                  const sEls = t === "ELS" || t === "EL" || t === "SL" || t === "SLS" ? d.nod : 0;
-                  const sLop = t === "LOP" ? d.nod : 0;
+                  let sCls = 0, sEls = 0, sLop = 0;
+                  const isApp = String(d.c_hr_app_status || r.status || "").trim().toUpperCase() === "APPROVED";
+                  if (isApp) {
+                    if (d.c_cl_sanction != null || d.c_el_sanction != null) {
+                      sCls = Number(d.c_cl_sanction ?? 0);
+                      sEls = Number(d.c_el_sanction ?? 0);
+                      sLop = Number((Number(d.nod || 0) - sCls - sEls).toFixed(2)); if (sLop < 0) sLop = 0;
+                    } else {
+                      const t = String(d.ltype || d.type || "").trim().toUpperCase();
+                      if (t.includes("CL")) sCls = Number(d.nod || 0);
+                      else if (t.includes("EL") || t.includes("SL")) sEls = Number(d.nod || 0);
+                      else if (t.includes("LOP")) sLop = Number(d.nod || 0);
+                    }
+                  }
                   return (
                     <TableRow key={`${r.id || r.lno}-${di}`} hover>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{isFirst && appIdx === 0 ? 1 : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{isFirst ? appIdx + 1 : ""}</TableCell>
                       <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{isFirst && appIdx === 0 ? (r.empId || r.empid || empid) : ""}</TableCell>
                       <TableCell sx={{ fontSize: 12 }}>{isFirst && appIdx === 0 ? (r.empName || r.ename || empName) : ""}</TableCell>
                       <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center" }}>{isFirst ? (r.id || r.lno) : ""}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{isFirst ? fmtDate(r.ldate || r.entry) : ""}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{fmtDate(d.frmdt)}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{d.nod || 1}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{sCls || 0}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{sEls || 0}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{sLop || 0}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{isFirst && appIdx === 0 ? (r.clsBalance ?? r.clBal ?? "—") : ""}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{isFirst && appIdx === 0 ? (r.elsBalance ?? r.elBal ?? "—") : ""}</TableCell>
-                      <TableCell sx={{ fontSize: 12, textAlign: "center", fontWeight: 700 }}>{isFirst && appIdx === 0 ? (r.totalBalance ?? (r.clBal != null && r.elBal != null ? (Number(r.clBal) + Number(r.elBal)).toFixed(1) : "—")) : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{isFirst ? fmtDateTime(r.ldate || r.entry || r.created || r.created_at) : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.address || r.remarks || r.reason || r.purpose || ""}>{isFirst ? (r.address || r.remarks || r.reason || r.purpose || "—") : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center", maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.purpose || r.pofl || r.reason || ""}>{isFirst ? (r.purpose || r.pofl || r.reason || "—") : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{(() => { if (d.nod > 1 && d.frmdt) { const to = new Date(d.frmdt); if (!isNaN(to)) { to.setDate(to.getDate() + Number(d.nod) - 1); return `${fmtDate(d.frmdt)} to ${fmtDate(to)}`; } } return fmtDate(d.frmdt); })()}</TableCell>
+                      <TableCell sx={{ fontSize: 11, textAlign: "center" }}>{(() => { const v = String(d.daydt || "").trim().toLowerCase(); if (!v) return "Full Day"; if (v.includes("half") || v === "h" || v === "0.5") return "Half Day"; if (v.includes("full") || v === "f" || v === "1" || v === "1.0") return "Full Day"; return d.daydt; })()}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{Number(d.nod || 1).toString().replace(/\.00$/, "")}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{sCls ? Number(sCls).toString() : 0}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center" }}>{sEls ? Number(sEls).toString() : 0}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center", color: Number(sLop) > 0 ? "#d93025" : "#202124", fontWeight: Number(sLop) > 0 ? 800 : 400 }}>{sLop ? Number(sLop).toString() : 0}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center", fontWeight: isFirst && appIdx === 0 ? 700 : 400 }}>{isFirst && appIdx === 0 ? Number(leaveBal?.cls_balance ?? leaveBal?.clsBalance ?? 2).toString() : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center", fontWeight: isFirst && appIdx === 0 ? 700 : 400 }}>{isFirst && appIdx === 0 ? Number(leaveBal?.els_balance ?? leaveBal?.elsBalance ?? 0).toString() : ""}</TableCell>
+                      <TableCell sx={{ fontSize: 12, textAlign: "center", fontWeight: isFirst && appIdx === 0 ? 800 : 400 }}>{isFirst && appIdx === 0 ? Number(Number(leaveBal?.cls_balance ?? 2) + Number(leaveBal?.els_balance ?? 0)).toString() : ""}</TableCell>
                     </TableRow>
                   );
                 });
               })}
               <TableRow sx={{ bgcolor: "#f8f9fa", fontWeight: 700 }}>
-                <TableCell colSpan={6} sx={{ fontSize: 12, fontWeight: 700, textAlign: "right", borderTop: `2px solid ${theme.palette.primary.main}` }}></TableCell>
-                <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}` }}>{totals.totDays || 2.5}</TableCell>
-                <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}` }}>{totals.sCls || 1.5}</TableCell>
-                <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}` }}>{totals.sEls || 1}</TableCell>
-                <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}` }}>{totals.sLop || 0}</TableCell>
-                <TableCell colSpan={3} sx={{ borderTop: `2px solid ${theme.palette.primary.main}` }}></TableCell>
+                <TableCell colSpan={9} sx={{ fontSize: 12, fontWeight: 700, textAlign: "right", borderTop: `2px solid ${theme.palette.primary.main}` }}>Total</TableCell>
+                <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}` }}>{Number(totals.totDays).toString()}</TableCell>
+                <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}` }}>{Number(totals.sCls).toString()}</TableCell>
+                <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}` }}>{Number(totals.sEls).toString()}</TableCell>
+                <TableCell sx={{ fontSize: 12, fontWeight: 700, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}`, color: Number(totals.sLop) > 0 ? "#d93025" : "#202124" }}>{Number(totals.sLop).toString()}</TableCell>
+                <TableCell sx={{ fontSize: 12, fontWeight: 800, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}`, bgcolor: "#e8f5e9" }}>{(leaveBal?.cls_balance ?? leaveBal?.clsBalance ?? "—") !== "—" ? Number(leaveBal?.cls_balance ?? leaveBal?.clsBalance).toString() : (store["leaves-info"]?.[0]?.clsBalance ?? filtered[0]?.clsBalance ?? "2")}</TableCell>
+                <TableCell sx={{ fontSize: 12, fontWeight: 800, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}`, bgcolor: "#e0f2f1" }}>{(leaveBal?.els_balance ?? leaveBal?.elsBalance ?? "—") !== "—" ? Number(leaveBal?.els_balance ?? leaveBal?.elsBalance).toString() : (store["leaves-info"]?.[0]?.elsBalance ?? filtered[0]?.elsBalance ?? "0")}</TableCell>
+                <TableCell sx={{ fontSize: 12, fontWeight: 800, textAlign: "center", borderTop: `2px solid ${theme.palette.primary.main}`, bgcolor: "#eceff1" }}>{leaveBal ? Number(Number(leaveBal.cls_balance || leaveBal.clsBalance || 0) + Number(leaveBal.els_balance || leaveBal.elsBalance || 0)).toString() : (filtered[0]?.totalBalance ? Number(filtered[0].totalBalance).toString() : "2")}</TableCell>
               </TableRow>
             </TableBody>
-          </Table>
+              </Table>
+            </Box>
+          </Box>
         );
       }
       const header = ["App No", "App Date", "Leave Date", "Purpose", "Days", "Day Type", "Submission", "Status", "Reason", "Print"];
@@ -764,7 +811,7 @@ export default function EmployeeReports() {
       let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; else if (s === "W" && d === "A") lop++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; const approved = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved" || r.is_ot_approved == 1 || r.ot_approved_status === "Approved"); if (approved && r?.ot_hrs) ot += Number(r.ot_hrs); }); const total = p + h + w + cl + el;
       return (
         <Box sx={{ overflowX: "auto" }}>
-          <Table size="small" stickyHeader sx={{ minWidth: 900, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px" } }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 900, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px", textAlign: "center" } }}>
             <TableHead><TableRow><TableCell sx={{ ...headSx, minWidth: 80 }}>Emp ID</TableCell><TableCell sx={{ ...headSx, minWidth: 140 }}>Name</TableCell>{Array.from({ length: dim }, (_, i) => <TableCell key={i} align="center" sx={{ ...headSx, minWidth: 32 }}>{String(i + 1).padStart(2, "0")}</TableCell>)}<TableCell sx={{ ...headSx, bgcolor: "#e8f5e9", minWidth: 50 }} align="center">PRESENT</TableCell><TableCell sx={{ ...headSx, bgcolor: "#e3f2fd", minWidth: 40 }} align="center">H/W</TableCell><TableCell sx={{ ...headSx, bgcolor: "#fff8e1", minWidth: 35 }} align="center">CL</TableCell><TableCell sx={{ ...headSx, bgcolor: "#e0f2f1", minWidth: 35 }} align="center">EL</TableCell><TableCell sx={{ ...headSx, bgcolor: "#ffcdd2", minWidth: 40 }} align="center">LOP</TableCell><TableCell sx={{ ...headSx, bgcolor: "#eceff1", minWidth: 45 }} align="center">TOTAL</TableCell><TableCell sx={{ ...headSx, bgcolor: "#fff9c4", minWidth: 40 }} align="center">OT</TableCell></TableRow>
               <TableRow>{Array.from({ length: dim + 2 }, (_, i) => <TableCell key={i} sx={{ ...headSx, py: 0.5, fontSize: 9 }} align="center">{i < 2 ? "" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(year, month - 1, i - 1).getDay()]}</TableCell>)}<TableCell colSpan={7} sx={headSx}></TableCell></TableRow></TableHead>
             <TableBody>
@@ -781,7 +828,7 @@ export default function EmployeeReports() {
       let totActual = 0, totApproved = 0; Object.values(byDay).forEach(r => { if (r?.ot_hrs) totActual += Number(r.ot_hrs); if (isApproved(r) && r?.ot_hrs) totApproved += Number(r.ot_hrs); });
       return (
         <Box sx={{ overflowX: "auto" }}>
-          <Table size="small" stickyHeader sx={{ minWidth: 800, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px" } }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 800, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px", textAlign: "center" } }}>
             <TableHead><TableRow><TableCell sx={headSx}>Emp ID</TableCell><TableCell sx={headSx}>Name</TableCell><TableCell sx={headSx}>Type</TableCell>{Array.from({ length: dim }, (_, i) => <TableCell key={i} align="center" sx={headSx}>{String(i + 1).padStart(2, "0")}</TableCell>)}<TableCell sx={{ ...headSx, bgcolor: "#fff9c4", display: otView === "actual" ? "none" : "table-cell" }} align="center">Approved OT</TableCell><TableCell sx={{ ...headSx, bgcolor: "#e0f2f1", display: otView === "approved" ? "none" : "table-cell" }} align="center">Actual OT</TableCell></TableRow></TableHead>
             <TableBody>
               <TableRow><TableCell colSpan={3 + dim + 2} sx={{ p: 0 }}><Box sx={{ display: "flex", gap: 0.8, px: 1, py: 0.6, bgcolor: "#f8f9fa", alignItems: "center" }}><Chip size="small" label={`Approved: ${totApproved.toFixed(2)}h`} sx={{ height: 20, fontWeight: 700, bgcolor: "#fff9c4", color: "#a65c00", display: otView === "actual" ? "none" : "flex" }} /><Chip size="small" label={`Actual: ${totActual.toFixed(2)}h`} sx={{ height: 20, fontWeight: 700, bgcolor: "#e0f2f1", color: "#00695c", display: otView === "approved" ? "none" : "flex" }} /><Select size="small" value={otView} onChange={e => setOtView(e.target.value)} sx={{ height: 24, fontSize: 11, bgcolor: "white", ml: 1 }}><MenuItem value="both" sx={{ fontSize: 11 }}>Both</MenuItem><MenuItem value="approved" sx={{ fontSize: 11 }}>Approved only</MenuItem><MenuItem value="actual" sx={{ fontSize: 11 }}>Actual only</MenuItem></Select><Box sx={{ flex: 1 }} /></Box></TableCell></TableRow>
@@ -799,7 +846,7 @@ export default function EmployeeReports() {
       filtered.forEach(r => { const d = fmtDate(r.att_date) || "—"; const empK = `${empid}|${empName}`; if (!empGroups[empK]) empGroups[empK] = { eId: empid, eName: empName, shifts: {} }; const sK = `${d}|${r.shift || "—"}`; if (!empGroups[empK].shifts[sK]) empGroups[empK].shifts[sK] = []; empGroups[empK].shifts[sK].push(r); });
       const empKeys = Object.keys(empGroups);
       return (
-        <Table size="small" stickyHeader><TableHead><TableRow>{["Sl.No", "Emp ID", "Name", "Date", "Shift", "Punch Time", "Status", "Count"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+        <Table size="small" stickyHeader sx={{ "& th, & td": { textAlign: "center" } }}><TableHead><TableRow>{["Sl.No", "Emp ID", "Name", "Date", "Shift", "Punch Time", "Status", "Count"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={8} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No movements</TableCell></TableRow> : empKeys.map((empK, empIdx) => {
             const emp = empGroups[empK]; const shiftKeys = Object.keys(emp.shifts).sort();
             const empTotalPunches = shiftKeys.reduce((s, sk) => { let c = 0; emp.shifts[sk].forEach(r => { if (r.in_time) c++; if (r.lunch_out) c++; if (r.lunch_in) c++; if (r.out_time) c++; if (r.punch_time) c++; }); return s + (c || 1); }, 0);
@@ -822,7 +869,7 @@ export default function EmployeeReports() {
       const empGroups = {}; filtered.forEach(r => { const empK = `${r.empid || empid}|${r.ename || empName}`; if (!empGroups[empK]) empGroups[empK] = { eId: r.empid || empid, eName: r.ename || empName, byStatus: {} }; const k = String(r.status || "Pending").toLowerCase(); if (!empGroups[empK].byStatus[k]) empGroups[empK].byStatus[k] = []; empGroups[empK].byStatus[k].push(r); });
       const order = ["pending", "approved", "rejected"];
       return (
-        <Table size="small" stickyHeader sx={{ minWidth: 1100, "& th, & td": { whiteSpace: "nowrap" } }}><TableHead><TableRow>{["Sl.No", "Emp ID", "Name", "Movement ID", "Entry Date", "Actual Mov. Date", "From Time", "To Time", "Place", "Purpose", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+        <Table size="small" stickyHeader sx={{ minWidth: 1100, "& th, & td": { whiteSpace: "nowrap", textAlign: "center" } }}><TableHead><TableRow>{["Sl.No", "Emp ID", "Name", "Movement ID", "Entry Date", "Actual Mov. Date", "From Time", "To Time", "Place", "Purpose", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={11} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No movements</TableCell></TableRow> : Object.keys(empGroups).sort().map(empK => {
             const emp = empGroups[empK]; let sno = 1; let empFirstRow = true;
             return (
@@ -843,7 +890,7 @@ export default function EmployeeReports() {
     if (["attendance-log", "att-percentage"].includes(selected)) {
       const cols = selected === "att-percentage" ? ["Date", "Present", "Percentage"] : ["Date", "In", "Out", "Status", "Hours"];
       return (
-        <Table size="small" stickyHeader><TableHead><TableRow>{cols.map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+        <Table size="small" stickyHeader sx={{ "& th, & td": { textAlign: "center" } }}><TableHead><TableRow>{cols.map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={cols.length} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No records for {selectedMeta?.label}</TableCell></TableRow> : filtered.slice(0, 30).map((r, i) => {
             const pct = attSummary ? ((attSummary.present / attSummary.total) * 100).toFixed(1) + "%" : "—";
             if (selected === "att-percentage") return <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.att_date)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.status || "—"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{pct}</TableCell></TableRow>;
@@ -856,7 +903,7 @@ export default function EmployeeReports() {
       filtered.forEach(r => { const k = String(r.ltype || r.leave_type || "Other").toUpperCase(); (groups[k] = groups[k] || []).push(r); });
       const keys = Object.keys(groups).sort();
       return (
-        <Table size="small" stickyHeader><TableHead><TableRow>{["Leave Type", "Eligible", "Availed", "Balance", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+        <Table size="small" stickyHeader sx={{ "& th, & td": { textAlign: "center" } }}><TableHead><TableRow>{["Leave Type", "Eligible", "Availed", "Balance", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No leave info</TableCell></TableRow> : keys.map(k => {
             const arr = groups[k]; const totEl = arr.reduce((s, r) => s + (Number(r.eligible || r.cls_eligible || 0)), 0); const totAv = arr.reduce((s, r) => s + (Number(r.utilised || r.cls_utilised || 0)), 0); const totBal = arr.reduce((s, r) => s + (Number(r.balance || r.cls_balance || r.clBal || 0)), 0);
             return (
