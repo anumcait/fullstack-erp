@@ -740,19 +740,27 @@ export default function EmployeeReports() {
       const groups = {};
       filtered.forEach(r => { const d = fmtDate(r.att_date) || "—"; const k = `${empid}|${empName}|${d}|${r.shift || "—"}`; (groups[k] = groups[k] || []).push(r); });
       const keys = Object.keys(groups).sort();
+      const empGroups = {};
+      filtered.forEach(r => { const d = fmtDate(r.att_date) || "—"; const empK = `${empid}|${empName}`; if (!empGroups[empK]) empGroups[empK] = { eId: empid, eName: empName, shifts: {} }; const sK = `${d}|${r.shift || "—"}`; if (!empGroups[empK].shifts[sK]) empGroups[empK].shifts[sK] = []; empGroups[empK].shifts[sK].push(r); });
+      const empKeys = Object.keys(empGroups);
       return (
-        <Table size="small" stickyHeader><TableHead><TableRow>{["Emp ID", "Name", "Date", "Shift", "Punch Time", "In/Out", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No movements</TableCell></TableRow> : keys.map(k => {
-            const [eId, eName, eDate, eShift] = k.split("|"); const rows = groups[k];
-            const punches = []; rows.forEach(r => { if (r.in_time) punches.push({ t: r.in_time.slice(0, 5), label: "In" }); if (r.lunch_out) punches.push({ t: r.lunch_out.slice(0, 5), label: "Lunch Out" }); if (r.lunch_in) punches.push({ t: r.lunch_in.slice(0, 5), label: "Lunch In" }); if (r.out_time) punches.push({ t: r.out_time.slice(0, 5), label: "Out" }); if (r.punch_time) punches.push({ t: String(r.punch_time).slice(0, 5), label: r.punch_type || "Punch" }); });
-            if (punches.length === 0) punches.push({ t: "—", label: "—" });
-            return (
-              <React.Fragment key={k}>
-                <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.07) }}><TableCell sx={{ fontSize: 12, fontWeight: 800 }}>{eId}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{eName}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{eDate}</TableCell><TableCell sx={{ fontSize: 12 }}>{eShift}</TableCell><TableCell colSpan={3} sx={{ fontSize: 11, fontWeight: 700, color: theme.palette.primary.main }}>{punches.length} punch(s)</TableCell></TableRow>
-                {punches.map((p, i) => <TableRow key={i} hover><TableCell sx={{ fontSize: 12, color: "#9e9e9e" }}>{i === 0 ? eId : ""}</TableCell><TableCell></TableCell><TableCell></TableCell><TableCell></TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{p.t}</TableCell><TableCell sx={{ fontSize: 11 }}>{p.label}</TableCell><TableCell><Chip size="small" label={rows[0]?.status || "—"} sx={{ height: 18, fontSize: 11, bgcolor: statusChip(rows[0]?.status).bg, color: statusChip(rows[0]?.status).col }} /></TableCell></TableRow>)}
-              </React.Fragment>
-            );
-          })}</TableBody></Table>
+        <Table size="small" stickyHeader><TableHead><TableRow>{["Sl.No", "Emp ID", "Name", "Date", "Shift", "Punch Time", "Status", "Count"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={8} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No movements</TableCell></TableRow> : empKeys.map((empK, empIdx) => {
+            const emp = empGroups[empK]; const shiftKeys = Object.keys(emp.shifts).sort();
+            const empTotalPunches = shiftKeys.reduce((s, sk) => { let c = 0; emp.shifts[sk].forEach(r => { if (r.in_time) c++; if (r.lunch_out) c++; if (r.lunch_in) c++; if (r.out_time) c++; if (r.punch_time) c++; }); return s + (c || 1); }, 0);
+            let firstEmpRow = true;
+            return shiftKeys.map((sK, sIdx) => {
+              const [eDate, eShift] = sK.split("|"); const rows = emp.shifts[sK];
+              const punches = []; rows.forEach(r => { if (r.in_time) punches.push(r.in_time.slice(0, 5)); if (r.lunch_out) punches.push(r.lunch_out.slice(0, 5)); if (r.lunch_in) punches.push(r.lunch_in.slice(0, 5)); if (r.out_time) punches.push(r.out_time.slice(0, 5)); if (r.punch_time) punches.push(String(r.punch_time).slice(0, 5)); });
+              const rawCount = punches.length; if (rawCount === 0) punches.push("—");
+              const shiftTimings = rows[0]?.shift_start && rows[0]?.shift_end ? `${rows[0].shift_start.slice(0, 5)} - ${rows[0].shift_end.slice(0, 5)}` : rows[0]?.shift_timings || rows[0]?.shift_time || "";
+              return punches.map((p, i) => {
+                const isFirstEmp = firstEmpRow && i === 0;
+                if (i === 0) firstEmpRow = false;
+                return <TableRow key={`${sK}-${i}`} hover sx={{ bgcolor: (sIdx === 0 && i === 0) ? alpha(theme.palette.primary.main, 0.04) : "white", borderTop: i === 0 ? "1px solid #e8eaed" : "none" }}><TableCell sx={{ fontSize: 12 }}>{isFirstEmp ? empIdx + 1 : ""}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{isFirstEmp ? <Box><Typography sx={{ fontSize: 12, fontWeight: 800 }}>{emp.eId}</Typography></Box> : ""}</TableCell><TableCell sx={{ fontSize: 12 }}>{isFirstEmp ? emp.eName : ""}</TableCell><TableCell sx={{ fontSize: 12 }}>{i === 0 ? eDate : ""}</TableCell><TableCell sx={{ p: 0.6 }}>{i === 0 ? <Box><Typography sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{eShift}</Typography>{shiftTimings && <Typography sx={{ fontSize: 10, color: "#5f6368", lineHeight: 1 }}>{shiftTimings}</Typography>}</Box> : ""}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{p}</TableCell><TableCell align="center">{i === 0 ? <Chip size="small" label={rows[0]?.status || "—"} sx={{ height: 18, fontSize: 11, bgcolor: statusChip(rows[0]?.status).bg, color: statusChip(rows[0]?.status).col }} /> : ""}</TableCell><TableCell align="center" sx={{ fontSize: 12, fontWeight: 800, bgcolor: i === 0 ? "#f1f3f4" : "white" }}>{i === 0 ? (rawCount === 0 ? "—" : rawCount) : ""}</TableCell></TableRow>;
+              });
+            }).flat();
+          }).flat()}</TableBody></Table>
       );
     }
     if (selected === "onduty-movement") {
