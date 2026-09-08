@@ -696,7 +696,69 @@ export default function EmployeeReports() {
           return <TableRow key={i} hover><TableCell sx={{ fontSize: 13, fontWeight: 700 }}>{r.esi_id || r.id || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{fmtDateTime(r.created_at || r.esi_date || r.from_date)}</TableCell><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.from_date || r.esi_from)}</TableCell><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.to_date || r.esi_to)}</TableCell><TableCell><Chip size="small" label={c.label} sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: c.bg, color: c.col }} /></TableCell><TableCell><Tooltip title={isPayslipGenerated ? "Payslip generated - print disabled" : "Print"}><IconButton size="small" disabled={isPayslipGenerated} onClick={open} sx={{ width: 26, height: 26, bgcolor: "white", border: "1px solid #e8eaed" }}><PrintIcon sx={{ fontSize: 14, color: theme.palette.primary.main }} /></IconButton></Tooltip></TableCell></TableRow>;
         })}</TableBody></Table>
     );
-    if (["attendance-log", "movement", "musterroll", "ot-register", "att-percentage"].includes(selected)) {
+    if (selected === "musterroll") {
+      const dim = new Date(year, month, 0).getDate();
+      const getShort = (s) => { if (!s) return ""; if (s === "Present") return "P"; if (s === "Half Day") return "F"; if (s === "Absent") return "A"; if (s === "LOP") return "L"; if (String(s).startsWith("W-Off")) return "W"; if (String(s).startsWith("Holiday")) return "H"; return String(s); };
+      const getClr = (sh) => ({ P: { bg: "#e8f5e9", col: "#2e7d32" }, F: { bg: "#fff3e0", col: "#e65100" }, A: { bg: "#ffebee", col: "#c62828" }, H: { bg: "#e3f2fd", col: "#1565c0" }, W: { bg: "#f3e5f5", col: "#7b1fa2" }, CL: { bg: "#fff8e1", col: "#f57f17" }, EL: { bg: "#e0f2f1", col: "#00695c" } }[sh] || { bg: "#fff", col: "#333" });
+      const byDay = {}; filtered.forEach(r => { const d = new Date(r.att_date).getDate(); if (d >= 1 && d <= dim) byDay[d] = r; });
+      const statuses = Array.from({ length: dim }, (_, i) => getShort(byDay[i + 1]?.status || ""));
+      const display = statuses.map((s, i) => { if (s !== "W" && s !== "H") return s; const prev = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i - 1]); const next = i < dim - 1 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i + 1]); return prev || next ? s : "A"; });
+      let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; else if (s === "W" && d === "A") lop++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; if (r?.ot_hrs) ot += Number(r.ot_hrs); }); const total = p + h + w + cl + el;
+      return (
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 900, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px" } }}>
+            <TableHead><TableRow><TableCell sx={{ ...headSx, minWidth: 80 }}>Emp ID</TableCell><TableCell sx={{ ...headSx, minWidth: 140 }}>Name</TableCell>{Array.from({ length: dim }, (_, i) => <TableCell key={i} align="center" sx={{ ...headSx, minWidth: 32 }}>{String(i + 1).padStart(2, "0")}</TableCell>)}<TableCell sx={{ ...headSx, bgcolor: "#e8f5e9", minWidth: 50 }} align="center">PRESENT</TableCell><TableCell sx={{ ...headSx, bgcolor: "#e3f2fd", minWidth: 40 }} align="center">H/W</TableCell><TableCell sx={{ ...headSx, bgcolor: "#fff8e1", minWidth: 35 }} align="center">CL</TableCell><TableCell sx={{ ...headSx, bgcolor: "#e0f2f1", minWidth: 35 }} align="center">EL</TableCell><TableCell sx={{ ...headSx, bgcolor: "#ffcdd2", minWidth: 40 }} align="center">LOP</TableCell><TableCell sx={{ ...headSx, bgcolor: "#eceff1", minWidth: 45 }} align="center">TOTAL</TableCell><TableCell sx={{ ...headSx, bgcolor: "#fff9c4", minWidth: 40 }} align="center">OT</TableCell></TableRow>
+              <TableRow>{Array.from({ length: dim + 2 }, (_, i) => <TableCell key={i} sx={{ ...headSx, py: 0.5, fontSize: 9 }} align="center">{i < 2 ? "" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(year, month - 1, i - 1).getDay()]}</TableCell>)}<TableCell colSpan={7} sx={headSx}></TableCell></TableRow></TableHead>
+            <TableBody>
+              <TableRow hover><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{empid}</TableCell><TableCell sx={{ fontSize: 12 }}>{empName}</TableCell>{display.map((d, i) => { const c = getClr(d); return <TableCell key={i} align="center" sx={{ bgcolor: c.bg, color: c.col, fontWeight: 700 }}>{d || "-"}</TableCell>; })}<TableCell align="center" sx={{ bgcolor: "#e8f5e9", fontWeight: 700 }}>{p}</TableCell><TableCell align="center" sx={{ bgcolor: "#e3f2fd", fontWeight: 700 }}>{h + w}</TableCell><TableCell align="center" sx={{ bgcolor: "#fff8e1", fontWeight: 700 }}>{cl}</TableCell><TableCell align="center" sx={{ bgcolor: "#e0f2f1", fontWeight: 700 }}>{el}</TableCell><TableCell align="center" sx={{ bgcolor: "#ffcdd2", fontWeight: 700 }}>{lop}</TableCell><TableCell align="center" sx={{ bgcolor: "#eceff1", fontWeight: 700 }}>{total}</TableCell><TableCell align="center" sx={{ bgcolor: "#fff9c4", fontWeight: 700 }}>{ot.toFixed(1)}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={2} align="right" sx={{ fontSize: 11, fontWeight: 700, bgcolor: "#fff3e0" }}>OT</TableCell>{Array.from({ length: dim }, (_, i) => { const r = byDay[i + 1]; const v = r?.ot_hrs ? Number(r.ot_hrs).toFixed(1) : ""; return <TableCell key={i} align="center" sx={{ fontSize: 10, color: "#e65100", bgcolor: v ? "#ffe0b2" : "inherit" }}>{v}</TableCell>; })}<TableCell colSpan={7}></TableCell></TableRow>
+            </TableBody></Table>
+        </Box>
+      );
+    }
+    if (selected === "ot-register") {
+      const dim = new Date(year, month, 0).getDate();
+      const byDay = {}; filtered.forEach(r => { const d = new Date(r.att_date).getDate(); if (d >= 1 && d <= dim) byDay[d] = r; });
+      let tot = 0; Object.values(byDay).forEach(r => { if (r?.ot_hrs) tot += Number(r.ot_hrs); });
+      return (
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 800, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px" } }}>
+            <TableHead><TableRow><TableCell sx={headSx}>Emp ID</TableCell><TableCell sx={headSx}>Name</TableCell>{Array.from({ length: dim }, (_, i) => <TableCell key={i} align="center" sx={headSx}>{String(i + 1).padStart(2, "0")}</TableCell>)}<TableCell sx={{ ...headSx, bgcolor: "#fff9c4" }} align="center">Total OT</TableCell></TableRow></TableHead>
+            <TableBody><TableRow hover><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{empid}</TableCell><TableCell sx={{ fontSize: 12 }}>{empName}</TableCell>{Array.from({ length: dim }, (_, i) => { const r = byDay[i + 1]; const v = r?.ot_hrs ? Number(r.ot_hrs).toFixed(1) : ""; return <TableCell key={i} align="center" sx={{ color: "#e65100", bgcolor: v ? "#ffe0b2" : "inherit", fontWeight: v ? 700 : 400 }}>{v || "-"}</TableCell>; })}<TableCell align="center" sx={{ bgcolor: "#fff9c4", fontWeight: 800 }}>{tot.toFixed(1)}</TableCell></TableRow></TableBody></Table>
+        </Box>
+      );
+    }
+    if (selected === "movement") {
+      const groups = {};
+      filtered.forEach(r => { const k = fmtDate(r.att_date) || "—"; (groups[k] = groups[k] || []).push(r); });
+      const keys = Object.keys(groups).sort((a, b) => new Date(a.split("-").reverse().join("-")) - new Date(b.split("-").reverse().join("-")));
+      return (
+        <Table size="small" stickyHeader><TableHead><TableRow>{["Date", "Punch In", "Punch Out", "Lunch Out", "Lunch In", "Status", "Hours"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No movements</TableCell></TableRow> : keys.map(k => (
+            <React.Fragment key={k}>
+              <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06) }}><TableCell colSpan={7} sx={{ fontSize: 12, fontWeight: 800, color: theme.palette.primary.main, py: 0.6 }}>{k} — {groups[k].length} record(s)</TableCell></TableRow>
+              {groups[k].map((r, i) => <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{k}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.in_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.out_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.lunch_out?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.lunch_in?.slice(0, 5) || "—"}</TableCell><TableCell><Chip size="small" label={r.status || "—"} sx={{ height: 18, fontSize: 11, bgcolor: statusChip(r.status).bg, color: statusChip(r.status).col }} /></TableCell><TableCell sx={{ fontSize: 12 }}>{r.work_hrs || r.ot_hrs || "—"}</TableCell></TableRow>)}
+            </React.Fragment>
+          ))}</TableBody></Table>
+      );
+    }
+    if (selected === "onduty-movement") {
+      const groups = {};
+      filtered.forEach(r => { const k = String(r.status || "Pending").toLowerCase(); (groups[k] = groups[k] || []).push(r); });
+      const order = ["pending", "approved", "rejected"]; const keys = Object.keys(groups).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      return (
+        <Table size="small" stickyHeader><TableHead><TableRow>{["App No", "Movement Date", "From", "To", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No movements</TableCell></TableRow> : keys.map(k => {
+            const c = statusChip(k); return (
+              <React.Fragment key={k}>
+                <TableRow sx={{ bgcolor: c.bg }}><TableCell colSpan={5} sx={{ fontSize: 12, fontWeight: 800, color: c.col, py: 0.6 }}>{c.label} — {groups[k].length}</TableCell></TableRow>
+                {groups[k].map((r, i) => { const cc = statusChip(r.status); return <TableRow key={i} hover><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{r.movement_id || r.id || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.movement_date || r.act_date)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.perm_ftime || r.from_time || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.perm_ttime || r.to_time || "—"}</TableCell><TableCell><Chip size="small" label={cc.label} sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: cc.bg, color: cc.col }} /></TableCell></TableRow>; })}
+              </React.Fragment>
+            );
+          })}</TableBody></Table>
+      );
+    }
+    if (["attendance-log", "att-percentage"].includes(selected)) {
       const cols = selected === "att-percentage" ? ["Date", "Present", "Percentage"] : ["Date", "In", "Out", "Status", "Hours"];
       return (
         <Table size="small" stickyHeader><TableHead><TableRow>{cols.map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
@@ -708,11 +770,20 @@ export default function EmployeeReports() {
       );
     }
     if (["leaves-info", "encashment"].includes(selected)) {
+      const groups = {};
+      filtered.forEach(r => { const k = String(r.ltype || r.leave_type || "Other").toUpperCase(); (groups[k] = groups[k] || []).push(r); });
+      const keys = Object.keys(groups).sort();
       return (
         <Table size="small" stickyHeader><TableHead><TableRow>{["Leave Type", "Eligible", "Availed", "Balance", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No leave info</TableCell></TableRow> : filtered.slice(0, 20).map((r, i) => (
-            <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{r.ltype || r.leave_type || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.eligible || r.cls_eligible || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.utilised || r.cls_utilised || "—"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{r.balance || r.cls_balance || r.clBal || "—"}</TableCell><TableCell><Chip size="small" label={r.status || "Info"} sx={{ height: 18, fontSize: 11 }} /></TableCell></TableRow>
-          ))}</TableBody></Table>
+          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No leave info</TableCell></TableRow> : keys.map(k => {
+            const arr = groups[k]; const totEl = arr.reduce((s, r) => s + (Number(r.eligible || r.cls_eligible || 0)), 0); const totAv = arr.reduce((s, r) => s + (Number(r.utilised || r.cls_utilised || 0)), 0); const totBal = arr.reduce((s, r) => s + (Number(r.balance || r.cls_balance || r.clBal || 0)), 0);
+            return (
+              <React.Fragment key={k}>
+                <TableRow sx={{ bgcolor: "#f8f9fa" }}><TableCell sx={{ fontSize: 12, fontWeight: 800, color: theme.palette.primary.main }}>{k} — {arr.length}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{totEl || "—"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{totAv || "—"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 800 }}>{totBal || "—"}</TableCell><TableCell><Chip size="small" label={`${arr.length} rec`} sx={{ height: 18, fontSize: 11 }} /></TableCell></TableRow>
+                {arr.slice(0, 20).map((r, i) => <TableRow key={i} hover><TableCell sx={{ fontSize: 12, pl: 3 }}>{r.ltype || r.leave_type || k}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.eligible || r.cls_eligible || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.utilised || r.cls_utilised || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.balance || r.cls_balance || r.clBal || "—"}</TableCell><TableCell><Chip size="small" label={r.status || "Info"} sx={{ height: 18, fontSize: 11 }} /></TableCell></TableRow>)}
+              </React.Fragment>
+            );
+          })}</TableBody></Table>
       );
     }
     if (selected === "holidays") {
