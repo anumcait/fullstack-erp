@@ -179,7 +179,7 @@ exports.getAllLeaves = async (req, res) => {
       include: [{
         model: LeaveDetails,
         as: 'leaveDetails',
-        attributes: ['frmdt', 'todate', 'nod', 'daydt', 'remarks']
+        attributes: ['frmdt', 'todate', 'nod', 'daydt', 'remarks', 'c_cl_sanction', 'c_el_sanction', 'c_hr_app_status']
       }],
       order: [['lno', 'DESC']]
     });
@@ -386,7 +386,7 @@ exports.getPendingLeaveApplications = async (req, res) => {
     const apps = await LeaveApplication.findAll({
       where: { status: 'Pending' },
       include: [
-        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks'] },
+        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'c_cl_sanction', 'c_el_sanction', 'c_hr_app_status'] },
         { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance'] }
       ],
       order: [['lno', 'DESC']]
@@ -402,7 +402,7 @@ exports.getAllLeaveApplications = async (req, res) => {
   try {
     const apps = await LeaveApplication.findAll({
       include: [
-        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'ltype'] },
+        { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'c_cl_sanction', 'c_el_sanction', 'c_hr_app_status'] },
         { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance', 'cls_eligible', 'els_eligible', 'cls_utilised', 'els_utilised'] }
       ],
       order: [['lno', 'DESC']]

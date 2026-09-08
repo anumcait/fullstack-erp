@@ -313,10 +313,10 @@ const MusterRoll = () => {
         });
 
         const dayDisplay = dayStatuses.map((s, i) => {
-          if (s !== "W") return s;
+          if (s !== "W" && s !== "H") return s;
           const prevP = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i - 1]);
           const nextP = i < dayStatuses.length - 1 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i + 1]);
-          return prevP || nextP ? "W" : "A";
+          return prevP || nextP ? s : "A";
         });
 
         days.forEach((day, i) => {
@@ -843,12 +843,11 @@ const MusterRoll = () => {
                           let lopCount = 0;
 
                           const dayStatuses = days.map(d => getShortStatus(d.status));
-                          // W displays as "A" when not adjacent to Present day
                           const dayDisplay = dayStatuses.map((s, i) => {
-                            if (s !== "W") return s;
+                            if (s !== "W" && s !== "H") return s;
                             const prevP = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i - 1]);
                             const nextP = i < dayStatuses.length - 1 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i + 1]);
-                            return (prevP || nextP) ? "W" : "A";
+                            return (prevP || nextP) ? s : "A";
                           });
 
                           days.forEach((day, dayIdx) => {

@@ -71,8 +71,10 @@ export default function EmployeeReports() {
     if (q && LEGACY_MAP[q]) return LEGACY_MAP[q];
     return null;
   });
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(() => { const v = localStorage.getItem("er_month"); return v ? parseInt(v) : new Date().getMonth() + 1; });
+  const [year, setYear] = useState(() => { const v = localStorage.getItem("er_year"); return v ? parseInt(v) : new Date().getFullYear(); });
+  useEffect(() => { localStorage.setItem("er_month", String(month)); }, [month]);
+  useEffect(() => { localStorage.setItem("er_year", String(year)); }, [year]);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -119,7 +121,8 @@ export default function EmployeeReports() {
     if (["approved", "final", "2", "generated"].includes(v)) return "approved";
     if (["pending", "1", "0"].includes(v)) return "pending";
     if (["rejected", "cancelled", "reopen", "3"].includes(v)) return "rejected";
-    return "pending";
+    if (["present", "absent", "leave", "holiday", "woff", "tour", "od"].includes(v)) return "other";
+    return "other";
   };
 
   useEffect(() => {
@@ -468,7 +471,7 @@ export default function EmployeeReports() {
         <Box sx={{ width: 28, height: 28, borderRadius: 0.8, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}><r.icon /></Box>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#202124", lineHeight: 1.1 }}>{r.label}</Typography>
-          <Typography sx={{ fontSize: 11, color: "#5f6368", lineHeight: 1 }}>{r.desc} {r.id === "holidays" ? "" : `• ${s.total ? `${s.pending} pend` : "—"}`}</Typography>
+          <Typography sx={{ fontSize: 11, color: "#5f6368", lineHeight: 1 }}>{r.desc} {["holidays", "attendance-log", "attendance", "musterroll", "movement", "ot-register", "att-percentage", "onduty-movement"].includes(r.id) ? "" : `• ${s.total ? `${s.pending} pend` : "—"}`}</Typography>
         </Box>
         <Chip label={count} size="small" sx={{ height: 18, minWidth: 24, fontSize: 12, fontWeight: 700, bgcolor: "#f1f3f4", color: "#5f6368" }} />
         <FaChevronRight size={9} color="#dadce0" />
@@ -486,12 +489,43 @@ export default function EmployeeReports() {
       </Box>
     );
     const headSx = { fontWeight: 700, fontSize: 12, color: "#5f6368", whiteSpace: "nowrap", bgcolor: "#f8f9fa", borderBottom: "1px solid #e8eaed", py: 1 };
-    if (selected === "attendance" || selected === "attendance-log") return (
-      <Table size="small" stickyHeader><TableHead><TableRow>{["Date", "Status", "In", "Out", "Late", "OT"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-        <TableBody>{filtered.map((r, i) => {
-          const c = statusChip(r.status); return <TableRow key={i} hover><TableCell sx={{ fontSize: 13, fontWeight: 600 }}>{fmtDate(r.att_date)}</TableCell><TableCell><Chip size="small" label={r.status || "—"} sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: c.bg, color: c.col }} /></TableCell><TableCell sx={{ fontSize: 13 }}>{r.in_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 13 }}>{r.out_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 13 }}>{r.late_hrs ? Number(r.late_hrs).toFixed(2) : "0.00"}</TableCell><TableCell sx={{ fontSize: 13, fontWeight: 700 }}>{r.ot_hrs ? Number(r.ot_hrs).toFixed(2) : "0.00"}</TableCell></TableRow>;
-        })}</TableBody></Table>
-    );
+    if (selected === "attendance" || selected === "attendance-log") {
+      const cnt = (() => {
+        let Ps = 0, As = 0, W = 0, H = 0, CL = 0, EL = 0;
+        filtered.forEach(r => {
+          const s = String(r.status || "").trim().toLowerCase();
+          const lt = String(r.leave_type || r.ltype || "").trim().toUpperCase();
+          if (r.holiday) H++;
+          else if (String(r.woff_day) === "1" || s === "woff" || s === "w-off" || s === "w") W++;
+          else if (s === "present" || s === "p") Ps++;
+          else if (s === "absent" || s === "a") As++;
+          else if (s === "half day") Ps += 0.5;
+          else if (lt === "CL" || s === "cl") CL++;
+          else if (lt === "EL" || s === "el") EL++;
+          else if (s === "leave") EL++;
+        });
+        return { Ps, As, W, H, CL, EL, total: filtered.length };
+      })();
+      return (
+        <Box>
+          <Box sx={{ display: "flex", gap: 0.8, flexWrap: "wrap", px: 1.2, py: 0.8, bgcolor: "#f8f9fa", borderBottom: "1px solid #e8eaed" }}>
+            {[
+              { k: "P", v: cnt.Ps, bg: "#e6f4ea", col: "#137333" },
+              { k: "A", v: cnt.As, bg: "#fce8e6", col: "#a50e0e" },
+              { k: "W", v: cnt.W, bg: "#e8f0fe", col: "#1967d2" },
+              { k: "H", v: cnt.H, bg: "#fef7e0", col: "#7a6500" },
+              { k: "CL", v: cnt.CL, bg: "#e6f4ea", col: "#137333" },
+              { k: "EL", v: cnt.EL, bg: "#e8eaed", col: "#3c4043" },
+            ].map(c => <Chip key={c.k} label={`${c.k}: ${c.v}`} size="small" sx={{ height: 22, fontSize: 11, fontWeight: 800, bgcolor: c.bg, color: c.col, border: "1px solid #dadce0" }} />)}
+            <Chip label={`Total: ${cnt.total}`} size="small" sx={{ height: 22, fontSize: 11, fontWeight: 800, bgcolor: "white", color: "#202124", border: "1px solid #dadce0" }} />
+          </Box>
+          <Table size="small" stickyHeader><TableHead><TableRow>{["Date", "Shift", "Punch In", "Punch Out", "Lunch Out", "Lunch In", "Late", "OT", "Status"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
+            <TableBody>{filtered.map((r, i) => {
+              const c = statusChip(r.status); return <TableRow key={i} hover><TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{fmtDate(r.att_date)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.shift || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.in_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.out_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.lunch_out?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.lunch_in?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.late_hrs ? Number(r.late_hrs).toFixed(2) : r.late_mins ? (Number(r.late_mins) / 60).toFixed(2) : "0.00"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{r.ot_hrs ? Number(r.ot_hrs).toFixed(2) : r.ot_mins ? (Number(r.ot_mins) / 60).toFixed(2) : "0.00"}</TableCell><TableCell><Chip size="small" label={r.status || "—"} sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: c.bg, color: c.col }} /></TableCell></TableRow>;
+            })}</TableBody></Table>
+        </Box>
+      );
+    }
     const isMonthlyLeave = selected === "leaves";
     if (selected === "leaves" || selected === "leave") {
       if (isMonthlyLeave) {
@@ -695,11 +729,11 @@ export default function EmployeeReports() {
       const display = unique.slice(0, 10);
       return (
         <Table size="small" stickyHeader><TableHead><TableRow>{["SNo", "Date", "Occasion", "Day", "Year", "Remarks"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-            <TableBody>{display.length === 0 ? <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No holidays</TableCell></TableRow> : display.map((r, i) => {
-              const d = new Date(r.hdate || r.holiday_date || r.date); const today = new Date(); today.setHours(0, 0, 0, 0);
-              const isPast = !isNaN(d) && d < today;
-              return <TableRow key={`${r.hno || i}-${r.hdate}`} hover sx={{ bgcolor: isPast ? "#eeeeee" : "#e6f4ea" }}><TableCell sx={{ fontSize: 12, textAlign: "center" }}>{i + 1}</TableCell><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.hdate)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hdesc || r.occasion || r.name || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hday || (!isNaN(d) ? d.toLocaleDateString("en-US", { weekday: "short" }) : "—")}</TableCell><TableCell sx={{ fontSize: 12, textAlign: "center" }}>{r.yr || d.getFullYear()}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hremarks || r.remarks || "—"}</TableCell></TableRow>;
-            })}</TableBody></Table>
+          <TableBody>{display.length === 0 ? <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No holidays</TableCell></TableRow> : display.map((r, i) => {
+            const d = new Date(r.hdate || r.holiday_date || r.date); const today = new Date(); today.setHours(0, 0, 0, 0);
+            const isPast = !isNaN(d) && d < today;
+            return <TableRow key={`${r.hno || i}-${r.hdate}`} hover sx={{ bgcolor: isPast ? "#eeeeee" : "#e6f4ea" }}><TableCell sx={{ fontSize: 12, textAlign: "center" }}>{i + 1}</TableCell><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.hdate)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hdesc || r.occasion || r.name || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hday || (!isNaN(d) ? d.toLocaleDateString("en-US", { weekday: "short" }) : "—")}</TableCell><TableCell sx={{ fontSize: 12, textAlign: "center" }}>{r.yr || d.getFullYear()}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.hremarks || r.remarks || "—"}</TableCell></TableRow>;
+          })}</TableBody></Table>
       );
     }
     if (selected === "increment") {
@@ -816,11 +850,11 @@ export default function EmployeeReports() {
                     <Box sx={{ display: "flex", gap: 0.6, minWidth: 0 }}>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#202124", mb: 0.4, whiteSpace: "nowrap" }}>Starting Date</Typography>
-                        <TextField fullWidth size="small" type="date" value={(() => { const d = parseDDMONRR(startDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) { setStartDate(""); return; } const d = new Date(v); const s = `${String(d.getDate()).padStart(2, "0")}-${["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; setStartDate(s); }} InputLabelProps={{ shrink: true }} helperText={startDate ? startDate : "DD-MON-RR"} FormHelperTextProps={{ sx: { fontSize: 9, m: 0, color: "#80868b", whiteSpace: "nowrap" } }} sx={{ "& input": { height: 18, fontSize: 11, px: 0.5 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white", minWidth: 0 } }} />
+                        <TextField fullWidth size="small" type="date" value={(() => { const d = parseDDMONRR(startDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) { setStartDate(""); return; } const d = new Date(v); const s = `${String(d.getDate()).padStart(2, "0")}-${["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; setStartDate(s); }} InputLabelProps={{ shrink: true }} InputProps={{ endAdornment: <InputAdornment position="end"><FaCalendarAlt size={12} color="#5f6368" /></InputAdornment> }} helperText={startDate ? startDate : "DD-MON-RR"} FormHelperTextProps={{ sx: { fontSize: 9, m: 0, color: "#80868b", whiteSpace: "nowrap" } }} sx={{ "& input": { height: 18, fontSize: 11, px: 0.5 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white", minWidth: 0 }, "& input::-webkit-calendar-picker-indicator": { opacity: 1, cursor: "pointer", marginLeft: 4 } }} />
                       </Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#202124", mb: 0.4, whiteSpace: "nowrap" }}>Ending Date</Typography>
-                        <TextField fullWidth size="small" type="date" value={(() => { const d = parseDDMONRR(endDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) { setEndDate(""); return; } const d = new Date(v); const s = `${String(d.getDate()).padStart(2, "0")}-${["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; setEndDate(s); }} InputLabelProps={{ shrink: true }} helperText={endDate ? endDate : "DD-MON-RR"} FormHelperTextProps={{ sx: { fontSize: 9, m: 0, color: "#80868b", whiteSpace: "nowrap" } }} sx={{ "& input": { height: 18, fontSize: 11, px: 0.5 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white", minWidth: 0 } }} />
+                        <TextField fullWidth size="small" type="date" value={(() => { const d = parseDDMONRR(endDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) { setEndDate(""); return; } const d = new Date(v); const s = `${String(d.getDate()).padStart(2, "0")}-${["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; setEndDate(s); }} InputLabelProps={{ shrink: true }} InputProps={{ endAdornment: <InputAdornment position="end"><FaCalendarAlt size={12} color="#5f6368" /></InputAdornment> }} helperText={endDate ? endDate : "DD-MON-RR"} FormHelperTextProps={{ sx: { fontSize: 9, m: 0, color: "#80868b", whiteSpace: "nowrap" } }} sx={{ "& input": { height: 18, fontSize: 11, px: 0.5 }, "& .MuiOutlinedInput-root": { borderRadius: 1, bgcolor: "white", minWidth: 0 }, "& input::-webkit-calendar-picker-indicator": { opacity: 1, cursor: "pointer", marginLeft: 4 } }} />
                       </Box>
                     </Box>
                     <Box sx={{ display: "flex", gap: 0.8 }}>

@@ -173,7 +173,7 @@ const Sidebar = () => {
     }
     const pathMatch = currentPath === targetPath || currentPath.startsWith(targetPath + "/");
     if (targetSearch !== undefined) return pathMatch && currentSearch === "?" + targetSearch;
-    return pathMatch && !currentSearch;
+    return pathMatch;
   };
 
   const isSubmenuActive = (key) =>

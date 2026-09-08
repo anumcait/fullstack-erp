@@ -1412,12 +1412,14 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
     // The dayStatuses are collected above; we'll recompute summary below
   }
 
-  // W-Off sandwich rule (matches frontend logic: W-Off is absent unless adjacent to a Present-like day)
+  // W-Off & Holiday sandwich rule — both are absent unless adjacent to a Present-like day
   const presentLikeStatuses = ['Present', 'Half Day', 'FC', 'FE', 'FL'];
   for (let i = 0; i < monthlyData.days.length; i++) {
-    if (monthlyData.days[i].status === 'W-Off') {
+    const st = monthlyData.days[i].status;
+    const isSandwich = st === 'W-Off' || st === 'Holiday' || st.startsWith('Holiday');
+    if (isSandwich) {
       let j = i;
-      while (j + 1 < monthlyData.days.length && monthlyData.days[j + 1].status === 'W-Off') j++;
+      while (j + 1 < monthlyData.days.length) { const ns = monthlyData.days[j + 1].status; if (ns === 'W-Off' || ns === 'Holiday' || ns.startsWith('Holiday')) j++; else break; }
       const beforeStatus = (i > 0) ? monthlyData.days[i - 1].status : 'Present';
       const afterStatus = (j < monthlyData.days.length - 1) ? monthlyData.days[j + 1].status : 'Present';
       const beforePresent = presentLikeStatuses.includes(beforeStatus);
