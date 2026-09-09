@@ -909,7 +909,15 @@ export default function EmployeeReports() {
       const getShort = (s) => { if (!s) return ""; if (s === "Present") return "P"; if (s === "Half Day") return "F"; if (s === "Absent") return "A"; if (s === "LOP") return "L"; if (String(s).startsWith("W-Off")) return "W"; if (String(s).startsWith("Holiday")) return "H"; return String(s); };
       const getClr = (sh) => ({ P: { bg: "#e8f5e9", col: "#2e7d32" }, F: { bg: "#fff3e0", col: "#e65100" }, A: { bg: "#ffebee", col: "#c62828" }, H: { bg: "#e3f2fd", col: "#1565c0" }, W: { bg: "#f3e5f5", col: "#7b1fa2" }, CL: { bg: "#fff8e1", col: "#f57f17" }, EL: { bg: "#e0f2f1", col: "#00695c" } }[sh] || { bg: "#fff", col: "#333" });
       const byDay = {}; filtered.forEach(r => { const d = new Date(r.att_date).getDate(); if (d >= 1 && d <= dim) byDay[d] = r; });
-      const statuses = Array.from({ length: dim }, (_, i) => getShort(byDay[i + 1]?.status || ""));
+      const holidaySet = new Set((store.holidays || []).map(h => { const hd = new Date(h.hdate || h.holiday_date || h.date); return isNaN(hd) ? "" : hd.toDateString(); }));
+      const statuses = Array.from({ length: dim }, (_, i) => {
+        const day = i + 1; const r = byDay[day];
+        if (r?.status) return getShort(r.status);
+        const d = new Date(year, month - 1, day);
+        if (holidaySet.has(d.toDateString())) return "H";
+        if (d.getDay() === 0) return "W";
+        return "";
+      });
       const display = statuses.map((s, i) => { if (s !== "W" && s !== "H") return s; const prev = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i - 1]); const next = i < dim - 1 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i + 1]); return prev || next ? s : "A"; });
       let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; else if (s === "W" && d === "A") lop++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; const approved = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved" || r.is_ot_approved == 1 || r.ot_approved_status === "Approved"); if (approved && r?.ot_hrs) ot += Number(r.ot_hrs); }); const total = p + h + w + cl + el;
       return (
