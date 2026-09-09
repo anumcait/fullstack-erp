@@ -188,7 +188,9 @@
     }
 
     #payslip-modal-content .payslip-logo-img {
-        max-height: 34px !important;
+        width: 90px !important;
+        height: 18px !important;
+        object-fit: contain !important;
     }
 
     #payslip-modal-content .payslip-company-title {

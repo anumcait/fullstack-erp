@@ -49,7 +49,7 @@ export default function PayslipView({ data, onClose }) {
         <tbody>
           <tr>
             <td colSpan={10} style={{ position: 'relative', textAlign: 'center', padding: '5px', border: '1px solid #000', height: '52px' }}>
-              <img src={logo} alt="Logo" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', maxHeight: '42px' }} />
+              <img src={logo} alt="Logo" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '90px', height: '18px', objectFit: 'contain' }} />
               <h2 className="payslip-company-title" style={{ margin: 0, textAlign: 'center' }}>{companyName || "AUCTOR HOME APPLIANCES LLP"}</h2>
             </td>
           </tr>

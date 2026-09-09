@@ -509,7 +509,7 @@ export default function EmployeeReports() {
         tableWidth: 575,
         margin: { left: 10, right: 10 },
         theme: "grid",
-        styles: { fontSize: 7, cellPadding: 3, lineWidth: 0.2, lineColor: [0, 0, 0], valign: "middle", overflow: "linebreak" },
+        styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.2, textColor: [0,0,0], lineColor: [0, 0, 0], valign: "middle", overflow: "linebreak" },
         columnStyles: {
           0: { cellWidth: 80.5 }, 1: { cellWidth: 51.7 }, 2: { cellWidth: 74.7 }, 3: { cellWidth: 40.2 }, 4: { cellWidth: 80.5 },
           5: { cellWidth: 28.7 }, 6: { cellWidth: 46 }, 7: { cellWidth: 46 }, 8: { cellWidth: 69 }, 9: { cellWidth: 57.7 }
@@ -517,7 +517,7 @@ export default function EmployeeReports() {
         body: body,
         didDrawCell: (data) => {
           if (data.row.index === 0 && data.column.index === 0 && logoData) {
-            try { doc.addImage(logoData, "JPEG", data.cell.x + 4, data.cell.y + 2, 36, 14); } catch {}
+            try { doc.addImage(logoData, "JPEG", data.cell.x + 4, data.cell.y + 4, 62, 12); } catch {}
           }
         }
       });
