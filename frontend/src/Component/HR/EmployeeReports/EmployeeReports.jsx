@@ -3,7 +3,7 @@ import { Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBod
 import { alpha, useTheme } from "@mui/material/styles";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FaCalendarCheck, FaUmbrellaBeach, FaMoneyBill, FaClock, FaDownload, FaEye, FaClipboardList, FaBriefcase, FaPlane, FaExchangeAlt, FaCalendarWeek, FaHandHoldingUsd, FaNotesMedical, FaUserEdit, FaCalendarAlt, FaChartBar, FaArrowLeft, FaSearch, FaFileCsv, FaChevronRight, FaRegCalendar, FaRegClock, FaCheckCircle, FaHourglassHalf, FaTimesCircle } from "react-icons/fa";
+import { FaCalendarCheck, FaUmbrellaBeach, FaMoneyBill, FaClock, FaDownload, FaEye, FaClipboardList, FaBriefcase, FaPlane, FaExchangeAlt, FaCalendarWeek, FaHandHoldingUsd, FaNotesMedical, FaUserEdit, FaCalendarAlt, FaChartBar, FaArrowLeft, FaSearch, FaFileCsv, FaFilePdf, FaFileExcel, FaChevronRight, FaRegCalendar, FaRegClock, FaCheckCircle, FaHourglassHalf, FaTimesCircle } from "react-icons/fa";
 import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import logo from "../../../assets/images/EQIC_Image.jpg";
@@ -258,6 +258,21 @@ export default function EmployeeReports() {
   const exportCsv = () => {
     if (!filtered.length) return;
     const headers = Object.keys(filtered[0]);
+    if (reportType === "PDF") {
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      doc.text(companyName || "Company", 420, 30, { align: "center" });
+      doc.text(`${selectedMeta?.label || selected} — ${MONTHS[month - 1]?.label || ""} ${year}`, 420, 45, { align: "center" });
+      const body = filtered.map(r => headers.map(h => r[h] ?? ""));
+      autoTable(doc, { startY: 60, head: [headers], body, styles: { fontSize: 6, cellPadding: 2 }, headStyles: { fillColor: [25, 118, 210] }, theme: "grid" });
+      doc.save(`${selected}_${year}_${month}.pdf`);
+      return;
+    }
+    if (reportType === "Excel") {
+      const ws = XLSX.utils.json_to_sheet(filtered);
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, selected);
+      XLSX.writeFile(wb, `${selected}_${year}_${month}.xlsx`);
+      return;
+    }
     const csv = [headers.join(","), ...filtered.map(r => headers.map(h => { const v = r[h]; if (v == null) return ""; const s = String(v); return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s; }).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${selected}_${year}_${month}.csv`; a.click();
@@ -279,7 +294,7 @@ export default function EmployeeReports() {
       const st = r.status || r.request_status || "Pending";
       return `<tr><td style="border:1px solid #aaa;padding:6px;text-align:center">${i + 1}</td><td style="border:1px solid #aaa;padding:6px">${fmtDate(dt)}</td><td style="border:1px solid #aaa;padding:6px">${id}</td><td style="border:1px solid #aaa;padding:6px">${purpose || reason}</td><td style="border:1px solid #aaa;padding:6px">${st}</td><td style="border:1px solid #aaa;padding:6px">${String(reason).slice(0, 80)}</td></tr>`;
     }).join("");
-    const html = `<html><head><title>Applications - ${MONTHS[month - 1].label} ${year}</title><style>body{font-family:Arial,sans-serif;font-size:11px;padding:16px} table{width:100%;border-collapse:collapse} th{background:#f1f3f4;padding:6px;border:1px solid #aaa;font-size:11px} td{font-size:11px}</style></head><body><div style="text-align:center;margin-bottom:12px"><h3 style="margin:0">${companyName || "Company"}</h3><div style="font-size:11px;color:#5f6368">Application Report — ${selectedMeta?.label || ""} — ${MONTHS[month - 1].label} ${year} — Emp ${empid} ${empName}</div></div><table><thead><tr><th>#</th><th>Date</th><th>App No</th><th>Purpose</th><th>Status</th><th>Reason / Remarks</th></tr></thead><tbody>${rows || '<tr><td colspan=6 style="text-align:center;padding:12px">No records</td></tr>'}</tbody></table><div style="margin-top:16px;font-size:10px;color:#5f6368">Generated on ${new Date().toLocaleString()} — Employee Self Service</div><script>window.print()</script></body></html>`;
+    const html = `<html><head><title>Applications - ${MONTHS[month - 1].label} ${year}</title><style>body{font-family:Arial,sans-serif;font-size:11px;vertical-align:middle;padding:16px} table{width:100%;border-collapse:collapse} th{background:#f1f3f4;padding:6px;border:1px solid #aaa;font-size:11px;vertical-align:middle} td{font-size:11px;vertical-align:middle}</style></head><body><div style="text-align:center;margin-bottom:12px"><h3 style="margin:0">${companyName || "Company"}</h3><div style="font-size:11px;vertical-align:middle;color:#5f6368">Application Report — ${selectedMeta?.label || ""} — ${MONTHS[month - 1].label} ${year} — Emp ${empid} ${empName}</div></div><table><thead><tr><th>#</th><th>Date</th><th>App No</th><th>Purpose</th><th>Status</th><th>Reason / Remarks</th></tr></thead><tbody>${rows || '<tr><td colspan=6 style="text-align:center;padding:12px">No records</td></tr>'}</tbody></table><div style="margin-top:16px;font-size:10px;color:#5f6368">Generated on ${new Date().toLocaleString()} — Employee Self Service</div><script>window.print()</script></body></html>`;
     const w = window.open("", "_blank"); w.document.write(html); w.document.close();
   };
   const exportLeaveHistory = () => {
@@ -437,17 +452,25 @@ export default function EmployeeReports() {
       doc.setFontSize(11); doc.text(companyName || "Company", 420, 28, { align: "center" }); doc.setFontSize(9); doc.text(title, 420, 42, { align: "center" }); autoTable(doc, { startY: 60, head: [headTop, headSub], body: [row], styles: { fontSize: 7, cellPadding: 3, halign: "center", valign: "middle" }, headStyles: { fillColor: [25, 118, 210], halign: "center", valign: "middle" }, theme: "grid" }); doc.save(`LeavesInfo_${empid}_${year}.pdf`);
     } else { const wsData = [[companyName || "Company"], [title], ["", "", "CL", "", "", "EL", "", "", ""], headFlat, row]; const ws = XLSX.utils.aoa_to_sheet(wsData); ws["!merges"] = [{ s: { r: 2, c: 2 }, e: { r: 2, c: 4 } }, { s: { r: 2, c: 5 }, e: { r: 2, c: 7 } }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Leaves Info"); XLSX.writeFile(wb, `LeavesInfo_${empid}_${year}.xlsx`); }
   };
+  const exportPayslips = () => {
+    if (!filtered.length) { alert(`No payslips for ${MONTHS[month - 1]?.label || ""} ${year}`); return; }
+    const head = ["Month / Year", "Emp ID", "Employee Name", "Total Days", "Present", "Total Fixed", "Earned Gross", "Total Ded.", "Net Pay", "Status"];
+    const rows = filtered.map(r => [ `${r.C_MONTH} ${r.C_YEAR}`, r.C_EMPID || empid, r.C_ENAME || empName, Math.round(r.C_TOT_DAYS || 0), Math.round(r.C_DAYS_PRESENT || 0), Number(r.C_TOT_SAL || 0).toLocaleString("en-IN"), Number(r.C_EARNED_GROSS || 0).toLocaleString("en-IN"), Number(r.C_TOT_DED || 0).toLocaleString("en-IN"), `Rs. ${Number(r.C_NET_AMT || 0).toLocaleString("en-IN")}`, r.C_FINAL_STATUS === 2 ? "Final" : "Generated" ]);
+    const title = `Payslips — ${MONTHS[month - 1]?.label} ${year} — ${empid} ${empName}`;
+    if (reportType === "PDF") { const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" }); doc.text(companyName || "Company", 420, 30, { align: "center" }); doc.text(title, 420, 45, { align: "center" }); autoTable(doc, { startY: 60, head: [head], body: rows, styles: { fontSize: 7, cellPadding: 3, halign: "center" }, headStyles: { fillColor: [25, 118, 210], halign: "center" }, theme: "grid" }); doc.save(`Payslips_${empid}_${MONTHS[month - 1]?.label}_${year}.pdf`); } else { const ws = XLSX.utils.aoa_to_sheet([[companyName || "Company"], [title], head, ...rows]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Payslips"); XLSX.writeFile(wb, `Payslips_${empid}_${MONTHS[month - 1]?.label}_${year}.xlsx`); }
+  };
   const handleExport = () => {
+    if (reportType === "View") { fetchData(); return; }
     if ((selected === "leave" || selected === "leaves") && filtered.length) { exportLeaveHistory(); return; }
-    if (selected === "holidays" && filtered.length) { if (reportType === "PDF" || reportType === "Excel") { exportHolidays(); return; } }
+    if (selected === "holidays" && filtered.length) { exportHolidays(); return; }
     if (selected === "musterroll") { exportMusterRoll(); return; }
     if (selected === "ot-register") { exportOtRegister(); return; }
     if (selected === "movement") { exportMovement(); return; }
     if (selected === "onduty-movement") { exportOndutyMovement(); return; }
     if (selected === "leaves-info" || selected === "encashment") { exportLeavesInfo(); return; }
     if (selected === "attendance-log" || selected === "attendance") { exportAttendanceLog(); return; }
-    if (reportType === "PDF" || reportType === "Excel") { if (selected === "holidays") exportHolidays(); else exportCsv(); }
-    else fetchData();
+    if (selected === "payslips") { exportPayslips(); return; }
+    exportCsv();
   };
   const downloadPayslip = async (r) => {
     const m = r.C_MONTH || r.month; const y = r.C_YEAR || r.year;
@@ -455,21 +478,50 @@ export default function EmployeeReports() {
     try {
       const res = await axios.get(`${API}/api/payroll/my-payslip/download`, { params: { empid, month: monthNum, year: y }, withCredentials: true });
       const p = res.data;
-      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-      const html = `<div style="font-family:Arial,sans-serif;font-size:11px;width:1000px"><table style="width:100%;border-collapse:collapse;font-size:11px"><colgroup><col style="width:9%"/><col style="width:9%"/><col style="width:13%"/><col style="width:7%"/><col style="width:14%"/><col style="width:5%"/><col style="width:8%"/><col style="width:8%"/><col style="width:17%"/><col style="width:10%"/></colgroup>
-        <tr><td colspan="2" style="border:1px solid #aaa;padding:4px"><img src="${logo}" style="height:44px"/></td><td colspan="8" style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">${companyName || "AUCTOR HOME APPLIANCES LLP"}<br/><span style="font-size:10px;font-weight:400">Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad</span></td></tr>
-        <tr><td colspan="10" style="border:1px solid #aaa;padding:4px;background:#f5f5f5;text-align:center;font-weight:700">Salary Slip For The Month of : ${p.C_MONTH} - ${p.C_YEAR}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:4px;font-weight:700">Employee ID</td><td colspan="2" style="border:1px solid #aaa;padding:4px;font-weight:700">${p.C_EMPID}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">D O J :</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Designation:</td><td colspan="3" style="border:1px solid #aaa;padding:4px">${p.C_DESIG || ""}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:4px">Employee Name</td><td colspan="2" style="border:1px solid #aaa;padding:4px;font-weight:700">${p.C_ENAME}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">${formatDOJ(p.employee?.official?.doj)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Department:</td><td colspan="3" style="border:1px solid #aaa;padding:4px">${p.C_DEPT || ""}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:4px">Total Days</td><td style="border:1px solid #aaa;padding:4px;text-align:center">${Math.round(p.C_TOT_DAYS)}</td><td style="border:1px solid #aaa;padding:4px">Days Present:</td><td style="border:1px solid #aaa;padding:4px;text-align:center">${Math.round(p.C_DAYS_PRESENT)}</td><td style="border:1px solid #aaa;padding:4px">Leaves Allowed:</td><td style="border:1px solid #aaa;padding:4px;text-align:center">${Math.round(p.C_LEAVES_ALLOWED || 0)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">UAN Number</td><td colspan="2" style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">${p.employee?.official?.c_uan_no || "N/A"}</td></tr>
-        <tr style="background:#f5f5f5;font-weight:700;text-align:center"><td colspan="2" style="border:1px solid #aaa;padding:4px">Fixed Salary</td><td colspan="4" style="border:1px solid #aaa;padding:4px">Earnings Salary</td><td colspan="4" style="border:1px solid #aaa;padding:4px">Deductions</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:4px">Basic</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_BASIC)}</td><td style="border:1px solid #aaa;padding:4px">Basic</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_EARNED_BASIC)}</td><td style="border:1px solid #aaa;padding:4px">Attendance Bonus</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_EARNED_BONUS)}</td><td style="border:1px solid #aaa;padding:4px">P.F</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_DED_PF)}</td><td style="border:1px solid #aaa;padding:4px">Income tax</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_DED_TAX)}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:4px">HRA</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_HRA)}</td><td style="border:1px solid #aaa;padding:4px">HRA</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_EARNED_HRA)}</td><td style="border:1px solid #aaa;padding:4px">Extra Wage</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_EARNED_OT)}</td><td style="border:1px solid #aaa;padding:4px">E.S.I</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_DED_ESI)}</td><td style="border:1px solid #aaa;padding:4px">Advance</td><td style="border:1px solid #aaa;padding:4px;text-align:right">${formatCurrency(p.C_DED_ADV)}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:4px;font-weight:700">Total Fixed Salary</td><td style="border:1px solid #aaa;padding:4px;text-align:right;font-weight:700">${formatCurrency(p.C_TOT_SAL)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Total Earnings :</td><td colspan="2" style="border:1px solid #aaa;padding:4px;text-align:right;font-weight:700">${formatCurrency(p.C_EARNED_GROSS)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Total Deduction:</td><td colspan="2" style="border:1px solid #aaa;padding:4px;text-align:right;font-weight:700">${formatCurrency(p.C_TOT_DED)}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:4px;font-weight:700">NET Salary :</td><td style="border:1px solid #aaa;padding:4px;text-align:right;font-weight:700">${formatCurrency(p.C_NET_AMT)}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Payment Mode :</td><td colspan="2" style="border:1px solid #aaa;padding:4px">${p.C_PAY_TYPE || "Bank"}</td><td colspan="2" style="border:1px solid #aaa;padding:4px">Bank A/c No :</td><td colspan="2" style="border:1px solid #aaa;padding:4px">${p.C_BANK_ACNO || "-"}</td></tr>
-        </table></div>`;
-      const div = document.createElement("div"); div.style.position = "fixed"; div.style.left = "0"; div.style.top = "0"; div.style.width = "1000px"; div.style.background = "white"; div.style.zIndex = "9999"; div.innerHTML = html; document.body.appendChild(div);
-      await doc.html(div, { callback: (d) => { const blob = d.output("blob"); const url = URL.createObjectURL(blob); window.open(url, "_blank"); document.body.removeChild(div); }, x: 10, y: 10, width: 800, windowWidth: 1000, autoPaging: "text" });
+      const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+      let logoData = null;
+      try {
+        const url = logo;
+        if (url && !url.startsWith("data:")) {
+          const resp = await fetch(url);
+          const blob = await resp.blob();
+          logoData = await new Promise(resv => { const fr = new FileReader(); fr.onload = () => resv(fr.result); fr.readAsDataURL(blob); });
+        } else logoData = url;
+      } catch {}
+      const body = [
+        [{ content: companyName || "AUCTOR HOME APPLIANCES LLP", colSpan: 10, styles: { halign: "center", fontStyle: "bold", fontSize: 11, valign: "middle" } }],
+        [{ content: "Plot No 21 & 22, Phase IV, IDA, Jeedimetla, Hyderabad", colSpan: 10, styles: { halign: "center", fillColor: [220, 220, 220], fontSize: 7, valign: "middle" } }],
+        [{ content: `Salary Slip For The Month of : ${p.C_MONTH} - ${p.C_YEAR}`, colSpan: 10, styles: { halign: "center", fontStyle: "bold", fontSize: 8, valign: "middle" } }],
+        [{ content: "Employee ID", styles: { fontStyle: "bold", valign: "middle" } }, { content: String(p.C_EMPID || ""), colSpan: 2, styles: { fontStyle: "bold", valign: "middle" } }, { content: "D O J :", colSpan: 2, styles: { valign: "middle" } }, { content: "Designation:", colSpan: 2, styles: { valign: "middle" } }, { content: String(p.C_DESIG || ""), colSpan: 3, styles: { valign: "middle" } }],
+        [{ content: "Employee Name", styles: { valign: "middle" } }, { content: String(p.C_ENAME || ""), colSpan: 2, styles: { fontStyle: "bold", valign: "middle" } }, { content: String(formatDOJ(p.employee?.official?.doj) || ""), colSpan: 2, styles: { valign: "middle" } }, { content: "Department:", colSpan: 2, styles: { valign: "middle" } }, { content: String(p.C_DEPT || ""), colSpan: 3, styles: { valign: "middle" } }],
+        [{ content: "Total Days", styles: { valign: "middle" } }, { content: String(Math.round(p.C_TOT_DAYS || 0)), styles: { halign: "center", valign: "middle" } }, { content: "Days Present:", styles: { valign: "middle" } }, { content: String(Math.round(p.C_DAYS_PRESENT || 0)), styles: { halign: "center", valign: "middle" } }, { content: "Leaves Allowed:", styles: { valign: "middle" } }, { content: String(Math.round(p.C_LEAVES_ALLOWED || 0)), styles: { halign: "center", valign: "middle" } }, { content: "UAN Number", colSpan: 2, styles: { valign: "middle" } }, { content: String(p.employee?.official?.c_uan_no || "N/A"), colSpan: 2, styles: { halign: "center", fontStyle: "bold", valign: "middle" } }],
+        [{ content: "Absent Days", styles: { valign: "middle" } }, { content: Number(p.C_ABSENT_DAYS || 0).toFixed(1), styles: { halign: "center", valign: "middle" } }, { content: "Late Hrs", styles: { valign: "middle" } }, { content: String(p.C_LATE_HOURS || p.C_LATE_HALF_HOURS || 0), styles: { halign: "center", valign: "middle" } }, { content: "Late: D:", styles: { valign: "middle" } }, { content: String(p.C_LATE_HALF_DAYS || 0), styles: { halign: "center", valign: "middle" } }, { content: "ESI Number", colSpan: 2, styles: { valign: "middle" } }, { content: String(p.C_ESI_NUM || p.employee?.official?.esiacno || "N/A"), colSpan: 2, styles: { halign: "center", valign: "middle" } }],
+        [{ content: "Fixed Salary", colSpan: 2, styles: { halign: "center", fontStyle: "bold", fillColor: [220, 220, 220], valign: "middle" } }, { content: "Earnings Salary", colSpan: 4, styles: { halign: "center", fontStyle: "bold", fillColor: [220, 220, 220], valign: "middle" } }, { content: "Deductions", colSpan: 4, styles: { halign: "center", fontStyle: "bold", fillColor: [220, 220, 220], valign: "middle" } }],
+        [{ content: "Basic", styles: { valign: "middle" } }, { content: formatCurrency(p.C_BASIC), styles: { halign: "right", valign: "middle" } }, { content: "Basic", styles: { valign: "middle" } }, { content: formatCurrency(p.C_EARNED_BASIC), styles: { halign: "right", valign: "middle" } }, { content: "Attendance Bonus", styles: { valign: "middle" } }, { content: formatCurrency(p.C_EARNED_BONUS), styles: { halign: "right", valign: "middle" } }, { content: "P.F", styles: { valign: "middle" } }, { content: formatCurrency(p.C_DED_PF), styles: { halign: "right", valign: "middle" } }, { content: "Income tax", styles: { valign: "middle" } }, { content: formatCurrency(p.C_DED_TAX), styles: { halign: "right", valign: "middle" } }],
+        [{ content: "HRA", styles: { valign: "middle" } }, { content: formatCurrency(p.C_HRA), styles: { halign: "right", valign: "middle" } }, { content: "HRA", styles: { valign: "middle" } }, { content: formatCurrency(p.C_EARNED_HRA), styles: { halign: "right", valign: "middle" } }, { content: "Extra Wage", styles: { valign: "middle" } }, { content: formatCurrency(p.C_EARNED_OT), styles: { halign: "right", valign: "middle" } }, { content: "E.S.I", styles: { valign: "middle" } }, { content: formatCurrency(p.C_DED_ESI), styles: { halign: "right", valign: "middle" } }, { content: "Advance", styles: { valign: "middle" } }, { content: formatCurrency(p.C_DED_ADV), styles: { halign: "right", valign: "middle" } }],
+        [{ content: "Conveyance", styles: { valign: "middle" } }, { content: formatCurrency(p.C_CONV), styles: { halign: "right", valign: "middle" } }, { content: "Conveyance", styles: { valign: "middle" } }, { content: formatCurrency(p.C_EARNED_CONV), styles: { halign: "right", valign: "middle" } }, { content: "Lunch Allowance", styles: { valign: "middle" } }, { content: formatCurrency(p.C_EARNED_LUNCH || 0), styles: { halign: "right", valign: "middle" } }, { content: "P.T", styles: { valign: "middle" } }, { content: formatCurrency(p.C_DED_PT), styles: { halign: "right", valign: "middle" } }, { content: "Canteen", styles: { valign: "middle" } }, { content: formatCurrency(p.C_DED_MEALS || 0), styles: { halign: "right", valign: "middle" } }],
+        [{ content: "Washing Allowance", styles: { valign: "middle" } }, { content: formatCurrency(p.C_OTHERS), styles: { halign: "right", valign: "middle" } }, { content: "Washing Allowance", styles: { valign: "middle" } }, { content: formatCurrency(p.C_EARNED_OTHERS), styles: { halign: "right", valign: "middle" } }, { content: "", styles: { valign: "middle" } }, { content: "", styles: { valign: "middle" } }, { content: "L.I.C", styles: { valign: "middle" } }, { content: formatCurrency(p.C_DED_LIC), styles: { halign: "right", valign: "middle" } }, { content: "Other Deduction", styles: { valign: "middle" } }, { content: formatCurrency(Math.ceil(Number(p.C_DED_OTH) || 0)), styles: { halign: "right", valign: "middle" } }],
+        [{ content: "Total Fixed Salary", styles: { fontStyle: "bold", valign: "middle" } }, { content: formatCurrency(p.C_TOT_SAL), styles: { halign: "right", fontStyle: "bold", valign: "middle" } }, { content: "Total Earnings Salary :", colSpan: 2, styles: { valign: "middle" } }, { content: formatCurrency(p.C_EARNED_GROSS), colSpan: 2, styles: { halign: "right", fontStyle: "bold", valign: "middle" } }, { content: "Total Deduction:", colSpan: 2, styles: { valign: "middle" } }, { content: formatCurrency(p.C_TOT_DED), colSpan: 2, styles: { halign: "right", fontStyle: "bold", valign: "middle" } }],
+        [{ content: "NET Salary :", styles: { fontStyle: "bold", valign: "middle" } }, { content: formatCurrency(p.C_NET_AMT), styles: { halign: "right", fontStyle: "bold", valign: "middle" } }, { content: "Payment Mode :", colSpan: 2, styles: { valign: "middle" } }, { content: String(p.C_PAY_TYPE || "Bank"), colSpan: 2, styles: { valign: "middle" } }, { content: "Bank A/c No :", colSpan: 2, styles: { valign: "middle" } }, { content: String(p.C_BANK_ACNO || "-"), colSpan: 2, styles: { valign: "middle" } }],
+      ];
+      autoTable(doc, {
+        startY: 16,
+        tableWidth: 575,
+        margin: { left: 10, right: 10 },
+        theme: "grid",
+        styles: { fontSize: 7, cellPadding: 3, lineWidth: 0.2, lineColor: [0, 0, 0], valign: "middle", overflow: "linebreak" },
+        columnStyles: {
+          0: { cellWidth: 80.5 }, 1: { cellWidth: 51.7 }, 2: { cellWidth: 74.7 }, 3: { cellWidth: 40.2 }, 4: { cellWidth: 80.5 },
+          5: { cellWidth: 28.7 }, 6: { cellWidth: 46 }, 7: { cellWidth: 46 }, 8: { cellWidth: 69 }, 9: { cellWidth: 57.7 }
+        },
+        body: body,
+        didDrawCell: (data) => {
+          if (data.row.index === 0 && data.column.index === 0 && logoData) {
+            try { doc.addImage(logoData, "JPEG", data.cell.x + 4, data.cell.y + 2, 36, 14); } catch {}
+          }
+        }
+      });
+      doc.save(`Payslip_${p.C_EMPID}_${p.C_MONTH}_${p.C_YEAR}.pdf`);
     } catch (e) { alert(e.response?.data?.message || "Payslip not found"); }
   };
 
@@ -1177,7 +1229,7 @@ export default function EmployeeReports() {
                       {isMonthly && selected !== "holidays" && !YEAR_ONLY.includes(selected) && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={month} onChange={e => setMonth(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 90 }}>{MONTHS.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label.slice(0, 3)}</MenuItem>)}</Select><Divider orientation="vertical" flexItem sx={{ mx: 0.4 }} /><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
                       {isMonthly && YEAR_ONLY.includes(selected) && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
                       <TextField size="small" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><FaSearch size={11} color="#9aa0a6" /></InputAdornment>, sx: { height: 30, fontSize: 12, bgcolor: "white", borderRadius: 1 } }} sx={{ width: 150 }} />
-                      <Tooltip title="Export"><IconButton size="small" onClick={handleExport} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}><FaFileCsv size={12} color={theme.palette.primary.main} /></IconButton></Tooltip>
+                      {selected !== "payslips" && <Tooltip title={reportType === "PDF" ? "Export PDF" : reportType === "Excel" ? "Export Excel" : "Refresh"}><IconButton size="small" onClick={handleExport} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}>{reportType === "PDF" ? <FaFilePdf size={13} color="#d93025" /> : reportType === "Excel" ? <FaFileExcel size={13} color="#188038" /> : <FaEye size={12} color={theme.palette.primary.main} />}</IconButton></Tooltip>}
                       <IconButton size="small" onClick={fetchData} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}><RefreshIcon sx={{ fontSize: 15, color: "#5f6368" }} /></IconButton>
                     </Box>
                   </Box>
@@ -1192,12 +1244,12 @@ export default function EmployeeReports() {
           </Grid>
         </Grid>
       </Box>
-      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 1, maxHeight: "95vh", maxWidth: "1080px" } }}>
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Payslip - {viewData?.C_ENAME}
+      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 1, maxHeight: "95vh", maxWidth: "860px", overflow: "auto" } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+          Payslip - {viewData?.C_ENAME} — {viewData?.C_MONTH} {viewData?.C_YEAR}
           <IconButton onClick={() => setViewOpen(false)}><CloseIcon /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ p: 0, bgcolor: "white", overflow: "auto" }}>
+        <DialogContent sx={{ p: 2, bgcolor: "white", overflow: "auto", display: "flex", justifyContent: "center" }}>
           {viewData && <PayslipView data={viewData} onClose={() => setViewOpen(false)} />}
         </DialogContent>
       </Dialog>

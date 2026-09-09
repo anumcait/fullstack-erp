@@ -182,9 +182,9 @@
         height: auto !important;
         min-height: 0 !important;
         line-height: 1.25 !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
     #payslip-modal-content .payslip-logo-img {
@@ -213,6 +213,7 @@
 
 .payslip-actions-bar {
     margin-top: 20px;
+    padding: 0 0 20px 0;
     display: flex;
     justify-content: center;
     gap: 15px;

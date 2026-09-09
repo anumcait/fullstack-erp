@@ -35,7 +35,7 @@ export default function PayslipView({ data, onClose }) {
     <div className="payslip-print-container" id="payslip-modal-content">
       <table className="payslip-table payslip-outer-border">
         <colgroup>
-          <col style={{ width: '9%' }} />
+          <col style={{ width: '14%' }} />
           <col style={{ width: '9%' }} />
           <col style={{ width: '13%' }} />
           <col style={{ width: '7%' }} />
@@ -43,16 +43,14 @@ export default function PayslipView({ data, onClose }) {
           <col style={{ width: '5%' }} />
           <col style={{ width: '8%' }} />
           <col style={{ width: '8%' }} />
-          <col style={{ width: '17%' }} />
+          <col style={{ width: '12%' }} />
           <col style={{ width: '10%' }} />
         </colgroup>
         <tbody>
           <tr>
-            <td className="payslip-logo-cell" colSpan={2}>
-              <img src={logo} alt="Logo" className="payslip-logo-img" />
-            </td>
-            <td className="payslip-company-cell" colSpan={8}>
-              <h2 className="payslip-company-title">{companyName || "AUCTOR HOME APPLIANCES LLP"}</h2>
+            <td colSpan={10} style={{ position: 'relative', textAlign: 'center', padding: '5px', border: '1px solid #000', height: '52px' }}>
+              <img src={logo} alt="Logo" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', maxHeight: '42px' }} />
+              <h2 className="payslip-company-title" style={{ margin: 0, textAlign: 'center' }}>{companyName || "AUCTOR HOME APPLIANCES LLP"}</h2>
             </td>
           </tr>
           <tr className="payslip-bg-grey payslip-text-center payslip-address-row">
