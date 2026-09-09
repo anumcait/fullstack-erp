@@ -573,9 +573,9 @@ export default function EmployeeReports() {
       const hasRec = !!(filtered[0] || store[selected]?.[0] || leaveBal);
       return { total: hasRec ? 1 : 0, pending: 0 };
     }
-    const s = statsOf(store[selected] || filtered);
+    const s = statsOf(isMonthly ? filtered : (store[selected] || filtered));
     return { total: s.total, pending: s.pending };
-  }, [selected, store, filtered, kpi, leaveBal]);
+  }, [selected, store, filtered, kpi, leaveBal, isMonthly]);
 
   const isPayslipGenerated = useMemo(() => {
     const arr = store.payslips || [];
@@ -824,7 +824,7 @@ export default function EmployeeReports() {
     if (selected === "payslips") return (
       <Table size="small" stickyHeader><TableHead><TableRow>{["Month / Year", "Net Pay", "Status", "Actions"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
         <TableBody>{filtered.map((r, i) => {
-          const st = r.C_FINAL_STATUS === 2 ? "Final" : "Generated"; const c = statusChip(st);
+          const c = statusChip(String(r.C_FINAL_STATUS ?? r.status ?? ""));
           return <TableRow key={i} hover><TableCell sx={{ fontSize: 13, fontWeight: 700 }}>{r.C_MONTH} {r.C_YEAR}</TableCell><TableCell sx={{ fontSize: 14, fontWeight: 800, color: "#202124" }}>{r.C_NET_AMT ? `₹${Number(r.C_NET_AMT).toLocaleString("en-IN")}` : "—"}</TableCell><TableCell><Chip size="small" label={c.label} sx={{ height: 18, fontSize: 11, fontWeight: 700, bgcolor: c.bg, color: c.col }} /></TableCell><TableCell><Stack direction="row" spacing={0.6}><Button size="small" variant="outlined" startIcon={<FaEye size={11} />} onClick={() => { setViewData(r); setViewOpen(true); }} sx={{ fontSize: 12, fontWeight: 700, height: 26, px: 1.1, borderRadius: 1 }}>View</Button><Button size="small" variant="contained" startIcon={<FaDownload size={11} />} onClick={() => downloadPayslip(r)} sx={{ fontSize: 12, fontWeight: 700, height: 26, px: 1.1, borderRadius: 1 }}>Slip</Button></Stack></TableCell></TableRow>;
         })}</TableBody></Table>
     );
