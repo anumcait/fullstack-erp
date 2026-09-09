@@ -93,12 +93,22 @@ export default function EmployeeReports() {
   const [store, setStore] = useState({});
   const [loadingStore, setLoadingStore] = useState(true);
   const [appId, setAppId] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(() => localStorage.getItem(`attPerc_start_${empid}`) || "");
+  const [endDate, setEndDate] = useState(() => localStorage.getItem(`attPerc_end_${empid}`) || "");
   const [reportType, setReportType] = useState("PDF");
   const [appReportSel, setAppReportSel] = useState("");
   const [empReportSel, setEmpReportSel] = useState("");
 
+  useEffect(() => {
+    if (empid) {
+      const s = localStorage.getItem(`attPerc_start_${empid}`);
+      const e = localStorage.getItem(`attPerc_end_${empid}`);
+      if (s) setStartDate(s);
+      if (e) setEndDate(e);
+    }
+  }, [empid]);
+  useEffect(() => { if (empid) { if (startDate) localStorage.setItem(`attPerc_start_${empid}`, startDate); else localStorage.removeItem(`attPerc_start_${empid}`); } }, [startDate, empid]);
+  useEffect(() => { if (empid) { if (endDate) localStorage.setItem(`attPerc_end_${empid}`, endDate); else localStorage.removeItem(`attPerc_end_${empid}`); } }, [endDate, empid]);
   useEffect(() => {
     const p = new URLSearchParams(location.search).get("tab");
     if (p && ALL_IDS.includes(p)) setSelected(p);
@@ -210,7 +220,18 @@ export default function EmployeeReports() {
       else if (selected === "advance") { const r = await axios.get(`${API}/api/advance/all`, cfg); raw = r.data || []; }
       else if (selected === "esileave") { const r = await axios.get(`${API}/api/esileave/all`, cfg); raw = r.data || []; }
       else if (selected === "profile") { const r = await axios.get(`${API}/api/employees/my-profile-requests`, cfg); raw = r.data || []; }
-      else if (["attendance-log", "movement", "musterroll", "ot-register", "att-percentage"].includes(selected)) { const r = await axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }); raw = r.data.records || r.data || []; }
+      else if (["attendance-log", "movement", "musterroll", "ot-register"].includes(selected)) { const r = await axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }); raw = r.data.records || r.data || []; }
+      else if (selected === "att-percentage") {
+        let sd = parseDDMONRR(startDate); if (!sd && startDate) { const p = startDate.split("-"); if (p.length===3) { const d = p[0].length===4 ? new Date(startDate) : new Date(`${p[2]}-${p[1]}-${p[0]}`); if(d && !isNaN(d)) sd=d; } }
+        let ed = parseDDMONRR(endDate); if (!ed && endDate) { const p = endDate.split("-"); if (p.length===3) { let d=null; if(p[0].length===4) d=new Date(endDate); else d=new Date(`${p[2]}-${p[1]}-${p[0]}`); if(d && !isNaN(d)) { ed=d; ed.setHours(23,59,59,999); } } }
+        if (sd && ed) {
+          const fmt = d => d.toISOString().slice(0, 10);
+          const r = await axios.get(`${API}/api/attendance`, { params: { empid, startDate: fmt(sd), endDate: fmt(ed) }, withCredentials: true }).catch(async () => await axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }));
+          raw = r.data.records || r.data || [];
+        } else {
+          const r = await axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }); raw = r.data.records || r.data || [];
+        }
+      }
       else if (selected === "onduty-movement") { const r = await axios.get(`${API}/api/onduty/all`, cfg); raw = r.data || []; }
       else if (selected === "leaves-info" || selected === "encashment") { const r = await axios.get(`${API}/api/leave/balance/${empid}`, cfg).catch(async () => await axios.get(`${API}/api/leave/report`, { params: { empid }, withCredentials: true })); const d = r.data?.balance || r.data; raw = Array.isArray(d) ? d : d && d.empid ? [d] : d?.data || d?.records || []; }
       else if (selected === "holidays") { const r = await axios.get(`${API}/api/holidays`, { withCredentials: true }).catch(() => ({ data: [] })); raw = Array.isArray(r.data) ? r.data : r.data.data || []; }
@@ -969,15 +990,68 @@ export default function EmployeeReports() {
           })}</TableBody></Table>
       );
     }
-    if (["attendance-log", "att-percentage"].includes(selected)) {
-      const cols = selected === "att-percentage" ? ["Date", "Present", "Percentage"] : ["Date", "In", "Out", "Status", "Hours"];
+    if (selected === "att-percentage") {
+      let sd = parseDDMONRR(startDate); if (!sd && startDate) { const p = startDate.split("-"); if (p.length===3) { const d = new Date(`${p[2]}-${p[1]}-${p[0]}`); if(!isNaN(d)) sd=d; else if (/^\d{4}-\d{2}-\d{2}$/.test(startDate)) sd=new Date(startDate); } }
+      let ed = parseDDMONRR(endDate); if (!ed && endDate) { const p = endDate.split("-"); if (p.length===3) { let d=null; if (p[0].length===4) d=new Date(endDate); else d=new Date(`${p[2]}-${p[1]}-${p[0]}`); if(d && !isNaN(d)) { ed=d; ed.setHours(23,59,59,999); } } }
+      let rangeData = data;
+      if (sd || ed) {
+        rangeData = data.filter(o => {
+          const d = new Date(o.att_date); if (isNaN(d)) return false;
+          if (sd && d < sd) return false;
+          if (ed && d > ed) return false;
+          return true;
+        });
+      }
+      const groups = {};
+      rangeData.forEach(r => {
+        const d = new Date(r.att_date); if (isNaN(d)) return;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (!groups[key]) groups[key] = { year: d.getFullYear(), month: d.getMonth(), present: 0, woff: 0 };
+        const st = String(r.status || "").toLowerCase().trim();
+        if (st.includes("woff") || st.includes("wo") || st.includes("weekly") || st.includes("w/o")) groups[key].woff += 1;
+        else if (st.includes("present") || st === "p" || st === "w" || st.includes("full") || st === "f" || st === "fd" || st.includes("od") || st.includes("tour")) groups[key].present += 1;
+        else if (st.includes("half") || st === "0.5" || st === "h") groups[key].present += 0.5;
+      });
+      const holidays = store.holidays || [];
+      const sortedKeys = Object.keys(groups).sort();
+      let rows = sortedKeys.map(k => {
+        const g = groups[k];
+        const dim = new Date(g.year, g.month + 1, 0).getDate();
+        const holCount = holidays.filter(h => {
+          const hd = new Date(h.hdate || h.holiday_date || h.date); return !isNaN(hd) && hd.getMonth() === g.month && hd.getFullYear() === g.year;
+        }).length;
+        const working = dim;
+        const pct = working ? ((g.present / working) * 100).toFixed(1) : "0.0";
+        return { label: `${MONTHS[g.month].label} ${g.year}`, working, present: g.present, pct, holidays: holCount, dim };
+      });
+      if (!rows.length) {
+        const dim = new Date(year, month, 0).getDate();
+        const holCount = holidays.filter(h => {
+          const hd = new Date(h.hdate || h.holiday_date || h.date); return !isNaN(hd) && hd.getMonth() + 1 === month && hd.getFullYear() === year;
+        }).length;
+        const working = dim;
+        const fromLabel = sd && ed ? `${fmtDate(sd)} to ${fmtDate(ed)}` : `${MONTHS[month - 1].label} ${year}`;
+        rows = [{ label: fromLabel, working, present: 0, pct: "0.0", holidays: holCount, dim, woff: 0 }];
+      }
+      const totalWorking = rows.reduce((s, r) => s + r.working, 0);
+      const totalPresent = rows.reduce((s, r) => s + Number(r.present), 0);
+      const totalHolidays = rows.reduce((s, r) => s + (r.holidays || 0), 0);
+      const totalDim = rows.reduce((s, r) => s + (r.dim || 0), 0);
+      const overall = totalWorking ? ((totalPresent / totalWorking) * 100).toFixed(1) : "0.0";
+      return (
+        <Table size="small" stickyHeader sx={{ "& th, & td": { textAlign: "center", border: "1px solid #e8eaed" } }}><TableHead><TableRow><TableCell sx={{ ...headSx, bgcolor: "#f8f9fa" }}>Metric \ Month</TableCell>{rows.map(r => <TableCell key={r.label} sx={{ ...headSx, bgcolor: "#e8f0fe" }}>{r.label}</TableCell>)}<TableCell sx={{ ...headSx, bgcolor: "#e3f2fd", fontWeight: 800 }}>Overall</TableCell></TableRow></TableHead>
+          <TableBody>
+            <TableRow hover><TableCell sx={{ fontSize: 12, fontWeight: 700, bgcolor: "#f8f9fa", textAlign: "left" }}>Company Working Days</TableCell>{rows.map((r, i) => <TableCell key={i} sx={{ fontSize: 12 }}>{r.working}</TableCell>)}<TableCell sx={{ fontSize: 12, fontWeight: 800, bgcolor: "#e3f2fd" }}>{totalWorking}</TableCell></TableRow>
+            <TableRow hover><TableCell sx={{ fontSize: 12, fontWeight: 700, bgcolor: "#f8f9fa", textAlign: "left" }}>Employee Present Days</TableCell>{rows.map((r, i) => <TableCell key={i} sx={{ fontSize: 12, fontWeight: 700 }}>{r.present}</TableCell>)}<TableCell sx={{ fontSize: 12, fontWeight: 800, bgcolor: "#e3f2fd" }}>{totalPresent}</TableCell></TableRow>
+            <TableRow hover><TableCell sx={{ fontSize: 12, fontWeight: 700, bgcolor: "#f8f9fa", textAlign: "left" }}>Attendance %</TableCell>{rows.map((r, i) => <TableCell key={i} sx={{ fontSize: 12, fontWeight: 800, color: Number(r.pct) >= 75 ? "#137333" : Number(r.pct) >= 50 ? "#e37400" : "#a50e0e" }}>{r.pct}%</TableCell>)}<TableCell sx={{ fontSize: 12, fontWeight: 800, bgcolor: "#e3f2fd", color: Number(overall) >= 75 ? "#137333" : "#a50e0e" }}>{overall}%</TableCell></TableRow>
+          </TableBody></Table>
+      );
+    }
+    if (selected === "attendance-log") {
+      const cols = ["Date", "In", "Out", "Status", "Hours"];
       return (
         <Table size="small" stickyHeader sx={{ "& th, & td": { textAlign: "center" } }}><TableHead><TableRow>{cols.map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={cols.length} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No records for {selectedMeta?.label}</TableCell></TableRow> : filtered.slice(0, 30).map((r, i) => {
-            const pct = attSummary ? ((attSummary.present / attSummary.total) * 100).toFixed(1) + "%" : "—";
-            if (selected === "att-percentage") return <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.att_date)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.status || "—"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{pct}</TableCell></TableRow>;
-            return <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.att_date)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.in_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.out_time?.slice(0, 5) || "—"}</TableCell><TableCell><Chip size="small" label={r.status || "—"} sx={{ height: 18, fontSize: 11 }} /></TableCell><TableCell sx={{ fontSize: 12 }}>{r.work_hrs || r.ot_hrs || "—"}</TableCell></TableRow>;
-          })}</TableBody></Table>
+          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={cols.length} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No records for {selectedMeta?.label}</TableCell></TableRow> : filtered.slice(0, 30).map((r, i) => <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.att_date)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.in_time?.slice(0, 5) || "—"}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.out_time?.slice(0, 5) || "—"}</TableCell><TableCell><Chip size="small" label={r.status || "—"} sx={{ height: 18, fontSize: 11 }} /></TableCell><TableCell sx={{ fontSize: 12 }}>{r.work_hrs || r.ot_hrs || "—"}</TableCell></TableRow>)}</TableBody></Table>
       );
     }
     if (["leaves-info", "encashment"].includes(selected)) {
@@ -1226,8 +1300,8 @@ export default function EmployeeReports() {
                     <Box sx={{ width: 30, height: 30, borderRadius: 1, bgcolor: theme.palette.primary.main, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}><selectedMeta.icon /></Box>
                     <Box><Typography sx={{ fontSize: 13, fontWeight: 700, color: "#202124" }}>{(selected === "leave" || selected === "leaves") ? `Leaves History:${empid}:${empName}` : selected === "holidays" ? selectedMeta.label : `${selectedMeta.label} ${selectedMeta.desc || ""}`}</Typography><Typography sx={{ fontSize: 11, color: "#5f6368" }}>{selected === "holidays" ? `${filtered.length} records` : `${selectedMeta.desc} • ${filtered.length} records`}</Typography></Box>
                     <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 0.8, flexWrap: "wrap" }}>
-                      {isMonthly && selected !== "holidays" && !YEAR_ONLY.includes(selected) && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={month} onChange={e => setMonth(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 90 }}>{MONTHS.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label.slice(0, 3)}</MenuItem>)}</Select><Divider orientation="vertical" flexItem sx={{ mx: 0.4 }} /><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
-                      {isMonthly && YEAR_ONLY.includes(selected) && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
+                      {selected === "att-percentage" ? <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><TextField size="small" type="date" value={(() => { if (!startDate) return ""; const p = startDate.split("-"); if (p.length === 3) { if (p[0].length === 4) return startDate; if (p[2].length === 4) return `${p[2]}-${p[1]}-${p[0]}`; } const d = parseDDMONRR(startDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) setStartDate(""); else { const p = v.split("-"); setStartDate(`${p[2]}-${p[1]}-${p[0]}`); } }} InputLabelProps={{ shrink: true }} label="From" sx={{ width: 145 }} inputProps={{ style: { fontSize: 12, padding: "4px 6px" } }} /><TextField size="small" type="date" value={(() => { if (!endDate) return ""; const p = endDate.split("-"); if (p.length === 3) { if (p[0].length === 4) return endDate; if (p[2].length === 4) return `${p[2]}-${p[1]}-${p[0]}`; } const d = parseDDMONRR(endDate); return d ? d.toISOString().slice(0, 10) : ""; })()} onChange={e => { const v = e.target.value; if (!v) setEndDate(""); else { const p = v.split("-"); setEndDate(`${p[2]}-${p[1]}-${p[0]}`); } }} InputLabelProps={{ shrink: true }} label="To" sx={{ width: 145 }} inputProps={{ style: { fontSize: 12, padding: "4px 6px" } }} /><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box> : isMonthly && selected !== "holidays" && !YEAR_ONLY.includes(selected) && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={month} onChange={e => setMonth(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 90 }}>{MONTHS.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label.slice(0, 3)}</MenuItem>)}</Select><Divider orientation="vertical" flexItem sx={{ mx: 0.4 }} /><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
+                      {selected !== "att-percentage" && isMonthly && YEAR_ONLY.includes(selected) && <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", bgcolor: "white", border: "1px solid #e8eaed", borderRadius: 1, px: 0.6, py: 0.3 }}><Select size="small" value={year} onChange={e => setYear(e.target.value)} variant="standard" disableUnderline sx={{ fontSize: 12, fontWeight: 700, minWidth: 64 }}>{[2023, 2024, 2025, 2026, 2027].map(y => <MenuItem key={y} value={y} sx={{ fontSize: 12 }}>{y}</MenuItem>)}</Select><Button size="small" onClick={fetchData} sx={{ minWidth: 0, px: 1, height: 24, fontSize: 11, fontWeight: 800, bgcolor: theme.palette.primary.main, color: "white" }}>Go</Button></Box>}
                       <TextField size="small" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><FaSearch size={11} color="#9aa0a6" /></InputAdornment>, sx: { height: 30, fontSize: 12, bgcolor: "white", borderRadius: 1 } }} sx={{ width: 150 }} />
                       {selected !== "payslips" && <Tooltip title={reportType === "PDF" ? "Export PDF" : reportType === "Excel" ? "Export Excel" : "Refresh"}><IconButton size="small" onClick={handleExport} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}>{reportType === "PDF" ? <FaFilePdf size={13} color="#d93025" /> : reportType === "Excel" ? <FaFileExcel size={13} color="#188038" /> : <FaEye size={12} color={theme.palette.primary.main} />}</IconButton></Tooltip>}
                       <IconButton size="small" onClick={fetchData} sx={{ width: 30, height: 30, bgcolor: "white", border: "1px solid #e8eaed" }}><RefreshIcon sx={{ fontSize: 15, color: "#5f6368" }} /></IconButton>
