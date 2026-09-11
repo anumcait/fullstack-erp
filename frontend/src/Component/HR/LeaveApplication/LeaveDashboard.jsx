@@ -8,21 +8,34 @@ import ModuleTabBar from "../common/ModuleTabBar";
 import { FaPlus, FaListAlt, FaCog, FaCheckDouble } from "react-icons/fa";
 
 const TABS = [
-  { label: "View List", value: "report", icon: <FaListAlt /> },
-  { label: "New Application", value: "new", icon: <FaPlus /> },
-  { label: "Approvals", value: "approval", icon: <FaCheckDouble /> },
-  { label: "Leave Master", value: "master", icon: <FaCog /> },
+  { label: "View List", value: "report", icon: <FaListAlt />, permission: "HR_LEAVE_APP" },
+  { label: "New Application", value: "new", icon: <FaPlus />, permission: "HR_LEAVE_APP" },
+  { label: "Approvals", value: "approval", icon: <FaCheckDouble />, permission: "HR_LEAVE_APPROVE" },
+  { label: "Leave Master", value: "master", icon: <FaCog />, permission: "HR_LEAVE_MASTER" },
 ];
 
 const LeaveDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("report");
   const location = useLocation();
+  const getVisibleTabs = () => {
+    const role = (localStorage.getItem("userRole") || "").toLowerCase();
+    const isAdmin = role === "admin";
+    if (isAdmin) return TABS;
+    try {
+      const perms = JSON.parse(localStorage.getItem("permissions") || localStorage.getItem("userPermissions") || "[]");
+      const permSet = new Set(Array.isArray(perms) ? perms : []);
+      return TABS.filter(t => !t.permission || permSet.has(t.permission));
+    } catch { return TABS.filter(t => !t.permission || t.permission === "HR_LEAVE_APP"); }
+  };
+  const visibleTabs = getVisibleTabs();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const action = params.get("action");
-    if (action && ["new", "report", "master", "approval"].includes(action)) {
+    if (action && visibleTabs.some(t => t.value === action)) {
       setSelectedAction(action);
+    } else if (action && !visibleTabs.some(t => t.value === action)) {
+      setSelectedAction("report");
     }
   }, [location.search]);
 
@@ -31,10 +44,10 @@ const LeaveDashboard = () => {
   }, [location.state?.reset]);
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="bg-transparent" style={{ minHeight: "auto", overflow: "visible" }}>
       <ModuleTabBar
         title="Leave Management"
-        tabs={TABS}
+        tabs={visibleTabs}
         active={selectedAction}
         onChange={setSelectedAction}
       />

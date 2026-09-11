@@ -385,6 +385,41 @@ exports.getAttendance = async (req, res) => {
       order: [['att_date', 'ASC'], ['empid', 'ASC']]
     });
 
+    const plain = data.map(r => r.toJSON ? r.toJSON() : { ...r });
+    try {
+      const dateFrom = startDate || (month && year ? `${year}-${String(month).padStart(2, '0')}-01` : null);
+      const dateTo = endDate || (month && year ? `${year}-${String(month).padStart(2, '0')}-${String(new Date(parseInt(year), parseInt(month), 0).getDate()).padStart(2, '0')}` : null);
+      if (dateFrom && dateTo && plain.length) {
+        const empIds = [...new Set(plain.map(r => r.empid).filter(Boolean))];
+        let schedMap = {};
+        let lunchMap = {};
+        if (empIds.length) {
+          const schedules = await ShiftSchedule.findAll({ where: { empid: empIds, shift_date: { [Op.between]: [dateFrom, dateTo] } } });
+          schedules.forEach(s => { const k = `${s.empid}_${toLocalDateStr(s.shift_date)}`; schedMap[k] = s; });
+          const masters = await ShiftMaster.findAll();
+          masters.forEach(sm => { lunchMap[sm.shift_cd] = { start: sm.lunch_start_time, end: sm.lunch_end_time }; });
+        }
+        plain.forEach(r => {
+          const dk = toLocalDateStr(r.att_date);
+          const isPast = new Date(dk) < new Date(new Date().toISOString().slice(0,10));
+          const noPunch = !r.in_time && !r.out_time;
+          const sLow = String(r.status||"").toLowerCase();
+          const isLeaveLike = ['cl','el','sl','l','h','holiday','w','w-off','half day','hd','lop'].includes(sLow) || !!r.leave_type;
+          if (isPast && noPunch && (r.status === 'Present' || r.status === 'P') && !isLeaveLike && !r.holiday && r.woff_day !== 1) {
+            r.status = 'Absent';
+          } else if (r.in_time && r.out_time && (r.status === 'Present' || r.status === 'P')) {
+            const sched = schedMap[`${r.empid}_${dk}`];
+            const lunch = sched ? lunchMap[sched.shift_cd] : null;
+            const shiftStart = sched?.shift_start_time || r.shift_start || '09:00';
+            let shiftEnd = sched?.shift_end_time || r.shift_end || '17:30';
+            if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30';
+            const derived = classifySwipedDay(r.in_time, r.out_time, shiftStart, lunch?.start, lunch?.end, shiftEnd);
+            if (derived === 'Half Day') r.status = 'Half Day';
+          }
+        });
+      }
+    } catch (e) { console.error('enrich half-day', e); }
+
     // Check if the queried month has payroll finalized
     let finalized = false;
     if (month && year) {
@@ -395,7 +430,7 @@ exports.getAttendance = async (req, res) => {
       finalized = await isPayrollFinalized(startDate);
     }
 
-    res.json({ records: data, _payrollFinalized: finalized });
+    res.json({ records: plain, _payrollFinalized: finalized });
   } catch (error) {
     console.error('Error fetching attendance:', error);
     res.status(500).json({ message: 'Error fetching attendance', error: error.message });

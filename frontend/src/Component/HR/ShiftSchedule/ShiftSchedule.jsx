@@ -326,40 +326,56 @@ const ShiftSchedule = () => {
   };
 
   const handleBulkKeyDown = (empid, date, index, empIndex, e) => {
+    const isTab = e.key === 'Tab';
     const key = e.key.toUpperCase();
     const validShifts = ['G', 'A', 'B', 'C', '1', '2', '3', 'W', 'H'];
-    if (validShifts.includes(key)) {
+    const isShiftKey = validShifts.includes(key);
+    if (!isShiftKey && !isTab) return;
+    if (isTab && e.shiftKey) return;
+    const findNextEmpty = (startEmpIdx, startDayIdx) => {
+      const weekDates = getDialogWeekDates();
+      let ne = startEmpIdx;
+      let nd = startDayIdx;
+      const total = dialogFilteredEmployees.length;
+      while (ne < total) {
+        if (nd > 6) { ne++; nd = 0; if (ne >= total) return null; }
+        const emp = dialogFilteredEmployees[ne];
+        if (!emp) return null;
+        const d = weekDates[nd]?.date;
+        if (!d) { nd++; continue; }
+        const isFilled = existingShifts.has(`${emp.empid}|${d}`) || !!bulkData[emp.empid]?.[d];
+        if (!isFilled) return { empIdx: ne, dayIdx: nd };
+        nd++;
+      }
+      return null;
+    };
+    if (isShiftKey) {
       e.preventDefault();
       e.stopPropagation();
-
       const [y, m, d] = date.split('-').map(Number);
       const dateObj = new Date(y, m - 1, d);
       const isSunday = dateObj.getDay() === 0;
       const holiday = getHolidayForDate(date);
       const isExisting = existingShifts.has(`${empid}|${date}`);
       const existing = isExisting ? getShiftForEmployeeDate(empid, date, [...schedules, ...bulkSchedules]) : null;
-
       let effectiveShift = key;
-      if (isSunday) {
-        effectiveShift = 'W';
-      } else if (holiday) {
-        effectiveShift = 'H';
-      } else if (existing) {
-        effectiveShift = existing.shift_cd;
-      }
-
+      if (isExisting) effectiveShift = existing.shift_cd;
+      else if (isSunday) effectiveShift = 'W';
+      else if (holiday) effectiveShift = 'H';
       handleBulkDataChange(empid, date, effectiveShift);
-
-      let nextIndex = index + 1;
-      let nextEmpIndex = empIndex;
-      if (nextIndex > 6) {
-        nextIndex = 0;
-        nextEmpIndex++;
+      const nxt = findNextEmpty(empIndex, index + 1);
+      if (nxt) {
+        const el = document.querySelector(`[data-bulk-emp="${nxt.empIdx}"][data-bulk-day="${nxt.dayIdx}"] div[role="combobox"]`);
+        if (el) setTimeout(() => el.focus(), 0);
       }
-
-      const nextSelect = document.querySelector(`[data-bulk-emp="${nextEmpIndex}"][data-bulk-day="${nextIndex}"] div[role="combobox"]`);
-      if (nextSelect) {
-        setTimeout(() => nextSelect.focus(), 0);
+      return;
+    }
+    if (isTab) {
+      const nxt = findNextEmpty(empIndex, index + 1);
+      if (nxt) {
+        e.preventDefault();
+        const el = document.querySelector(`[data-bulk-emp="${nxt.empIdx}"][data-bulk-day="${nxt.dayIdx}"] div[role="combobox"]`);
+        if (el) setTimeout(() => el.focus(), 0);
       }
     }
   };

@@ -378,7 +378,7 @@ const LeaveApplication = ({ onClose }) => {
 
   const maxDateLimit = (() => {
     const d = new Date();
-    d.setDate(d.getDate() + 90); // Allow up to 90 days for leave application
+    d.setMonth(d.getMonth() + 6);
     return d.toISOString().split('T')[0];
   })();
 

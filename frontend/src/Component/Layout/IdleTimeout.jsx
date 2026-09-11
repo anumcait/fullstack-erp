@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, LinearProgress } from "@mui/material";
 import axios from "axios";
 
@@ -10,6 +10,8 @@ const AUTH_KEYS = ["userName", "userRole", "empName", "empId", "userPermissions"
 
 export default function IdleTimeout({ idleMs = DEFAULT_IDLE_MS, countdownMs = DEFAULT_COUNTDOWN_MS }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAtLoginPath = location.pathname === '/' || location.pathname === '/login';
   const [warn, setWarn] = useState(false);
   const [remaining, setRemaining] = useState(countdownMs);
   const lastActivity = useRef(Date.now());
@@ -54,7 +56,7 @@ export default function IdleTimeout({ idleMs = DEFAULT_IDLE_MS, countdownMs = DE
 
   // Idle checker
   useEffect(() => {
-    if (!localStorage.getItem("userName")) return undefined;
+    if (!localStorage.getItem("userName") || isAtLoginPath) return undefined;
     const check = setInterval(() => {
       if (warn) return;
       if (Date.now() - lastActivity.current >= idleMs) {
@@ -63,11 +65,11 @@ export default function IdleTimeout({ idleMs = DEFAULT_IDLE_MS, countdownMs = DE
       }
     }, 1000);
     return () => clearInterval(check);
-  }, [idleMs, warn, logout]);
+  }, [idleMs, warn, logout, isAtLoginPath]);
 
   // Activity listeners (only reset while not already warned)
   useEffect(() => {
-    if (!localStorage.getItem("userName")) return undefined;
+    if (!localStorage.getItem("userName") || isAtLoginPath) return undefined;
     const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
     const onActivity = () => {
       if (!warn) reset();

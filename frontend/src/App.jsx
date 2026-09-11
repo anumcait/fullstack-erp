@@ -274,11 +274,14 @@ axios.defaults.withCredentials = true;
 
 function useIdleLogout(timeoutMs = 30 * 60 * 1000) {
   React.useEffect(() => {
-    if (!localStorage.getItem('userName')) return;
+    const isAtLoginPath = () => window.location.pathname === '/' || window.location.pathname === '/login';
+    if (!localStorage.getItem('userName') || isAtLoginPath()) return;
     let timer;
     const reset = () => {
+      if (isAtLoginPath() || !localStorage.getItem('userName')) { clearTimeout(timer); return; }
       clearTimeout(timer);
       timer = setTimeout(async () => {
+        if (isAtLoginPath() || !localStorage.getItem('userName')) return;
         try { await axios.post('/api/auth/logout', {}, { withCredentials: true }); } catch {}
         localStorage.clear();
         sessionStorage.clear();
@@ -309,7 +312,7 @@ function App() {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        if (error.response && error.response.status === 401) {
           const isLoginRequest = error.config?.url?.includes('/api/auth/login');
           const isMeRequest = error.config?.url?.includes('/api/auth/me');
           const isAtLoginPath = window.location.pathname === '/' || window.location.pathname === '/login';

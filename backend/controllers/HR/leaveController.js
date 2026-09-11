@@ -403,7 +403,7 @@ exports.getAllLeaveApplications = async (req, res) => {
     const apps = await LeaveApplication.findAll({
       include: [
         { model: LeaveDetails, as: 'leaveDetails', attributes: ['id', 'frmdt', 'todate', 'nod', 'daydt', 'remarks', 'c_cl_sanction', 'c_el_sanction', 'c_hr_app_status'] },
-        { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance', 'cls_eligible', 'els_eligible', 'cls_utilised', 'els_utilised'] }
+        { model: LeaveMaster, as: 'leaveMaster', attributes: ['cls_balance', 'els_balance', 'cls_utilised', 'els_utilised'] }
       ],
       order: [['lno', 'DESC']]
     });

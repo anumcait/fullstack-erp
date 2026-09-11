@@ -19,11 +19,6 @@ import axios from "axios";
 
 const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError, onSave, isSaveDisabled, empId, onDirty, minDateLimit, maxDateLimit }) => {
   const { showToast } = useToast();
-  const [rows, setRows] = useState([
-    { dayType: "FULL DAY", fromDate: "", toDate: "", noOfDays: "", remarks: "" },
-  ]);
-  const [overlapIndexes, setOverlapIndexes] = useState([]);
-
   const getBlankRow = () => ({
     dayType: "FULL DAY",
     fromDate: "",
@@ -31,6 +26,8 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
     noOfDays: "",
     remarks: "",
   });
+  const [rows, setRows] = useState(() => [getBlankRow()]);
+  const [overlapIndexes, setOverlapIndexes] = useState([]);
 
   const isRowValid = (row) => row.dayType && row.fromDate && row.toDate;
   const isRowEdited = (row) =>
@@ -67,16 +64,59 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
   };
 
   const updateRow = async (index, field, value) => {
+    let newValue = value;
+    if (["fromDate", "toDate"].includes(field) && value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const parts = value.split("-");
+      if (parts[0] && (parts[0].length !== 4 || parts[0].startsWith("00"))) {
+        let y = parts[0];
+        if (y.length > 4) y = y.slice(-4);
+        if (y.startsWith("00")) y = "20" + y.slice(2);
+        y = y.padStart(4, "0").slice(-4);
+        parts[0] = y;
+        newValue = parts.join("-");
+      }
+    } else {
+      newValue = value;
+    }
     if (onDirty) onDirty();
+    setRows(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: newValue };
+      const row = updated[index];
+      const from = row.fromDate ? new Date(row.fromDate + "T00:00:00") : new Date(NaN);
+      const to = row.toDate ? new Date(row.toDate + "T00:00:00") : new Date(NaN);
+      if (row.fromDate && row.toDate && !isNaN(from) && !isNaN(to) && from > to) {
+        updated[index].toDate = "";
+        updated[index].noOfDays = "";
+      } else if (["fromDate", "toDate", "dayType"].includes(field)) {
+        if (!isNaN(from) && !isNaN(to) && from <= to) {
+          let diff = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+          if (row.dayType === "HALF DAY") diff *= 0.5;
+          updated[index].noOfDays = diff;
+        } else {
+          updated[index].noOfDays = "";
+        }
+      }
+      return updated;
+    });
+    if (!["fromDate", "toDate"].includes(field) || !newValue || !/^\d{4}-\d{2}-\d{2}$/.test(newValue)) return;
     const updated = [...rows];
-    updated[index][field] = value;
+    updated[index][field] = newValue;
 
-    if (["fromDate", "toDate"].includes(field) && value) {
-      const selectedDate = new Date(value);
+    if (["fromDate", "toDate"].includes(field) && value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const selectedDate = new Date(value + "T00:00:00");
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // 1. Dynamic Boundary Validation
+      // 1. Dynamic Boundary Validation (skip while typing year with leading zeros)
+      if (newValue.startsWith("0") || newValue.startsWith("000") || newValue.startsWith("00-")) {
+        setRows(updated);
+        return;
+      }
+      if (newValue.startsWith("00")) {
+        setRows(updated);
+        return;
+      }
       if (minDateLimit && value < minDateLimit) {
         const fmt = (s) => s ? s.split('-').reverse().join('-') : "";
         showToast(`Cannot apply leave before ${fmt(minDateLimit)} (Payroll processed).`, "error");
@@ -133,10 +173,10 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
     }
 
     const row = updated[index];
-    const from = new Date(row.fromDate);
-    const to = new Date(row.toDate);
+    const from = row.fromDate && /^\d{4}-\d{2}-\d{2}$/.test(row.fromDate) ? new Date(row.fromDate + "T00:00:00") : new Date(NaN);
+    const to = row.toDate && /^\d{4}-\d{2}-\d{2}$/.test(row.toDate) ? new Date(row.toDate + "T00:00:00") : new Date(NaN);
 
-    if (row.fromDate && row.toDate && from > to) {
+    if (false && row.fromDate && row.toDate && from > to) {
       showToast("To Date cannot be before From Date!", "error");
       updated[index].toDate = "";
       updated[index].noOfDays = "";
@@ -153,16 +193,27 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
     setRows(updated);
   };
 
+  const handleBlur = (index) => {
+    const row = rows[index];
+    if (!row.fromDate || !row.toDate) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(row.fromDate) || !/^\d{4}-\d{2}-\d{2}$/.test(row.toDate)) return;
+    const from = new Date(row.fromDate + "T00:00:00");
+    const to = new Date(row.toDate + "T00:00:00");
+    if (!isNaN(from) && !isNaN(to) && from > to) {
+      showToast("To Date cannot be before From Date!", "error");
+    }
+  };
+
   useEffect(() => {
     setLeaveDetails(rows);
     const indexes = [];
     for (let i = 0; i < rows.length; i++) {
       for (let j = i + 1; j < rows.length; j++) {
         if (rows[i].fromDate && rows[i].toDate && rows[j].fromDate && rows[j].toDate) {
-          const fromA = new Date(rows[i].fromDate);
-          const toA = new Date(rows[i].toDate);
-          const fromB = new Date(rows[j].fromDate);
-          const toB = new Date(rows[j].toDate);
+          const fromA = new Date(rows[i].fromDate + "T00:00:00");
+          const toA = new Date(rows[i].toDate + "T00:00:00");
+          const fromB = new Date(rows[j].fromDate + "T00:00:00");
+          const toB = new Date(rows[j].toDate + "T00:00:00");
           if (fromA <= toB && toA >= fromB) {
             indexes.push(i, j);
           }
@@ -209,7 +260,7 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
             boxShadow: 'none'
           }}
         >
-          <Grid container spacing={0.5} alignItems="center">
+          <Grid container spacing={0.5} alignItems="center" sx={{ flexWrap: "wrap" }}>
             <Grid item xs={12} sm={6} md={1} sx={{ width: "20px" }}>
               <Typography fontWeight="bold">
                 {i + 1} {isRowEdited(row) && "✳️"}
@@ -234,33 +285,83 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
 
             <Grid item xs={12} sm={6} md={1} sx={{ width: "130px" }}>
               <TextField
+                key={`from-${i}-${row.fromDate}`}
                 fullWidth
                 label="From Date"
-                type="date"
+                type="text"
+                placeholder="DD-MM-YYYY"
                 size="small"
                 InputLabelProps={{ shrink: true }}
-                value={row.fromDate}
-                onChange={(e) => updateRow(i, "fromDate", e.target.value)}
-                inputProps={{
-                  min: minDateLimit,
-                  max: maxDateLimit
+                defaultValue={row.fromDate ? `${row.fromDate.slice(8, 10)}-${row.fromDate.slice(5, 7)}-${row.fromDate.slice(0, 4)}` : ""}
+                onChange={(e) => {
+                  let v = e.target.value.replace(/\D/g, "");
+                  if (v.length > 8) v = v.slice(0, 8);
+                  let out = v;
+                  if (v.length === 8) out = `${v.slice(0, 2)}-${v.slice(2, 4)}-${v.slice(4)}`;
+                  else if (v.length === 6) out = `${v.slice(0, 2)}-${v.slice(2, 4)}-${v.slice(4)}`;
+                  else if (v.length >= 3) out = `${v.slice(0, 2)}-${v.slice(2)}`;
+                  e.target.value = out;
                 }}
+                onBlur={(e) => {
+                  const v = e.target.value.replace(/\D/g, "");
+                  let iso = null;
+                  if (v.length === 6) iso = `20${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
+                  else if (v.length === 8) iso = `${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
+                  else if (v.length === 10 && e.target.value.includes("-")) {
+                    const p = e.target.value.split("-");
+                    if (p.length === 3) iso = `${p[2]}-${p[1]}-${p[0]}`;
+                  }
+                  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) updateRow(i, "fromDate", iso);
+                  handleBlur(i);
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById(`to-${i}`)?.focus(); } }}
+                inputProps={{ maxLength: 10, placeholder: "DD-MM-YYYY", id: `from-${i}` }}
               />
             </Grid>
 
             <Grid item xs={12} sm={6} md={1} sx={{ width: "130px" }}>
               <TextField
+                key={`to-${i}-${row.toDate}`}
                 fullWidth
                 label="To Date"
-                type="date"
+                type="text"
+                placeholder="DD-MM-YYYY"
                 size="small"
                 InputLabelProps={{ shrink: true }}
-                value={row.toDate}
-                onChange={(e) => updateRow(i, "toDate", e.target.value)}
-                inputProps={{
-                  min: minDateLimit,
-                  max: maxDateLimit
+                defaultValue={row.toDate ? `${row.toDate.slice(8, 10)}-${row.toDate.slice(5, 7)}-${row.toDate.slice(0, 4)}` : ""}
+                onChange={(e) => {
+                  let v = e.target.value.replace(/\D/g, "");
+                  if (v.length > 8) v = v.slice(0, 8);
+                  let out = v;
+                  if (v.length === 8) out = `${v.slice(0, 2)}-${v.slice(2, 4)}-${v.slice(4)}`;
+                  else if (v.length === 6) out = `${v.slice(0, 2)}-${v.slice(2, 4)}-${v.slice(4)}`;
+                  else if (v.length >= 3) out = `${v.slice(0, 2)}-${v.slice(2)}`;
+                  e.target.value = out;
                 }}
+                onBlur={(e) => {
+                  const v = e.target.value.replace(/\D/g, "");
+                  let iso = null;
+                  if (v.length === 6) iso = `20${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
+                  else if (v.length === 8) iso = `${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
+                  else if (v.length === 10 && e.target.value.includes("-")) {
+                    const p = e.target.value.split("-");
+                    if (p.length === 3) iso = `${p[2]}-${p[1]}-${p[0]}`;
+                  }
+                  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) updateRow(i, "toDate", iso);
+                  handleBlur(i);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const v = e.target.value.replace(/\D/g, "");
+                    let iso = null;
+                    if (v.length === 6) iso = `20${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
+                    else if (v.length === 8) iso = `${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
+                    if (iso) updateRow(i, "toDate", iso);
+                    setTimeout(() => document.getElementById(`remarks-${i}`)?.focus(), 100);
+                  }
+                }}
+                inputProps={{ maxLength: 10, placeholder: "DD-MM-YYYY", id: `to-${i}` }}
               />
             </Grid>
 
@@ -275,14 +376,14 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
               />
             </Grid>
 
-            <Grid item xs={12} sm={12} md={3} sx={{ width: "90px" }}>
+            <Grid item xs={12} sm={12} md={4} sx={{ minWidth: "180px" }}>
               <TextField
                 fullWidth
                 label="Remarks"
                 size="small"
                 value={row.remarks}
                 onChange={(e) => updateRow(i, "remarks", e.target.value)}
-                inputProps={{ maxLength: 150 }}
+                inputProps={{ maxLength: 150, id: `remarks-${i}` }}
               />
             </Grid>
 

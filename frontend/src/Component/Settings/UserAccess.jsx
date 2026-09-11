@@ -39,6 +39,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import { PERMISSIONS } from '../../constants/permissions';
 import { useToast } from '../../context/ToastContext';
 
+const DEFAULT_USER_PERMISSIONS = ["HR_WOFF_CHG","HR_SHIFT_CHG","HR_ATTENDANCE_REQUEST","HR_DASHBOARD_EMP","MOD_HR","HR_ONDUTY","HR_TOUR","HR_LEAVE_APP","HR_REPORTS_EMP"];
+
 const UserAccess = () => {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
@@ -110,10 +112,16 @@ const UserAccess = () => {
       setUsers(prev => prev.map(u => u.id === selectedUser ? { ...u, permissions: userPermissions, role: userRole } : u));
     } catch (err) {
       console.error('Error saving permissions:', err);
-      showToast('Error saving user access', 'error');
+      showToast(err.response?.data?.message || 'Error saving user access', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleApplyDefault = () => {
+    setUserPermissions([...DEFAULT_USER_PERMISSIONS]);
+    setUserRole('USER');
+    showToast('Default user access template applied — click Save to confirm', 'info');
   };
 
   const handleCreateUser = async () => {
@@ -293,14 +301,23 @@ const UserAccess = () => {
                     Configure system roles and granular module permissions.
                   </Typography>
                 </Box>
-                <Button
-                  variant="contained"
-                  onClick={handleSave}
-                  disabled={loading}
-                  sx={{ bgcolor: '#0f172a', '&:hover': { bgcolor: '#1e293b' }, height: '44px', px: 4, borderRadius: '8px', fontWeight: 'bold', textTransform: 'none' }}
-                >
-                  {loading ? 'Saving...' : 'Save Configuration'}
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleApplyDefault}
+                    sx={{ height: '44px', px: 3, borderRadius: '8px', fontWeight: 'bold', textTransform: 'none', borderColor: '#cbd5e1' }}
+                  >
+                    Apply Default
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleSave}
+                    disabled={loading}
+                    sx={{ bgcolor: '#0f172a', '&:hover': { bgcolor: '#1e293b' }, height: '44px', px: 4, borderRadius: '8px', fontWeight: 'bold', textTransform: 'none' }}
+                  >
+                    {loading ? 'Saving...' : 'Save Configuration'}
+                  </Button>
+                </Box>
               </Box>
 
               {/* Role setting */}

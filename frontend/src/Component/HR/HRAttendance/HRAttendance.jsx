@@ -49,6 +49,7 @@ const HRAttendance = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [saving, setSaving] = useState(false);
+  const [savingIdx, setSavingIdx] = useState(null);
   const [quickInTime, setQuickInTime] = useState("");
   const [quickOutTime, setQuickOutTime] = useState("");
 
@@ -219,8 +220,8 @@ const HRAttendance = () => {
 
   // Quick-action helpers for faster bulk entry
   const setAllStatus = (status) => {
-    setBulkRows(prev => prev.map(r => ({ ...r, status })));
-    showToast(`All rows set to ${status}`, "info");
+    setBulkRows(prev => prev.map(r => (["W","H","Weekly Off","Holiday","W-Off"].includes(r.status) || ["W","H"].includes(r.shift) ? r : { ...r, status })));
+    showToast(`All rows set to ${status} (W/H skipped)`, "info");
   };
 
   const applyQuickInTime = () => {
@@ -233,6 +234,27 @@ const HRAttendance = () => {
     if (!quickOutTime) { showToast("Enter Out Time first", "warning"); return; }
     setBulkRows(prev => prev.map(r => (r.status === "P" || r.status === "Present") ? { ...r, out_time: quickOutTime } : r));
     showToast(`Out Time ${quickOutTime} applied to all Present rows`, "info");
+  };
+
+  const saveSingleRow = async (idx) => {
+    const r = bulkRows[idx];
+    if ((r.status === "P" || r.status === "Present") && (!r.in_time || !r.out_time)) {
+      showToast("Present requires In/Out times", "error");
+      return;
+    }
+    setSavingIdx(idx);
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/save-bulk`, [{
+        empid: r.empid, att_date: r.att_date, shift: r.shift, status: r.status,
+        in_time: r.in_time || null, out_time: r.out_time || null, late_hrs: r.late_hrs || 0, ot_hrs: r.ot_hrs || 0
+      }]);
+      showToast(`Saved ${r.empid} ${r.att_date}`, "success");
+      setBulkRows(prev => { const c = [...prev]; c[idx] = { ...c[idx], hasExisting: true }; return c; });
+    } catch (err) {
+      showToast(getErrorMessage(err, "Error saving row"), "error");
+    } finally {
+      setSavingIdx(null);
+    }
   };
 
   const saveBulk = async () => {
@@ -764,12 +786,13 @@ const HRAttendance = () => {
                   <TableCell><strong>Status</strong></TableCell>
                   <TableCell><strong>In Time</strong></TableCell>
                   <TableCell><strong>Out Time</strong></TableCell>
+                  <TableCell><strong>Save</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                       <CircularProgress size={40} sx={{ mb: 2 }} />
                       <Typography variant="body1" color="text.secondary">
                         Loading bulk data, please wait...
@@ -778,7 +801,7 @@ const HRAttendance = () => {
                   </TableRow>
                 ) : bulkRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 3, color: "#777" }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 3, color: "#777" }}>
                       No matching records found.
                     </TableCell>
                   </TableRow>
@@ -813,6 +836,11 @@ const HRAttendance = () => {
                         </TableCell>
                         <TableCell>
                           <TextField size="small" type="time" value={row.out_time} onChange={(e) => updateRow(globalIdx, "out_time", e.target.value)} />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton size="small" color="success" onClick={() => saveSingleRow(globalIdx)} disabled={savingIdx===globalIdx}>
+                            {savingIdx===globalIdx ? <CircularProgress size={16} /> : <SaveIcon fontSize="small" />}
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     );

@@ -53,6 +53,7 @@ export default function LeaveApprovalPage() {
       setRows(res.data);
     } catch (err) {
       console.error("Failed to load leaves", err);
+      showToast(err.response?.data?.message || err.message || "Failed to load leaves", "error");
     }
   };
 
@@ -401,9 +402,11 @@ function sortDays(days) {
   const filtered = useMemo(() => {
     return rows.filter(r => {
       const entryDate = toYMD(r.ldate);
-      const inDate =
-        (!filters.start || entryDate >= filters.start) &&
-        (!filters.end || entryDate <= filters.end);
+      const leaveFrom = toYMD(r.from);
+      const leaveTo = toYMD(r.to);
+      const entryIn = (!filters.start || entryDate >= filters.start) && (!filters.end || entryDate <= filters.end);
+      const leaveIn = leaveFrom && leaveTo && (!filters.start || leaveTo >= filters.start) && (!filters.end || leaveFrom <= filters.end);
+      const inDate = !filters.start && !filters.end ? true : (entryIn || leaveIn);
       const matchApp = !filters.appNo || String(r.id).includes(filters.appNo.trim());
       const matchEmp = !filters.empId || String(r.empId).includes(filters.empId.trim());
       const q = filters.q.toLowerCase();
@@ -557,7 +560,7 @@ const generateDays = (from, to, daytype) => {
   }}
   PaperProps={{
     sx: {
-      width: 520,
+      width: 600,
       borderLeft: "1px solid #e5e7eb",
       display: "flex",
       flexDirection: "column",
@@ -634,12 +637,12 @@ const generateDays = (from, to, daytype) => {
           {/* Date */}
           <Typography sx={{ width: 80 }}>{formatDateDMY(day.date)}</Typography>
 
-          {/* Day Type */}
+           {/* Day Type */}
           <TextField
             select
             label="Day Type"
             value={day.dayType || ""}
-onChange={(e) => {
+          onChange={(e) => {
               const newDayType = e.target.value;
               setSanction((s) => {
                 const updated = [...(s.days || selected.days || generateDays(selected.from, selected.to))];
@@ -648,7 +651,7 @@ onChange={(e) => {
               });
             }}
             size="small"
-            sx={{ flex: 1 }}
+            sx={{ flex: 1.1, minWidth: 120 }}
           >
             <MenuItem value="FULL DAY">FULL DAY</MenuItem>
             <MenuItem value="HALF DAY">FIRST HALF</MenuItem>
@@ -669,7 +672,7 @@ onChange={(e) => {
               });
             }}
             size="small"
-            sx={{ flex: 1 }}
+            sx={{ flex: 0.9, minWidth: 105 }}
             required
             inputRef={(el) => (leaveRefs.current[index] = el)}
   //error={!day.type}  👈 highlights red if empty

@@ -12,8 +12,13 @@ const LeaveReport = ({ onNewEntry }) => {
   useEffect(() => {
     const fetchLeaveData = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/leave/report`);
-        const formatted = res.data.map((row, index) => {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/leave/report`, { withCredentials: true });
+        const role = (localStorage.getItem('userRole') || '').toLowerCase();
+        const isAdmin = role === 'admin' || role === 'hr';
+        const empId = localStorage.getItem('empId') || localStorage.getItem('empid') || '';
+        let rows = res.data;
+        if (!isAdmin && empId) rows = rows.filter(r => String(r.empid) === String(empId));
+        const formatted = rows.map((row, index) => {
           const date = new Date(row.ldate);
           let formattedDate = row.ldate;
           if (!isNaN(date)) {

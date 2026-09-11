@@ -36,6 +36,7 @@ const LeavePreview = ({ data, onClose }) => {
   const [leaveData, setLeaveData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isPayslipGenerated, setIsPayslipGenerated] = useState(false);
 
   // Fetch full leave data based on lno
   useEffect(() => {
@@ -54,6 +55,26 @@ const LeavePreview = ({ data, onClose }) => {
     };
     fetchLeaveDetails();
   }, [data]);
+
+  useEffect(() => {
+    if (!leaveData?.empNo || !leaveData?.firstFromDate) return;
+    const d = new Date(leaveData.firstFromDate);
+    if (isNaN(d)) return;
+    const month = d.getMonth() + 1, year = d.getFullYear();
+    axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`, { params: { empid: leaveData.empNo, month, year }, withCredentials: true })
+      .then(r => {
+        const arr = Array.isArray(r.data) ? r.data : r.data?.records || [];
+        if (arr.length > 0) setIsPayslipGenerated(true);
+      }).catch(() => {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/payroll/latest-processed`, { withCredentials: true }).then(r => {
+          if (r.data?.year && r.data?.month) {
+            const ly = r.data.year, lm = r.data.month;
+            const y = d.getFullYear(), m = d.getMonth() + 1;
+            if (y < ly || (y === ly && m <= lm)) setIsPayslipGenerated(true);
+          }
+        }).catch(()=>{});
+      });
+  }, [leaveData]);
 
   if (loading) {
     return (
@@ -434,9 +455,10 @@ const LeavePreview = ({ data, onClose }) => {
 
           {/* Standardized Actions */}
           <div className="leave-actions no-print">
-            <button onClick={() => window.print()}>Print</button>
+            <button onClick={() => window.print()} disabled={isPayslipGenerated} title={isPayslipGenerated ? "Payslip generated - print disabled" : "Print"} style={isPayslipGenerated ? { opacity: 0.5, cursor: 'not-allowed' } : {}}>Print</button>
             <button onClick={onClose}>Close</button>
           </div>
+          {isPayslipGenerated && <div style={{ fontSize: 11, color: '#c62828', textAlign: 'center', marginTop: 6 }}>Payslip generated for this month — print disabled</div>}
         </div>
       </div>
     </div>
