@@ -14,8 +14,10 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { useToast } from "../../../context/ToastContext";
 import axios from "axios";
+import { InputAdornment } from "@mui/material";
 
 const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError, onSave, isSaveDisabled, empId, onDirty, minDateLimit, maxDateLimit }) => {
   const { showToast } = useToast();
@@ -67,16 +69,16 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
     let newValue = value;
     if (["fromDate", "toDate"].includes(field) && value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
       const parts = value.split("-");
-      if (parts[0] && (parts[0].length !== 4 || parts[0].startsWith("00"))) {
-        let y = parts[0];
-        if (y.length > 4) y = y.slice(-4);
-        if (y.startsWith("00")) y = "20" + y.slice(2);
-        y = y.padStart(4, "0").slice(-4);
+      let y = parts[0] || "";
+      if (y.length > 4) y = y.slice(-4);
+      if (y.startsWith("00") && y.length === 4) y = "20" + y.slice(2);
+      else if (y.length === 2) y = "20" + y;
+      else if (y.length === 1) y = "200" + y;
+      y = y.padStart(4, "0").slice(-4);
+      if (y !== parts[0]) {
         parts[0] = y;
         newValue = parts.join("-");
       }
-    } else {
-      newValue = value;
     }
     if (onDirty) onDirty();
     setRows(prev => {
@@ -103,21 +105,22 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
     const updated = [...rows];
     updated[index][field] = newValue;
 
-    if (["fromDate", "toDate"].includes(field) && value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      const selectedDate = new Date(value + "T00:00:00");
+    if (["fromDate", "toDate"].includes(field) && newValue && /^\d{4}-\d{2}-\d{2}$/.test(newValue)) {
+      const selectedDate = new Date(newValue + "T00:00:00");
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // 1. Dynamic Boundary Validation (skip while typing year with leading zeros)
-      if (newValue.startsWith("0") || newValue.startsWith("000") || newValue.startsWith("00-")) {
+      const curYear = new Date().getFullYear();
+      const yNum = parseInt(newValue.split("-")[0], 10);
+      if (yNum < curYear || yNum > curYear + 1) {
+        showToast(`Year must be ${curYear} or ${curYear + 1} only`, "error");
+        updated[index][field] = "";
+        updated[index].noOfDays = "";
         setRows(updated);
         return;
       }
-      if (newValue.startsWith("00")) {
-        setRows(updated);
-        return;
-      }
-      if (minDateLimit && value < minDateLimit) {
+
+      if (minDateLimit && newValue < minDateLimit) {
         const fmt = (s) => s ? s.split('-').reverse().join('-') : "";
         showToast(`Cannot apply leave before ${fmt(minDateLimit)} (Payroll processed).`, "error");
         updated[index][field] = "";
@@ -125,7 +128,7 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
         return;
       }
 
-      if (maxDateLimit && value > maxDateLimit) {
+      if (maxDateLimit && newValue > maxDateLimit) {
         const fmt = (s) => s ? s.split('-').reverse().join('-') : "";
         showToast(`Cannot apply leave after ${fmt(maxDateLimit)}.`, "error");
         updated[index][field] = "";
@@ -254,21 +257,23 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
         <Paper
           key={i}
           sx={{
-            p: 1,
-            mb: 1,
-            border: overlapIndexes.includes(i) ? "1px solid red" : "1px solid #ddd",
-            boxShadow: 'none'
+            p: 1.2,
+            mb: 1.2,
+            border: overlapIndexes.includes(i) ? "1.5px solid #ef4444" : "1px solid #e2e8f0",
+            borderRadius: '12px',
+            bgcolor: overlapIndexes.includes(i) ? '#fef2f2' : '#ffffff',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            transition:'all 0.2s',
+            '&:hover':{ boxShadow:'0 4px 12px rgba(0,0,0,0.08)', borderColor: overlapIndexes.includes(i) ? '#ef4444' : '#cbd5e1' }
           }}
         >
-          <Grid container spacing={0.5} alignItems="center" sx={{ flexWrap: "wrap" }}>
-            <Grid item xs={12} sm={6} md={1} sx={{ width: "20px" }}>
-              <Typography fontWeight="bold">
-                {i + 1} {isRowEdited(row) && "✳️"}
-              </Typography>
+          <Grid container spacing={1} alignItems="center" sx={{ flexWrap: "wrap" }}>
+            <Grid item xs={12} sm={6} md={0.5} sx={{ display:'flex', justifyContent:'center' }}>
+              <Box sx={{ width:28, height:28, borderRadius:'50%', bgcolor: isRowEdited(row) ? 'primary.main' : '#f1f5f9', color: isRowEdited(row) ? '#fff' : '#64748b', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:12, border: overlapIndexes.includes(i) ? '2px solid #ef4444' : '1px solid #e2e8f0' }}>{i + 1}</Box>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={1}>
-              <FormControl size="small" fullWidth>
+            <Grid item xs={12} sm={6} md={1.2}>
+              <FormControl size="small" fullWidth sx={{ '& .MuiOutlinedInput-root':{borderRadius:'10px', bgcolor:'#fff'} }}>
                 <InputLabel>Day Type</InputLabel>
                 <Select
                   fullWidth
@@ -276,6 +281,7 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                   size="small"
                   value={row.dayType}
                   onChange={(e) => updateRow(i, "dayType", e.target.value)}
+                  sx={{ borderRadius:'10px' }}
                 >
                   <MenuItem value="FULL DAY">FULL DAY</MenuItem>
                   <MenuItem value="HALF DAY">HALF DAY</MenuItem>
@@ -283,7 +289,7 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={1} sx={{ width: "130px" }}>
+            <Grid item xs={12} sm={6} md={1.7}>
               <TextField
                 key={`from-${i}-${row.fromDate}`}
                 fullWidth
@@ -292,34 +298,86 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                 placeholder="DD-MM-YYYY"
                 size="small"
                 InputLabelProps={{ shrink: true }}
-                defaultValue={row.fromDate ? `${row.fromDate.slice(8, 10)}-${row.fromDate.slice(5, 7)}-${row.fromDate.slice(0, 4)}` : ""}
+                defaultValue={row.fromDate ? `${row.fromDate.slice(8,10)}-${row.fromDate.slice(5,7)}-${row.fromDate.slice(0,4)}` : ""}
                 onChange={(e) => {
-                  let v = e.target.value.replace(/\D/g, "");
-                  if (v.length > 8) v = v.slice(0, 8);
-                  let out = v;
-                  if (v.length === 8) out = `${v.slice(0, 2)}-${v.slice(2, 4)}-${v.slice(4)}`;
-                  else if (v.length === 6) out = `${v.slice(0, 2)}-${v.slice(2, 4)}-${v.slice(4)}`;
-                  else if (v.length >= 3) out = `${v.slice(0, 2)}-${v.slice(2)}`;
-                  e.target.value = out;
+                  let v = e.target.value.replace(/[^0-9-]/g, "");
+                  if (v.length > 10) v = v.slice(0,10);
+                  e.target.value = v;
                 }}
                 onBlur={(e) => {
-                  const v = e.target.value.replace(/\D/g, "");
+                  let raw = e.target.value.trim();
+                  let v = raw.replace(/\D/g, "");
+                  if (!v && !raw) { handleBlur(i); return; }
                   let iso = null;
-                  if (v.length === 6) iso = `20${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
-                  else if (v.length === 8) iso = `${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
-                  else if (v.length === 10 && e.target.value.includes("-")) {
-                    const p = e.target.value.split("-");
-                    if (p.length === 3) iso = `${p[2]}-${p[1]}-${p[0]}`;
+                  if (raw.includes("-") && /^\d{2}-\d{2}-\d{4}$/.test(raw)) {
+                    const [d,m,yRaw] = raw.split("-");
+                    let y = yRaw;
+                    if (y.length === 2) y = "20"+y;
+                    else if (y.startsWith("00")) y = "20"+y.slice(2);
+                    iso = `${y}-${m}-${d}`;
+                  } else if (v.length === 6) iso = `20${v.slice(4)}-${v.slice(2,4)}-${v.slice(0,2)}`;
+                  else if (v.length === 8) {
+                    let y = v.slice(4);
+                    if (y.startsWith("00")) y = "20" + y.slice(2);
+                    iso = `${y}-${v.slice(2,4)}-${v.slice(0,2)}`;
+                  } else if (v.length === 4) {
+                    showToast("Enter full date DD-MM-YYYY (e.g. 12082026)", "error");
+                    return;
+                  } else if (v.length > 0) {
+                    showToast("Invalid date", "error");
+                    return;
                   }
-                  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) updateRow(i, "fromDate", iso);
+                  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+                    const [y,m,d] = iso.split("-");
+                    const dt = new Date(`${y}-${m}-${d}T00:00:00`);
+                    if (isNaN(dt) || dt.getDate() != parseInt(d) || dt.getMonth()+1 != parseInt(m)) {
+                      showToast("Invalid date", "error");
+                      return;
+                    }
+                    const curYear = new Date().getFullYear();
+                    const yNum = parseInt(y,10);
+                    if (yNum < curYear || yNum > curYear+1) {
+                      showToast(`Year must be ${curYear} or ${curYear+1} only`, "error");
+                      e.target.value = "";
+                      return;
+                    }
+                    e.target.value = `${d}-${m}-${y}`;
+                    updateRow(i, "fromDate", iso);
+                  }
                   handleBlur(i);
                 }}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); document.getElementById(`to-${i}`)?.focus(); } }}
-                inputProps={{ maxLength: 10, placeholder: "DD-MM-YYYY", id: `from-${i}` }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.target.blur();
+                    setTimeout(()=>document.getElementById(`to-${i}`)?.focus(),50);
+                  }
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton size="small" sx={{ p:0.5, bgcolor:'#f8fafc', border:'1px solid #e2e8f0' }} onClick={()=>{
+                        const hidden = document.getElementById(`native-from-${i}`);
+                        if (hidden?.showPicker) hidden.showPicker(); else hidden?.click();
+                      }}><CalendarTodayIcon sx={{ fontSize:14, color:'primary.main' }}/></IconButton>
+                      <Box component="input" id={`native-from-${i}`} type="date" onChange={(ev)=>{
+                        if(ev.target.value){
+                          const [y,m,d]=ev.target.value.split("-");
+                          const txt = `${d}-${m}-${y}`;
+                          const inp = document.getElementById(`from-${i}`);
+                          if(inp){ inp.value=txt; inp.dispatchEvent(new Event('change',{bubbles:true})); }
+                          updateRow(i,"fromDate", ev.target.value);
+                        }
+                      }} sx={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                inputProps={{ maxLength: 10, id: `from-${i}`, style:{ fontWeight:600 } }}
+                sx={{ '& .MuiOutlinedInput-root':{ borderRadius:'10px', bgcolor:'#fff', '&.Mui-focused fieldset':{ borderColor:'primary.main', borderWidth:'1.5px' } } }}
               />
             </Grid>
 
-            <Grid item xs={12} sm={6} md={1} sx={{ width: "130px" }}>
+            <Grid item xs={12} sm={6} md={1.7}>
               <TextField
                 key={`to-${i}-${row.toDate}`}
                 fullWidth
@@ -328,40 +386,82 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                 placeholder="DD-MM-YYYY"
                 size="small"
                 InputLabelProps={{ shrink: true }}
-                defaultValue={row.toDate ? `${row.toDate.slice(8, 10)}-${row.toDate.slice(5, 7)}-${row.toDate.slice(0, 4)}` : ""}
+                defaultValue={row.toDate ? `${row.toDate.slice(8,10)}-${row.toDate.slice(5,7)}-${row.toDate.slice(0,4)}` : ""}
                 onChange={(e) => {
-                  let v = e.target.value.replace(/\D/g, "");
-                  if (v.length > 8) v = v.slice(0, 8);
-                  let out = v;
-                  if (v.length === 8) out = `${v.slice(0, 2)}-${v.slice(2, 4)}-${v.slice(4)}`;
-                  else if (v.length === 6) out = `${v.slice(0, 2)}-${v.slice(2, 4)}-${v.slice(4)}`;
-                  else if (v.length >= 3) out = `${v.slice(0, 2)}-${v.slice(2)}`;
-                  e.target.value = out;
+                  let v = e.target.value.replace(/[^0-9-]/g, "");
+                  if (v.length > 10) v = v.slice(0,10);
+                  e.target.value = v;
                 }}
                 onBlur={(e) => {
-                  const v = e.target.value.replace(/\D/g, "");
+                  let raw = e.target.value.trim();
+                  let v = raw.replace(/\D/g, "");
+                  if (!v && !raw) { handleBlur(i); return; }
                   let iso = null;
-                  if (v.length === 6) iso = `20${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
-                  else if (v.length === 8) iso = `${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
-                  else if (v.length === 10 && e.target.value.includes("-")) {
-                    const p = e.target.value.split("-");
-                    if (p.length === 3) iso = `${p[2]}-${p[1]}-${p[0]}`;
+                  if (raw.includes("-") && /^\d{2}-\d{2}-\d{4}$/.test(raw)) {
+                    const [d,m,yRaw] = raw.split("-");
+                    let y = yRaw;
+                    if (y.length === 2) y = "20"+y;
+                    else if (y.startsWith("00")) y = "20"+y.slice(2);
+                    iso = `${y}-${m}-${d}`;
+                  } else if (v.length === 6) iso = `20${v.slice(4)}-${v.slice(2,4)}-${v.slice(0,2)}`;
+                  else if (v.length === 8) {
+                    let y = v.slice(4);
+                    if (y.startsWith("00")) y = "20" + y.slice(2);
+                    iso = `${y}-${v.slice(2,4)}-${v.slice(0,2)}`;
+                  } else if (v.length === 4) {
+                    showToast("Enter full date DD-MM-YYYY (e.g. 12082026)", "error");
+                    return;
+                  } else if (v.length > 0) {
+                    showToast("Invalid date", "error");
+                    return;
                   }
-                  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) updateRow(i, "toDate", iso);
+                  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+                    const [y,m,d] = iso.split("-");
+                    const dt = new Date(`${y}-${m}-${d}T00:00:00`);
+                    if (isNaN(dt) || dt.getDate() != parseInt(d) || dt.getMonth()+1 != parseInt(m)) {
+                      showToast("Invalid date", "error");
+                      return;
+                    }
+                    const curYear = new Date().getFullYear();
+                    const yNum = parseInt(y,10);
+                    if (yNum < curYear || yNum > curYear+1) {
+                      showToast(`Year must be ${curYear} or ${curYear+1} only`, "error");
+                      e.target.value = "";
+                      return;
+                    }
+                    e.target.value = `${d}-${m}-${y}`;
+                    updateRow(i, "toDate", iso);
+                  }
                   handleBlur(i);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    const v = e.target.value.replace(/\D/g, "");
-                    let iso = null;
-                    if (v.length === 6) iso = `20${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
-                    else if (v.length === 8) iso = `${v.slice(4)}-${v.slice(2, 4)}-${v.slice(0, 2)}`;
-                    if (iso) updateRow(i, "toDate", iso);
-                    setTimeout(() => document.getElementById(`remarks-${i}`)?.focus(), 100);
+                    e.target.blur();
+                    setTimeout(()=>document.getElementById(`remarks-${i}`)?.focus(),50);
                   }
                 }}
-                inputProps={{ maxLength: 10, placeholder: "DD-MM-YYYY", id: `to-${i}` }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton size="small" sx={{ p:0.5, bgcolor:'#f8fafc', border:'1px solid #e2e8f0' }} onClick={()=>{
+                        const hidden = document.getElementById(`native-to-${i}`);
+                        if (hidden?.showPicker) hidden.showPicker(); else hidden?.click();
+                      }}><CalendarTodayIcon sx={{ fontSize:14, color:'primary.main' }}/></IconButton>
+                      <Box component="input" id={`native-to-${i}`} type="date" onChange={(ev)=>{
+                        if(ev.target.value){
+                          const [y,m,d]=ev.target.value.split("-");
+                          const txt = `${d}-${m}-${y}`;
+                          const inp = document.getElementById(`to-${i}`);
+                          if(inp){ inp.value=txt; inp.dispatchEvent(new Event('change',{bubbles:true})); }
+                          updateRow(i,"toDate", ev.target.value);
+                        }
+                      }} sx={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                inputProps={{ maxLength: 10, id: `to-${i}`, style:{ fontWeight:600 } }}
+                sx={{ '& .MuiOutlinedInput-root':{ borderRadius:'10px', bgcolor:'#fff', '&.Mui-focused fieldset':{ borderColor:'primary.main', borderWidth:'1.5px' } } }}
               />
             </Grid>
 

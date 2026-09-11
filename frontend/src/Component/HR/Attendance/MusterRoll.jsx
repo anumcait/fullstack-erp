@@ -843,12 +843,12 @@ const MusterRoll = () => {
                           let lopCount = 0;
 
                           const dayStatuses = days.map(d => getShortStatus(d.status));
-                          const dayDisplay = dayStatuses.map((s, i) => {
-                            if (s !== "W" && s !== "H") return s;
-                            const prevP = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i - 1]);
-                            const nextP = i < dayStatuses.length - 1 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i + 1]);
-                            return (prevP || nextP) ? s : "A";
-                          });
+        const dayDisplay = dayStatuses.map((s, i) => {
+          if (s !== "W" && s !== "H") return s;
+          const prevP = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i - 1]);
+          const nextP = i < dayStatuses.length - 1 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i + 1]);
+          return prevP || nextP ? s : "A";
+        });
 
                           days.forEach((day, dayIdx) => {
                             const status = day.status;

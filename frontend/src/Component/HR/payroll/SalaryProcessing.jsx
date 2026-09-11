@@ -475,40 +475,40 @@ const months = [
 
   const renderProcessedData = () => (
     <ScrollSyncWrapper>
-      <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #e0e0e0' } }}>
+      <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #e0e0e0', fontSize: '12px' }, '& .MuiTableBody-root .MuiTableRow-root:hover': { bgcolor: '#f8fafc' } }}>
         <TableHead sx={{ position: 'sticky', top: 0, zIndex: 8 }}>
-          <TableRow sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)', color: 'primary.dark' }}>
-            <TableCell rowSpan={2} sx={stickyCellSx(0, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>S.No</strong></TableCell>
-            <TableCell rowSpan={2} sx={stickyCellSx(1, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>ID.No</strong></TableCell>
-            <TableCell rowSpan={2} sx={stickyCellSx(2, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom' })}><strong>Name of Employee</strong></TableCell>
-            {visibleFixedCols > 0 && <TableCell colSpan={visibleFixedCols} sx={{ color: 'white', textAlign: 'center' }}><strong>Fixed Salary</strong></TableCell>}
-            {visibleEarnedCols > 0 && <TableCell colSpan={visibleEarnedCols} sx={{ color: 'white', textAlign: 'center' }}><strong>Earned Salary</strong></TableCell>}
-            {visibleDedCols > 0 && <TableCell colSpan={visibleDedCols} sx={{ color: 'white', textAlign: 'center' }}><strong>Deduction</strong></TableCell>}
-            {showTotalDed && <TableCell rowSpan={2} sx={{ color: 'white', verticalAlign: 'bottom' }}><strong>Total Ded</strong></TableCell>}
-            {showNetAmount && <TableCell rowSpan={2} sx={{ color: 'white', verticalAlign: 'bottom' }}><strong>Net Amount</strong></TableCell>}
+          <TableRow sx={{ backgroundColor: 'primary.main', color: 'white' }}>
+            <TableCell rowSpan={2} sx={stickyCellSx(0, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom', fontWeight:700 })}><strong>S.No</strong></TableCell>
+            <TableCell rowSpan={2} sx={stickyCellSx(1, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom', fontWeight:700 })}><strong>ID.No</strong></TableCell>
+            <TableCell rowSpan={2} sx={stickyCellSx(2, { color: 'white', bgcolor: 'primary.main', zIndex: 12, verticalAlign: 'bottom', fontWeight:700 })}><strong>Name of Employee</strong></TableCell>
+            {visibleFixedCols > 0 && <TableCell colSpan={visibleFixedCols} sx={{ color: 'white', bgcolor: 'primary.main', textAlign: 'center', fontWeight:700, borderLeft: '1px solid rgba(255,255,255,0.3)' }}><strong>Fixed Salary</strong></TableCell>}
+            {visibleEarnedCols > 0 && <TableCell colSpan={visibleEarnedCols} sx={{ color: 'white', bgcolor: '#2e7d32', textAlign: 'center', fontWeight:700, borderLeft: '1px solid rgba(255,255,255,0.3)' }}><strong>Earned Salary</strong></TableCell>}
+            {visibleDedCols > 0 && <TableCell colSpan={visibleDedCols} sx={{ color: 'white', bgcolor: '#c62828', textAlign: 'center', fontWeight:700, borderLeft: '1px solid rgba(255,255,255,0.3)' }}><strong>Deduction</strong></TableCell>}
+            {showTotalDed && <TableCell rowSpan={2} sx={{ color: 'white', bgcolor: '#b71c1c', verticalAlign: 'bottom', fontWeight:700, borderLeft: '1px solid rgba(255,255,255,0.3)' }}><strong>Total Ded</strong></TableCell>}
+            {showNetAmount && <TableCell rowSpan={2} sx={{ color: 'white', bgcolor: '#ef6c00', verticalAlign: 'bottom', fontWeight:700, borderLeft: '1px solid rgba(255,255,255,0.3)' }}><strong>Net Amount</strong></TableCell>}
           </TableRow>
-          <TableRow sx={{ backgroundColor: 'rgba(25, 118, 210, 0.08)', color: 'primary.dark' }}>
-            {showFixedBasic && <TableCell sx={{ color: 'primary.dark' }}><strong>Basic</strong></TableCell>}
-            {showFixedHra && <TableCell sx={{ color: 'primary.dark' }}><strong>HRA</strong></TableCell>}
-            {showFixedCa && <TableCell sx={{ color: 'primary.dark' }}><strong>CA/Others</strong></TableCell>}
-            {showFixedWa && <TableCell sx={{ color: 'primary.dark' }}><strong>W.A</strong></TableCell>}
-            {showFixedGross && <TableCell sx={{ color: 'primary.dark' }}><strong>Gross Salary</strong></TableCell>}
-            {showEarnedDays && <TableCell sx={{ color: 'primary.dark' }}><strong>No. Days</strong></TableCell>}
-            {showEarnedBasic && <TableCell sx={{ color: 'primary.dark' }}><strong>Basic</strong></TableCell>}
-            {showEarnedHra && <TableCell sx={{ color: 'primary.dark' }}><strong>HRA</strong></TableCell>}
-            {showEarnedOthers && <TableCell sx={{ color: 'primary.dark' }}><strong>Others</strong></TableCell>}
-            {showEarnedWa && <TableCell sx={{ color: 'primary.dark' }}><strong>W.A</strong></TableCell>}
-            {showEarnedAb && <TableCell sx={{ color: 'primary.dark' }}><strong>A.B</strong></TableCell>}
-            {showEarnedOtHrs && <TableCell sx={{ color: 'primary.dark' }}><strong>OT Hrs</strong></TableCell>}
-            {showEarnedOtAmt && <TableCell sx={{ color: 'primary.dark' }}><strong>OT Amt</strong></TableCell>}
-            {showEarnedTotal && <TableCell sx={{ color: 'primary.dark' }}><strong>Total</strong></TableCell>}
-            {showEsi && <TableCell sx={{ color: 'primary.dark' }}><strong>ESI</strong></TableCell>}
-            {showPf && <TableCell sx={{ color: 'primary.dark' }}><strong>PF</strong></TableCell>}
-            {showPt && <TableCell sx={{ color: 'primary.dark' }}><strong>PT</strong></TableCell>}
-            {showTds && <TableCell sx={{ color: 'primary.dark' }}><strong>TDS</strong></TableCell>}
-            {showLic && <TableCell sx={{ color: 'primary.dark' }}><strong>LIC</strong></TableCell>}
-            {showOtherDed && <TableCell sx={{ color: 'primary.dark' }}><strong>Other Ded</strong></TableCell>}
-            {showSalAdv && <TableCell sx={{ color: 'primary.dark' }}><strong>Sal. Adv</strong></TableCell>}
+          <TableRow sx={{ color: 'primary.dark' }}>
+            {showFixedBasic && <TableCell sx={{ color: 'primary.dark', bgcolor: '#e3f2fd', fontWeight:600 }}><strong>Basic</strong></TableCell>}
+            {showFixedHra && <TableCell sx={{ color: 'primary.dark', bgcolor: '#e3f2fd', fontWeight:600 }}><strong>HRA</strong></TableCell>}
+            {showFixedCa && <TableCell sx={{ color: 'primary.dark', bgcolor: '#e3f2fd', fontWeight:600 }}><strong>CA/Others</strong></TableCell>}
+            {showFixedWa && <TableCell sx={{ color: 'primary.dark', bgcolor: '#e3f2fd', fontWeight:600 }}><strong>W.A</strong></TableCell>}
+            {showFixedGross && <TableCell sx={{ color: 'primary.dark', bgcolor: '#bbdefb', fontWeight:700 }}><strong>Gross Salary</strong></TableCell>}
+            {showEarnedDays && <TableCell sx={{ color: '#1b5e20', bgcolor: '#e8f5e9', fontWeight:600 }}><strong>No. Days</strong></TableCell>}
+            {showEarnedBasic && <TableCell sx={{ color: '#1b5e20', bgcolor: '#e8f5e9', fontWeight:600 }}><strong>Basic</strong></TableCell>}
+            {showEarnedHra && <TableCell sx={{ color: '#1b5e20', bgcolor: '#e8f5e9', fontWeight:600 }}><strong>HRA</strong></TableCell>}
+            {showEarnedOthers && <TableCell sx={{ color: '#1b5e20', bgcolor: '#e8f5e9', fontWeight:600 }}><strong>Others</strong></TableCell>}
+            {showEarnedWa && <TableCell sx={{ color: '#1b5e20', bgcolor: '#e8f5e9', fontWeight:600 }}><strong>W.A</strong></TableCell>}
+            {showEarnedAb && <TableCell sx={{ color: '#1b5e20', bgcolor: '#e8f5e9', fontWeight:600 }}><strong>A.B</strong></TableCell>}
+            {showEarnedOtHrs && <TableCell sx={{ color: '#1b5e20', bgcolor: '#e8f5e9', fontWeight:600 }}><strong>OT Hrs</strong></TableCell>}
+            {showEarnedOtAmt && <TableCell sx={{ color: '#1b5e20', bgcolor: '#e8f5e9', fontWeight:600 }}><strong>OT Amt</strong></TableCell>}
+            {showEarnedTotal && <TableCell sx={{ color: '#1b5e20', bgcolor: '#c8e6c9', fontWeight:700 }}><strong>Total</strong></TableCell>}
+            {showEsi && <TableCell sx={{ color: '#b71c1c', bgcolor: '#ffebee', fontWeight:600 }}><strong>ESI</strong></TableCell>}
+            {showPf && <TableCell sx={{ color: '#b71c1c', bgcolor: '#ffebee', fontWeight:600 }}><strong>PF</strong></TableCell>}
+            {showPt && <TableCell sx={{ color: '#b71c1c', bgcolor: '#ffebee', fontWeight:600 }}><strong>PT</strong></TableCell>}
+            {showTds && <TableCell sx={{ color: '#b71c1c', bgcolor: '#ffebee', fontWeight:600 }}><strong>TDS</strong></TableCell>}
+            {showLic && <TableCell sx={{ color: '#b71c1c', bgcolor: '#ffebee', fontWeight:600 }}><strong>LIC</strong></TableCell>}
+            {showOtherDed && <TableCell sx={{ color: '#b71c1c', bgcolor: '#ffebee', fontWeight:600 }}><strong>Other Ded</strong></TableCell>}
+            {showSalAdv && <TableCell sx={{ color: '#b71c1c', bgcolor: '#ffebee', fontWeight:600 }}><strong>Sal. Adv</strong></TableCell>}
           </TableRow>
         </TableHead>
         {[staffData, traineeData].map((group, gi) => {

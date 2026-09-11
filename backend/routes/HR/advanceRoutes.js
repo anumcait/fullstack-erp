@@ -9,6 +9,7 @@ router.get('/pending', advanceController.getPendingAdvances);
 router.post('/approve', advanceController.approveAdvance);
 router.post('/cancel', advanceController.cancelAdvance);
 router.post('/reopen', advanceController.reopenAdvance);
+router.post('/edit-schedule', advanceController.editSchedule);
 router.get('/report', advanceController.getAdvanceReport);
 
 module.exports = router;

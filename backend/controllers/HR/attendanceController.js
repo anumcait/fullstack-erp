@@ -610,15 +610,20 @@ const classifySwipedDay = (inTime, outTime, shiftStart, lunchStart, lunchEnd, sh
 
   const isOvernightShift = shiftStartMins !== null && shiftEndMins !== null && shiftEndMins < shiftStartMins;
 
-  if (lunchEndMins !== null && outMins <= lunchEndMins) return 'Half Day';
-  if (lunchStartMins !== null && inMins >= lunchStartMins) return 'Half Day';
-
-  // For overnight shifts: out_time is next day (early AM), so add 1440 for comparison
+  // Handle next-day out (OT till next day 00:00-03:00) and overnight shifts — must be before lunch/shift checks with full date
   let effectiveOutMins = outMins;
-  if (isOvernightShift && outMins < 720) { // out before noon = next day
+  let effectiveShiftEndMins = shiftEndMins;
+  if (outMins !== null && inMins !== null && outMins < inMins) {
     effectiveOutMins += 1440;
+  } else if (isOvernightShift && outMins < 720) {
+    effectiveOutMins += 1440;
+    effectiveShiftEndMins = shiftEndMins + 1440;
+  } else if (isOvernightShift) {
+    effectiveShiftEndMins = shiftEndMins + 1440;
   }
-  const effectiveShiftEndMins = isOvernightShift ? shiftEndMins + 1440 : shiftEndMins;
+
+  if (lunchEndMins !== null && effectiveOutMins <= lunchEndMins) return 'Half Day';
+  if (lunchStartMins !== null && inMins >= lunchStartMins) return 'Half Day';
 
   if (shiftEndMins !== null && effectiveOutMins < effectiveShiftEndMins) return 'Half Day';
   return 'Present';
@@ -886,7 +891,11 @@ exports.getMusterRoll = async (req, res) => {
           if (!outTime && extOt.out_time) outTime = extOt.out_time;
         }
 
-        if (isHoliday) {
+        if (attendance?.status === 'LOP' || attendance?.leave_type === 'LOP') {
+          dayStatus = 'LOP';
+          totalLop += 1;
+          lopDays = 1;
+        } else if (isHoliday) {
           if (inTime || outTime) {
             dayStatus = 'Holiday';
             totalHoliday++;
@@ -1348,7 +1357,9 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
       if (!outTime && extOt.out_time) outTime = extOt.out_time;
     }
 
-    if (isHoliday) {
+    if (attendance?.status === 'LOP' || attendance?.leave_type === 'LOP') {
+      dayStatus = 'LOP'; totalLop += 1; lopDays = 1;
+    } else if (isHoliday) {
       if (inTime || outTime) {
         dayStatus = 'Holiday'; totalHoliday++;
         if (extOt && Number(extOt.app_status) >= 1) {

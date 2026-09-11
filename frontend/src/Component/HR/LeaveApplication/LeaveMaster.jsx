@@ -14,6 +14,13 @@ import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { formatDateOnly } from "../../../utils/dateUtils";
 
+const fmt = (v) => {
+  if (v === null || v === undefined || v === '') return '0';
+  const n = Number(v);
+  if (Number.isNaN(n)) return String(v);
+  return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
+};
+
 const LeaveMaster = () => {
   const { showToast } = useToast();
   const [employees, setEmployees] = useState([]);
@@ -78,10 +85,10 @@ const LeaveMaster = () => {
     if (emp) {
       setFormData({
         empid: emp.empid,
-        cls_balance: emp.cls_balance,
-        cls_utilised: emp.cls_utilised,
-        els_balance: emp.els_balance,
-        els_utilised: emp.els_utilised,
+        cls_balance: fmt(emp.cls_balance),
+        cls_utilised: fmt(emp.cls_utilised),
+        els_balance: fmt(emp.els_balance),
+        els_utilised: fmt(emp.els_utilised),
         yr: emp.yr,
         remarks: "",
         final_status: emp.final_status
@@ -90,10 +97,10 @@ const LeaveMaster = () => {
     } else {
       setFormData({
         empid: "",
-        cls_balance: 0,
-        cls_utilised: 0,
-        els_balance: 0,
-        els_utilised: 0,
+        cls_balance: '0',
+        cls_utilised: '0',
+        els_balance: '0',
+        els_utilised: '0',
         yr: new Date().getFullYear(),
         remarks: "",
         final_status: "0"
@@ -210,11 +217,11 @@ const LeaveMaster = () => {
                     <TableCell sx={{ color: sc, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {emp.deptname}
                     </TableCell>
-                    <TableCell sx={{ color: sc }} align="right">{emp.cls_balance}</TableCell>
-                    <TableCell sx={{ color: sc }} align="right">{emp.cls_utilised}</TableCell>
-                    <TableCell sx={{ color: sc }} align="right">{emp.els_balance}</TableCell>
-                    <TableCell sx={{ color: sc }} align="right">{emp.els_utilised}</TableCell>
-                    <TableCell sx={{ color: sc, fontWeight: 600 }} align="right">{empTotal}</TableCell>
+                    <TableCell sx={{ color: sc }} align="right">{fmt(emp.cls_balance)}</TableCell>
+                    <TableCell sx={{ color: sc }} align="right">{fmt(emp.cls_utilised)}</TableCell>
+                    <TableCell sx={{ color: sc }} align="right">{fmt(emp.els_balance)}</TableCell>
+                    <TableCell sx={{ color: sc }} align="right">{fmt(emp.els_utilised)}</TableCell>
+                    <TableCell sx={{ color: sc, fontWeight: 600 }} align="right">{fmt(empTotal)}</TableCell>
                     <TableCell sx={{ color: sc }} align="center">{emp.yr}</TableCell>
                     <TableCell align="center">
                       <IconButton size="small" onClick={() => handleOpenDialog(emp)}>
@@ -228,11 +235,11 @@ const LeaveMaster = () => {
             {filtered.length > 0 && (
               <TableRow sx={{ bgcolor: '#e3f2fd', fontWeight: 'bold' }}>
                 <TableCell sx={{ fontWeight: 700 }} colSpan={4}>Grand Total</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.clb}</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.clu}</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.elb}</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.elu}</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">{tot.clb + tot.elb}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{fmt(tot.clb)}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{fmt(tot.clu)}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{fmt(tot.elb)}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{fmt(tot.elu)}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{fmt(tot.clb + tot.elb)}</TableCell>
                 <TableCell />
                 <TableCell />
               </TableRow>

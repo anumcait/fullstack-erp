@@ -82,7 +82,7 @@ exports.getAllAdvanceApplications = async (req, res) => {
       const scheduleWithStatus = schedule.map((entry) => {
         const monthNum = parseInt(entry.month) || 1;
         const yearNum = parseInt(entry.year) || 0;
-        const deducted = deductedKeys.has(`${adv.empid}|${yearNum}|${MONTH_NAMES[monthNum - 1]}`);
+        const deducted = deductedKeys.has(`${adv.empid}|${yearNum}|${MONTH_NAMES[monthNum - 1]}`) || entry.deducted === true || entry.deducted === 'true';
         return { ...entry, month: monthNum, year: yearNum, deducted };
       });
 
@@ -189,6 +189,73 @@ exports.reopenAdvance = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Error reopening Advance" });
+  }
+};
+
+exports.editSchedule = async (req, res) => {
+  const { advance_id, deduction_schedule, remarks } = req.body;
+  try {
+    const app = await AdvanceApplication.findOne({ where: { advance_id } });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    if (app.status !== 'Approved') return res.status(400).json({ success: false, message: "Only Approved advances can be edited" });
+
+    let newSchedule = typeof deduction_schedule === 'string' ? JSON.parse(deduction_schedule) : deduction_schedule;
+    if (!Array.isArray(newSchedule) || newSchedule.length === 0) return res.status(400).json({ success: false, message: "Invalid schedule" });
+
+    const total = newSchedule.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    if (Math.abs(total - parseFloat(app.advance_amount)) > 1) {
+      return res.status(400).json({ success: false, message: `Schedule total ₹${total} must match advance amount ₹${app.advance_amount}` });
+    }
+
+    const paid = await Payslip.findAll({
+      attributes: ['C_YEAR', 'C_MONTH'],
+      where: { C_EMPID: app.empid, C_DED_ADV: { [Op.gt]: 0 }, C_FINAL_STATUS: 2 },
+      raw: true
+    });
+    const deductedKeys = new Set(paid.map(p => `${p.C_YEAR}|${p.C_MONTH}`));
+
+    let oldSchedule = [];
+    try { oldSchedule = typeof app.deduction_schedule === 'string' ? JSON.parse(app.deduction_schedule) : (app.deduction_schedule || []); } catch {}
+    if (!Array.isArray(oldSchedule)) oldSchedule = [];
+
+    for (let i = 0; i < oldSchedule.length; i++) {
+      const old = oldSchedule[i];
+      const key = `${old.year}|${MONTH_NAMES[(parseInt(old.month)-1)]}`;
+      if (deductedKeys.has(key)) {
+        const cur = newSchedule[i];
+        if (!cur || parseInt(cur.month) !== parseInt(old.month) || parseInt(cur.year) !== parseInt(old.year) || Math.abs(parseFloat(cur.amount)-parseFloat(old.amount)) > 0.01) {
+          return res.status(400).json({ success: false, message: `Deducted month ${MONTH_NAMES[old.month-1]} ${old.year} cannot be changed` });
+        }
+      }
+    }
+
+    const hasDeductedChange = newSchedule.slice(0, oldSchedule.length).some((cur, i) => {
+      const old = oldSchedule[i];
+      if (!old) return false;
+      const key = `${old.year}|${MONTH_NAMES[old.month-1]}`;
+      return deductedKeys.has(key) && (cur.month !== old.month || cur.year !== old.year);
+    });
+    if (hasDeductedChange) return res.status(400).json({ success: false, message: "Cannot modify already deducted months" });
+
+    const editedBy = req.session?.user?.username || req.session?.user?.ename || 'system';
+    const editedAt = new Date();
+    await app.update({
+      deduction_schedule: JSON.stringify(newSchedule),
+      deduct_from_month: newSchedule[0]?.month,
+      deduct_from_year: newSchedule[0]?.year,
+      remarks: remarks !== undefined ? remarks : app.remarks
+    });
+    try {
+      const seq = AdvanceApplication.sequelize;
+      await seq.query(`CREATE TABLE IF NOT EXISTS advance_edit_log (id SERIAL PRIMARY KEY, advance_id BIGINT, edited_by VARCHAR(100), edited_at TIMESTAMP, old_schedule TEXT, new_schedule TEXT, remarks TEXT)`);
+      await seq.query(`INSERT INTO advance_edit_log (advance_id, edited_by, edited_at, old_schedule, new_schedule, remarks) VALUES (:advance_id, :edited_by, :edited_at, :old_schedule, :new_schedule, :remarks)`, {
+        replacements: { advance_id, edited_by: editedBy, edited_at: editedAt, old_schedule: JSON.stringify(oldSchedule), new_schedule: JSON.stringify(newSchedule), remarks: remarks || '' }
+      });
+    } catch (logErr) { console.error('Audit log failed', logErr.message); }
+    res.json({ success: true, message: "Schedule updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error updating schedule" });
   }
 };
 

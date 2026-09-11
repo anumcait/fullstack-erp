@@ -31,6 +31,15 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
     });
     return w;
   });
+  useEffect(() => {
+    setColumnWidths((prev) => {
+      const w = { ...prev };
+      columns.forEach((c) => {
+        if (initialWidths?.[c.field] !== undefined) w[c.field] = initialWidths[c.field];
+      });
+      return w;
+    });
+  }, [initialWidths, columns]);
 
   // Drag-to-resize column widths
   const startResize = (field, e) => {
