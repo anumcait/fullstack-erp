@@ -34,6 +34,7 @@ const Header = () => {
   const [userPhoto, setUserPhoto] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [lastLoginInfo, setLastLoginInfo] = useState(null);
   const settingsRef = useRef(null);
   const notifRef = useRef(null);
 
@@ -62,11 +63,40 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const formatLastLogin = (d, withYear = false) => {
+    if (!d) return '';
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return String(d);
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const day = String(dt.getDate()).padStart(2,'0');
+    const mon = MONTHS[dt.getMonth()];
+    const yr = dt.getFullYear();
+    let h = dt.getHours();
+    const m = String(dt.getMinutes()).padStart(2,'0');
+    const ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    const hh = String(h).padStart(2,'0');
+    return withYear ? `${day} ${mon} ${yr}, ${hh}:${m} ${ampm}` : `${day} ${mon}, ${hh}:${m} ${ampm}`;
+  };
   useEffect(() => {
     const name = localStorage.getItem('empName') || 'Guest';
     const role = localStorage.getItem('userRole') || '';
     setUserName(name);
     setUserRole(role);
+    const storedPrev = localStorage.getItem('previousLogin');
+    const storedLast = localStorage.getItem('lastLogin');
+    if (storedPrev && storedPrev !== 'null' && storedPrev !== '') setLastLoginInfo(storedPrev);
+    else if (storedLast && storedLast !== 'null' && storedLast !== '') setLastLoginInfo(storedLast);
+    axios.get('/api/auth/me', { withCredentials: true }).then(r => {
+      const u = r.data?.user;
+      const v = u?.previous_login || u?.last_login;
+      if (v) {
+        setLastLoginInfo(v);
+        localStorage.setItem('previousLogin', u.previous_login || '');
+        localStorage.setItem('lastLogin', u.last_login || '');
+      }
+    }).catch(()=>{});
+  
 
     const today = new Date();
     const formattedDate = today.toLocaleDateString('en-US', {
@@ -540,9 +570,10 @@ const Header = () => {
                 <PersonIcon />
               </Avatar>
             )}
-            <div style={{ marginLeft: 8, display: 'flex', flexDirection: 'column' }}>
-              <span className="user-name">{userName}</span>
-              <span className="date-display">{currentDate} &nbsp;|&nbsp; <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currentTime}</span></span>
+            <div style={{ marginLeft: 8, display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: 260, lineHeight: 1.25, gap: 1 }}>
+              <span className="user-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName} {userRole ? <span style={{ fontSize: '10px', fontWeight: 700, background: userRole === 'ADMIN' ? '#ebdcf9' : '#e2e8f0', color: userRole === 'ADMIN' ? '#6b21a8' : '#475569', padding: '1px 6px', borderRadius: 6, marginLeft: 6, verticalAlign: 'middle' }}>{userRole}</span> : null}</span>
+              <span className="date-display" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{currentDate} &nbsp;|&nbsp; <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currentTime}</span></span>
+              {lastLoginInfo && <span title={formatLastLogin(lastLoginInfo, true)} style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', display: 'block' }}>Last login: {formatLastLogin(lastLoginInfo, true)}</span>}
             </div>
           </div>
 
@@ -647,6 +678,10 @@ const Header = () => {
               {isSettingsOpen && (
                 <div className="settings-dropdown">
                   <div className="dropdown-header">Quick Settings</div>
+                  <div style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--dropdown-text)', borderBottom: '1px solid var(--dropdown-border)', marginBottom: 4, maxWidth: 260, overflow: 'hidden' }}>
+                    <div style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName} <span style={{ fontWeight: 400, opacity: 0.7 }}>({userRole || 'USER'})</span></div>
+                    {lastLoginInfo && <div title={formatLastLogin(lastLoginInfo, true)} style={{ fontSize: '11px', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Last login: {formatLastLogin(lastLoginInfo, true)}</div>}
+                  </div>
                   <Link to="/profile" className="dropdown-item" onClick={() => setIsSettingsOpen(false)}>
                     <FiUser style={{ marginRight: '10px' }} /> Profile Settings
                   </Link>

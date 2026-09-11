@@ -10,7 +10,8 @@
 
 .dashboard-header {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  height: var(--header-height);
+  min-height: var(--header-height);
+  height: auto;
   position: sticky;
   top: 0;
   z-index: 1100;
@@ -23,10 +24,11 @@
 
 .header-top-row {
   display: flex;
+  min-height: var(--row-height);
   align-items: center;
   justify-content: space-between;
-  height: var(--row-height);
-  padding: 0 25px;
+  height: auto;
+  padding: 6px 25px;
 }
 
 .header-nav-row {
@@ -279,7 +281,10 @@
   align-items: center;
   gap: 15px;
   margin-left: auto;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 58%;
+  justify-content: flex-end;
 }
 
 .user-meta {
@@ -288,16 +293,34 @@
   align-items: flex-end;
   border-right: 1px solid rgba(15, 23, 42, 0.12);
   padding-right: 14px;
+  min-width: 0;
+  max-width: 280px;
+  overflow: hidden;
+  flex-shrink: 1;
+}
+
+.user-meta > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .user-name {
   font-weight: 600;
   font-size: 13px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .date-display {
   font-size: 10px;
   opacity: 0.8;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .action-icons {

@@ -24,22 +24,40 @@ export default function ProfileUpdate() {
   const [sameAsComm, setSameAsComm] = useState(false);
   const [pendingRequest, setPendingRequest] = useState(false);
 
+  const [authInfo, setAuthInfo] = useState(null);
   const [commAddress, setCommAddress] = useState({
     street: '', city: '', state: '', phone: '', mobile: '', pin: '', email: ''
   });
   const [permAddress, setPermAddress] = useState({
     street: '', city: '', state: '', phone: '', mobile: '', pin: '', email: ''
   });
+  const formatLastLogin = (d) => {
+    if (!d) return 'Never';
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return String(d);
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const day = String(dt.getDate()).padStart(2,'0');
+    const mon = MONTHS[dt.getMonth()];
+    const yr = dt.getFullYear();
+    let h = dt.getHours();
+    const m = String(dt.getMinutes()).padStart(2,'0');
+    const ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    const hh = String(h).padStart(2,'0');
+    return `${day} ${mon} ${yr}, ${hh}:${m} ${ampm}`;
+  };
 
   useEffect(() => {
+    axios.get(`${API}/api/auth/me`, { withCredentials: true }).then(r=>setAuthInfo(r.data?.user)).catch(()=>{});
     const fetchProfile = async () => {
       try {
         const empId = localStorage.getItem('empId');
         const [profileRes, photoRes, requestsRes] = await Promise.all([
-          axios.get(`${API}/api/employees/me/profile`, { withCredentials: true }),
+          axios.get(`${API}/api/employees/me/profile`, { withCredentials: true }).catch(()=>({data:null})),
           empId ? axios.get(`${API}/api/employees/${empId}/photo`, { withCredentials: true }).catch(() => ({ data: {} })) : Promise.resolve({ data: {} }),
           axios.get(`${API}/api/employees/my-profile-requests`, { withCredentials: true }).catch(() => ({ data: [] }))
         ]);
+        if (!profileRes.data || profileRes.data?.message) { setLoading(false); return; }
 
         const data = profileRes.data;
         setProfile(data);
@@ -132,12 +150,35 @@ export default function ProfileUpdate() {
     );
   }
 
+  if (profile === null && !loading) {
+    return (
+      <Box sx={{ m: 2 }}>
+        <Card>
+          <Box sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonIcon />
+            <Typography variant="h6">My Profile — {authInfo?.ename || localStorage.getItem('empName') || 'System User'}</Typography>
+          </Box>
+          <CardContent>
+            <Paper sx={{ p: 2, mb: 2, bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <Typography variant="subtitle2" fontWeight="bold">System User (non-employee {authInfo?.role || localStorage.getItem('userRole') || ''})</Typography>
+              <Typography variant="body2" color="text.secondary">Username: {authInfo?.username || localStorage.getItem('userName')}</Typography>
+              {authInfo?.last_login && <Typography variant="body2" color="text.secondary">Last login: {formatLastLogin(authInfo.last_login)}</Typography>}
+              {authInfo?.previous_login && <Typography variant="body2" color="text.secondary">Previous login: {formatLastLogin(authInfo.previous_login)}</Typography>}
+              {authInfo?.login_count != null && <Typography variant="body2" color="text.secondary">Total logins: {authInfo.login_count}</Typography>}
+            </Paper>
+            <Typography variant="body2" color="text.secondary">This account is not linked to an employee record, so payroll/profile details are not applicable. Manage permissions via User Access Control.</Typography>
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ m: 2 }}>
       <Card>
-        <Box sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PersonIcon />
-          <Typography variant="h6">My Profile</Typography>
+        <Box sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', p: 2, display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><PersonIcon /><Typography variant="h6">My Profile</Typography></Box>
+          {authInfo && <Typography variant="caption" sx={{ opacity: 0.9 }}>Last login: {formatLastLogin(authInfo.previous_login || authInfo.last_login)} {authInfo.login_count ? `• #${authInfo.login_count}` : ''}</Typography>}
         </Box>
         <CardContent>
           <Paper sx={{ p: 2, mb: 3, bgcolor: '#f5f5f5' }}>

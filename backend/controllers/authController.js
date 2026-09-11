@@ -55,6 +55,7 @@ exports.login = async (req, res) => {
 
     const mustChangePassword = !user.password_changed_at;
 
+    const previousLoginToReturn = user.previous_login || user.last_login || null;
     const userData = {
       id: user.id,
       username: user.username,
@@ -62,7 +63,10 @@ exports.login = async (req, res) => {
       role: user.role,
       permissions: user.permissions || [],
       ename: displayName,
-      mustChangePassword
+      mustChangePassword,
+      last_login: user.last_login,
+      previous_login: previousLoginToReturn,
+      login_count: user.login_count
     };
 
     req.session.regenerate((err) => {
@@ -75,17 +79,16 @@ exports.login = async (req, res) => {
       req.session.createdAt = Date.now();
       req.session.lastActivity = Date.now();
 
-      // Update login metadata
       const now = new Date();
       const localTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
       user.update({
         previous_login: user.last_login,
         last_login: localTime,
-        login_count: user.login_count + 1,
-        failed_attempts: 0 // Reset on successful login
-      });
+        login_count: (user.login_count || 0) + 1,
+        failed_attempts: 0
+      }).catch(e => console.error('Failed to update login metadata:', e.message));
 
-      res.json({ message: 'Login successful', user: userData, mustChangePassword });
+      res.json({ message: 'Login successful', user: userData, mustChangePassword, previousLogin: previousLoginToReturn });
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -192,8 +195,21 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-exports.me = (req, res) => {
+exports.me = async (req, res) => {
   if (!req.session || !req.session.user) return res.status(401).json({ message: 'Not authenticated' });
+  try {
+    const dbUser = await User.findByPk(req.session.user.id, { attributes: ['last_login', 'previous_login', 'login_count', 'ename', 'username'] });
+    if (dbUser) {
+      const merged = {
+        ...req.session.user,
+        last_login: dbUser.last_login,
+        previous_login: dbUser.previous_login,
+        login_count: dbUser.login_count,
+        ename: req.session.user.ename || dbUser.ename || dbUser.username
+      };
+      return res.json({ user: merged });
+    }
+  } catch (e) { console.error('me fetch error:', e.message); }
   return res.json({ user: req.session.user });
 };
 

@@ -94,12 +94,15 @@ const LoginForm = () => {
         }
       );
 
-      const { user } = response.data;
+      const { user, previousLogin } = response.data;
       localStorage.setItem('userName', user.username);
       localStorage.setItem('userRole', user.role);
       localStorage.setItem('empName', user.ename);
       localStorage.setItem('empId', user.empid ? String(user.empid) : '');
       localStorage.setItem('userPermissions', JSON.stringify(user.permissions || []));
+      if (user.previous_login) localStorage.setItem('previousLogin', user.previous_login);
+      else if (previousLogin) localStorage.setItem('previousLogin', previousLogin);
+      if (user.last_login) localStorage.setItem('lastLogin', user.last_login);
 
       // Handle "Keep me signed in"
       if (rememberMe) {

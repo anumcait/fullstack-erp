@@ -33,6 +33,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SupervisedUserCircleIcon from '@mui/icons-material/SupervisedUserCircle';
 import SearchIcon from '@mui/icons-material/Search';
@@ -55,9 +56,28 @@ const UserAccess = () => {
     confirmPassword: '',
     role: 'USER',
     empid: '',
+    ename: '',
     isSystemUser: false
   });
+  const formatLastLogin = (d, withYear = true) => {
+    if (!d) return 'Never logged in';
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return String(d);
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const day = String(dt.getDate()).padStart(2,'0');
+    const mon = MONTHS[dt.getMonth()];
+    const yr = dt.getFullYear();
+    let h = dt.getHours();
+    const m = String(dt.getMinutes()).padStart(2,'0');
+    const ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    const hh = String(h).padStart(2,'0');
+    return withYear ? `${day} ${mon} ${yr}, ${hh}:${m} ${ampm}` : `${day} ${mon}, ${hh}:${m} ${ampm}`;
+  };
   const [creating, setCreating] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ username: '', ename: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -78,6 +98,30 @@ const UserAccess = () => {
     setSelectedUser(user.id);
     setUserRole(user?.role || 'USER');
     setUserPermissions(user?.permissions || []);
+  };
+
+  const openEditDialog = () => {
+    if (!selectedUserObj) return;
+    setEditForm({ username: selectedUserObj.username || '', ename: selectedUserObj.ename || '' });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedUser || !editForm.username.trim()) {
+      showToast('Username is required', 'error');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const res = await axios.put(`/api/users/${selectedUser}`, { username: editForm.username.trim(), ename: editForm.ename.trim() }, { withCredentials: true });
+      showToast(res.data.message || 'User updated', 'success');
+      setUsers(prev => prev.map(u => u.id === selectedUser ? { ...u, username: res.data.username, ename: res.data.ename } : u));
+      setEditDialogOpen(false);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update user', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handlePermissionChange = (permId) => {
@@ -140,9 +184,10 @@ const UserAccess = () => {
     setCreating(true);
     try {
       const payload = {
-        username: newUser.username,
+        username: newUser.username.trim(),
         password: newUser.password,
-        role: newUser.role
+        role: newUser.role,
+        ename: (newUser.ename || '').trim() || newUser.username.trim()
       };
       if (newUser.isSystemUser) {
         payload.empid = null;
@@ -151,7 +196,7 @@ const UserAccess = () => {
         payload.empid = parseInt(newUser.empid);
       }
       const res = await axios.post('/api/users/create', payload, { withCredentials: true });
-      showToast(`User "${res.data.username}" created successfully`, 'success');
+      showToast(`User "${res.data.ename || res.data.username}" created successfully`, 'success');
       setCreateDialogOpen(false);
       setNewUser({
         username: '',
@@ -159,6 +204,7 @@ const UserAccess = () => {
         confirmPassword: '',
         role: 'USER',
         empid: '',
+        ename: '',
         isSystemUser: false
       });
       fetchUsers();
@@ -170,13 +216,16 @@ const UserAccess = () => {
     }
   };
 
+  const [filterMode, setFilterMode] = useState('all');
   const selectedUserObj = users.find(u => u.id === selectedUser);
   const isSystemUser = selectedUserObj ? !selectedUserObj.empid : false;
 
-  const filteredUsers = users.filter(user =>
-    user.ename?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.username?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q || user.ename?.toLowerCase().includes(q) || user.username?.toLowerCase().includes(q) || user.role?.toLowerCase().includes(q);
+    const matchesFilter = filterMode === 'all' ? true : filterMode === 'admins' ? user.role === 'ADMIN' : filterMode === 'system' ? !user.empid : filterMode === 'employees' ? !!user.empid : true;
+    return matchesSearch && matchesFilter;
+  });
 
   const getRoleChipColor = (role) => {
     switch (role?.toUpperCase()) {
@@ -226,6 +275,19 @@ const UserAccess = () => {
             }}
           />
 
+          <Box sx={{ display: 'flex', gap: 0.5, mb: 2, flexWrap: 'wrap' }}>
+            {[
+              { id: 'all', label: `All (${users.length})` },
+              { id: 'admins', label: `Admins (${users.filter(u => u.role === 'ADMIN').length})` },
+              { id: 'system', label: `System (${users.filter(u => !u.empid).length})` },
+              { id: 'employees', label: `Employees (${users.filter(u => !!u.empid).length})` },
+            ].map(f => (
+              <Chip key={f.id} label={f.label} size="small" onClick={() => setFilterMode(f.id)} color={filterMode === f.id ? 'primary' : 'default'} variant={filterMode === f.id ? 'filled' : 'outlined'} sx={{ fontSize: '11px', fontWeight: 700, borderRadius: '6px', cursor: 'pointer' }} />
+            ))}
+          </Box>
+          {filterMode === 'system' && <Alert severity="info" sx={{ mb: 1.5, py: 0.5, fontSize: '11px' }}>System users = non-employee admins/HR (login with username only)</Alert>}
+          {filterMode === 'admins' && <Alert severity="info" sx={{ mb: 1.5, py: 0.5, fontSize: '11px' }}>All ADMIN role users — includes system & employee admins ({users.filter(u => u.role === 'ADMIN').length})</Alert>}
+
           <Divider sx={{ mb: 2 }} />
 
           <Box sx={{ flexGrow: 1, overflowY: 'auto', '&::-webkit-scrollbar': { width: '6px' }, '&::-webkit-scrollbar-thumb': { backgroundColor: '#cbd5e1', borderRadius: '10px' } }}>
@@ -251,12 +313,15 @@ const UserAccess = () => {
                     <ListItemIcon sx={{ minWidth: '40px' }}>
                       <SupervisedUserCircleIcon sx={{ color: isSelected ? '#3b82f6' : '#94a3b8' }} />
                     </ListItemIcon>
-                    <ListItemText
-                      primary={user.ename || user.username}
-                      secondary={user.ename ? user.username : 'System User'}
-                      primaryTypographyProps={{ fontWeight: isSelected ? '800' : '600', fontSize: '13px', color: '#1e293b' }}
-                      secondaryTypographyProps={{ fontSize: '11px', color: '#64748b' }}
-                    />
+                    <Tooltip title={`${user.username}${user.last_login ? ' • Last login: ' + formatLastLogin(user.last_login, true) : ' • Never logged in'}`} arrow placement="top">
+                      <ListItemText
+                        primary={user.ename || user.username}
+                        secondary={`${user.username} • ${user.last_login ? 'Last login: ' + formatLastLogin(user.last_login, true) : 'Never logged in'}`}
+                        primaryTypographyProps={{ fontWeight: isSelected ? '800' : '600', fontSize: '13px', color: '#1e293b', noWrap: true, sx: { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                        secondaryTypographyProps={{ fontSize: '10px', color: '#64748b', noWrap: true, sx: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
+                        sx={{ minWidth: 0, mr: 1 }}
+                      />
+                    </Tooltip>
                     <Chip
                       label={user.role || 'USER'}
                       size="small"
@@ -266,7 +331,9 @@ const UserAccess = () => {
                         backgroundColor: chipStyle.bg,
                         color: chipStyle.color,
                         borderRadius: '6px',
-                        height: '20px'
+                        height: '20px',
+                        flexShrink: 0,
+                        ml: 1
                       }}
                     />
                   </ListItemButton>
@@ -294,8 +361,11 @@ const UserAccess = () => {
               {/* Selected User Header */}
               <Box sx={{ display: 'flex', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 4 }}>
                 <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 'black', color: '#1e293b', letterSpacing: '-0.025em' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'black', color: '#1e293b', letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', gap: 1 }}>
                     Access Control: <span style={{ color: '#3b82f6' }}>{selectedUserObj?.ename || selectedUserObj?.username}</span>
+                    <Tooltip title="Edit username / display name" arrow>
+                      <IconButton size="small" onClick={openEditDialog} sx={{ border: '1px solid #e2e8f0', bgcolor: '#f8fafc' }}><EditIcon fontSize="small" /></IconButton>
+                    </Tooltip>
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#64748b', fontWeight: '500', mt: 0.5 }}>
                     Configure system roles and granular module permissions.
@@ -344,8 +414,17 @@ const UserAccess = () => {
                     </FormControl>
                     {isSystemUser && (
                       <Alert severity="warning" sx={{ mt: 2, py: 0, borderRadius: '8px' }}>
-                        System user (cannot access payroll/profile details).
+                        System user (non-employee admin/HR). Login with username only — not tied to Employee Master.
                       </Alert>
+                    )}
+                    {selectedUserObj && (
+                      <Box sx={{ mt: 2, display: 'flex', gap: 1.5, flexWrap: 'wrap', fontSize: '11px', color: '#475569' }}>
+                        <Chip size="small" label={`Last: ${formatLastLogin(selectedUserObj.last_login)}`} sx={{ fontSize: '11px', bgcolor: '#f1f5f9' }} />
+                        {selectedUserObj.previous_login && <Chip size="small" label={`Prev: ${formatLastLogin(selectedUserObj.previous_login)}`} sx={{ fontSize: '11px', bgcolor: '#f1f5f9' }} />}
+                        <Chip size="small" label={`Logins: ${selectedUserObj.login_count || 0}`} sx={{ fontSize: '11px' }} />
+                        <Chip size="small" label={selectedUserObj.username} sx={{ fontSize: '11px' }} />
+                        {selectedUserObj.empid && <Chip size="small" label={`Emp ${selectedUserObj.empid}`} sx={{ fontSize: '11px' }} />}
+                      </Box>
                     )}
                   </Grid>
                 </Grid>
@@ -449,10 +528,22 @@ const UserAccess = () => {
               <TextField
                 fullWidth
                 size="small"
-                label="Username"
+                label="Username *"
                 value={newUser.username}
                 onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                 required
+                helperText="Login ID — unique (e.g. admin.john)"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Display Name *"
+                value={newUser.ename}
+                onChange={(e) => setNewUser({ ...newUser, ename: e.target.value })}
+                placeholder={newUser.username ? newUser.username : 'e.g. John Admin'}
+                helperText="Shown in header & audit logs — distinguishes multiple admins"
               />
             </Grid>
             {!newUser.isSystemUser && (
@@ -525,6 +616,30 @@ const UserAccess = () => {
           >
             {creating ? 'Creating...' : 'Create User'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Edit User — {selectedUserObj?.username}
+          <IconButton onClick={() => setEditDialogOpen(false)}><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <TextField fullWidth size="small" label="Username (login ID)" value={editForm.username} onChange={e => setEditForm({ ...editForm, username: e.target.value })} helperText="Must be unique" required />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField fullWidth size="small" label="Display Name" value={editForm.ename} onChange={e => setEditForm({ ...editForm, ename: e.target.value })} helperText="Shown in header & logs — e.g. John Admin" required />
+            </Grid>
+            <Grid item xs={12}>
+              <Alert severity="info" sx={{ py: 0.5, fontSize: '11px' }}>Changing username affects login. User must use new username next time.</Alert>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setEditDialogOpen(false)} color="inherit">Cancel</Button>
+          <Button variant="contained" onClick={handleSaveEdit} disabled={savingEdit}>{savingEdit ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
     </Box>

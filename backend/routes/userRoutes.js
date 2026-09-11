@@ -12,4 +12,7 @@ router.post('/create', requireAuth, requireRole(['ADMIN']), userController.creat
 // Update permissions for a specific user (admin only)
 router.put('/:id/permissions', requireAuth, requireRole(['ADMIN']), userController.updatePermissions);
 
+// Update username / display name / role (admin only)
+router.put('/:id', requireAuth, requireRole(['ADMIN']), userController.updateUser);
+
 module.exports = router;
