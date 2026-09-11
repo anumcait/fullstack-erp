@@ -32,14 +32,16 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
     return w;
   });
   useEffect(() => {
+    if (!initialWidths) return;
     setColumnWidths((prev) => {
+      let changed = false;
       const w = { ...prev };
-      columns.forEach((c) => {
-        if (initialWidths?.[c.field] !== undefined) w[c.field] = initialWidths[c.field];
+      Object.keys(initialWidths).forEach((k) => {
+        if (w[k] !== initialWidths[k]) { w[k] = initialWidths[k]; changed = true; }
       });
-      return w;
+      return changed ? w : prev;
     });
-  }, [initialWidths, columns]);
+  }, [initialWidths]);
 
   // Drag-to-resize column widths
   const startResize = (field, e) => {
@@ -121,9 +123,15 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
   });
 
   const filteredData = sortedData.filter((row) => {
-    return Object.entries(filters).every(([field, value]) =>
-      row[field]?.toString().toLowerCase().includes(value.toLowerCase())
-    );
+    return Object.entries(filters).every(([field, value]) => {
+      if (!value) return true;
+      if (field === 'emp_display') {
+        const combined = `${row.empid || ''} - ${row.ename || ''}`.toLowerCase();
+        const v = value.toLowerCase();
+        return combined.includes(v) || String(row.empid||'').toLowerCase().includes(v) || String(row.ename||'').toLowerCase().includes(v) || String(row[field]||'').toLowerCase().includes(v);
+      }
+      return row[field]?.toString().toLowerCase().includes(value.toLowerCase());
+    });
   });
 
   const pagedData = filteredData.slice(

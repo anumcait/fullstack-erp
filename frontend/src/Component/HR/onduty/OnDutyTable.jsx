@@ -66,10 +66,11 @@ const OnDutyTable = ({ onNewEntry }) => {
           sno: index + 1,
           _expanded: false,
           ...row,
-          act_date_display: formatDateOnly(row.act_date), // Movement Date as date only
-          movement_date_display: formatDateTimeAMPM(row.movement_date), // Entry Date as datetime
-          perm_ftime_display: formatTime(row.perm_ftime), // HH:MM only
-          perm_ttime_display: formatTime(row.perm_ttime), // HH:MM only
+          emp_display: `${row.empid} - ${row.ename}`,
+          act_date_display: formatDateOnly(row.act_date),
+          movement_date_display: formatDateTimeAMPM(row.movement_date),
+          perm_ftime_display: formatTime(row.perm_ftime),
+          perm_ttime_display: formatTime(row.perm_ttime),
           no_of_hrs: calculateHours(row.perm_ftime, row.perm_ttime)
         }));
         setData(formatted);
@@ -93,11 +94,7 @@ const OnDutyTable = ({ onNewEntry }) => {
     { header: "S.No.", field: "sno" },
     { header: "Entry ID", field: "movement_id" },
     { header: "Entry Date", field: "movement_date_display" },
-    { header: "Emp ID", field: "empid" },
-    { header: "Name", field: "ename" },
-    { header: "Unit", field: "unit" },
-    { header: "Division", field: "division" },
-    { header: "Designation", field: "designation" },
+    { header: "Employee", field: "emp_display", render: (row)=> `${row.empid} - ${row.ename}` },
     { header: "Movement Date", field: "act_date_display" },
     { header: "Shift", field: "shift" },
     { header: "From Time", field: "perm_ftime_display" },
@@ -112,6 +109,7 @@ const OnDutyTable = ({ onNewEntry }) => {
         title="On Duty List"
         columns={columns}
         data={data}
+        initialWidths={{ sno:45, movement_id:75, movement_date_display:110, emp_display:170, act_date_display:95, shift:70, perm_ftime_display:65, perm_ttime_display:65, no_of_hrs:60, reason_perm:180 }}
         headerAction={
           onNewEntry && (
             <button

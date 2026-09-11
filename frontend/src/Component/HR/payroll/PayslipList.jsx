@@ -15,8 +15,22 @@ import { useCompany } from "../../../context/CompanyContext";
 import logo from "../../../assets/images/EQIC_Image.jpg";
 import "./PayslipPreview.css";
 
+const usePayslipPrintShortcut = () => {
+  useEffect(() => {
+    const h = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        const el = document.getElementById('payslip-modal-content') || document.getElementById('my-payslip-print');
+        if (el && el.offsetParent !== null) { e.preventDefault(); window.print(); }
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
+};
+
 
 const PayslipList = () => {
+  usePayslipPrintShortcut();
   const { showToast } = useToast();
   const { companyName } = useCompany();
   const today = new Date();

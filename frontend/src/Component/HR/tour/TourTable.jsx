@@ -17,6 +17,7 @@ const TourTable = ({ onNewEntry }) => {
           ...row,
           sno: index + 1,
           _expanded: false,
+          emp_display: `${row.empid} - ${row.ename}`,
           tour_from_date_display: row.tour_from_date ? formatDate(row.tour_from_date) : "",
           tour_to_date_display: row.tour_to_date ? formatDate(row.tour_to_date) : "",
           tour_date_display: row.tour_date ? formatDate(row.tour_date) : "",
@@ -42,10 +43,7 @@ const TourTable = ({ onNewEntry }) => {
     { header: "S.No.", field: "sno" },
     { header: "Tour ID", field: "tour_id" },
     { header: "Entry Date", field: "tour_date_display" },
-    { header: "Emp ID", field: "empid" },
-    { header: "Name", field: "ename" },
-    { header: "Unit", field: "unit" },
-    { header: "Division", field: "division" },
+    { header: "Employee", field: "emp_display", render: (row)=> `${row.empid} - ${row.ename}` },
     { header: "Destination", field: "destination", expandable: true },
     { header: "Purpose", field: "purpose", expandable: true },
     { header: "From Date", field: "tour_from_date_display" },
@@ -59,6 +57,7 @@ const TourTable = ({ onNewEntry }) => {
         title="Tour Applications"
         columns={columns}
         data={data}
+        initialWidths={{ sno:45, tour_id:75, tour_date_display:110, emp_display:170, destination:150, purpose:180, tour_from_date_display:95, tour_to_date_display:95, status:90 }}
         headerAction={
           onNewEntry && (
             <button

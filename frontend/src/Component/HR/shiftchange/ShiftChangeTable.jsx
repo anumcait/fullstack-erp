@@ -17,6 +17,7 @@ const ShiftChangeTable = ({ onNewEntry }) => {
           sno: index + 1,
           _expanded: false,
           ...row,
+          emp_display: `${row.empid} - ${row.empname || row.ename || ''}`,
           entry_date: formatDateTimeAMPM(row.schange_date),
           from_date: formatDateOnly(row.schange_from),
           to_date: formatDateOnly(row.schange_to),
@@ -44,8 +45,7 @@ const ShiftChangeTable = ({ onNewEntry }) => {
     { header: "S.No.", field: "sno" },
     { header: "App No", field: "schange_no" },
     { header: "Entry Date", field: "entry_date" },
-    { header: "Emp ID", field: "empid" },
-    { header: "Name", field: "empname" },
+    { header: "Employee", field: "emp_display", render: (row)=> `${row.empid} - ${row.empname || row.ename}` },
     { header: "From Date", field: "from_date" },
     { header: "To Date", field: "to_date" },
     { header: "Actual Shift", field: "act_shift_display" },
@@ -59,6 +59,7 @@ const ShiftChangeTable = ({ onNewEntry }) => {
         title="Shift Change List"
         columns={columns}
         data={data}
+        initialWidths={{ sno:45, schange_no:85, entry_date:110, emp_display:170, from_date:95, to_date:95, act_shift_display:90, cha_shift_display:90, app_status:90 }}
         headerAction={
           onNewEntry && (
             <button

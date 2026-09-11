@@ -34,8 +34,9 @@ const LeaveReport = ({ onNewEntry }) => {
 
           return {
             sno: index + 1,
-            _expanded: false, // Hidden by default, click arrow to open
+            _expanded: false,
             ...row,
+            emp_display: `${row.empid} - ${row.ename}`,
             ldate: formattedDate,
             statusText: row.status || "Pending",
             from_date: row.leaveDetails?.length > 1
@@ -85,26 +86,25 @@ const LeaveReport = ({ onNewEntry }) => {
     { header: "S.No.", field: "sno" },
     { header: "Leave ID", field: "lno" },
     { header: "Date", field: "ldate" },
-    { header: "Emp ID", field: "empid" },
-    { header: "Name", field: "ename" },
+    { header: "Employee", field: "emp_display", render: (row)=> `${row.empid} - ${row.ename}` },
     { header: "From", field: "from_date" },
     { header: "To", field: "to_date" },
-    { header: "Days", field: "total_days" },
-    { header: "Designation", field: "designation" },
-    { header: "Department", field: "department" },
+    { header: "Days", field: "total_days", render: (row)=> <span style={{ fontWeight:700 }}>{row.total_days}</span> },
+    { header: "Status", field: "statusText", render: (row)=> {
+        const st=row.statusText||row.status||'Pending';
+        const col=st==='Approved'?'#2e7d32':st==='Rejected'?'#c62828':'#0288d1';
+        return <span style={{ fontWeight:700, color:col, fontSize:12, padding:'2px 6px', borderRadius:4, background: st==='Approved'?'#e8f5e9': st==='Rejected'?'#ffebee':'#e3f2fd' }}>{st}</span>;
+      }},
     { header: "Reason", field: "pofl", expandable: true },
-    { header: "Address", field: "address", expandable: true },
-    { header: "Phone", field: "phno" },
-    { header: "Status", field: "statusText" },
   ];
 
   return (
     <>
       <SmartTable
-        // keyField="sno"
         title="Leave Report"
         columns={columns}
         data={data}
+        initialWidths={{ sno:45, lno:75, ldate:130, emp_display:170, from_date:95, to_date:95, total_days:60, statusText:105, pofl:180 }}
         headerAction={
           onNewEntry && (
             <button

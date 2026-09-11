@@ -144,7 +144,28 @@ const LeavePreview = ({ data, onClose }) => {
 
   return (
     <div className="leave-print-overlay">
-      <div className="leave-print-container" style={{ paddingBottom: '30px' }}>
+      <div className="leave-print-container" style={{ paddingBottom: '30px', position: 'relative', overflow: 'hidden' }}>
+        {isPayslipGenerated && (
+          <div style={{
+            position: 'absolute',
+            top: '42%',
+            left: '50%',
+            transform: 'translate(-50%, -50%) rotate(-32deg)',
+            fontSize: '38px',
+            fontWeight: 800,
+            letterSpacing: '3px',
+            color: 'rgba(198, 40, 40, 0.09)',
+            border: '3px solid rgba(198, 40, 40, 0.09)',
+            padding: '8px 18px',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 2,
+            textAlign: 'center',
+            lineHeight: 1.2
+          }}>
+            Payslip Generated — View Only
+          </div>
+        )}
         {/* Standardized Header */}
         <div className="leave-report-header-container">
           <div className="leave-report-header-top" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

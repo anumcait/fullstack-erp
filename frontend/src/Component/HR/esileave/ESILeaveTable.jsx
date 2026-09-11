@@ -17,6 +17,7 @@ const ESILeaveTable = ({ onNewEntry }) => {
           sno: index + 1,
           _expanded: false,
           ...row,
+          emp_display: `${row.empid} - ${row.ename}`,
           esi_leave_date_formatted: formatDateTimeDot(row.esi_leave_date),
           esi_leave_from_formatted: formatDateOnly(row.leave_from_date),
           esi_leave_to_formatted: formatDateOnly(row.leave_to_date),
@@ -42,9 +43,7 @@ const ESILeaveTable = ({ onNewEntry }) => {
     { header: "S.No.", field: "sno" },
     { header: "ESI Leave ID", field: "esi_leave_id" },
     { header: "Entry Date", field: "esi_leave_date_formatted" },
-    { header: "Emp ID", field: "empid" },
-    { header: "Name", field: "ename" },
-    { header: "Unit", field: "unit" },
+    { header: "Employee", field: "emp_display", render: (row)=> `${row.empid} - ${row.ename}` },
     { header: "From Date", field: "esi_leave_from_formatted" },
     { header: "To Date", field: "esi_leave_to_formatted" },
     { header: "No of Days", field: "no_of_days" },
@@ -58,6 +57,7 @@ const ESILeaveTable = ({ onNewEntry }) => {
          title="ESI Leave List"
          columns={columns}
          data={data}
+         initialWidths={{ sno:45, esi_leave_id:90, esi_leave_date_formatted:110, emp_display:170, esi_leave_from_formatted:95, esi_leave_to_formatted:95, no_of_days:70, status:85, reason:180 }}
          headerAction={
           onNewEntry && (
             <button

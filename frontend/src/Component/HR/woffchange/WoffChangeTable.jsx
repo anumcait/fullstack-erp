@@ -17,6 +17,7 @@ const WoffChangeTable = ({ onNewEntry }) => {
           sno: index + 1,
           _expanded: false,
           ...row,
+          emp_display: `${row.empid} - ${row.ename}`,
           woff_date: formatDateOnly(row.woff_date),
           woff_from_date: formatDateOnly(row.woff_from_date),
           woff_to_date: formatDateOnly(row.woff_to_date),
@@ -42,9 +43,7 @@ const WoffChangeTable = ({ onNewEntry }) => {
     { header: "S.No.", field: "sno" },
     { header: "Woff ID", field: "woff_id" },
     { header: "Woff Date", field: "woff_date" },
-    { header: "Emp ID", field: "empid" },
-    { header: "Name", field: "ename" },
-    { header: "Unit", field: "unit" },
+    { header: "Employee", field: "emp_display", render: (row)=> `${row.empid} - ${row.ename}` },
     { header: "Current Day", field: "current_woff_day" },
     { header: "Requested Day", field: "requested_woff_day" },
     { header: "From Date", field: "woff_from_date" },
@@ -58,6 +57,7 @@ const WoffChangeTable = ({ onNewEntry }) => {
         title="Woff Change List"
         columns={columns}
         data={data}
+        initialWidths={{ sno:45, woff_id:75, woff_date:95, emp_display:170, current_woff_day:90, requested_woff_day:95, woff_from_date:95, woff_to_date:95, status:85 }}
         headerAction={
           onNewEntry && (
             <button

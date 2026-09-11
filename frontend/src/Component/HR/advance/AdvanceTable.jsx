@@ -17,6 +17,7 @@ const AdvanceTable = ({ onNewEntry }) => {
           sno: index + 1,
           _expanded: false,
           ...row,
+          emp_display: `${row.empid} - ${row.ename}`,
           advance_date_formatted: formatDateTimeDot(row.advance_date),
         }));
         setData(formatted);
@@ -112,7 +113,6 @@ const AdvanceTable = ({ onNewEntry }) => {
     { header: "Advance ID", field: "advance_id" },
     { header: "Entry Date", field: "advance_date_formatted" },
     { header: "Employee", field: "emp_display", render: (row)=> `${row.empid} - ${row.ename}` },
-    { header: "Gross Salary", field: "gross_salary", render: (row)=> `₹${Number(row.gross_salary||0).toLocaleString('en-IN')}` },
     { header: "Amount", field: "advance_amount", render: (row)=> `₹${Number(row.advance_amount||0).toLocaleString('en-IN')}` },
     {
       header: "Overall Status",
@@ -135,6 +135,7 @@ const AdvanceTable = ({ onNewEntry }) => {
       render: (row) => `₹${(Number(row.pending_amount ?? 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
     },
     { header: "Status", field: "status", render: (row)=> <span style={{ fontSize:12, padding:'2px 6px', borderRadius:4, background: row.status==='Approved'?'#e8f5e9':'#f5f5f5', color: row.status==='Approved'?'#2e7d32':'#616161', fontWeight:600 }}>{row.status}</span> },
+    { header: "Reason", field: "reason", expandable: true },
   ];
 
   return (
@@ -143,7 +144,7 @@ const AdvanceTable = ({ onNewEntry }) => {
         title="Advance List"
         columns={columns}
         data={data}
-        initialWidths={{ sno:45, advance_id:75, advance_date_formatted:95, emp_display:160, gross_salary:90, advance_amount:90, overall_status:90, pending_amount:100, status:80 }}
+        initialWidths={{ sno:45, advance_id:75, advance_date_formatted:95, emp_display:160, advance_amount:90, overall_status:90, pending_amount:100, status:80, reason:220 }}
         headerAction={
           onNewEntry && (
             <button
