@@ -57,7 +57,7 @@ const ESILeaveTable = ({ onNewEntry }) => {
          title="ESI Leave List"
          columns={columns}
          data={data}
-         initialWidths={{ sno:45, esi_leave_id:90, esi_leave_date_formatted:110, emp_display:170, esi_leave_from_formatted:95, esi_leave_to_formatted:95, no_of_days:70, status:85, reason:180 }}
+          initialWidths={{ sno:35, esi_leave_id:75, esi_leave_date_formatted:95, emp_display:130, esi_leave_from_formatted:85, esi_leave_to_formatted:85, no_of_days:60, status:70, reason:140 }}
          headerAction={
           onNewEntry && (
             <button

@@ -335,13 +335,29 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
               <React.Fragment key={row.id ?? row.sno ?? i}>
                 <tr className={row._expanded ? "row-expanded" : ""} onClick={() => onRowClick && onRowClick(row)}>
                   {columns.filter(col => visibleColumns.includes(col.field)).map((col, colIdx) => (
-                    <td key={colIdx} style={{ textAlign: col.align || 'left', ...(col.expandable && row._expanded ? { whiteSpace: 'normal', wordBreak: 'break-word' } : {}) }}>
+                    <td key={colIdx} style={{ textAlign: col.align || 'left', width: col.expandable ? columnWidths[col.field] : undefined, maxWidth: col.expandable ? columnWidths[col.field] : undefined, ...(col.expandable && row._expanded ? { whiteSpace: 'normal', wordBreak: 'break-word' } : {}) }}>
                       {col.render ? (
                         col.render(row)
                       ) : col.expandable ? (
                         <div
+                          tabIndex={0}
+                          role="button"
+                          aria-expanded={row._expanded ? "true" : "false"}
                           className={`reason-container ${row._expanded ? "expanded" : ""}`}
                           title={!row._expanded ? row[col.field] : ""}
+                          style={{ width: columnWidths[col.field] ? `${Math.max(80, columnWidths[col.field] - 16)}px` : '164px', display: 'block' }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'ArrowDown') {
+                              e.preventDefault();
+                              if (!row._expanded && onToggleExpand) onToggleExpand(row);
+                            } else if (e.key === 'ArrowUp' || e.key === 'Escape') {
+                              e.preventDefault();
+                              if (row._expanded && onToggleExpand) onToggleExpand(row);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (row._expanded && onToggleExpand) onToggleExpand(row);
+                          }}
                         >
                           <span className="reason-text">{row[col.field]}</span>
                         </div>

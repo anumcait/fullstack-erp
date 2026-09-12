@@ -100,7 +100,7 @@ const OnDutyTable = ({ onNewEntry }) => {
     { header: "From Time", field: "perm_ftime_display" },
     { header: "To Time", field: "perm_ttime_display" },
     { header: "Hours", field: "no_of_hrs" },
-    { header: "Reason", field: "reason_perm", expandable: true },
+    { header: "Purpose", field: "reason_perm", expandable: true },
   ];
 
   return (
@@ -109,7 +109,7 @@ const OnDutyTable = ({ onNewEntry }) => {
         title="On Duty List"
         columns={columns}
         data={data}
-        initialWidths={{ sno:45, movement_id:75, movement_date_display:110, emp_display:170, act_date_display:95, shift:70, perm_ftime_display:65, perm_ttime_display:65, no_of_hrs:60, reason_perm:180 }}
+        initialWidths={{ sno:35, movement_id:65, movement_date_display:95, emp_display:130, act_date_display:85, shift:60, perm_ftime_display:60, perm_ttime_display:60, no_of_hrs:50, reason_perm:160 }}
         headerAction={
           onNewEntry && (
             <button

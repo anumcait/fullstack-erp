@@ -57,7 +57,7 @@ const TourTable = ({ onNewEntry }) => {
         title="Tour Applications"
         columns={columns}
         data={data}
-        initialWidths={{ sno:45, tour_id:75, tour_date_display:110, emp_display:170, destination:150, purpose:180, tour_from_date_display:95, tour_to_date_display:95, status:90 }}
+        initialWidths={{ sno:35, tour_id:65, tour_date_display:95, emp_display:130, destination:120, purpose:140, tour_from_date_display:85, tour_to_date_display:85, status:70 }}
         headerAction={
           onNewEntry && (
             <button

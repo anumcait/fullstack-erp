@@ -48,6 +48,7 @@ const WoffChangeTable = ({ onNewEntry }) => {
     { header: "Requested Day", field: "requested_woff_day" },
     { header: "From Date", field: "woff_from_date" },
     { header: "To Date", field: "woff_to_date" },
+    { header: "Purpose", field: "reason", expandable: true },
     { header: "Status", field: "status" },
   ];
 
@@ -57,7 +58,7 @@ const WoffChangeTable = ({ onNewEntry }) => {
         title="Woff Change List"
         columns={columns}
         data={data}
-        initialWidths={{ sno:45, woff_id:75, woff_date:95, emp_display:170, current_woff_day:90, requested_woff_day:95, woff_from_date:95, woff_to_date:95, status:85 }}
+        initialWidths={{ sno:35, woff_id:65, woff_date:80, emp_display:130, current_woff_day:80, requested_woff_day:80, woff_from_date:80, woff_to_date:80, reason:140, status:70 }}
         headerAction={
           onNewEntry && (
             <button

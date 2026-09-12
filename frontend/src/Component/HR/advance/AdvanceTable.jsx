@@ -144,7 +144,7 @@ const AdvanceTable = ({ onNewEntry }) => {
         title="Advance List"
         columns={columns}
         data={data}
-        initialWidths={{ sno:45, advance_id:75, advance_date_formatted:95, emp_display:160, advance_amount:90, overall_status:90, pending_amount:100, status:80, reason:220 }}
+        initialWidths={{ sno:35, advance_id:65, advance_date_formatted:85, emp_display:130, advance_amount:75, overall_status:75, pending_amount:85, status:70, reason:160 }}
         headerAction={
           onNewEntry && (
             <button

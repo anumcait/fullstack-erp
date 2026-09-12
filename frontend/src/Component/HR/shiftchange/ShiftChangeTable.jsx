@@ -50,6 +50,7 @@ const ShiftChangeTable = ({ onNewEntry }) => {
     { header: "To Date", field: "to_date" },
     { header: "Actual Shift", field: "act_shift_display" },
     { header: "Change Shift", field: "cha_shift_display" },
+    { header: "Purpose", field: "purpose", expandable: true },
     { header: "Status", field: "app_status" },
   ];
 
@@ -59,7 +60,7 @@ const ShiftChangeTable = ({ onNewEntry }) => {
         title="Shift Change List"
         columns={columns}
         data={data}
-        initialWidths={{ sno:45, schange_no:85, entry_date:110, emp_display:170, from_date:95, to_date:95, act_shift_display:90, cha_shift_display:90, app_status:90 }}
+        initialWidths={{ sno:35, schange_no:70, entry_date:95, emp_display:130, from_date:80, to_date:80, act_shift_display:70, cha_shift_display:70, purpose:140, app_status:70 }}
         headerAction={
           onNewEntry && (
             <button
