@@ -440,8 +440,9 @@ exports.getAttendance = async (req, res) => {
 exports.getEmployeeAttendanceSummary = async (req, res) => {
   try {
     const { empid, month, year } = req.query;
+    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
     const attendanceData = await Attendance.findAll({
       where: {
@@ -517,8 +518,9 @@ exports.getShiftScheduleForAttendance = async (req, res) => {
     const { month, year } = req.query;
     const monthNum = parseInt(month);
     const yearNum = parseInt(year);
+    const lastDay = new Date(yearNum, monthNum, 0).getDate();
     const startDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
-    const endDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-31`;
+    const endDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
     const schedules = await ShiftSchedule.findAll({
       where: {
@@ -1738,9 +1740,13 @@ exports.bulkApproveOT = async (req, res) => {
 exports.getLateReport = async (req, res) => {
   try {
     const { month, year, lateOnly } = req.query;
+    if (!month || !year || isNaN(parseInt(month)) || isNaN(parseInt(year))) {
+      return res.status(400).json({ message: 'month and year are required' });
+    }
 
+    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
     const where = {
       att_date: { [Op.between]: [startDate, endDate] }

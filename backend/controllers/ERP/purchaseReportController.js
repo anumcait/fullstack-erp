@@ -25,12 +25,15 @@ function addLike(clauses, replacements, field, value) {
   replacements[key] = `%${value}%`;
 }
 
+function isValidDateStr(d) {
+  return d && typeof d === 'string' && d !== 'Invalid date' && !isNaN(Date.parse(d)) && /^\d{4}-\d{2}-\d{2}/.test(d);
+}
 function addDateRange(clauses, replacements, field, from, to) {
-  if (from) {
+  if (isValidDateStr(from)) {
     clauses.push(`${field} >= :from`);
     replacements.from = from;
   }
-  if (to) {
+  if (isValidDateStr(to)) {
     clauses.push(`${field} <= :to`);
     replacements.to = to;
   }
@@ -679,11 +682,16 @@ exports.getDailyReport = async (req, res) => {
   try {
     const { from, to } = req.query;
     const rep = {};
-    const prWhere = from && to ? 'pr.created_date BETWEEN :from AND :to' : 'DATE(pr.created_date) = :day';
-    const poWhere = from && to ? 'po.created_date BETWEEN :from AND :to' : 'DATE(po.created_date) = :day';
-    const joWhere = from && to ? 'jo.jo_date BETWEEN :from AND :to' : 'jo.jo_date = :day::DATE';
-    const grnWhere = from && to ? 'grn.ir_date BETWEEN :from AND :to' : 'DATE(grn.ir_date) = :day';
-    const replacements = from && to ? { from, to } : { day: req.query.date || new Date().toISOString().slice(0, 10) };
+    const validFrom = isValidDateStr(from);
+    const validTo = isValidDateStr(to);
+    const hasRange = validFrom && validTo;
+    const rawDay = req.query.date;
+    const validDay = isValidDateStr(rawDay) ? rawDay : new Date().toISOString().slice(0, 10);
+    const prWhere = hasRange ? 'pr.created_date BETWEEN :from AND :to' : 'DATE(pr.created_date) = :day';
+    const poWhere = hasRange ? 'po.created_date BETWEEN :from AND :to' : 'DATE(po.created_date) = :day';
+    const joWhere = hasRange ? 'jo.jo_date BETWEEN :from AND :to' : 'jo.jo_date = :day::DATE';
+    const grnWhere = hasRange ? 'grn.ir_date BETWEEN :from AND :to' : 'DATE(grn.ir_date) = :day';
+    const replacements = hasRange ? { from, to } : { day: validDay };
 
     const prSql = `
       SELECT pr.id AS req_id, pr.req_no, pr.requested_by, pr.department, pr.sub_department, pr.status, pr.priority, pr.req_date,

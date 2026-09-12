@@ -399,7 +399,7 @@ function POMatrixTable({ matrix, loading, fmt, filters, title = "Daily", onViewC
       if (view === 'yearly') {
         params = { supplier_id: supplierId, from: date + "-01-01", to: date + "-12-31" };
       } else if (isMonthly) {
-        params = { supplier_id: supplierId, from: date + "-01", to: date + "-31" };
+        const y = parseInt(date.slice(0, 4)); const m = parseInt(date.slice(5, 7)); const last = new Date(y, m, 0).getDate(); params = { supplier_id: supplierId, from: date + "-01", to: date + `-${String(last).padStart(2, '0')}` };
       } else {
         params = { supplier_id: supplierId, date };
       }

@@ -589,8 +589,8 @@ exports.getShiftChangeReport = async (req, res) => {
   try {
     const { startDate, endDate, empid } = req.query;
     const where = {};
-    
-    if (startDate && endDate) {
+    const isValidDate = (d) => d && !isNaN(Date.parse(d));
+    if (startDate && endDate && isValidDate(startDate) && isValidDate(endDate)) {
       where.schange_date = { [Op.between]: [startDate, endDate] };
     }
     if (empid) {
@@ -626,8 +626,8 @@ exports.getWoffChangeReport = async (req, res) => {
   try {
     const { startDate, endDate, empid } = req.query;
     const where = {};
-    
-    if (startDate && endDate) {
+    const isValidDate = (d) => d && !isNaN(Date.parse(d));
+    if (startDate && endDate && isValidDate(startDate) && isValidDate(endDate)) {
       where.woff_date = { [Op.between]: [startDate, endDate] };
     }
     if (empid) {

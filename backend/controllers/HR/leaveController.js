@@ -175,16 +175,58 @@ exports.getNextLeaveNumber = async (req, res) => {
 
 exports.getAllLeaves = async (req, res) => {
   try {
-    const leaves = await LeaveApplication.findAll({
+    const { startDate, endDate, month, year, empid } = req.query;
+    const isValid = (d) => d && !isNaN(Date.parse(d));
+    const where = {};
+    if (empid) where.empid = empid;
+    let leaves = await LeaveApplication.findAll({
+      where,
       include: [{
         model: LeaveDetails,
         as: 'leaveDetails',
-        attributes: ['frmdt', 'todate', 'nod', 'daydt', 'remarks', 'c_cl_sanction', 'c_el_sanction', 'c_hr_app_status']
+        attributes: ['frmdt', 'todate', 'nod', 'daydt', 'remarks', 'c_cl_sanction', 'c_el_sanction', 'c_hr_app_status', 'c_hr_app_remarks']
       }],
       order: [['lno', 'DESC']]
     });
-    res.json(leaves);
+    let sDate = null, eDate = null;
+    if (startDate && endDate && isValid(startDate) && isValid(endDate)) {
+      sDate = new Date(startDate); eDate = new Date(endDate);
+    } else if (month && year && !isNaN(parseInt(month)) && !isNaN(parseInt(year))) {
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      sDate = new Date(`${year}-${String(month).padStart(2, '0')}-01`);
+      eDate = new Date(`${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`);
+    }
+    if (sDate && eDate) {
+      leaves = leaves.filter(l => {
+        const ld = new Date(l.ldate);
+        if (ld >= sDate && ld <= eDate) return true;
+        const dets = l.leaveDetails || [];
+        return dets.some(d => {
+          const d1 = d.frmdt ? new Date(d.frmdt) : (d.daydt ? new Date(d.daydt.split('-').reverse().join('-')) : null);
+          const d2 = d.todate ? new Date(d.todate) : d1;
+          if (!d1 || isNaN(d1.getTime())) return false;
+          return (d1 >= sDate && d1 <= eDate) || (d2 && d2 >= sDate && d2 <= eDate) || (d1 <= sDate && d2 >= sDate);
+        });
+      });
+    }
+    const lnos = leaves.map(l => l.lno).filter(Boolean);
+    let hrMap = {};
+    if (lnos.length) {
+      const { LeaveApproval } = require('../../models');
+      const approvals = await LeaveApproval.findAll({ where: { lno: lnos }, raw: true });
+      approvals.forEach(a => {
+        if (!hrMap[a.lno]) hrMap[a.lno] = [];
+        hrMap[a.lno].push(a);
+      });
+    }
+    const out = leaves.map(l => {
+      const j = l.toJSON();
+      j.hrDetails = hrMap[l.lno] || [];
+      return j;
+    });
+    res.json(out);
   } catch (error) {
+    console.error('getAllLeaves error', error);
     res.status(500).json({ message: 'Error fetching leave report' });
   }
 };

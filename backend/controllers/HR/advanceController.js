@@ -263,8 +263,8 @@ exports.getAdvanceReport = async (req, res) => {
   try {
     const { startDate, endDate, empid } = req.query;
     const where = {};
-    
-    if (startDate && endDate) {
+    const isValid = (d) => d && !isNaN(Date.parse(d));
+    if (startDate && endDate && isValid(startDate) && isValid(endDate)) {
       where.advance_date = { [Op.between]: [startDate, endDate] };
     }
     if (empid) {
