@@ -73,11 +73,13 @@ export const CompanyProvider = ({ children }) => {
         : '';
 
     useEffect(() => {
-        const url = companySettings?.favicon_url || companySettings?.logo_url;
-        if (url) {
-            const link = document.getElementById('favicon');
-            if (link) link.href = url;
-        }
+        const cachedLogo = localStorage.getItem('cached_logo_url') || '';
+        const cachedFav = localStorage.getItem('cached_favicon_url') || '';
+        const url = companySettings?.favicon_url || companySettings?.logo_url || cachedFav || cachedLogo || '/logo.png';
+        const link = document.getElementById('favicon');
+        if (link) link.href = url;
+        if (companySettings?.logo_url) localStorage.setItem('cached_logo_url', companySettings.logo_url);
+        if (companySettings?.favicon_url) localStorage.setItem('cached_favicon_url', companySettings.favicon_url);
     }, [companySettings?.favicon_url, companySettings?.logo_url]);
 
     return (

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FaUsers,
@@ -30,8 +31,8 @@ import { saveAs } from "file-saver";
 const API = import.meta.env.VITE_API_URL || "";
 const COLORS = ["var(--primary-main)", "#F97316", "#10B981", "#F43F5E", "#8B5CF6"];
 
-const KpiCard = ({ title, icon, value, color, subtitle, badge }) => (
-  <div className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 border border-slate-200 transition-all group relative overflow-hidden">
+const KpiCard = ({ title, icon, value, color, subtitle, badge, onClick }) => (
+  <div onClick={onClick} className={`bg-white rounded-xl shadow-sm hover:shadow-md p-4 border border-slate-200 transition-all group relative overflow-hidden ${onClick ? 'cursor-pointer hover:border-[var(--primary-main)] hover:scale-[1.02] active:scale-[0.98]' : ''}`}>
     {badge > 0 && (
       <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-white animate-pulse">
         {badge}
@@ -43,6 +44,7 @@ const KpiCard = ({ title, icon, value, color, subtitle, badge }) => (
     </div>
     <p className={`text-xl font-black tracking-tight ${color}`}>{value}</p>
     <p className="text-[10px] text-slate-400 font-bold mt-0.5">{subtitle}</p>
+    {onClick && <p className="text-[9px] text-[var(--primary-main)] font-black mt-1 opacity-0 group-hover:opacity-100 transition">View details →</p>}
   </div>
 );
 
@@ -50,7 +52,12 @@ const ManagerDashboard = () => {
   const [summary, setSummary] = useState({
     totalTeam: 0,
     presentToday: 0,
+    presentPct: 0,
+    effectiveDate: null,
+    isCompanyWide: false,
+    fallbackNote: null,
     pendingLeaves: 0,
+    pendingTotal: 0,
     avgTeamLeave: 0,
   });
   const [attendanceTrend, setAttendanceTrend] = useState([]);
@@ -58,6 +65,7 @@ const ManagerDashboard = () => {
   const [upcomingBirthdays, setUpcomingBirthdays] = useState([]);
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const managerName = localStorage.getItem("empName") || "Manager";
 
   const fetchAll = useCallback(async () => {
@@ -73,10 +81,17 @@ const ManagerDashboard = () => {
       const birthdays = res.data.upcomingBirthdays || [];
       const approvals = res.data.pendingApprovals || [];
 
+      const pc = res.data.pendingCounts || {};
       setSummary({
         totalTeam: team.totalTeam || 0,
         presentToday: team.presentToday || 0,
+        presentPct: team.presentPct || 0,
+        effectiveDate: team.effectiveDate || null,
+        isCompanyWide: team.isCompanyWide || false,
+        fallbackNote: team.fallbackNote || null,
         pendingLeaves: leave.pendingLeaves || 0,
+        pendingTotal: pc.total ?? leave.pendingLeaves ?? 0,
+        pendingCounts: pc,
         avgTeamLeave: leave.avgLeaveDuration || 0,
       });
 
@@ -132,10 +147,7 @@ const ManagerDashboard = () => {
     }
   };
 
-  // Attendance rate calculation
-  const attendanceRate = summary.totalTeam > 0
-    ? Math.round((summary.presentToday / summary.totalTeam) * 100)
-    : 0;
+  const attendanceRate = Number(summary.presentPct) || (summary.totalTeam > 0 ? Math.round((summary.presentToday / summary.totalTeam) * 100) : 0);
 
   if (loading) {
     return (
@@ -148,9 +160,17 @@ const ManagerDashboard = () => {
     );
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isStale = summary.effectiveDate && summary.effectiveDate !== todayStr;
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300 animate-fadeIn">
-
+      {isStale && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <p className="text-sm font-bold text-amber-800">⚠️ Team attendance up to <span className="underline">{summary.effectiveDate}</span> only (today {todayStr}). Enter via HR Attendance / Shift Schedule.</p>
+          <button onClick={() => navigate('/shiftschedule')} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black">Go to Shift Schedule</button>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-slate-200">
         <div>
@@ -186,22 +206,25 @@ const ManagerDashboard = () => {
           icon={<FaUsers className="text-green-500 text-2xl" />}
           value={summary.totalTeam}
           color="text-green-600"
-          subtitle="Members under you"
+          subtitle={summary.fallbackNote || "Members under you"}
+          onClick={() => navigate('/employees')}
         />
         <KpiCard
-          title="Present Today"
+          title="Present"
           icon={<FaUserCheck className="text-[var(--primary-main)] text-2xl" />}
           value={summary.presentToday}
           color="text-[var(--primary-main)]"
-          subtitle={`${attendanceRate}% team attendance`}
+          subtitle={summary.effectiveDate ? `${attendanceRate}% on ${summary.effectiveDate}` : `${attendanceRate}% team attendance`}
+          onClick={() => navigate('/hr-attendance')}
         />
         <KpiCard
-          title="Pending Leaves"
+          title="Pending Approvals"
           icon={<FaClipboardList className="text-orange-500 text-2xl" />}
-          value={summary.pendingLeaves}
+          value={summary.pendingTotal ?? summary.pendingLeaves}
           color="text-orange-600"
-          subtitle="Awaiting your approval"
-          badge={summary.pendingLeaves}
+          subtitle={summary.pendingCounts ? `Leaves ${summary.pendingCounts.leaves || 0} • OD ${summary.pendingCounts.onduty || 0} • Tours ${summary.pendingCounts.tours || 0}` : "Awaiting your approval"}
+          badge={summary.pendingTotal ?? summary.pendingLeaves}
+          onClick={() => navigate('/leave?action=approval')}
         />
         <KpiCard
           title="Avg Leave Duration"
@@ -209,6 +232,7 @@ const ManagerDashboard = () => {
           value={`${summary.avgTeamLeave} days`}
           color="text-indigo-600"
           subtitle="Based on last 30 days"
+          onClick={() => navigate('/leave?tab=report')}
         />
       </div>
 

@@ -101,9 +101,10 @@ exports.applyLeave = async (req, res) => {
 
     const maxLnoResult = await LeaveApplication.findOne({
       attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('lno')), 0), 'maxLno']],
-      raw: true
+      raw: true,
+      transaction: t,
+      lock: t.LOCK.UPDATE
     });
-
     const nextLno = Number(maxLnoResult.maxLno) + 1;
     application.lno = nextLno;
 

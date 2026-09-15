@@ -119,18 +119,21 @@ exports.createWoff = async (req, res) => {
     // 3. Check for overlaps with other modules (OnDuty, Leave, etc.) - Placeholder logic
     // In a real scenario, we would check OD, Leave, and Tour tables here.
 
-    const maxId = await WoffApplication.max('woff_id') || 0;
-    const newWoffId = Number(maxId) + 1;
-
-    const woff = await WoffApplication.create({
-      ...req.body,
-      woff_id: newWoffId,
-      woff_date: new Date(),
-      created_by: ename,
-      status: 'Pending'
-    });
-
-    res.status(201).json({ message: 'Woff application created', data: woff });
+    const t = await WoffApplication.sequelize.transaction();
+    let newWoffId;
+    try {
+      const maxRow = await WoffApplication.findOne({ attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('woff_id')), 0), 'maxId']], raw: true, transaction: t, lock: t.LOCK.UPDATE });
+      newWoffId = Number(maxRow.maxId) + 1;
+      const woff = await WoffApplication.create({
+        ...req.body,
+        woff_id: newWoffId,
+        woff_date: new Date(),
+        created_by: ename,
+        status: 'Pending'
+      }, { transaction: t });
+      await t.commit();
+      res.status(201).json({ message: 'Woff application created', data: woff });
+    } catch (txErr) { await t.rollback(); throw txErr; }
   } catch (err) {
     console.error('Error creating woff:', err);
     res.status(500).json({ message: 'Error creating woff application', error: err.message });

@@ -43,12 +43,13 @@ exports.create = async (req, res) => {
     }
 
     const autoOtHrs = calculateOtHrs(in_time, out_time);
-
-    const maxIdResult = await ExtOt.max('id');
-    const maxId = maxIdResult ? parseInt(maxIdResult) : 0;
-
-    const extOt = await ExtOt.create({
-      id: maxId + 1,
+    const t = await ExtOt.sequelize.transaction();
+    let extOt;
+    try {
+      const maxRow = await ExtOt.findOne({ attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('id')), 0), 'maxId']], raw: true, transaction: t, lock: t.LOCK.UPDATE });
+      const nextId = Number(maxRow.maxId) + 1;
+      extOt = await ExtOt.create({
+        id: nextId,
       empid: parseInt(empid),
       ename,
       ot_date,
@@ -60,10 +61,11 @@ exports.create = async (req, res) => {
       app_status: 0,
       created_by: req.user?.id,
       created_dt: new Date()
-    });
-
-    console.log('Ext OT Created:', extOt.id);
-    res.status(201).json({ message: 'Ext OT created', data: extOt });
+    }, { transaction: t });
+      await t.commit();
+      console.log('Ext OT Created:', extOt.id);
+      res.status(201).json({ message: 'Ext OT created', data: extOt });
+    } catch (txErr) { await t.rollback(); throw txErr; }
   } catch (error) {
     console.error('Error creating ext OT:', error);
     res.status(500).json({ message: 'Error creating ext OT', error: error.message, stack: error.stack });

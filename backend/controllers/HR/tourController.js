@@ -94,11 +94,13 @@ exports.createTour = async (req, res) => {
         }
       }
     }
-    const maxId = await TourApplication.max('tour_id') || 0;
-    const newTourId = maxId + 1;
-
-    const tour = await TourApplication.create({
-      tour_id: newTourId,
+    const t = await TourApplication.sequelize.transaction();
+    let newTourId;
+    try {
+      const maxRow = await TourApplication.findOne({ attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('tour_id')), 0), 'maxId']], raw: true, transaction: t, lock: t.LOCK.UPDATE });
+      newTourId = Number(maxRow.maxId) + 1;
+      const tour = await TourApplication.create({
+        tour_id: newTourId,
       tour_date: new Date(),
       empid,
       ename,
@@ -112,9 +114,10 @@ exports.createTour = async (req, res) => {
       estimated_amount: estimated_amount || null,
       created_by: ename,
       status: 'Pending'
-    });
-
-    res.status(201).json({ message: 'Tour application created', data: tour });
+    }, { transaction: t });
+      await t.commit();
+      res.status(201).json({ message: 'Tour application created', data: tour });
+    } catch (txErr) { await t.rollback(); throw txErr; }
   } catch (err) {
     console.error('Error creating tour:', err);
     res.status(500).json({ message: 'Error creating tour application' });

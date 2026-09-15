@@ -70,12 +70,12 @@ exports.saveOnDuty = async (req, res) => {
       attributes: [
         [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('movement_id')), 0), 'maxId']
       ],
-      raw: true
+      raw: true,
+      transaction: t,
+      lock: t.LOCK.UPDATE
     });
-
     const nextMovementId = Number(maxIdResult.maxId) + 1;
     application.movement_id = nextMovementId;
-
     await OnDutyApplication.create(application, { transaction: t });
     await t.commit();
 

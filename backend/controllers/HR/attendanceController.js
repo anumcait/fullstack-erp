@@ -44,12 +44,22 @@ exports.saveAttendance = async (req, res) => {
       }
     }
 
-    // Block edits if salary already finalized for this month
     if (await isPayrollFinalized(attendanceData.att_date)) {
       return res.status(400).json({ message: 'Cannot modify attendance — salary already finalized for this month.' });
     }
-
-    // Absent status: no in/out times, no late/OT hours
+    const isWeeklyOffOrHoliday = ['W','H'].includes(attendanceData.status) || ['W','H'].includes(attendanceData.shift);
+    if (!isWeeklyOffOrHoliday) {
+      if (attendanceData.in_time && attendanceData.out_time) attendanceData.status = 'P';
+      else {
+        attendanceData.status = 'A';
+        if (!attendanceData.in_time) attendanceData.in_time = null;
+        if (!attendanceData.out_time) attendanceData.out_time = null;
+        if (!attendanceData.in_time || !attendanceData.out_time) {
+          attendanceData.in_time = null;
+          attendanceData.out_time = null;
+        }
+      }
+    }
     if (attendanceData.status === 'A') {
       attendanceData.in_time = null;
       attendanceData.out_time = null;
@@ -286,6 +296,11 @@ exports.saveBulkAttendance = async (req, res) => {
     });
 
     for (const att of attendanceList) {
+      const isWH = ['W','H'].includes(att.status) || ['W','H'].includes(att.shift);
+      if (!isWH) {
+        if (att.in_time && att.out_time) att.status = 'P';
+        else { att.status = 'A'; att.in_time = null; att.out_time = null; }
+      }
       const attDateFormatted = formatDateForQuery(att.att_date);
       const shiftSchedule = scheduleMap[`${att.empid}_${attDateFormatted}`];
 

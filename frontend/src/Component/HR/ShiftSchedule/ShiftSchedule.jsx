@@ -550,28 +550,24 @@ const ShiftSchedule = () => {
         </Tabs>
       </Box>
 
-      <CardContent>
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={2}>
-            <FormControl fullWidth size="small"><InputLabel>Month</InputLabel>
-              <Select name="month" value={filters.month} onChange={handleFilterChange} label="Month">{months.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}</Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={2}><TextField fullWidth size="small" label="Year" name="year" type="number" value={filters.year} onChange={handleFilterChange} /></Grid>
-          <Grid item xs={3}>
-            <FormControl fullWidth size="small"><InputLabel>Employee</InputLabel>
-              <Select name="empid" value={filters.empid} onChange={handleFilterChange} label="Employee" displayEmpty>
-                <MenuItem value="">All Employees</MenuItem>
-                {employees.map(emp => <MenuItem key={emp.empid} value={emp.empid}>{emp.empid} - {emp.ename}</MenuItem>)}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={5} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
-            <IconButton onClick={handlePrevWeek}><NavigateBeforeIcon /></IconButton>
-            <Typography variant="body2" sx={{ minWidth: 180, textAlign: 'center' }}>{weekRangeText}</Typography>
-            <IconButton onClick={handleNextWeek}><NavigateNextIcon /></IconButton>
-          </Grid>
-        </Grid>
+      <CardContent sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2, alignItems: 'center' }}>
+          <FormControl size="small" sx={{ minWidth: 160, flex: '1 1 160px' }}><InputLabel sx={{ fontWeight: 700, fontSize: 13 }}>Month</InputLabel>
+            <Select name="month" value={filters.month} onChange={handleFilterChange} label="Month" sx={{ fontWeight: 600 }}>{months.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}</Select>
+          </FormControl>
+          <TextField size="small" label="Year" name="year" type="number" value={filters.year} onChange={handleFilterChange} sx={{ minWidth: 120, flex: '0 1 120px', '& .MuiInputLabel-root': { fontWeight: 700, fontSize: 13 } }} InputLabelProps={{ shrink: true }} />
+          <FormControl size="small" sx={{ minWidth: 220, flex: '1 1 240px' }}><InputLabel sx={{ fontWeight: 700, fontSize: 13 }}>Employee</InputLabel>
+            <Select name="empid" value={filters.empid} onChange={handleFilterChange} label="Employee" displayEmpty sx={{ fontWeight: 600 }}>
+              <MenuItem value="">All Employees</MenuItem>
+              {employees.map(emp => <MenuItem key={emp.empid} value={emp.empid}>{emp.empid} - {emp.ename}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto', flex: '0 1 auto', bgcolor: '#f5f5f5', px: 1.5, py: 0.5, borderRadius: 2, border: '1px solid #e0e0e0' }}>
+            <IconButton size="small" onClick={handlePrevWeek} sx={{ bgcolor: 'white', border: '1px solid #ccc' }}><NavigateBeforeIcon /></IconButton>
+            <Typography variant="body2" sx={{ minWidth: 180, textAlign: 'center', fontWeight: 700 }}>{weekRangeText}</Typography>
+            <IconButton size="small" onClick={handleNextWeek} sx={{ bgcolor: 'white', border: '1px solid #ccc' }}><NavigateNextIcon /></IconButton>
+          </Box>
+        </Box>
 
         {loading && <LinearProgress sx={{ mb: 2 }} />}
 

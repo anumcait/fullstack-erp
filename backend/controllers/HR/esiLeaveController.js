@@ -53,12 +53,12 @@ exports.saveESILeave = async (req, res) => {
       attributes: [
         [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('esi_leave_id')), 0), 'maxId']
       ],
-      raw: true
+      raw: true,
+      transaction: t,
+      lock: t.LOCK.UPDATE
     });
-
     const nextESILeaveId = Number(maxIdResult.maxId) + 1;
     application.esi_leave_id = nextESILeaveId;
-
     await ESILeaveApplication.create(application, { transaction: t });
     await t.commit();
 

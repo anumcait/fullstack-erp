@@ -53,13 +53,13 @@ exports.hrSummary = async (req, res) => {
       recentProfileApprovals
     ] = await Promise.all([
       EmployeeMaster.count(),
-      EmployeeMaster.count({ where: { status: 'Active' } }),
-      Attendance.count({ where: { att_date: today, status: 'Present' } }),
+      EmployeeMaster.count({ where: { status: 'Active', is_active: true } }),
+      Attendance.count({ where: { att_date: today, status: { [Op.in]: ['Present', 'P'] }, in_time: { [Op.ne]: null } } }),
       Attendance.count({
         where: {
           att_date: { [Op.between]: [last30Days, today] },
-          late_hrs: { [Op.gt]: 0 },
-          late_exempt: false,
+          [Op.or]: [{ late_hrs: { [Op.gt]: 0 } }, { late_mins: { [Op.gt]: 0 } }],
+          late_exempt: { [Op.ne]: true },
         },
       }),
       LeaveDetails.count({ where: { c_hr_app_status: 'Pending' } }),
@@ -104,7 +104,7 @@ exports.hrSummary = async (req, res) => {
       Attendance.findAll({
         attributes: ['empid', [fn('COUNT', col('status')), 'absentCount']],
         where: {
-          status: 'Absent',
+          status: { [Op.in]: ['Absent', 'A'] },
           att_date: { [Op.between]: [last30Days, today] },
         },
         group: ['empid'],
@@ -116,7 +116,7 @@ exports.hrSummary = async (req, res) => {
         where: {
           att_date: { [Op.gte]: last30Days },
         },
-        attributes: ['att_date', 'status'],
+        attributes: ['att_date', 'status', 'in_time'],
         order: [['att_date', 'ASC']],
         raw: true,
       }),
@@ -127,6 +127,7 @@ exports.hrSummary = async (req, res) => {
         raw: true,
       }),
       EmployeeMaster.findAll({
+        where: { status: 'Active', is_active: true },
         attributes: [['deptname', 'type'], [fn('COUNT', col('empid')), 'count']],
         group: ['deptname'],
         raw: true,
@@ -141,12 +142,24 @@ exports.hrSummary = async (req, res) => {
       })
     ]);
 
+    let effectivePresent = presentToday;
+    let effectiveDate = today;
+    if (presentToday === 0) {
+      const latestP = await Attendance.findOne({ where: { status: { [Op.in]: ['Present', 'P'] }, in_time: { [Op.ne]: null } }, order: [['att_date', 'DESC']], attributes: ['att_date'], raw: true });
+      const latestAny = await Attendance.findOne({ order: [['att_date', 'DESC']], attributes: ['att_date'], raw: true });
+      const fallback = latestP || latestAny;
+      if (fallback && fallback.att_date) {
+        effectiveDate = fallback.att_date;
+        effectivePresent = await Attendance.count({ where: { att_date: fallback.att_date, status: { [Op.in]: ['Present', 'P'] }, in_time: { [Op.ne]: null } } });
+      }
+    }
     const inactiveEmployees = totalEmployees - activeEmployees;
-    const absentToday = activeEmployees - presentToday;
+    let leftLast30Days = 0;
+    try { leftLast30Days = await EmployeeMaster.count({ where: { status: { [Op.in]: ['Left', 'Resigned', 'Terminated'] } } }); } catch (e) { leftLast30Days = inactiveEmployees; }
+    const absentToday = effectivePresent > 0 ? Math.max(0, activeEmployees - effectivePresent) : 0;
+    const presentPct = activeEmployees > 0 ? ((effectivePresent / activeEmployees) * 100).toFixed(1) : 0;
 
-    console.log(`[DashboardDebug] Recent Approvals Count: ${recentProfileApprovals.length}`);
-    const approvalLabels = recentProfileApprovals.map(r => r.EmployeeMaster?.ename || `Emp ${r.empid}`);
-    console.log(`[DashboardDebug] Top Labels: ${approvalLabels.join(', ')}`);
+
 
     let totalLeaveDaysHR = 0;
     recentApprovedLeavesHR.forEach((app) => {
@@ -164,20 +177,20 @@ exports.hrSummary = async (req, res) => {
     const trendMap = {};
     for (const a of attendanceTrendRaw) {
       if (!trendMap[a.att_date]) trendMap[a.att_date] = { present: 0, date: a.att_date };
-      if (a.status === 'Present') trendMap[a.att_date].present++;
+      if (['Present','P'].includes(a.status) && a.in_time) trendMap[a.att_date].present++;
     }
     const attendanceTrend = Object.values(trendMap)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .map((t) => ({ date: t.date.slice(5), present: t.present }));
 
     const leaveByType = leaveByTypeRaw.map((l) => ({ type: l.leave_type, count: parseInt(l.count) }));
-    const attritionRate = totalEmployees > 0 ? ((inactiveEmployees / totalEmployees) * 100).toFixed(1) : 0;
+    const attritionRate = activeEmployees > 0 ? ((leftLast30Days / activeEmployees) * 100).toFixed(1) : 0;
 
     res.json({
-      employeeStats: { totalEmployees, activeEmployees, inactiveEmployees },
-      attendanceStats: { presentToday, absentToday, lateComingCount },
+      employeeStats: { totalEmployees, activeEmployees, inactiveEmployees, leftLast30Days },
+      attendanceStats: { presentToday: effectivePresent, absentToday, lateComingCount, presentPct, effectiveDate },
       leaveStats: { pendingLeaves, approvedLeaves, avgLeaveDuration },
-      attritionStats: { attritionRate },
+      attritionStats: { attritionRate, leftLast30Days },
       attendanceTrend,
       leaveByType,
       insights: {
@@ -206,77 +219,56 @@ exports.managerSummary = async (req, res) => {
   try {
     const managerId = req.session?.user?.empid || req.query.managerId;
     if (!managerId) return res.status(400).json({ message: 'Manager ID required' });
-
     const today = new Date().toISOString().slice(0, 10);
     const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-    const teamMembers = await EmployeeMaster.findAll({
-      where: { reporting_manager_id: managerId, status: 'Active' },
-      attributes: ['empid'],
-      raw: true,
-    });
-    const teamEmpIds = teamMembers.map((m) => m.empid);
-    const totalTeam = teamEmpIds.length;
-
-    if (totalTeam === 0) {
-      return res.json({
-        teamStats: { totalTeam: 0, presentToday: 0 },
-        leaveStats: { pendingLeaves: 0, avgLeaveDuration: 0, leaveByType: [] },
-        attendanceTrend: [],
-        upcomingBirthdays: [],
-        pendingApprovals: [],
-      });
+    let teamMembers = await EmployeeMaster.findAll({ where: { reporting_manager_id: managerId, status: 'Active', is_active: true }, attributes: ['empid'], raw: true });
+    let isCompanyWide = false;
+    let fallbackNote = null;
+    if (teamMembers.length === 0) {
+      try {
+        const rows = await EmployeeMaster.sequelize.query("SELECT empid FROM m_emp_off_det WHERE rto = :mid", { replacements: { mid: String(managerId) }, type: EmployeeMaster.sequelize.QueryTypes.SELECT });
+        if (rows.length) teamMembers = rows.map(r => ({ empid: Number(r.empid) }));
+      } catch (e) {}
     }
-
-    const [
-      presentToday,
-      pendingLeaves,
-      pendingLeaveApprovals,
-      allTeamEmps,
-      recentApprovedLeaves,
-      leaveByTypeRaw,
-      attendanceTrendRaw
-    ] = await Promise.all([
-      Attendance.count({
-        where: { empid: { [Op.in]: teamEmpIds }, att_date: today, status: 'Present' },
-      }),
-      LeaveApproval.count({
-        where: { empid: { [Op.in]: teamEmpIds }, app_status: 'Pending' },
-      }),
-      LeaveApproval.findAll({
-        where: { empid: { [Op.in]: teamEmpIds }, app_status: 'Pending' },
-        attributes: ['lno', 'empid', 'frmdt', 'todate', 'leave_type'],
-        raw: true,
-        limit: 10,
-      }),
-      EmployeeMaster.findAll({
-        where: { empid: { [Op.in]: teamEmpIds } },
-        attributes: ['empid', 'ename', 'dob'],
-        raw: true,
-      }),
-      LeaveApproval.findAll({
-        where: {
-          empid: { [Op.in]: teamEmpIds },
-          app_status: 'Approved',
-          frmdt: { [Op.gte]: new Date(last30Days) },
-        },
-        raw: true,
-      }),
-      LeaveApproval.findAll({
-        where: { empid: { [Op.in]: teamEmpIds }, app_status: { [Op.ne]: 'Pending' } },
-        attributes: ['leave_type', [fn('COUNT', col('leave_type')), 'count']],
-        group: ['leave_type'],
-        raw: true,
-      }),
-      Attendance.findAll({
-        where: {
-          empid: { [Op.in]: teamEmpIds },
-          att_date: { [Op.gte]: last30Days },
-        },
-        attributes: ['att_date', 'status'],
-        order: [['att_date', 'ASC']],
-        raw: true,
-      })
+    if (teamMembers.length === 0) {
+      const mgr = await EmployeeMaster.findOne({ where: { empid: managerId }, attributes: ['deptname'], raw: true });
+      if (mgr && mgr.deptname) {
+        teamMembers = await EmployeeMaster.findAll({ where: { deptname: mgr.deptname, status: 'Active', is_active: true, empid: { [Op.ne]: managerId } }, attributes: ['empid'], raw: true });
+        if (teamMembers.length) fallbackNote = 'Department team (' + mgr.deptname + ')';
+      }
+    }
+    if (teamMembers.length === 0) {
+      teamMembers = await EmployeeMaster.findAll({ where: { status: 'Active', is_active: true }, attributes: ['empid'], raw: true });
+      isCompanyWide = true;
+      fallbackNote = 'Company-wide (no direct reports assigned)';
+    }
+    const teamEmpIds = teamMembers.map(m => Number(m.empid)).filter(Boolean);
+    const totalTeam = teamEmpIds.length;
+    if (totalTeam === 0) {
+      return res.json({ teamStats: { totalTeam: 0, presentToday: 0, presentPct: 0, isCompanyWide, fallbackNote }, leaveStats: { pendingLeaves: 0, avgLeaveDuration: 0, leaveByType: [] }, attendanceTrend: [], upcomingBirthdays: [], pendingApprovals: [], pendingCounts: { leaves: 0, onduty: 0, tours: 0, woffs: 0, advances: 0 } });
+    }
+    let presentToday = await Attendance.count({ where: { empid: { [Op.in]: teamEmpIds }, att_date: today, status: { [Op.in]: ['Present', 'P'] }, in_time: { [Op.ne]: null } } });
+    let effectiveDate = today;
+    if (presentToday === 0) {
+      const latestP = await Attendance.findOne({ where: { empid: { [Op.in]: teamEmpIds }, status: { [Op.in]: ['Present', 'P'] }, in_time: { [Op.ne]: null } }, order: [['att_date', 'DESC']], attributes: ['att_date'], raw: true });
+      if (latestP && latestP.att_date) { effectiveDate = latestP.att_date; presentToday = await Attendance.count({ where: { empid: { [Op.in]: teamEmpIds }, att_date: latestP.att_date, status: { [Op.in]: ['Present', 'P'] }, in_time: { [Op.ne]: null } } }); }
+    }
+    const presentPct = totalTeam > 0 ? ((presentToday / totalTeam) * 100).toFixed(1) : 0;
+    const pendingLeavesQ = LeaveApplication.count({ where: { empid: { [Op.in]: teamEmpIds }, status: 'Pending' } }).catch(() => LeaveDetails.count({ where: { c_hr_app_status: 'Pending', empno: { [Op.in]: teamEmpIds } } }).catch(() => 0));
+    const pendingOnDutyQ = (async () => { try { const { OnDutyApplication } = require('../../models'); return await OnDutyApplication.count({ where: { empid: { [Op.in]: teamEmpIds }, status: 'Pending' } }); } catch (e) { return 0; } })();
+    const pendingToursQ = (async () => { try { const { TourApplication } = require('../../models'); return await TourApplication.count({ where: { empid: { [Op.in]: teamEmpIds }, status: 'Pending' } }); } catch (e) { return 0; } })();
+    const pendingWoffsQ = (async () => { try { const { WoffApplication } = require('../../models'); return await WoffApplication.count({ where: { empid: { [Op.in]: teamEmpIds }, status: 'Pending' } }); } catch (e) { return 0; } })();
+    const pendingAdvQ = (async () => { try { const { AdvanceApplication } = require('../../models'); return await AdvanceApplication.count({ where: { empid: { [Op.in]: teamEmpIds }, status: 'Pending' } }); } catch (e) { return 0; } })();
+    const [pendingLeaves, pendingOnDuty, pendingTours, pendingWoffs, pendingAdvances, allTeamEmps, recentApprovedLeaves, leaveByTypeRaw, attendanceTrendRaw] = await Promise.all([
+      pendingLeavesQ,
+      pendingOnDutyQ,
+      pendingToursQ,
+      pendingWoffsQ,
+      pendingAdvQ,
+      EmployeeMaster.findAll({ where: { empid: { [Op.in]: teamEmpIds } }, attributes: ['empid', 'ename', 'dob'], raw: true }),
+      LeaveApplication.findAll({ where: { empid: { [Op.in]: teamEmpIds }, status: 'Approved', ldate: { [Op.gte]: new Date(last30Days) } }, raw: true }).catch(() => []),
+      LeaveApplication.findAll({ where: { empid: { [Op.in]: teamEmpIds } }, attributes: ['status', [fn('COUNT', col('status')), 'count']], group: ['status'], raw: true }).catch(() => []),
+      Attendance.findAll({ where: { empid: { [Op.in]: teamEmpIds }, att_date: { [Op.gte]: last30Days } }, attributes: ['att_date', 'status', 'in_time'], order: [['att_date', 'ASC']], raw: true })
     ]);
 
     const empMap = {};
@@ -284,60 +276,20 @@ exports.managerSummary = async (req, res) => {
       empMap[emp.empid] = emp.ename;
     });
 
-    const pendingApprovals = pendingLeaveApprovals.map((l) => ({
-      lno: l.lno,
-      empName: empMap[l.empid] || l.empid,
-      type: l.leave_type,
-      days: Math.ceil((new Date(l.todate) - new Date(l.frmdt)) / (1000 * 60 * 60 * 24)) + 1,
-      from: l.frmdt,
-      to: l.todate,
-    }));
-
+    let pendingLeaveApprovals = [];
+    try { pendingLeaveApprovals = await LeaveApplication.findAll({ where: { empid: { [Op.in]: teamEmpIds }, status: 'Pending' }, attributes: ['lno', 'empid', 'ldate'], raw: true, limit: 10 }); } catch (e) {}
+    const pendingApprovals = pendingLeaveApprovals.map((l) => ({ lno: l.lno, empName: empMap[l.empid] || String(l.empid), type: l.leave_type || 'Leave', days: 1, from: l.ldate || l.frmdt, to: l.todate }));
     let totalLeaveDays = 0;
-    recentApprovedLeaves.forEach((l) => {
-      const diff = new Date(l.todate) - new Date(l.frmdt);
-      totalLeaveDays += Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
-    });
-    const avgLeaveDuration =
-      recentApprovedLeaves.length > 0 ? (totalLeaveDays / recentApprovedLeaves.length).toFixed(1) : 0;
-
-    const leaveByType = leaveByTypeRaw.map((l) => ({ type: l.leave_type, count: parseInt(l.count) }));
-
+    recentApprovedLeaves.forEach((l) => { const diff = new Date(l.todate || l.ldate) - new Date(l.frmdt || l.ldate); totalLeaveDays += Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1); });
+    const avgLeaveDuration = recentApprovedLeaves.length > 0 ? (totalLeaveDays / recentApprovedLeaves.length).toFixed(1) : 0;
+    const leaveByType = leaveByTypeRaw.map((l) => ({ type: l.status || l.leave_type, count: parseInt(l.count) }));
     const trendMap = {};
-    for (const a of attendanceTrendRaw) {
-      if (!trendMap[a.att_date]) trendMap[a.att_date] = { present: 0, date: a.att_date };
-      if (a.status === 'Present') trendMap[a.att_date].present++;
-    }
-    const attendanceTrend = Object.values(trendMap)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map((t) => ({ date: t.date.slice(5), present: t.present }));
-
-    const todayDateObj = new Date();
-    const todayMonth = todayDateObj.getMonth();
-    const todayDate = todayDateObj.getDate();
-    const upcomingBirthdays = allTeamEmps
-      .filter((b) => {
-        if (!b.dob) return false;
-        const dob = new Date(b.dob);
-        const bMonth = dob.getMonth();
-        const bDate = dob.getDate();
-        if (bMonth > todayMonth) return true;
-        if (bMonth === todayMonth && bDate >= todayDate) return true;
-        return false;
-      })
-      .slice(0, 5)
-      .map((b) => ({
-        empName: b.ename,
-        date: new Date(b.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      }));
-
-    res.json({
-      teamStats: { totalTeam, presentToday },
-      leaveStats: { pendingLeaves, avgLeaveDuration, leaveByType },
-      attendanceTrend,
-      upcomingBirthdays,
-      pendingApprovals,
-    });
+    for (const a of attendanceTrendRaw) { if (!trendMap[a.att_date]) trendMap[a.att_date] = { present: 0, date: a.att_date }; if (['Present', 'P'].includes(a.status)) trendMap[a.att_date].present++; }
+    const attendanceTrend = Object.values(trendMap).sort((a, b) => new Date(a.date) - new Date(b.date)).map((t) => ({ date: t.date.slice(5), present: t.present }));
+    const todayDateObj = new Date(); const todayMonth = todayDateObj.getMonth(); const todayDate = todayDateObj.getDate();
+    const upcomingBirthdays = allTeamEmps.filter((b) => { if (!b.dob) return false; const dob = new Date(b.dob); const bMonth = dob.getMonth(); const bDate = dob.getDate(); if (bMonth > todayMonth) return true; if (bMonth === todayMonth && bDate >= todayDate) return true; return false; }).slice(0, 5).map((b) => ({ empName: b.ename, date: new Date(b.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }));
+    const pendingCounts = { leaves: pendingLeaves, onduty: pendingOnDuty, tours: pendingTours, woffs: pendingWoffs, advances: pendingAdvances, total: pendingLeaves + pendingOnDuty + pendingTours + pendingWoffs + pendingAdvances };
+    res.json({ teamStats: { totalTeam, presentToday, presentPct, effectiveDate, isCompanyWide, fallbackNote }, leaveStats: { pendingLeaves, avgLeaveDuration, leaveByType }, attendanceTrend, upcomingBirthdays, pendingApprovals, pendingCounts });
   } catch (err) {
     console.error('Error fetching manager summary:', err);
     res.status(500).json({ message: 'Internal server error' });
@@ -349,12 +301,17 @@ exports.managerSummary = async (req, res) => {
 // =========================================================
 exports.employeeSummary = async (req, res) => {
   try {
-    let empId = req.session?.user?.empid || req.query.empid;
-    console.log(`[DashboardAuthDebug] Session User:`, JSON.stringify(req.session?.user));
-    console.log(`[DashboardAuthDebug] Query EmpId: ${req.query.empid}`);
-
+    const sessionUser = req.session?.user;
+    if (!sessionUser) return res.status(401).json({ message: 'Not logged in' });
+    const requestedEmpId = req.query.empid ? parseInt(req.query.empid, 10) : null;
+    let empId = sessionUser.empid;
+    if (requestedEmpId && requestedEmpId !== parseInt(sessionUser.empid, 10)) {
+      const isAdmin = sessionUser.role === 'ADMIN';
+      const isManager = sessionUser.permissions && sessionUser.permissions.includes('HR_ATTENDANCE_APPROVE');
+      if (!isAdmin && !isManager) return res.status(403).json({ message: 'Forbidden. Cannot view other employee data.' });
+      empId = requestedEmpId;
+    }
     if (!empId) return res.status(400).json({ message: 'Employee ID required' });
-
     empId = parseInt(empId, 10);
     if (isNaN(empId)) return res.status(400).json({ message: 'Invalid Employee ID' });
 
@@ -410,7 +367,7 @@ exports.employeeSummary = async (req, res) => {
           empid: empId,
           att_date: { [Op.gte]: last15Days },
         },
-        attributes: ['att_date', 'status'],
+        attributes: ['att_date', 'status', 'in_time'],
         order: [['att_date', 'ASC']],
         raw: true,
       }).catch(() => []),
@@ -448,8 +405,7 @@ exports.employeeSummary = async (req, res) => {
       recentProfileRequests
     ] = results;
 
-    console.log(`[EmployeeDashboardDebug] Fetching for empId: ${empId}`);
-    console.log(`[EmployeeDashboardDebug] Found requests: ${recentProfileRequests?.length || 0}`);
+
 
     let leaveBalance = 0;
     if (leaveMasterData) {

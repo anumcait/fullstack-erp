@@ -249,46 +249,58 @@ export default function ERPLanding() {
             </CardContent>
           </Card>
         ) : (
-          <Grid container spacing={2}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(2, 1fr)",
+                sm: "repeat(3, 1fr)",
+                md: "repeat(4, 1fr)",
+                lg: "repeat(6, 1fr)",
+              },
+              gap: 2,
+            }}
+          >
             {visibleModules.map((m) => {
               const Icon = m.icon;
               return (
-                <Grid item xs={6} sm={4} md={3} lg={2} key={m.key}>
-                  <Card
-                    onClick={() => navigate(m.to)}
-                    sx={{
-                      cursor: "pointer",
-                      height: "100%",
-                      borderRadius: 3,
-                      border: "1px solid",
-                      borderColor: "divider",
-                      transition: "transform .18s ease, box-shadow .18s ease, border-color .18s ease",
-                      "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: `0 10px 24px ${m.color}33`,
-                        borderColor: m.color,
-                      },
-                    }}
-                  >
-                    <CardContent sx={{ p: 2 }}>
-                      <Avatar
-                        variant="rounded"
-                        sx={{ bgcolor: `${m.color}1a`, color: m.color, width: 46, height: 46, mb: 1.25 }}
-                      >
-                        <Icon size={22} />
-                      </Avatar>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                        {m.label}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {m.desc}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                <Card
+                  key={m.key}
+                  onClick={() => navigate(m.to)}
+                  sx={{
+                    cursor: "pointer",
+                    height: 148,
+                    display: "flex",
+                    flexDirection: "column",
+                    borderRadius: 3,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    transition: "transform .18s ease, box-shadow .18s ease, border-color .18s ease",
+                    "&:hover": {
+                      transform: "translateY(-4px)",
+                      boxShadow: `0 10px 24px ${m.color}33`,
+                      borderColor: m.color,
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: 2, flex: 1, display: "flex", flexDirection: "column" }}>
+                    <Avatar
+                      variant="rounded"
+                      sx={{ bgcolor: `${m.color}1a`, color: m.color, width: 46, height: 46, mb: 1.25 }}
+                    >
+                      <Icon size={22} />
+                    </Avatar>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary", lineHeight: 1.2, minHeight: 20 }}>
+                      {m.label}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 32 }}>
+                      {m.desc}
+                    </Typography>
+                  </CardContent>
+                </Card>
               );
             })}
-          </Grid>
+          </Box>
         )}
       </Box>
 

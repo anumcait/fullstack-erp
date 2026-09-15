@@ -37,8 +37,6 @@ const employmentTypes = ['Permanent', 'Trainee', 'Probation'];
 
 const tabLabels = [
   'Personal', 'Family', 'Qualification', 'Experience', 'Official', 'Salary',
-  'Training', 'Promotion', 'Awards', 'Disciplinary Actions',
-  'Increment', 'Canteen', 'LIC', 'Transfer',
 ];
 
 // Initial State Templates

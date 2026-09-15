@@ -67,7 +67,9 @@ exports.saveSChange = async (req, res) => {
         attributes: [
           [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('schange_no')), 0), 'maxId']
         ],
-        raw: true
+        raw: true,
+        transaction: t,
+        lock: t.LOCK.UPDATE
       });
 
       const nextSchangeId = Number(maxIdResult.maxId) + 1;
@@ -360,6 +362,18 @@ exports.generateMonthlyData = async (req, res) => {
     }
     
     if (regenerate) {
+      if (process.env.NODE_ENV === 'production') {
+        await t.rollback();
+        return res.status(403).json({ message: 'Regenerate is disabled in production. Use backup/restore instead.' });
+      }
+      const { Payslip } = require('../../models');
+      const monthNames = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      const mName = monthNames[month - 1];
+      const closed = await Payslip.findOne({ where: { C_MONTH: mName, C_YEAR: String(year), C_FINAL_STATUS: 2 }, raw: true, transaction: t });
+      if (closed) {
+        await t.rollback();
+        return res.status(400).json({ message: `Payroll already finalized for ${mName} ${year}. Cannot regenerate.` });
+      }
       await ShiftSchedule.destroy({
         where: { shift_date: { [Sequelize.Op.between]: [startDate, endDate] } },
         transaction: t
@@ -382,49 +396,14 @@ exports.generateMonthlyData = async (req, res) => {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     });
     
-    const fixedSalaries = {
-      1002: { basic: 13375, hra: 9338, ca: 2677, wa: 1360 },
-      1005: { basic: 13000, hra: 9070, ca: 2602, wa: 1328 },
-      1006: { basic: 9375, hra: 6543, ca: 1877, wa: 955 },
-      1009: { basic: 5625, hra: 3938, ca: 1125, wa: 563 },
-      1010: { basic: 7750, hra: 5425, ca: 1550, wa: 775 },
-      1003: { basic: 17000, hra: 11870, ca: 3403, wa: 1727, ot: true },
-      1016: { basic: 7500, hra: 5250, ca: 1500, wa: 750 },
-      1019: { basic: 9000, hra: 6280, ca: 1800, wa: 920 },
-      1021: { basic: 7500, hra: 5220, ca: 1500, wa: 780 },
-      1022: { basic: 10000, hra: 6000, ca: 3000, wa: 1000 },
-      1024: { basic: 13500, hra: 9425, ca: 2700, wa: 1375 },
-      1025: { basic: 8000, hra: 5600, ca: 1600, wa: 800, ot: true },
-      1026: { basic: 5000, hra: 3500, ca: 1000, wa: 500, ot: true },
-      1027: { basic: 17200, hra: 15050, ca: 8600, wa: 2150 }
-    };
-    
-    const otEmployees = [1003, 1005, 1006, 1009, 1025, 1026];
-    const absentEmployees = { 1004: [10, 11, 17], 1013: [10, 11, 17], 1022: [10, 11, 17] };
+
     
     let shiftCount = 0;
     let attCount = 0;
     
     for (const emp of employees) {
       const empId = emp.empid;
-      const salary = fixedSalaries[empId] || { basic: 7500, hra: 5250, conv: 1500, wa: 750 };
-      const isOT = salary.ot === true;
-      const absentDays = absentEmployees[empId] || [];
-      
-      const empSalary = await EmpSalary.findOne({ where: { empid: empId } });
-      if (!empSalary) {
-        await EmpSalary.upsert({
-          empid: empId,
-          basic: salary.basic,
-          hra: salary.hra,
-          conveyance: salary.conv,
-          washing_allowance: salary.wa,
-          IS_pf: empId >= 10000 ? 'Y' : 'N',
-          IS_esi: salary.basic < 21000 ? 'Y' : 'N',
-          IS_ot: isOT ? 'Y' : 'N',
-          pay_mode: 'Bank'
-        }, { transaction: t });
-      }
+      const empSalary = await EmpSalary.findOne({ where: { empid: empId }, transaction: t });
       
       for (let day = 1; day <= lastDay; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -433,14 +412,12 @@ exports.generateMonthlyData = async (req, res) => {
         
         const isSunday = dayOfWeek === 0;
         const isHoliday = holidayDates.includes(dateStr);
-        const isAbsent = absentDays.includes(day);
-        
+        const isOT = empSalary?.IS_ot === 'Y';
         let shiftCd = 'G';
         let status = 'P';
         let otHrs = 0;
         let woffDay = 0;
         let isHolidayFlg = false;
-        
         if (isSunday) {
           shiftCd = 'W';
           status = 'W';
@@ -449,12 +426,8 @@ exports.generateMonthlyData = async (req, res) => {
           shiftCd = 'H';
           status = 'H';
           isHolidayFlg = true;
-        } else if (isAbsent) {
-          status = 'A';
-        } else if (isOT && day % 2 === 0) {
+        } else if (isOT && day % 3 === 0) {
           otHrs = 2;
-        } else if (isOT && day % 2 !== 0) {
-          otHrs = 4;
         }
         
         await ShiftSchedule.upsert({

@@ -12,13 +12,13 @@ exports.saveAdvance = async (req, res) => {
       attributes: [
         [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('advance_id')), 0), 'maxId']
       ],
-      raw: true
+      raw: true,
+      transaction: t,
+      lock: t.LOCK.UPDATE
     });
-
     const nextAdvanceId = Number(maxIdResult.maxId) + 1;
     application.advance_id = nextAdvanceId;
     application.status = 'Pending';
-
     await AdvanceApplication.create(application, { transaction: t });
     await t.commit();
 

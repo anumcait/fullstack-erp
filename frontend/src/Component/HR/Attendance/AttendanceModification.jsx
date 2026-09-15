@@ -23,9 +23,11 @@ const AttendanceModificationEntry = () => {
   
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
   const [filterEmpId, setFilterEmpId] = useState("");
   const [filterShift, setFilterShift] = useState("");
   const [employeeList, setEmployeeList] = useState([]);
+  const [shifts, setShifts] = useState([]);
 
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -52,11 +54,6 @@ const AttendanceModificationEntry = () => {
   useEffect(() => {
     fetchEmployees();
   }, []);
-
-  useEffect(() => {
-    if (filterType === "range" && (!fromDate || !toDate)) return;
-    fetchData();
-  }, [filterType, dataDate, fromDate, toDate, month, year, filterShift]);
 
   const fetchEmployees = async () => {
     try {
@@ -108,6 +105,7 @@ const AttendanceModificationEntry = () => {
       });
       
       setAttendanceData(data);
+      setHasFetched(true);
     } catch (err) {
       console.error("Error fetching attendance data:", err);
       showToast("Error loading attendance records", "error");
@@ -163,6 +161,8 @@ const AttendanceModificationEntry = () => {
     setToDate("");
     setMonth(new Date().getMonth() + 1);
     setYear(new Date().getFullYear());
+    setAttendanceData([]);
+    setHasFetched(false);
   };
 
   return (
@@ -230,119 +230,103 @@ const AttendanceModificationEntry = () => {
         </Box>
 
         {/* FILTERS */}
-        <Box sx={{ mb: 3, p: 2, bgcolor: "#f8f9fa", borderRadius: 1 }}>
-          <Grid container spacing={2} alignItems="center">
-            
+        <Box sx={{ mb: 3, p: 2, bgcolor: "#f8f9fa", borderRadius: 1, border: '1px solid #e0e0e0' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'primary.dark', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}><FilterListIcon fontSize="small" /> Filters</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
             {filterType === "date" && (
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="date"
-                  label="Date"
-                  InputLabelProps={{ shrink: true }}
-                  value={dataDate}
-                  onChange={(e) => setDataDate(e.target.value)}
-                />
-              </Grid>
+              <TextField
+                size="small"
+                type="date"
+                label="Date"
+                InputLabelProps={{ shrink: true }}
+                value={dataDate}
+                onChange={(e) => setDataDate(e.target.value)}
+                sx={{ minWidth: 200, flex: '1 1 200px', '& .MuiInputLabel-root': { fontWeight: 700 } }}
+              />
             )}
 
             {filterType === "range" && (
               <>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type="date"
-                    label="From Date"
-                    InputLabelProps={{ shrink: true }}
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type="date"
-                    label="To Date"
-                    InputLabelProps={{ shrink: true }}
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                  />
-                </Grid>
+                <TextField
+                  size="small"
+                  type="date"
+                  label="From Date"
+                  InputLabelProps={{ shrink: true }}
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  sx={{ minWidth: 190, flex: '1 1 190px', '& .MuiInputLabel-root': { fontWeight: 700 } }}
+                />
+                <TextField
+                  size="small"
+                  type="date"
+                  label="To Date"
+                  InputLabelProps={{ shrink: true }}
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  sx={{ minWidth: 190, flex: '1 1 190px', '& .MuiInputLabel-root': { fontWeight: 700 } }}
+                />
               </>
             )}
 
             {filterType === "month" && (
               <>
-                <Grid item xs={12} md={2}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Month</InputLabel>
-                    <Select value={month} label="Month" onChange={(e) => setMonth(e.target.value)}>
+                <FormControl size="small" sx={{ minWidth: 180, flex: '1 1 180px' }}>
+                  <InputLabel sx={{ fontWeight: 700 }}>Month</InputLabel>
+                  <Select value={month} label="Month" onChange={(e) => setMonth(e.target.value)} sx={{ fontWeight: 600 }}>
                       {months.map((m) => (
                         <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Year</InputLabel>
-                    <Select value={year} label="Year" onChange={(e) => setYear(e.target.value)}>
+                <FormControl size="small" sx={{ minWidth: 140, flex: '0 1 140px' }}>
+                  <InputLabel sx={{ fontWeight: 700 }}>Year</InputLabel>
+                  <Select value={year} label="Year" onChange={(e) => setYear(e.target.value)} sx={{ fontWeight: 600 }}>
                       {years.map((y) => (
                         <MenuItem key={y} value={y}>{y}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
               </>
             )}
 
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Shift</InputLabel>
-                <Select label="Shift" value={filterShift} onChange={(e) => setFilterShift(e.target.value)}>
-                  <MenuItem value="">All Shifts</MenuItem>
-                  <MenuItem value="G">General</MenuItem>
-                  <MenuItem value="A">Morning</MenuItem>
-                  <MenuItem value="B">Afternoon</MenuItem>
-                  <MenuItem value="W">Weekly Off</MenuItem>
-                  <MenuItem value="H">Holiday</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+            <FormControl size="small" sx={{ minWidth: 180, flex: '0 1 200px' }}>
+              <InputLabel sx={{ fontWeight: 700 }}>Shift</InputLabel>
+              <Select label="Shift" value={filterShift} onChange={(e) => setFilterShift(e.target.value)} sx={{ fontWeight: 600 }}>
+                <MenuItem value="">All Shifts</MenuItem>
+                <MenuItem value="G">General</MenuItem>
+                <MenuItem value="A">Morning</MenuItem>
+                <MenuItem value="B">Afternoon</MenuItem>
+                <MenuItem value="W">Weekly Off</MenuItem>
+                <MenuItem value="H">Holiday</MenuItem>
+              </Select>
+            </FormControl>
 
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Employee</InputLabel>
-                <Select
-                  value={filterEmpId}
-                  label="Employee"
-                  onChange={(e) => setFilterEmpId(e.target.value)}
-                >
-                  <MenuItem value="">All Employees</MenuItem>
-                  {employeeList.map((emp) => (
-                    <MenuItem key={emp.empid} value={emp.empid}>
-                      {emp.empid} - {emp.ename}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+            <FormControl size="small" sx={{ minWidth: 260, flex: '1 1 280px' }}>
+              <InputLabel sx={{ fontWeight: 700 }}>Employee</InputLabel>
+              <Select
+                value={filterEmpId}
+                label="Employee"
+                onChange={(e) => setFilterEmpId(e.target.value)}
+                sx={{ fontWeight: 600 }}
+              >
+                <MenuItem value="">All Employees</MenuItem>
+                {employeeList.map((emp) => (
+                  <MenuItem key={emp.empid} value={emp.empid}>
+                    {emp.empid} - {emp.ename}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-            <Grid item xs={12} md={1}>
-              <Button variant="outlined" fullWidth size="small" startIcon={<RefreshIcon />} onClick={fetchData}>
+            <Box sx={{ display: 'flex', gap: 1, flex: '0 0 auto' }}>
+              <Button variant="contained" size="small" startIcon={<RefreshIcon />} onClick={fetchData} sx={{ minWidth: 90, fontWeight: 700 }}>
                 Show
               </Button>
-            </Grid>
-
-            <Grid item xs={12} md={1}>
-              <Button variant="outlined" fullWidth size="small" startIcon={<ClearIcon />} onClick={clearFilters}>
+              <Button variant="outlined" size="small" startIcon={<ClearIcon />} onClick={clearFilters} sx={{ minWidth: 90, fontWeight: 700 }}>
                 Clear
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
 
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
@@ -374,9 +358,13 @@ const AttendanceModificationEntry = () => {
                 <TableRow>
                   <TableCell colSpan={10} align="center" sx={{ py: 3 }}>Loading...</TableCell>
                 </TableRow>
+              ) : !hasFetched ? (
+                <TableRow>
+                  <TableCell colSpan={10} align="center" sx={{ py: 4, color: "#888" }}>Apply filter and click <strong>Show</strong> to view records</TableCell>
+                </TableRow>
               ) : attendanceData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 3, color: "#777" }}>No attendance records found</TableCell>
+                  <TableCell colSpan={10} align="center" sx={{ py: 3, color: "#777" }}>No attendance records found for selected filter</TableCell>
                 </TableRow>
               ) : (
                 attendanceData.map((row) => (

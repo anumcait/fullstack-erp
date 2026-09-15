@@ -41,13 +41,15 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const faviconUrl = companySettings?.favicon_url || logoUrl;
+  const cachedFav = localStorage.getItem('cached_favicon_url') || '';
+  const cachedLogo = localStorage.getItem('cached_logo_url') || '';
+  const faviconUrl = companySettings?.favicon_url || logoUrl || cachedFav || cachedLogo || '/logo.png';
 
   useEffect(() => {
-    if (faviconUrl) {
-      const link = document.getElementById('favicon');
-      if (link) link.href = faviconUrl;
-    }
+    const link = document.getElementById('favicon');
+    if (link) link.href = faviconUrl;
+    if (logoUrl) localStorage.setItem('cached_logo_url', logoUrl);
+    if (companySettings?.favicon_url) localStorage.setItem('cached_favicon_url', companySettings.favicon_url);
   }, [faviconUrl]);
 
   useEffect(() => {

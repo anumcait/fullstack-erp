@@ -37,11 +37,14 @@ const ShiftMaster = () => {
     fetchShifts();
   }, []);
 
+  const shiftOrder = { G: 0, A: 1, B: 2, C: 3, '1': 4, '2': 5, '3': 6, '4': 7, '5': 8, '6': 9 };
+  const shiftNames = { G: 'General', A: 'Day (12H)', B: 'Night (12H)', '1': 'Morning', '2': 'Afternoon', '3': 'Night', '4': 'Shift 4', '5': 'Shift 5', '6': 'Shift 6' };
   const fetchShifts = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/shift/master/all`);
-      setShifts(res.data);
+      const sorted = [...(res.data || [])].sort((a, b) => (shiftOrder[a.shift_cd] ?? 99) - (shiftOrder[b.shift_cd] ?? 99));
+      setShifts(sorted);
     } catch (err) {
       console.error("Error fetching shifts:", err);
     } finally {
@@ -129,50 +132,40 @@ const ShiftMaster = () => {
         </Button>
       </Box>
 
-      <CardContent>
+      <CardContent sx={{ p: 0 }}>
         {loading && <LinearProgress sx={{ mb: 2 }} />}
-
-        <Table size="small" sx={{
-          tableLayout: 'fixed',
-          width: '100%',
-          border: '1px solid #ccc',
-          '& .MuiTableCell-root': {
-            px: 1,
-            py: 0.5,
-            fontSize: '12px',
-            fontWeight: 500
-          }
-        }}>
+        <Box sx={{ overflowX: 'auto' }}>
+        <Table size="small" sx={{ minWidth: 900, border: '1px solid #ccc', '& .MuiTableCell-root': { px: 2, py: 1.2, fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap' } }}>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#f1f1f1' }}>
-              <TableCell sx={{ width: '60px' }}><strong>ID</strong></TableCell>
-              <TableCell sx={{ width: '80px' }}><strong>Code</strong></TableCell>
-              <TableCell sx={{ width: '100px' }}><strong>Start</strong></TableCell>
-              <TableCell sx={{ width: '100px' }}><strong>End</strong></TableCell>
-              <TableCell sx={{ width: '110px' }}><strong>Lunch Start</strong></TableCell>
-              <TableCell sx={{ width: '110px' }}><strong>Lunch End</strong></TableCell>
-              <TableCell sx={{ width: '90px' }}><strong>Status</strong></TableCell>
-              <TableCell sx={{ width: '90px' }} align="center"><strong>Actions</strong></TableCell>
+            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
+              <TableCell sx={{ width: 70, fontWeight: 900, color: 'primary.dark', borderBottom: '2px solid #90caf9' }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}><strong>ID</strong></Box></TableCell>
+              <TableCell sx={{ width: 140, fontWeight: 900, color: 'primary.dark', borderBottom: '2px solid #90caf9' }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}><strong>Code</strong> <Box component="span" sx={{ fontSize: 11, color: '#666', fontWeight: 600, bgcolor: '#fff', px: 1, py: 0.2, borderRadius: 1, border: '1px solid #90caf9' }}>(Name)</Box></Box></TableCell>
+              <TableCell sx={{ width: 130, fontWeight: 900, color: 'primary.dark', borderBottom: '2px solid #90caf9' }}><Box sx={{ display: 'flex', alignItems: 'center' }}><strong>Start</strong></Box></TableCell>
+              <TableCell sx={{ width: 130, fontWeight: 900, color: 'primary.dark', borderBottom: '2px solid #90caf9' }}><Box sx={{ display: 'flex', alignItems: 'center' }}><strong>End</strong></Box></TableCell>
+              <TableCell sx={{ width: 140, fontWeight: 900, color: 'primary.dark', borderBottom: '2px solid #90caf9' }}><Box sx={{ display: 'flex', alignItems: 'center' }}><strong>Lunch Start</strong></Box></TableCell>
+              <TableCell sx={{ width: 140, fontWeight: 900, color: 'primary.dark', borderBottom: '2px solid #90caf9' }}><Box sx={{ display: 'flex', alignItems: 'center' }}><strong>Lunch End</strong></Box></TableCell>
+              <TableCell sx={{ width: 110, fontWeight: 900, color: 'primary.dark', borderBottom: '2px solid #90caf9' }}><Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><strong>Status</strong></Box></TableCell>
+              <TableCell sx={{ width: 140, fontWeight: 900, color: 'primary.dark', borderBottom: '2px solid #90caf9' }}><Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><strong>Actions</strong></Box></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {shifts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 3, color: '#777' }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 3, color: '#777' }}>
                   No shifts found
                 </TableCell>
               </TableRow>
             ) : (
               shifts.map((s) => (
-                <TableRow key={s.shift_id}>
+                <TableRow key={s.shift_id} sx={{ '&:hover': { bgcolor: '#f5f5f5' } }}>
                   <TableCell>{s.shift_id}</TableCell>
-                  <TableCell><strong>{s.shift_cd}</strong></TableCell>
+                  <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}><strong>{s.shift_cd}</strong> <Box component="span" sx={{ fontSize: 11, color: '#555', bgcolor: '#e3f2fd', px: 1, py: 0.2, borderRadius: 1 }}>{shiftNames[s.shift_cd] || s.shift_cd}</Box></Box></TableCell>
                   <TableCell>{formatTimeOnly(s.start_time)}</TableCell>
                   <TableCell>{formatTimeOnly(s.end_time)}</TableCell>
-                  <TableCell>{formatTimeOnly(s.lunch_start_time)}</TableCell>
-                  <TableCell>{formatTimeOnly(s.lunch_end_time)}</TableCell>
-                  <TableCell>{s.c_status === 'A' ? 'Active' : 'Inactive'}</TableCell>
-                  <TableCell>
+                  <TableCell>{formatTimeOnly(s.lunch_start_time) || '-'}</TableCell>
+                  <TableCell>{formatTimeOnly(s.lunch_end_time) || '-'}</TableCell>
+                  <TableCell align="center">{s.c_status === 'A' ? 'Active' : 'Inactive'}</TableCell>
+                  <TableCell align="center">
                     <IconButton size="small" onClick={() => handleOpenDialog(s)}>
                       <EditIcon fontSize="small" />
                     </IconButton>
@@ -185,6 +178,7 @@ const ShiftMaster = () => {
             )}
           </TableBody>
         </Table>
+        </Box>
       </CardContent>
 
       <Dialog open={dialog} onClose={() => setDialog(false)} maxWidth="md" fullWidth>

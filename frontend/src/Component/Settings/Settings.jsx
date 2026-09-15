@@ -22,11 +22,11 @@ import { useCompany } from "../../context/CompanyContext";
 
 const settingsSections = [
   { id: "company", title: "Company Settings", icon: "🏢", description: "Company name, address, logo, contact info" },
-  { id: "payroll", title: "Payroll Settings", icon: "💰", description: "Salary rules, deductions, OT rates" },
-  { id: "attendance", title: "Attendance Settings", icon: "📅", description: "Shift timings, grace period, late rules" },
-  { id: "leave", title: "Leave Settings", icon: "📋", description: "Leave types, limits, carry forward rules" },
-  { id: "email", title: "Email Settings", icon: "📧", description: "SMTP configuration, notifications" },
-  { id: "backup", title: "Backup & Restore", icon: "💾", description: "Database backup, data export" }
+  { id: "payroll", title: "Payroll Settings", icon: "💰", description: "Salary rules, deductions, OT rates", comingSoon: true },
+  { id: "attendance", title: "Attendance Settings", icon: "📅", description: "Shift timings, grace period, late rules", comingSoon: true },
+  { id: "leave", title: "Leave Settings", icon: "📋", description: "Leave types, limits, carry forward rules", comingSoon: true },
+  { id: "email", title: "Email Settings", icon: "📧", description: "SMTP configuration, notifications", comingSoon: true },
+  { id: "backup", title: "Backup & Restore", icon: "💾", description: "Database backup, data export", comingSoon: true }
 ];
 
 const Settings = () => {
@@ -133,7 +133,7 @@ const Settings = () => {
         showToast("Error saving company settings", "error");
       }
     } else {
-      showToast(`${section} settings saved successfully`, "success");
+      showToast(`${section} settings — coming soon. Not yet persisted.`, "info");
     }
     setDialogOpen(false);
   };
@@ -768,10 +768,10 @@ const Settings = () => {
                 <Tab
                   key={section.id}
                   value={section.id}
-                  label={section.title}
+                  label={`${section.title}${section.comingSoon ? ' • Soon' : ''}`}
                   icon={<span>{section.icon}</span>}
                   iconPosition="start"
-                  sx={{ minHeight: 64, fontWeight: 'bold' }}
+                  sx={{ minHeight: 64, fontWeight: 'bold', opacity: section.comingSoon ? 0.6 : 1 }}
                 />
               ))}
             </Tabs>

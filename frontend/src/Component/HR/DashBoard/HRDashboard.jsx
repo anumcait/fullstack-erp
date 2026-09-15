@@ -34,15 +34,15 @@ import { saveAs } from "file-saver";
 const API = import.meta.env.VITE_API_URL || "";
 const COLORS = ["var(--primary-main)", "#F97316", "#10B981", "#F43F5E", "#8B5CF6"];
 
-// KPI Card component
-const KpiCard = ({ title, icon, value, color, subtitle }) => (
-  <div className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 border border-slate-200 transition-all group">
+const KpiCard = ({ title, icon, value, color, subtitle, onClick }) => (
+  <div onClick={onClick} className={`bg-white rounded-xl shadow-sm hover:shadow-md p-4 border border-slate-200 transition-all group ${onClick ? 'cursor-pointer hover:border-[var(--primary-main)] hover:scale-[1.02] active:scale-[0.98]' : ''}`}>
     <div className="flex items-center justify-between mb-2">
       <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{title}</h3>
       <span className="opacity-70 group-hover:scale-110 transition-transform">{icon}</span>
     </div>
     <p className={`text-xl font-black tracking-tight ${color}`}>{value}</p>
     <p className="text-[10px] text-slate-400 font-bold mt-0.5">{subtitle}</p>
+    {onClick && <p className="text-[9px] text-[var(--primary-main)] font-black mt-1 opacity-0 group-hover:opacity-100 transition">View details →</p>}
   </div>
 );
 
@@ -110,11 +110,18 @@ const HRDashboard = () => {
       const insights = res.data.insights || {};
 
       setSummary({
-        totalEmployees: emp.totalEmployees || 0,
+        totalEmployees: emp.activeEmployees ?? emp.totalEmployees ?? 0,
+        totalOnRolls: emp.totalEmployees || 0,
+        activeEmployees: emp.activeEmployees || 0,
+        inactiveEmployees: emp.inactiveEmployees || 0,
         activeToday: att.presentToday || 0,
+        presentPct: att.presentPct || 0,
+        absentToday: att.absentToday || 0,
+        effectiveDate: att.effectiveDate || null,
         pendingLeaves: leave.pendingLeaves || 0,
         avgLeaveDuration: leave.avgLeaveDuration || 0,
         attritionRate: attrition.attritionRate || 0,
+        leftLast30Days: attrition.leftLast30Days || 0,
         lateComingCount: att.lateComingCount || 0,
         pendingProfileRequests: res.data.pendingProfileRequests || 0,
       });
@@ -169,8 +176,18 @@ const HRDashboard = () => {
     );
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const coverageDate = summary.effectiveDate || null;
+  const isStale = coverageDate && coverageDate !== todayStr;
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300 animate-fadeIn">
+      {isStale && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <p className="text-sm font-bold text-amber-800">⚠️ Attendance data up to <span className="underline">{coverageDate}</span> only (today {todayStr}). Generate Shift Schedule / HR Attendance for {coverageDate} → {todayStr} via perfect flow.</p>
+          <button onClick={() => navigate('/shiftschedule')} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black">Go to Shift Schedule</button>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-slate-200">
         <div>
@@ -211,49 +228,54 @@ const HRDashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards - Balanced Density */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8 animate-fadeIn">
         <KpiCard
           title="Headcount"
           icon={<FaUsers size={24} className="text-blue-500" />}
-          value={summary.totalEmployees}
+          value={summary.activeEmployees ?? summary.totalEmployees}
           color="text-blue-600"
-          subtitle="All Active Employees"
+          subtitle={`Active • Total ${summary.totalOnRolls ?? summary.totalEmployees} (Left ${summary.inactiveEmployees ?? 0})`}
+          onClick={() => navigate('/employees')}
         />
         <KpiCard
-          title="Present Today"
+          title="Present"
           icon={<FaUserCheck size={24} className="text-emerald-500" />}
           value={summary.activeToday}
           color="text-green-600"
-          subtitle="Current Attendance"
+          subtitle={summary.effectiveDate ? `${summary.presentPct}% on ${summary.effectiveDate} • ${summary.activeEmployees} active` : summary.activeEmployees ? `${summary.presentPct}% of ${summary.activeEmployees} active` : "No attendance yet"}
+          onClick={() => navigate('/hr-attendance')}
         />
         <KpiCard
           title="Leaves"
           icon={<FaClipboardList size={24} className="text-amber-500" />}
           value={summary.pendingLeaves}
           color="text-orange-600"
-          subtitle="Pending Approvals"
+          subtitle="Pending approvals"
+          onClick={() => navigate('/leave?action=approval')}
         />
         <KpiCard
-          title="Late"
+          title="Late (30d)"
           icon={<FaUserClock size={24} className="text-rose-500" />}
           value={summary.lateComingCount}
           color="text-red-600"
-          subtitle="Last 30 Days"
+          subtitle="Late arrivals"
+          onClick={() => navigate('/hr-attendance?tab=late')}
         />
         <KpiCard
           title="Requests"
           icon={<FaClipboardList size={24} className="text-purple-500" />}
           value={summary.pendingProfileRequests}
           color="text-purple-600"
-          subtitle="Profile Approvals"
+          subtitle="Profile approvals"
+          onClick={() => navigate('/employees?tab=requests')}
         />
         <KpiCard
           title="Attrition"
           icon={<FaChartLine size={24} className="text-slate-500" />}
           value={`${summary.attritionRate}%`}
           color="text-indigo-600"
-          subtitle="Monthly Turnover"
+          subtitle={`${summary.leftLast30Days ?? 0} left in 30d`}
+          onClick={() => navigate('/reports?type=attrition')}
         />
       </div>
 

@@ -157,13 +157,24 @@ const HRAttendance = () => {
       dates.forEach(date => {
         filteredEmployees.forEach(emp => {
           const existing = existingMap[`${emp.empid}_${date}`];
+          let raw = existing?.status || "";
+          if (raw === "Present") raw = "P";
+          if (raw === "Absent") raw = "A";
+          if (raw === "Weekly Off") raw = "W";
+          if (raw === "Holiday") raw = "H";
+          let derivedStatus = raw;
+          const shiftTmp = existing?.shift || "G";
+          if (["W","H"].includes(shiftTmp)) derivedStatus = shiftTmp;
+          else if (!existing?.in_time || !existing?.out_time) derivedStatus = "A";
+          else if (derivedStatus === "P" && (!existing?.in_time || !existing?.out_time)) derivedStatus = "A";
+          if (!existing) derivedStatus = ["W","H"].includes(shiftTmp) ? shiftTmp : "A";
           rows.push({
             empid: emp.empid,
             ename: emp.ename,
             department: emp.deptname || emp.department,
             att_date: date,
             shift: existing?.shift || "G",
-            status: existing?.status || "P",
+            status: derivedStatus,
             in_time: existing?.in_time || "",
             out_time: existing?.out_time || "",
             late_hrs: existing?.late_hrs || 0,
@@ -212,28 +223,58 @@ const HRAttendance = () => {
     }
   };
 
+  const deriveStatus = (row) => {
+    if (["W","H"].includes(row.shift)) return row.shift;
+    if (row.in_time && row.out_time) return "P";
+    if (!row.in_time && !row.out_time) return "";
+    return "A";
+  };
   const updateRow = (idx, field, val) => {
     const rows = [...bulkRows];
     rows[idx][field] = val;
+    if (["in_time","out_time","shift"].includes(field)) {
+      const r = rows[idx];
+      if (["W","H"].includes(r.shift)) r.status = r.shift;
+      else if (r.in_time && r.out_time) r.status = "P";
+      else if (!r.in_time && !r.out_time) r.status = "";
+      else r.status = "A";
+    }
     setBulkRows(rows);
   };
-
-  // Quick-action helpers for faster bulk entry
   const setAllStatus = (status) => {
-    setBulkRows(prev => prev.map(r => (["W","H","Weekly Off","Holiday","W-Off"].includes(r.status) || ["W","H"].includes(r.shift) ? r : { ...r, status })));
-    showToast(`All rows set to ${status} (W/H skipped)`, "info");
+    if (status === "P") {
+      setBulkRows(prev => prev.map(r => {
+        if (["W","H"].includes(r.shift) || ["W","H"].includes(r.status)) return r;
+        return { ...r, in_time: r.in_time || "09:30", out_time: r.out_time || "18:00", status: "P" };
+      }));
+      showToast(`All rows set to Present with default times (W/H skipped)`, "info");
+    } else {
+      setBulkRows(prev => prev.map(r => (["W","H","Weekly Off","Holiday","W-Off"].includes(r.status) || ["W","H"].includes(r.shift) ? r : { ...r, in_time: "", out_time: "", status: "A" })));
+      showToast(`All rows set to Absent (times cleared, W/H skipped)`, "info");
+    }
   };
 
   const applyQuickInTime = () => {
     if (!quickInTime) { showToast("Enter In Time first", "warning"); return; }
-    setBulkRows(prev => prev.map(r => (r.status === "P" || r.status === "Present") ? { ...r, in_time: quickInTime } : r));
-    showToast(`In Time ${quickInTime} applied to all Present rows`, "info");
+    setBulkRows(prev => prev.map(r => {
+      if (["W","H"].includes(r.shift)) return r;
+      const nr = { ...r, in_time: quickInTime };
+      nr.status = (nr.in_time && nr.out_time) ? "P" : (!nr.in_time && !nr.out_time ? "" : "A");
+      if (["W","H"].includes(nr.shift)) nr.status = nr.shift;
+      return nr;
+    }));
+    showToast(`In Time ${quickInTime} applied (status auto)`, "info");
   };
-
   const applyQuickOutTime = () => {
     if (!quickOutTime) { showToast("Enter Out Time first", "warning"); return; }
-    setBulkRows(prev => prev.map(r => (r.status === "P" || r.status === "Present") ? { ...r, out_time: quickOutTime } : r));
-    showToast(`Out Time ${quickOutTime} applied to all Present rows`, "info");
+    setBulkRows(prev => prev.map(r => {
+      if (["W","H"].includes(r.shift)) return r;
+      const nr = { ...r, out_time: quickOutTime };
+      nr.status = (nr.in_time && nr.out_time) ? "P" : (!nr.in_time && !nr.out_time ? "" : "A");
+      if (["W","H"].includes(nr.shift)) nr.status = nr.shift;
+      return nr;
+    }));
+    showToast(`Out Time ${quickOutTime} applied (status auto)`, "info");
   };
 
   const saveSingleRow = async (idx) => {
@@ -319,8 +360,11 @@ const HRAttendance = () => {
 
   const getEffectiveStatus = (row) => {
     const s = row.status || '';
-    if ((s === 'P' || s === 'Present') && (!row.in_time || !row.out_time)) return 'A';
-    return s;
+    const shift = row.shift || '';
+    if (["W","H"].includes(shift) || ["W","H"].includes(s)) return shift || s;
+    if (!row.in_time || !row.out_time) return 'A';
+    if (s === 'P' || s === 'Present') return 'P';
+    return s || 'A';
   };
 
   const getStatusColor = (status) => {
@@ -823,13 +867,7 @@ const HRAttendance = () => {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <Select size="small" value={row.status} onChange={(e) => updateRow(globalIdx, "status", e.target.value)}>
-                            <MenuItem value="P">Present</MenuItem>
-                            <MenuItem value="A">Absent</MenuItem>
-                            <MenuItem value="W">Weekly Off</MenuItem>
-                            <MenuItem value="H">Holiday</MenuItem>
-                            <MenuItem value="L">Leave</MenuItem>
-                          </Select>
+                          <Chip size="small" label={row.status || '-'} color={row.status==='P' ? 'success' : row.status==='A' ? 'error' : row.status==='W' ? 'default' : row.status==='H' ? 'warning' : 'default'} sx={{ minWidth: 32, fontWeight: 700 }} />
                         </TableCell>
                         <TableCell>
                           <TextField size="small" type="time" value={row.in_time} onChange={(e) => updateRow(globalIdx, "in_time", e.target.value)} />
