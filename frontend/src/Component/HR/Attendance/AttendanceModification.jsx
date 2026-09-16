@@ -53,7 +53,30 @@ const AttendanceModificationEntry = () => {
 
   useEffect(() => {
     fetchEmployees();
+    fetchShifts();
   }, []);
+
+  const formatTime = (t) => {
+    if (!t) return "";
+    const s = String(t).trim();
+    const m = s.match(/(\d{1,2}):(\d{2})/);
+    if (m) return `${m[1].padStart(2,"0")}:${m[2]}`;
+    const d = new Date(t);
+    if (!isNaN(d.getTime())) return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    return s.slice(0,5);
+  };
+
+  const fetchShifts = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/shift/master/all`);
+      const list = (res.data || []).filter(s => s.c_status === 'A' || !s.c_status);
+      const order = { G:0, A:1, B:2, C:3, '1':4, '2':5, '3':6, '4':7, '5':8, '6':9 };
+      list.sort((a,b) => (order[a.shift_cd] ?? 99) - (order[b.shift_cd] ?? 99));
+      setShifts(list);
+    } catch (err) {
+      console.error("Error fetching shifts:", err);
+    }
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -289,15 +312,17 @@ const AttendanceModificationEntry = () => {
               </>
             )}
 
-            <FormControl size="small" sx={{ minWidth: 180, flex: '0 1 200px' }}>
+            <FormControl size="small" sx={{ minWidth: 220, flex: '0 1 240px' }}>
               <InputLabel sx={{ fontWeight: 700 }}>Shift</InputLabel>
               <Select label="Shift" value={filterShift} onChange={(e) => setFilterShift(e.target.value)} sx={{ fontWeight: 600 }}>
                 <MenuItem value="">All Shifts</MenuItem>
-                <MenuItem value="G">General</MenuItem>
-                <MenuItem value="A">Morning</MenuItem>
-                <MenuItem value="B">Afternoon</MenuItem>
-                <MenuItem value="W">Weekly Off</MenuItem>
-                <MenuItem value="H">Holiday</MenuItem>
+                {shifts.map(s => (
+                  <MenuItem key={s.shift_cd} value={s.shift_cd}>
+                    {s.shift_cd} ({formatTime(s.start_time)} - {formatTime(s.end_time)})
+                  </MenuItem>
+                ))}
+                <MenuItem value="W">W (Weekly Off)</MenuItem>
+                <MenuItem value="H">H (Holiday)</MenuItem>
               </Select>
             </FormControl>
 
@@ -384,16 +409,24 @@ const AttendanceModificationEntry = () => {
                       </FormControl>
                     </TableCell>
                     <TableCell>
-                      <FormControl size="small" fullWidth sx={{ minWidth: 80 }}>
+                      <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
                         <Select 
                           value={row.modify_shift} 
                           onChange={(e) => handleFieldChange(row.id, "modify_shift", e.target.value)}
                         >
-                          <MenuItem value="G">G</MenuItem>
-                          <MenuItem value="A">A</MenuItem>
-                          <MenuItem value="B">B</MenuItem>
-                          <MenuItem value="W">W</MenuItem>
-                          <MenuItem value="H">H</MenuItem>
+                          {shifts.length ? shifts.map(s => (
+                            <MenuItem key={s.shift_cd} value={s.shift_cd}>
+                              {s.shift_cd} ({formatTime(s.start_time)} - {formatTime(s.end_time)})
+                            </MenuItem>
+                          )) : (
+                            <>
+                              <MenuItem value="G">G</MenuItem>
+                              <MenuItem value="A">A</MenuItem>
+                              <MenuItem value="B">B</MenuItem>
+                            </>
+                          )}
+                          <MenuItem value="W">W (Weekly Off)</MenuItem>
+                          <MenuItem value="H">H (Holiday)</MenuItem>
                         </Select>
                       </FormControl>
                     </TableCell>

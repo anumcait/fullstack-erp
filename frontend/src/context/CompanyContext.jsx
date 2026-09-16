@@ -31,11 +31,12 @@ export const CompanyProvider = ({ children }) => {
         setCompanyError(false);
         let data = null;
         let lastErr = null;
-        // Retry transient failures — a single failed GET must not send an
-        // already-configured instance to the "Create Company" setup screen.
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
-                const res = await axios.get(`/api/settings/company`);
+                const res = await axios.get(`/api/company-settings`).catch(async (e) => {
+                    if (e?.response?.status === 404) throw e;
+                    return await axios.get(`/api/settings/company`);
+                });
                 data = res.data;
                 break;
             } catch (err) {

@@ -9,7 +9,7 @@ const isAuthenticated = (req, res, next) => {
   res.status(401).json({ message: 'Not logged in' });
 };
 
-router.get('/company', isAuthenticated, settingsController.getCompanySettings);
+router.get('/company', settingsController.getCompanySettings);
 router.post('/company', isAuthenticated, requirePermission(HR_PERMISSIONS.SETTINGS), settingsController.updateCompanySettings);
 
 module.exports = router;
