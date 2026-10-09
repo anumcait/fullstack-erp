@@ -3,8 +3,9 @@ import {
   Box, Card, CardContent, Typography, Grid, TextField, Button, Table,
   TableHead, TableBody, TableRow, TableCell, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
-  LinearProgress, Chip, Tabs, Tab, Checkbox, FormControlLabel, InputAdornment
+  LinearProgress, Chip, Tabs, Tab, Checkbox, FormControlLabel, InputAdornment, Alert
 } from "@mui/material";
+import LockIcon from "@mui/icons-material/Lock";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
@@ -36,6 +37,7 @@ const ShiftSchedule = () => {
   const [bulkSchedules, setBulkSchedules] = useState([]);
   const [bulkData, setBulkData] = useState({}); // { empid: { date: shift_cd } }
   const [existingShifts, setExistingShifts] = useState(new Set()); // set of "empid|date" strings with existing schedules
+  const [payrollLocked, setPayrollLocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [woffs, setWoffs] = useState([]);
   const [filters, setFilters] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear(), empid: "" });
@@ -381,6 +383,7 @@ const ShiftSchedule = () => {
   };
 
   const handleBulkSave = async () => {
+    if (payrollLocked) { showToast("Payslip finalized — bulk save blocked", "error"); return; }
     const schedulesToSave = [];
     Object.keys(bulkData).forEach(empid => {
       Object.keys(bulkData[empid]).forEach(date => {
@@ -459,6 +462,7 @@ const ShiftSchedule = () => {
   };
 
   const handleSave = async () => {
+    if (payrollLocked) { showToast("Payslip finalized — cannot modify shift schedule", "error"); return; }
     if (!formData.empid || !formData.shift_date || !formData.shift_cd) { showToast("Please fill all required fields", "error"); return; }
     try {
       const selectedShift = shifts.find(s => s.shift_cd === formData.shift_cd);
@@ -472,6 +476,7 @@ const ShiftSchedule = () => {
   };
 
   const handleWeekAssign = async () => {
+    if (payrollLocked) { showToast("Payslip finalized — cannot assign week", "error"); return; }
     if (!weekForm.startDate) { showToast("Please select a start date for the week", "error"); return; }
     if (!Object.values(weekShifts).some(v => v)) { showToast("Please assign at least one shift for the week", "error"); return; }
     try {
@@ -498,6 +503,7 @@ const ShiftSchedule = () => {
   };
 
   const handleDelete = async (id) => {
+    if (payrollLocked) { showToast("Payslip finalized — cannot delete", "error"); return; }
     if (!window.confirm("Delete this schedule?")) return;
     try { await axios.delete(`${import.meta.env.VITE_API_URL}/api/shift/schedule/${id}`); showToast("✅ Schedule deleted", "success"); fetchSchedules(); }
     catch { showToast("❌ Error deleting schedule", "error"); }
@@ -517,6 +523,16 @@ const ShiftSchedule = () => {
   console.log('Filtered employees:', filteredEmployees.length);
   const dialogFilteredEmployees = empSearch ? employees.filter(emp => emp.empid.toString().includes(empSearch) || emp.ename?.toLowerCase().includes(empSearch.toLowerCase())) : employees;
   const selectedEmpIds = weekForm.employeeIds;
+
+  useEffect(() => {
+    const checkLock = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/payroll/finalize-status`, { params: { month: filters.month, year: filters.year } });
+        setPayrollLocked(!!res.data?.finalized || !!res.data?.isFinalized);
+      } catch { setPayrollLocked(false); }
+    };
+    checkLock();
+  }, [filters.month, filters.year]);
 
   // Fetch schedules when dependencies change
   useEffect(() => {
@@ -550,6 +566,11 @@ const ShiftSchedule = () => {
         </Tabs>
       </Box>
 
+      {payrollLocked && (
+        <Alert severity="warning" icon={<LockIcon />} sx={{ mb: 2, fontWeight: 700 }}>
+          Payslip finalized for {filters.month}/{filters.year} — shift schedule locked.
+        </Alert>
+      )}
       <CardContent sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2, alignItems: 'center' }}>
           <FormControl size="small" sx={{ minWidth: 160, flex: '1 1 160px' }}><InputLabel sx={{ fontWeight: 700, fontSize: 13 }}>Month</InputLabel>

@@ -1,9 +1,30 @@
 const { WoffApplication, Payslip } = require('../../models');
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
+const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
 
 exports.getAllWoffs = async (req, res) => {
   try {
+    const { startDate, endDate, status } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    if (startDate && endDate) {
+      where[Op.or] = [
+        { woff_to_date: { [Op.between]: [startDate, endDate] } },
+        { woff_from_date: { [Op.between]: [startDate, endDate] } }
+      ];
+    }
     const woffs = await WoffApplication.findAll({
+      where,
       order: [['woff_id', 'DESC']]
     });
     res.json(woffs);
@@ -44,47 +65,8 @@ exports.createWoff = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // 🛑 Check if payroll is already generated (Find Max Month/Year)
-    if (woff_from_date && empid) {
-      const [y, m, d] = woff_from_date.split('-').map(Number);
-      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      const monthMap = {};
-      monthNames.forEach((name, idx) => { monthMap[name] = idx + 1; });
-
-      const monthOrder = `CASE 
-        WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
-        WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
-        WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
-        WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
-        WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
-        WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
-        WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
-        WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
-        WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
-        WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
-        WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
-        WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
-        ELSE 0 END`;
-
-      const latestPayslip = await Payslip.findOne({
-        attributes: ['C_MONTH', 'C_YEAR'],
-        order: [['C_YEAR', 'DESC'], [Sequelize.literal(monthOrder), 'DESC']],
-        raw: true
-      });
-
-      if (latestPayslip) {
-        const finalMonthStr = (latestPayslip.C_MONTH || "").trim().toUpperCase();
-        const latestMonthNum = monthMap[finalMonthStr] || 0;
-        const latestYearNum = Number(latestPayslip.C_YEAR);
-        const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
-
-        if (isClosed) {
-          return res.status(400).json({ 
-            message: `Cannot apply for Woff Change. Payroll already processed up to ${finalMonthStr} ${latestYearNum}.` 
-          });
-        }
-      }
-    }
+    if (woff_from_date && await isPayrollFinalized(woff_from_date)) return res.status(400).json({ message: `Payslip finalized for ${String(woff_from_date).slice(0,7)} — cannot apply Woff.` });
+    if (woff_to_date && await isPayrollFinalized(woff_to_date)) return res.status(400).json({ message: `Payslip finalized for ${String(woff_to_date).slice(0,7)} — cannot apply Woff.` });
 
     if (woff_from_date === woff_to_date) {
       return res.status(400).json({ message: 'Existing date and Changed date cannot be the same.' });
@@ -122,8 +104,7 @@ exports.createWoff = async (req, res) => {
     const t = await WoffApplication.sequelize.transaction();
     let newWoffId;
     try {
-      const maxRow = await WoffApplication.findOne({ attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('woff_id')), 0), 'maxId']], raw: true, transaction: t, lock: t.LOCK.UPDATE });
-      newWoffId = Number(maxRow.maxId) + 1;
+      newWoffId = await nextSequenceNumber(WoffApplication, 'woff_id', t, LOCK_KEYS.WOFF_APPLICATION);
       const woff = await WoffApplication.create({
         ...req.body,
         woff_id: newWoffId,
@@ -148,6 +129,10 @@ exports.updateWoff = async (req, res) => {
     if (!woff) {
       return res.status(404).json({ message: 'Woff not found' });
     }
+    const cd = woff.woff_from_date || woff.woff_date;
+    if (cd && await isPayrollFinalized(cd)) return res.status(400).json({ message: `Payslip finalized for ${String(cd).slice(0,7)} — cannot update.` });
+    if (req.body.woff_from_date && await isPayrollFinalized(req.body.woff_from_date)) return res.status(400).json({ message: `Payslip finalized for ${String(req.body.woff_from_date).slice(0,7)} — cannot update.` });
+    if (req.body.woff_to_date && await isPayrollFinalized(req.body.woff_to_date)) return res.status(400).json({ message: `Payslip finalized for ${String(req.body.woff_to_date).slice(0,7)} — cannot update.` });
 
     await woff.update(req.body);
     res.json({ message: 'Woff updated', data: woff });
@@ -165,6 +150,8 @@ exports.deleteWoff = async (req, res) => {
     if (!woff) {
       return res.status(404).json({ message: 'Woff not found' });
     }
+    const cd2 = woff.woff_from_date || woff.woff_date;
+    if (cd2 && await isPayrollFinalized(cd2)) return res.status(400).json({ message: `Payslip finalized for ${String(cd2).slice(0,7)} — cannot delete.` });
 
     await woff.destroy();
     res.json({ message: 'Woff deleted' });
@@ -183,6 +170,8 @@ exports.approveWoff = async (req, res) => {
     if (!woff) {
       return res.status(404).json({ message: 'Woff not found' });
     }
+    const chk = woff.woff_from_date || woff.woff_date;
+    if (chk && await isPayrollFinalized(chk)) return res.status(400).json({ message: `Payslip finalized for ${String(chk).slice(0,7)} — cannot approve.` });
     
     await woff.update({
       status,
@@ -223,6 +212,9 @@ exports.approveWoffChange = async (req, res) => {
     if (!application) {
       return res.status(404).json({ message: 'Woff application not found.' });
     }
+    const chkW = application.woff_from_date || application.woff_date;
+    if (chkW && await isPayrollFinalized(chkW)) return res.status(400).json({ message: `Payslip finalized for ${String(chkW).slice(0,7)} — cannot approve.` });
+    if (application.woff_to_date && await isPayrollFinalized(application.woff_to_date)) return res.status(400).json({ message: `Payslip finalized for ${String(application.woff_to_date).slice(0,7)} — cannot approve.` });
 
     application.status = status === 'Reject' ? 'Rejected' : status || 'Approved';
     if (remarks) application.remarks = remarks;
@@ -240,6 +232,9 @@ exports.cancelWoff = async (req, res) => {
   try {
     const app = await WoffApplication.findOne({ where: { woff_id } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    const c1 = app.woff_from_date || app.woff_date;
+    if (c1 && await isPayrollFinalized(c1)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(c1).slice(0,7)} — cannot cancel.` });
+    if (app.woff_to_date && await isPayrollFinalized(app.woff_to_date)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(app.woff_to_date).slice(0,7)} — cannot cancel.` });
 
     await app.update({ status: 'Cancelled', remarks: remarks });
     res.json({ success: true, message: "Woff approval cancelled" });
@@ -254,6 +249,9 @@ exports.reopenWoff = async (req, res) => {
   try {
     const app = await WoffApplication.findOne({ where: { woff_id } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    const r1 = app.woff_from_date || app.woff_date;
+    if (r1 && await isPayrollFinalized(r1)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(r1).slice(0,7)} — cannot reopen.` });
+    if (app.woff_to_date && await isPayrollFinalized(app.woff_to_date)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(app.woff_to_date).slice(0,7)} — cannot reopen.` });
 
     await app.update({ status: 'Pending' });
     res.json({ success: true, message: "Woff application reopened" });
@@ -262,3 +260,91 @@ exports.reopenWoff = async (req, res) => {
     res.status(500).json({ success: false, message: "Error reopening Woff" });
   }
 };
+
+// An approved Woff whose benefit has been cancelled by HR: cancel_status = 'C'.
+const CANCELLED = 'C';
+
+const findApprovedWoffForDate = (empid, attDate) => WoffApplication.findOne({
+  where: {
+    empid,
+    status: 'Approved',
+    woff_to_date: {
+      [Op.between]: [
+        `${attDate} 00:00:00.000`,
+        `${attDate} 23:59:59.999`
+      ]
+    }
+  },
+  order: [['woff_id', 'DESC']]
+});
+
+// Cancel an approved weekly-off so the granted day is not honoured in attendance.
+// HR drives this from Bulk Attendance Entry, so the record is located by
+// employee + date rather than by woff_id. Reason is mandatory.
+exports.markWoffCancelled = async (req, res) => {
+  const { empid, att_date, reason } = req.body;
+  try {
+    if (!empid || !att_date) {
+      return res.status(400).json({ success: false, message: 'Employee and date are required.' });
+    }
+    if (!reason || !String(reason).trim()) {
+      return res.status(400).json({ success: false, message: 'Reason is mandatory to cancel a Woff.' });
+    }
+
+    const woff = await findApprovedWoffForDate(empid, att_date);
+    if (!woff) {
+      return res.status(404).json({ success: false, message: `No approved Woff found for ${empid} on ${att_date}.` });
+    }
+    if (woff.cancel_status === CANCELLED) {
+      return res.status(400).json({ success: false, message: `Woff #${woff.woff_id} is already cancelled.` });
+    }
+    const woffDay = woff.woff_to_date || woff.woff_date;
+    if (await isPayrollFinalized(woffDay)) {
+      return res.status(400).json({ success: false, message: `Payslip finalized for ${String(woffDay).slice(0, 7)} — cannot cancel Woff.` });
+    }
+
+    await woff.update({
+      cancel_status: CANCELLED,
+      cancel_date: new Date(),
+      cancel_remarks: String(reason).trim(),
+      cancelled_by: req.session.user?.username || 'Admin'
+    });
+
+    res.json({ success: true, message: `Woff #${woff.woff_id} cancelled for ${att_date}.`, data: woff });
+  } catch (error) {
+    console.error('Error cancelling Woff:', error);
+    res.status(500).json({ success: false, message: 'Error cancelling Woff' });
+  }
+};
+
+// Undo a cancellation — the weekly-off day is honoured again.
+exports.revokeWoffCancellation = async (req, res) => {
+  const { empid, att_date } = req.body;
+  try {
+    if (!empid || !att_date) {
+      return res.status(400).json({ success: false, message: 'Employee and date are required.' });
+    }
+
+    const woff = await findApprovedWoffForDate(empid, att_date);
+    if (!woff || woff.cancel_status !== CANCELLED) {
+      return res.status(404).json({ success: false, message: `No cancelled Woff found for ${empid} on ${att_date}.` });
+    }
+    const woffDay = woff.woff_to_date || woff.woff_date;
+    if (await isPayrollFinalized(woffDay)) {
+      return res.status(400).json({ success: false, message: `Payslip finalized for ${String(woffDay).slice(0, 7)} — cannot revoke Woff cancellation.` });
+    }
+
+    await woff.update({
+      cancel_status: null,
+      cancel_date: null,
+      cancel_remarks: null,
+      cancelled_by: null
+    });
+
+    res.json({ success: true, message: `Cancellation removed from Woff #${woff.woff_id}.`, data: woff });
+  } catch (error) {
+    console.error('Error revoking Woff cancellation:', error);
+    res.status(500).json({ success: false, message: 'Error revoking Woff cancellation' });
+  }
+};
+

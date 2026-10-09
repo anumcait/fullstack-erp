@@ -1,28 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
-// Shown when the company settings request fails (DB error, backend down, or
-// network/latency issue). We deliberately do NOT redirect to /company-setup,
-// because that screen is only for a genuine first-time installation.
 const CompanyErrorScreen = ({ message, onRetry }) => {
   const navigate = useNavigate();
-  useEffect(() => {
-    const cachedFav = localStorage.getItem('cached_favicon_url') || '';
-    const cachedLogo = localStorage.getItem('cached_logo_url') || '';
-    const href = (cachedFav || cachedLogo || '/logo.png') + '?v=' + Date.now();
-    let link = document.getElementById('favicon');
-    if (!link) {
-      link = document.createElement('link');
-      link.id = 'favicon';
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
-    link.href = href;
-    link.type = 'image/png';
-    document.title = 'ERP : Unable to reach server';
-  }, []);
   const retry = () => {
     if (typeof onRetry === 'function') onRetry();
     else window.location.reload();

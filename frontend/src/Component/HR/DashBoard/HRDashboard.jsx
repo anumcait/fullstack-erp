@@ -176,6 +176,7 @@ const HRDashboard = () => {
     );
   }
 
+  const fmt = (s) => { if (!s) return s; const d=new Date(s); if(isNaN(d)) return s; const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'), yy=d.getFullYear(); return `${dd}-${mm}-${yy}`; };
   const todayStr = new Date().toISOString().slice(0, 10);
   const coverageDate = summary.effectiveDate || null;
   const isStale = coverageDate && coverageDate !== todayStr;
@@ -184,7 +185,7 @@ const HRDashboard = () => {
     <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300 animate-fadeIn">
       {isStale && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <p className="text-sm font-bold text-amber-800">⚠️ Attendance data up to <span className="underline">{coverageDate}</span> only (today {todayStr}). Generate Shift Schedule / HR Attendance for {coverageDate} → {todayStr} via perfect flow.</p>
+          <p className="text-sm font-bold text-amber-800">⚠️ Attendance data up to <span className="underline">{fmt(coverageDate)}</span> only (today {fmt(todayStr)}). Generate Shift Schedule / HR Attendance for {fmt(coverageDate)} → {fmt(todayStr)} via perfect flow.</p>
           <button onClick={() => navigate('/shiftschedule')} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black">Go to Shift Schedule</button>
         </div>
       )}
@@ -364,7 +365,7 @@ const HRDashboard = () => {
           title="Upcoming Holidays"
           data={(insights.upcomingHolidays || []).slice(0, 5).map((h) => ({
             label: h.hdesc || h.hname || 'Holiday',
-            value: h.hdate ? new Date(h.hdate).toLocaleDateString() : '',
+            value: h.hdate ? fmt(h.hdate) : '',
           }))}
           icon={<FaRegCalendarCheck className="text-blue-500" />}
         />
@@ -372,7 +373,7 @@ const HRDashboard = () => {
           title="Upcoming Birthdays"
           data={(insights.upcomingBirthdays || []).map((b) => ({
             label: b.ename || b.emp_name || b.empid,
-            value: b.dob ? new Date(b.dob).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '',
+            value: b.dob ? fmt(b.dob) : '',
           }))}
           icon={<FaBirthdayCake className="text-pink-500" />}
         />
@@ -380,7 +381,7 @@ const HRDashboard = () => {
           title="Recent Hires"
           data={(insights.recentHires || []).map((r) => ({
             label: r.ename || r.emp_name || r.empid,
-            value: r.doj ? new Date(r.doj).toLocaleDateString() : '',
+            value: r.doj ? fmt(r.doj) : '',
           }))}
           icon={<FaUserPlus className="text-green-500" />}
         />

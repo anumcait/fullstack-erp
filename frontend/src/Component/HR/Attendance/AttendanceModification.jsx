@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import {
   Box, Card, CardContent, Typography, Grid, TextField, Select, MenuItem,
   Button, Table, TableHead, TableBody, TableRow, TableCell,
-  IconButton, Chip, FormControl, InputLabel, RadioGroup, FormControlLabel, Radio
+  IconButton, Chip, FormControl, InputLabel, RadioGroup, FormControlLabel, Radio, TablePagination, Alert
 } from "@mui/material";
+import LockIcon from "@mui/icons-material/Lock";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -28,6 +29,10 @@ const AttendanceModificationEntry = () => {
   const [filterShift, setFilterShift] = useState("");
   const [employeeList, setEmployeeList] = useState([]);
   const [shifts, setShifts] = useState([]);
+
+  const [payrollLocked, setPayrollLocked] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -78,6 +83,45 @@ const AttendanceModificationEntry = () => {
     }
   };
 
+  const isLeaveStatus = (s) => ['CL','SL','EL','L','LOP','HD','H','W','FC','FE','FL','HALF DAY'].includes(String(s||'').toUpperCase().trim());
+  const getMins = (t) => {
+    if (!t) return null;
+    const m = String(t).match(/(\d{1,2}):(\d{2})/);
+    if (m) return parseInt(m[1])*60+parseInt(m[2]);
+    const d = new Date(t); if (!isNaN(d)) return d.getHours()*60+d.getMinutes();
+    return null;
+  };
+  const isHalfDay = (inT, outT, shift) => {
+    if (!inT || !outT) return false;
+    const sm = shifts.find(s => s.shift_cd === shift);
+    const sStart = getMins(sm?.start_time || '09:00');
+    const sEnd = getMins(sm?.end_time || '17:30');
+    const lStart = getMins(sm?.lunch_start_time);
+    const lEnd = getMins(sm?.lunch_end_time);
+    const inM = getMins(inT), outM = getMins(outT);
+    if (inM===null || outM===null) return false;
+    let eOut = outM, eEnd = sEnd;
+    if (sStart!==null && sEnd!==null && sEnd < sStart) { if (outM < 720) eOut+=1440; eEnd+=1440; }
+    else if (outM < inM) eOut+=1440;
+    if (lEnd!==null && eOut <= lEnd) return true;
+    if (lStart!==null && inM >= lStart) return true;
+    if (eEnd!==null && eOut < eEnd) return true;
+    return false;
+  };
+  const deriveStatus = (shift, inT, outT, cur) => {
+    if (['W','H'].includes(shift)) return shift;
+    const leave = String(cur||'').toUpperCase().trim();
+    const half = isHalfDay(inT, outT, shift);
+    if (half) {
+      if (leave === 'CL' || leave === 'FCL') return 'FC';
+      if (leave === 'EL') return 'FE';
+      if (leave === 'SL') return 'FL';
+      return 'Half Day';
+    }
+    if (isLeaveStatus(cur) && cur !== 'P' && cur !== 'A') return cur;
+    return (inT && outT) ? 'P' : 'A';
+  };
+
   const fetchEmployees = async () => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
@@ -88,6 +132,10 @@ const AttendanceModificationEntry = () => {
   };
 
   const fetchData = async () => {
+    if (filterType === "range" && (!fromDate || !toDate)) {
+      showToast("Select both From and To dates", "warning");
+      return;
+    }
     setLoading(true);
     try {
       const params = {};
@@ -102,12 +150,16 @@ const AttendanceModificationEntry = () => {
         params.year = year;
       }
       if (filterEmpId) params.empid = filterEmpId;
+      if (filterShift) params.shift = filterShift;
 
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/attendance`, { params });
       
       let data = res.data.records || res.data || [];
-      if (filterShift) {
-        data = data.filter(d => d.shift === filterShift);
+      const locked = !!res.data._payrollFinalized;
+      setPayrollLocked(locked);
+      if (locked) {
+        const mm = filterType==='month' ? months.find(m=>m.value===month)?.label : '';
+        showToast(`Payslip finalized for ${mm} ${year} — attendance locked`, "warning");
       }
       
       // Seed editable state
@@ -117,18 +169,22 @@ const AttendanceModificationEntry = () => {
           const match = row.remarks.match(/\[MOD: (.*?)\]/);
           if (match) currentMod = match[1];
         }
+        const rawStatus = row.status || "P";
+        const derived = deriveStatus(row.shift || "G", row.in_time || "", row.out_time || "", rawStatus);
         return {
           ...row,
           modify_in_time: row.in_time || "",
           modify_out_time: row.out_time || "",
           modify_shift: row.shift || "G",
-          modify_status: row.status || "P",
+          modify_status: derived,
           modify_type: currentMod === "None" ? modType : currentMod
         };
       });
       
       setAttendanceData(data);
       setHasFetched(true);
+      setPage(0);
+      if (!locked) setPayrollLocked(false);
     } catch (err) {
       console.error("Error fetching attendance data:", err);
       showToast("Error loading attendance records", "error");
@@ -139,11 +195,22 @@ const AttendanceModificationEntry = () => {
 
   const handleFieldChange = (id, field, value) => {
     setAttendanceData(prev => 
-      prev.map(row => (row.id === id ? { ...row, [field]: value } : row))
+      prev.map(row => {
+        if (row.id !== id) return row;
+        const next = { ...row, [field]: value };
+        if (field === 'modify_shift' || field === 'modify_in_time' || field === 'modify_out_time') {
+          const s = field === 'modify_shift' ? value : next.modify_shift;
+          const inT = field === 'modify_in_time' ? value : next.modify_in_time;
+          const outT = field === 'modify_out_time' ? value : next.modify_out_time;
+          next.modify_status = deriveStatus(s, inT, outT, next.modify_status);
+        }
+        return next;
+      })
     );
   };
 
   const saveRow = async (row) => {
+    if (payrollLocked) { showToast("Payslip finalized — cannot modify", "error"); return; }
     try {
       await axios.put(`${import.meta.env.VITE_API_URL}/api/attendance/${row.id}`, {
         empid: row.empid,
@@ -166,6 +233,7 @@ const AttendanceModificationEntry = () => {
   };
 
   const deleteRecord = async (id) => {
+    if (payrollLocked) { showToast("Payslip finalized — cannot delete", "error"); return; }
     if (!window.confirm("Are you sure you want to delete this record?")) return;
     try {
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/attendance/${id}`);
@@ -224,6 +292,11 @@ const AttendanceModificationEntry = () => {
         </Box>
       </Box>
 
+      {payrollLocked && hasFetched && (
+        <Alert severity="warning" icon={<LockIcon />} sx={{ mb: 2, fontWeight: 700 }}>
+          Payslip already generated/finalized for {filterType==='month' ? `${months.find(m=>m.value===month)?.label} ${year}` : filterType==='date' ? dataDate : `${fromDate} to ${toDate}`} — attendance cannot be modified. Contact payroll to unlock.
+        </Alert>
+      )}
       <CardContent>
         {/* Mod Type Selection */}
         <Box sx={{ mb: 2 }}>
@@ -362,7 +435,7 @@ const AttendanceModificationEntry = () => {
 
         {/* TABLE */}
         <Box sx={{ overflowX: "auto" }}>
-          <Table size="small">
+          <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: "rgba(25, 118, 210, 0.08)", color: "primary.dark" }}>
                 <TableCell sx={{ color: "primary.dark", fontWeight: "bold" }}>Date</TableCell>
@@ -392,14 +465,20 @@ const AttendanceModificationEntry = () => {
                   <TableCell colSpan={10} align="center" sx={{ py: 3, color: "#777" }}>No attendance records found for selected filter</TableCell>
                 </TableRow>
               ) : (
-                attendanceData.map((row) => (
+                attendanceData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
                   <TableRow key={row.id} sx={{ "&:nth-of-type(odd)": { bgcolor: "#fafafa" } }}>
-                    <TableCell>{row.att_date}</TableCell>
+                    <TableCell>
+                      <Box sx={{ lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+                        <Box sx={{ fontWeight: 700, fontSize: '13px' }}>{(() => { const d=new Date(row.att_date); if(isNaN(d)) return row.att_date; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=d.getFullYear(); return `${dd}-${mm}-${yy}`; })()}</Box>
+                        <Box sx={{ fontSize: '11px', color: '#64748b', fontWeight: 400 }}>{(() => { const d=new Date(row.att_date); return isNaN(d) ? '' : d.toLocaleDateString('en-US',{weekday:'short'}); })()}</Box>
+                      </Box>
+                    </TableCell>
                     <TableCell>{row.empid}</TableCell>
                     <TableCell>{row.employee?.ename || "-"}</TableCell>
                     <TableCell>
                       <FormControl size="small" fullWidth sx={{ minWidth: 140 }}>
                         <Select 
+                          disabled={payrollLocked}
                           value={row.modify_type || "None"} 
                           onChange={(e) => handleFieldChange(row.id, "modify_type", e.target.value)}
                         >
@@ -411,6 +490,7 @@ const AttendanceModificationEntry = () => {
                     <TableCell>
                       <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
                         <Select 
+                          disabled={payrollLocked}
                           value={row.modify_shift} 
                           onChange={(e) => handleFieldChange(row.id, "modify_shift", e.target.value)}
                         >
@@ -431,18 +511,12 @@ const AttendanceModificationEntry = () => {
                       </FormControl>
                     </TableCell>
                     <TableCell>
-                      <FormControl size="small" fullWidth sx={{ minWidth: 100 }}>
-                        <Select 
-                          value={row.modify_status} 
-                          onChange={(e) => handleFieldChange(row.id, "modify_status", e.target.value)}
-                        >
-                          <MenuItem value="P">Present</MenuItem>
-                          <MenuItem value="A">Absent</MenuItem>
-                          <MenuItem value="W">Weekly Off</MenuItem>
-                          <MenuItem value="H">Holiday</MenuItem>
-                          <MenuItem value="L">Leave</MenuItem>
-                        </Select>
-                      </FormControl>
+                      <Chip
+                        size="small"
+                        label={row.modify_status === 'P' ? 'P - Present' : row.modify_status === 'A' ? 'A - Absent' : row.modify_status === 'W' ? 'W - Weekly Off' : row.modify_status === 'H' ? 'H - Holiday' : row.modify_status === 'Half Day' ? 'Half Day' : row.modify_status === 'FC' ? 'FC - Half CL' : row.modify_status === 'FE' ? 'FE - Half EL' : row.modify_status}
+                        color={row.modify_status === 'P' ? 'success' : row.modify_status === 'A' ? 'error' : ['Half Day','FC','FE','FL'].includes(row.modify_status) ? 'warning' : 'default'}
+                        sx={{ fontWeight: 700, minWidth: 90 }}
+                      />
                     </TableCell>
                     <TableCell sx={{ fontFamily: "monospace", color: "gray" }}>{row.in_time || "-"}</TableCell>
                     <TableCell sx={{ fontFamily: "monospace", color: "gray" }}>{row.out_time || "-"}</TableCell>
@@ -450,6 +524,7 @@ const AttendanceModificationEntry = () => {
                       <TextField 
                         type="time" 
                         size="small" 
+                        disabled={payrollLocked}
                         value={row.modify_in_time}
                         onChange={(e) => handleFieldChange(row.id, "modify_in_time", e.target.value)}
                       />
@@ -458,15 +533,16 @@ const AttendanceModificationEntry = () => {
                       <TextField 
                         type="time" 
                         size="small" 
+                        disabled={payrollLocked}
                         value={row.modify_out_time}
                         onChange={(e) => handleFieldChange(row.id, "modify_out_time", e.target.value)}
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" color="primary" onClick={() => saveRow(row)}>
+                      <IconButton size="small" color="primary" onClick={() => saveRow(row)} disabled={payrollLocked} title={payrollLocked ? "Payslip finalized — locked" : "Save"}>
                         <SaveIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" color="error" onClick={() => deleteRecord(row.id)}>
+                      <IconButton size="small" color="error" onClick={() => deleteRecord(row.id)} disabled={payrollLocked} title={payrollLocked ? "Payslip finalized — locked" : "Delete"}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </TableCell>
@@ -475,6 +551,17 @@ const AttendanceModificationEntry = () => {
               )}
             </TableBody>
           </Table>
+          {attendanceData.length > 0 && (
+            <TablePagination
+              component="div"
+              count={attendanceData.length}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[25, 50, 100]}
+            />
+          )}
         </Box>
 
       </CardContent>

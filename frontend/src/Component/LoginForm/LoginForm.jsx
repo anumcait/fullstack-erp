@@ -6,7 +6,7 @@ import './LoginForm.css'; // ✅ Import your custom CSS
 import { useCompany } from '../../context/CompanyContext';
 
 const LoginForm = () => {
-  const { companyName, companyShortName, companyConfigured, companySettings, refreshCompanySettings } = useCompany();
+  const { companyShortName, companyConfigured, companySettings, refreshCompanySettings } = useCompany();
   const logoUrl = companySettings?.logo_url;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -58,15 +58,13 @@ const LoginForm = () => {
     }
   };
 
-  // SEO and Pre-fill logic
+  // Pre-fill saved username when "remember me" is enabled
   React.useEffect(() => {
-    document.title = `${companyShortName ? companyShortName.trim() + ' ERP' : 'ERP'} - Secure Login`;
-
     if (rememberMe) {
       const savedUser = localStorage.getItem('rememberedUsername');
       if (savedUser) setUsername(savedUser);
     }
-  }, [companyName, rememberMe]);
+  }, [rememberMe]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

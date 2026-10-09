@@ -151,6 +151,13 @@ const PAGE_TITLES = [
   ['/hr', 'HR Dashboard'],
 ];
 
+const AUTH_TITLES = {
+  '/': 'Secure Login',
+  '/login': 'Secure Login',
+  '/company-setup': 'Company Setup',
+  '/change-password': 'Change Password',
+};
+
 const getPageTitle = (pathname) => {
   const match = PAGE_TITLES.find(([prefix]) => pathname.startsWith(prefix));
   return match ? match[1] : null;
@@ -166,11 +173,17 @@ const DocumentTitle = () => {
   const { companyShortName, companySettings } = useCompany();
 
   useEffect(() => {
+    const shortName = getShortName(companyShortName) || 'ERP';
+    const authTitle = AUTH_TITLES[pathname];
+    if (authTitle) {
+      document.title = `${shortName} - ${authTitle}`;
+      return;
+    }
     const pageTitle = getPageTitle(pathname);
     if (pageTitle) {
-      document.title = `${getShortName(companyShortName) || 'ERP'} : ${pageTitle}`;
+      document.title = `${shortName} : ${pageTitle}`;
     } else if (pathname === '/dashboard') {
-      document.title = `${getShortName(companyShortName) || 'ERP'} : Dashboard`;
+      document.title = `${shortName} : Dashboard`;
     }
   }, [pathname, companyShortName]);
 

@@ -1,6 +1,21 @@
-const { LeaveApplication, LeaveDetails, LeaveMaster, LeaveApproval, LeavePosition, Attendance } = require('../../models');
+const { LeaveApplication, LeaveDetails, LeaveMaster, LeaveApproval, LeavePosition, Attendance, Payslip } = require('../../models');
 
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
+const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
+const isAnyDateFinalized = async (dates) => {
+  for (const dt of dates) if (dt && await isPayrollFinalized(dt)) return dt;
+  return null;
+};
 
 // Helper to format date as DD-MM-YY
 const formatDate = (date) => {
@@ -68,6 +83,13 @@ exports.applyLeave = async (req, res) => {
   if (!application || !leaveDetails || leaveDetails.length === 0) {
     return res.status(400).json({ message: 'Invalid request: missing application data or leave details.' });
   }
+  const allDates = [];
+  for (const d of leaveDetails) {
+    const s = new Date(d.frmdt), e = new Date(d.todate || d.frmdt);
+    for (let cur = new Date(s); cur <= e; cur.setDate(cur.getDate()+1)) allDates.push(cur.toISOString().split('T')[0]);
+  }
+  const blocked = await isAnyDateFinalized(allDates);
+  if (blocked) return res.status(400).json({ message: `Payslip finalized for ${blocked.slice(0,7)} — cannot apply leave.` });
 
   const t = await LeaveApplication.sequelize.transaction();
 
@@ -99,13 +121,7 @@ exports.applyLeave = async (req, res) => {
       }
     }
 
-    const maxLnoResult = await LeaveApplication.findOne({
-      attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('lno')), 0), 'maxLno']],
-      raw: true,
-      transaction: t,
-      lock: t.LOCK.UPDATE
-    });
-    const nextLno = Number(maxLnoResult.maxLno) + 1;
+    const nextLno = await nextSequenceNumber(LeaveApplication, 'lno', t, LOCK_KEYS.LEAVE_APPLICATION);
     application.lno = nextLno;
 
     application.status = "Pending";
@@ -459,6 +475,8 @@ exports.getAllLeaveApplications = async (req, res) => {
 
 exports.approveLeave = async (req, res) => {
   const { lno, cl_sanction = 0, el_sanction = 0, days = [] } = req.body;
+  const blocked = await isAnyDateFinalized(days.map(d=>d.date));
+  if (blocked) return res.status(400).json({ success: false, message: `Payslip finalized for ${blocked.slice(0,7)} — cannot approve.` });
   const status = 'Approved'; // Default to Approved
   const t = await LeaveApplication.sequelize.transaction();
   try {
@@ -533,6 +551,12 @@ exports.approveLeave = async (req, res) => {
 
 exports.rejectLeave = async (req, res) => {
   const { lno, app_remarks } = req.body;
+  const appPre = await LeaveApplication.findOne({ where: { lno }, include: [{ model: LeaveDetails, as: 'leaveDetails' }] });
+  if (appPre) {
+    const dts = appPre.leaveDetails.flatMap(d=>{ const s=new Date(d.frmdt), e=new Date(d.todate||d.frmdt); const a=[]; for(let c=new Date(s); c<=e; c.setDate(c.getDate()+1)) a.push(c.toISOString().split('T')[0]); return a; });
+    const bl = await isAnyDateFinalized(dts);
+    if (bl) return res.status(400).json({ success: false, message: `Payslip finalized for ${bl.slice(0,7)} — cannot reject.` });
+  }
   const status = 'Rejected'; // Default to Rejected
   const t = await LeaveApplication.sequelize.transaction();
   try {
@@ -559,6 +583,12 @@ exports.rejectLeave = async (req, res) => {
 
 exports.cancelApproval = async (req, res) => {
   const { lno } = req.body;
+  const appChk = await LeaveApplication.findOne({ where: { lno }, include: [{ model: LeaveDetails, as: 'leaveDetails' }] });
+  if (appChk) {
+    const dts = appChk.leaveDetails.flatMap(d=>{ const s=new Date(d.frmdt), e=new Date(d.todate||d.frmdt); const a=[]; for(let c=new Date(s); c<=e; c.setDate(c.getDate()+1)) a.push(c.toISOString().split('T')[0]); return a; });
+    const bl = await isAnyDateFinalized(dts);
+    if (bl) return res.status(400).json({ success: false, message: `Payslip finalized for ${bl.slice(0,7)} — cannot cancel.` });
+  }
   const t = await LeaveApplication.sequelize.transaction();
   try {
     const app = await LeaveApplication.findOne({
@@ -631,6 +661,8 @@ exports.cancelApproval = async (req, res) => {
 
 exports.cancelPartialApproval = async (req, res) => {
   const { lno, dates = [], remarks = "" } = req.body; // dates is array of dates to cancel
+  const bl2 = await isAnyDateFinalized(dates);
+  if (bl2) return res.status(400).json({ success: false, message: `Payslip finalized for ${bl2.slice(0,7)} — cannot cancel.` });
   const t = await LeaveApplication.sequelize.transaction();
   try {
     const app = await LeaveApplication.findOne({
@@ -717,6 +749,12 @@ exports.cancelPartialApproval = async (req, res) => {
 
 exports.reopenLeave = async (req, res) => {
   const { lno } = req.body;
+  const appChk2 = await LeaveApplication.findOne({ where: { lno }, include: [{ model: LeaveDetails, as: 'leaveDetails' }] });
+  if (appChk2) {
+    const dts = appChk2.leaveDetails.flatMap(d=>{ const s=new Date(d.frmdt), e=new Date(d.todate||d.frmdt); const a=[]; for(let c=new Date(s); c<=e; c.setDate(c.getDate()+1)) a.push(c.toISOString().split('T')[0]); return a; });
+    const bl = await isAnyDateFinalized(dts);
+    if (bl) return res.status(400).json({ message: `Payslip finalized for ${bl.slice(0,7)} — cannot reopen.` });
+  }
   const t = await LeaveApplication.sequelize.transaction();
   try {
     const app = await LeaveApplication.findOne({ where: { lno }, transaction: t });

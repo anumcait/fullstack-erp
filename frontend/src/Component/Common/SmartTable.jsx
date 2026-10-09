@@ -27,7 +27,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
     const w = {};
     columns.forEach((c) => {
       const len = (c.header || '').length || 6;
-      w[c.field] = initialWidths?.[c.field] ?? Math.max(140, Math.min(320, len * 9 + 48));
+      w[c.field] = initialWidths?.[c.field] ?? Math.max(80, Math.min(220, len * 7 + 24));
     });
     return w;
   });

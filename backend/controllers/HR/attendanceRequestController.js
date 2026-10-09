@@ -96,11 +96,18 @@ exports.getPending = async (req, res) => {
 
 function getTimeMins(t) {
   if (!t) return null;
+  // TIME columns arrive from Sequelize as Date objects anchored to 2000-01-01
+  // with the wall-clock time in the UTC parts. Convert those first, otherwise
+  // String(date) renders in local time (17:30 -> 23:00 under UTC+5:30).
+  if (t instanceof Date) {
+    if (isNaN(t.getTime())) return null;
+    return t.getUTCHours()*60+t.getUTCMinutes();
+  }
   const s = String(t).trim();
   const m = s.match(/(\d{1,2})[:.](\d{2})/);
   if (m) return parseInt(m[1])*60+parseInt(m[2]);
   const d = new Date(t);
-  if (!isNaN(d.getTime())) return d.getHours()*60+d.getMinutes();
+  if (!isNaN(d.getTime())) return d.getUTCHours()*60+d.getUTCMinutes();
   return null;
 }
 function calcLate(inTime, shiftStart) {

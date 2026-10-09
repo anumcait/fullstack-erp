@@ -22,7 +22,8 @@ const API = import.meta.env.VITE_API_URL || "";
 const Header = () => {
   const { mode, toggleTheme, accent, setAccentColor, ACCENT_COLORS } = useThemeMode();
   const { companySettings, companyShortName } = useCompany();
-  const logoUrl = companySettings?.logo_url;
+  const cachedLogoEarly = localStorage.getItem('cached_logo_url') || '';
+  const logoUrl = companySettings?.logo_url || cachedLogoEarly || fallbackLogo;
   const brandTitle = companySettings?.title
     || (companyShortName ? `${companyShortName} ERP` : 'ERP');
   const [userName, setUserName] = useState('Guest');
@@ -42,7 +43,7 @@ const Header = () => {
   const location = useLocation();
 
   const cachedFav = localStorage.getItem('cached_favicon_url') || '';
-  const cachedLogo = localStorage.getItem('cached_logo_url') || '';
+  const cachedLogo = localStorage.getItem('cached_logo_url') || fallbackLogo;
   const faviconUrl = companySettings?.favicon_url || logoUrl || cachedFav || cachedLogo || '/logo.png';
 
   useEffect(() => {

@@ -1,5 +1,16 @@
-const { ExtOt, EmployeeMaster, User } = require('../../models');
-const { Sequelize } = require('sequelize');
+const { ExtOt, EmployeeMaster, User, Payslip } = require('../../models');
+const { Sequelize, Op } = require('sequelize');
+const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
 
 function calculateOtHrs(inTime, outTime) {
   if (!inTime || !outTime) return 0;
@@ -17,6 +28,7 @@ function calculateOtHrs(inTime, outTime) {
 exports.create = async (req, res) => {
   try {
     const { empid, ename, ot_date, in_time, out_time, ot_type, emp_remarks } = req.body;
+    if (ot_date && await isPayrollFinalized(ot_date)) return res.status(400).json({ message: `Payslip finalized for ${ot_date.slice(0,7)} — cannot create OT.` });
 
     console.log('Ext OT Create:', { empid, ename, ot_date, in_time, out_time, ot_type });
 
@@ -46,8 +58,7 @@ exports.create = async (req, res) => {
     const t = await ExtOt.sequelize.transaction();
     let extOt;
     try {
-      const maxRow = await ExtOt.findOne({ attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('id')), 0), 'maxId']], raw: true, transaction: t, lock: t.LOCK.UPDATE });
-      const nextId = Number(maxRow.maxId) + 1;
+      const nextId = await nextSequenceNumber(ExtOt, 'id', t, LOCK_KEYS.EXT_OT);
       extOt = await ExtOt.create({
         id: nextId,
       empid: parseInt(empid),
@@ -78,6 +89,7 @@ exports.update = async (req, res) => {
     const { in_time, out_time, ot_type, emp_remarks, ot_hrs } = req.body;
 
     const extOt = await ExtOt.findByPk(id);
+    if (extOt && extOt.ot_date && await isPayrollFinalized(extOt.ot_date)) return res.status(400).json({ message: `Payslip finalized for ${String(extOt.ot_date).slice(0,7)} — cannot update.` });
     if (!extOt) {
       return res.status(404).json({ message: 'Ext OT not found' });
     }
@@ -110,6 +122,7 @@ exports.hrUpdate = async (req, res) => {
     const { ot_hrs } = req.body;
 
     const extOt = await ExtOt.findByPk(id);
+    if (extOt && extOt.ot_date && await isPayrollFinalized(extOt.ot_date)) return res.status(400).json({ message: `Payslip finalized for ${String(extOt.ot_date).slice(0,7)} — cannot update.` });
     if (!extOt) {
       return res.status(404).json({ message: 'Ext OT not found' });
     }
@@ -189,6 +202,7 @@ exports.delete = async (req, res) => {
   try {
     const { id } = req.params;
     const extOt = await ExtOt.findByPk(id);
+    if (extOt && extOt.ot_date && await isPayrollFinalized(extOt.ot_date)) return res.status(400).json({ message: `Payslip finalized for ${String(extOt.ot_date).slice(0,7)} — cannot delete.` });
 
     if (!extOt) {
       return res.status(404).json({ message: 'Ext OT not found' });
@@ -213,6 +227,7 @@ exports.managerApprove = async (req, res) => {
     const { manager_remarks, ot_hrs } = req.body;
 
     const extOt = await ExtOt.findByPk(id);
+    if (extOt && extOt.ot_date && await isPayrollFinalized(extOt.ot_date)) return res.status(400).json({ message: `Payslip finalized for ${String(extOt.ot_date).slice(0,7)} — cannot approve.` });
     if (!extOt) {
       return res.status(404).json({ message: 'Ext OT not found' });
     }
@@ -242,6 +257,7 @@ exports.hrApprove = async (req, res) => {
     const { hr_remarks, ot_hrs } = req.body;
 
     const extOt = await ExtOt.findByPk(id);
+    if (extOt && extOt.ot_date && await isPayrollFinalized(extOt.ot_date)) return res.status(400).json({ message: `Payslip finalized for ${String(extOt.ot_date).slice(0,7)} — cannot approve.` });
     if (!extOt) {
       return res.status(404).json({ message: 'Ext OT not found' });
     }
@@ -268,6 +284,8 @@ exports.hrApprove = async (req, res) => {
 exports.managerBulkApprove = async (req, res) => {
   try {
     const { ids, manager_remarks } = req.body;
+    const rows = await ExtOt.findAll({ where: { id: { [Op.in]: ids } } });
+    for (const r of rows) if (r.ot_date && await isPayrollFinalized(r.ot_date)) return res.status(400).json({ message: `Payslip finalized for ${String(r.ot_date).slice(0,7)} — bulk blocked.` });
 
     await ExtOt.update({
       app_status: 1,
@@ -291,6 +309,8 @@ exports.managerBulkApprove = async (req, res) => {
 exports.hrBulkApprove = async (req, res) => {
   try {
     const { ids, hr_remarks } = req.body;
+    const rows = await ExtOt.findAll({ where: { id: { [Op.in]: ids } } });
+    for (const r of rows) if (r.ot_date && await isPayrollFinalized(r.ot_date)) return res.status(400).json({ message: `Payslip finalized for ${String(r.ot_date).slice(0,7)} — bulk blocked.` });
 
     await ExtOt.update({
       app_status: 2,

@@ -1,5 +1,15 @@
-const { RawPunch, PunchBatch } = require('../../models');
+const { RawPunch, PunchBatch, Payslip } = require('../../models');
 const { Op, Sequelize, fn, col } = require('sequelize');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -67,6 +77,7 @@ exports.pushPunch = async (req, res) => {
   try {
     const { empid, punch_time, direction, device_id, device_name, mode } = req.body;
     if (!empid || !punch_time) return res.status(400).json({ message: 'empid and punch_time required' });
+    if (await isPayrollFinalized(punch_time)) return res.status(400).json({ message: `Payslip finalized for ${String(punch_time).slice(0,7)} — cannot push.` });
 
     const dt = new Date(punch_time);
     const batchId = `api-${Date.now()}`;
@@ -94,6 +105,7 @@ exports.bulkPushPunches = async (req, res) => {
   try {
     const { punches } = req.body;
     if (!punches?.length) return res.status(400).json({ message: 'No punches provided' });
+    for (const p of punches) if (p.punch_time && await isPayrollFinalized(p.punch_time)) return res.status(400).json({ message: `Payslip finalized for ${String(p.punch_time).slice(0,7)} — bulk blocked.` });
 
     const batchId = `api-bulk-${Date.now()}`;
     const records = punches.map((p) => {
@@ -125,6 +137,7 @@ exports.manualPunch = async (req, res) => {
   try {
     const { empid, punch_date, punch_in, punch_out } = req.body;
     if (!empid || !punch_date) return res.status(400).json({ message: 'empid and punch_date required' });
+    if (await isPayrollFinalized(punch_date)) return res.status(400).json({ message: `Payslip finalized for ${punch_date.slice(0,7)} — cannot add punch.` });
     const records = [];
     if (punch_in) {
       const dt = new Date(`${punch_date}T${punch_in}`);
@@ -177,6 +190,7 @@ exports.processPunches = async (req, res) => {
   try {
     const { date } = req.body;
     const targetDate = date || new Date().toISOString().slice(0, 10);
+    if (await isPayrollFinalized(targetDate)) return res.status(400).json({ message: `Payslip finalized for ${targetDate.slice(0,7)} — cannot process.` });
 
     // Get all unprocessed punches for the date, ordered by empid and time
     const punches = await RawPunch.findAll({

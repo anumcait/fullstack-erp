@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box, Card, CardContent, Typography, Grid, TextField, Select, MenuItem,
   Button, Table, TableHead, TableBody, TableRow, TableCell,
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip,
-  FormControl, InputLabel, CircularProgress, TablePagination, Alert
+  FormControl, InputLabel, CircularProgress, TablePagination, Alert, Tooltip
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -11,13 +11,26 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import PersonOffIcon from "@mui/icons-material/PersonOff";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import BlockIcon from "@mui/icons-material/Block";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { getErrorMessage } from "../../../utils/errorUtils";
+
+// General shift defaults — must match backend attendanceController.js fallbacks
+const DEFAULT_IN_TIME = "09:00";
+const DEFAULT_OUT_TIME = "17:30";
+
+// A weekly off is either the day's status or the shift; mirrors the backend check.
+const isWeeklyOffRow = (row) => {
+  const s = String(row.status || "").toUpperCase();
+  const sh = String(row.shift || "").toUpperCase();
+  return s === "W" || s === "WOFF" || s === "W-OFF" || sh === "W";
+};
 
 const HRAttendance = () => {
   const { showToast } = useToast();
@@ -52,21 +65,33 @@ const HRAttendance = () => {
   const [savingIdx, setSavingIdx] = useState(null);
   const [quickInTime, setQuickInTime] = useState("");
   const [quickOutTime, setQuickOutTime] = useState("");
+  const [mainFiltersDirty, setMainFiltersDirty] = useState(false);
+  const bulkDialogRef = useRef(false);
+  const [woffTarget, setWoffTarget] = useState(null);
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [woffForm, setWoffForm] = useState({ reason: "" });
+  const [woffSaving, setWoffSaving] = useState(false);
+
+  const markMainFiltersDirty = () => setMainFiltersDirty(true);
 
   useEffect(() => {
     fetchEmployees();
+    // Mount-only: re-runs are handled by openBulkEntry when the list came back empty.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredAttendanceData = attendanceData.filter(row => row.status !== 'W' && row.status !== 'H');
+  const dirtyCount = bulkRows.filter(r => r.dirty).length;
 
   useEffect(() => {
-    // Guard: don't fetch range filter if dates are incomplete
+    // Auto-refresh when employee / month / year change (also covers initial load).
+    // Date and range changes still wait for the Apply Filter button.
     if (filterType === "range" && (!fromDate || !toDate)) return;
     fetchData();
-  }, [filterType, selectedEmployee, dataDate, fromDate, toDate, month, year]);
+  }, [selectedEmployee, month, year]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = {};
       if (filterType === "date") {
@@ -99,13 +124,14 @@ const HRAttendance = () => {
     try {
       // Fetch only active employees (default filterType in backend)
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/employees`);
-      setEmployeeList(res.data);
+      setEmployeeList(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching employees:", err);
+      showToast("Could not load employees — check the server connection", "error");
     }
   };
 
-  const openBulkEntry = async () => {
+  const loadBulkRows = async () => {
     setLoading(true);
     setPage(0);
     try {
@@ -164,7 +190,10 @@ const HRAttendance = () => {
           if (raw === "Holiday") raw = "H";
           let derivedStatus = raw;
           const shiftTmp = existing?.shift || "G";
-          if (["W","H"].includes(shiftTmp)) derivedStatus = shiftTmp;
+          // A cancelled weekly off must show as Absent, not slip back to W
+          // just because the shift is still tagged W.
+          if (existing?.cancel_status === "C") derivedStatus = "A";
+          else if (["W","H"].includes(shiftTmp)) derivedStatus = shiftTmp;
           else if (!existing?.in_time || !existing?.out_time) derivedStatus = "A";
           else if (derivedStatus === "P" && (!existing?.in_time || !existing?.out_time)) derivedStatus = "A";
           if (!existing) derivedStatus = ["W","H"].includes(shiftTmp) ? shiftTmp : "A";
@@ -179,18 +208,108 @@ const HRAttendance = () => {
             out_time: existing?.out_time || "",
             late_hrs: existing?.late_hrs || 0,
             ot_hrs: existing?.ot_hrs || 0,
-            hasExisting: !!existing
+            hasExisting: !!existing,
+            cancel_status: existing?.cancel_status || null,
+            cancel_remarks: existing?.cancel_remarks || null,
+            dirty: false
           });
         });
       });
 
       setBulkRows(rows);
-      setBulkDialog(true);
     } catch (err) {
       console.error("Error generating bulk rows:", err);
       showToast("Error generating bulk rows", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openBulkEntry = async () => {
+    bulkDialogRef.current = true;
+    // fetchEmployees only runs on mount and swallows its error, so a list that
+    // came back empty (backend restarting, expired session) would stay empty and
+    // the matrix would silently render zero rows. Retry once before building it.
+    if (employeeList.length === 0) await fetchEmployees();
+    await loadBulkRows();
+    setBulkDialog(true);
+  };
+
+  // Bulk filters refresh the matrix automatically while the dialog is open.
+  // bulkDialog is read through a ref so opening the dialog never double-fetches.
+  useEffect(() => {
+    if (!bulkDialogRef.current) return;
+    loadBulkRows();
+  }, [bulkFilterType, bulkDataDate, bulkFromDate, bulkToDate, bulkMonth, bulkYear, bulkEmployeeId, bulkDepartmentFilter]);
+
+  const closeBulkDialog = () => {
+    bulkDialogRef.current = false;
+    setBulkDialog(false);
+    setBulkRows([]);
+    fetchData(true);
+  };
+
+  const patchRow = (row, patch) => {
+    setBulkRows(prev => prev.map(r =>
+      r.empid === row.empid && r.att_date === row.att_date ? { ...r, ...patch } : r
+    ));
+  };
+
+  const openWoffCancelDialog = (row) => {
+    setWoffTarget(row);
+    setWoffForm({ reason: "" });
+  };
+
+  const closeWoffCancelDialog = () => {
+    if (woffSaving) return;
+    setWoffTarget(null);
+    setWoffForm({ reason: "" });
+  };
+
+  const submitWoffCancel = async () => {
+    if (!woffTarget) return;
+    if (!woffForm.reason.trim()) {
+      showToast("Cancel remarks are mandatory", "error");
+      return;
+    }
+    setWoffSaving(true);
+    try {
+      const { empid, att_date } = woffTarget;
+      const _res = await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/cancel-woff-day`, {
+        empid,
+        att_date,
+        reason: woffForm.reason.trim()
+      });
+      patchRow(woffTarget, {
+        cancel_status: "C",
+        cancel_remarks: woffForm.reason.trim(),
+        status: "A"
+      });
+      showToast(`Weekly off for ${empid} on ${att_date} cancelled — day counted Absent`, "success");
+      setWoffTarget(null);
+      setWoffForm({ reason: "" });
+    } catch (err) {
+      showToast(getErrorMessage(err, "Error cancelling weekly off"), "error");
+    } finally {
+      setWoffSaving(false);
+    }
+  };
+
+  const confirmRevokeWoff = () => {
+    if (!revokeTarget) return;
+    revokeWoffCancellation(revokeTarget);
+    setRevokeTarget(null);
+  };
+
+  const revokeWoffCancellation = async (row) => {
+    if (row.cancel_status !== "C") return;
+    try {
+      const { empid, att_date } = row;
+      const _res = await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/revoke-woff-cancel`, { empid, att_date });
+      patchRow(row, { cancel_status: null, cancel_remarks: null, status: "W" });
+      showToast(`Weekly off restored for ${empid} on ${att_date}`, "success");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Error revoking cancellation"), "error");
     }
   };
 
@@ -232,6 +351,7 @@ const HRAttendance = () => {
   const updateRow = (idx, field, val) => {
     const rows = [...bulkRows];
     rows[idx][field] = val;
+    rows[idx].dirty = true;
     if (["in_time","out_time","shift"].includes(field)) {
       const r = rows[idx];
       if (["W","H"].includes(r.shift)) r.status = r.shift;
@@ -241,15 +361,26 @@ const HRAttendance = () => {
     }
     setBulkRows(rows);
   };
+  const markRowAbsent = (idx) => {
+    const row = bulkRows[idx];
+    if (["W", "H"].includes(row.shift)) {
+      showToast(`Shift ${row.shift} cannot be marked Absent`, "warning");
+      return;
+    }
+    const rows = [...bulkRows];
+    rows[idx] = { ...row, status: "A", in_time: "", out_time: "", late_hrs: 0, ot_hrs: 0, dirty: true };
+    setBulkRows(rows);
+  };
+
   const setAllStatus = (status) => {
     if (status === "P") {
       setBulkRows(prev => prev.map(r => {
         if (["W","H"].includes(r.shift) || ["W","H"].includes(r.status)) return r;
-        return { ...r, in_time: r.in_time || "09:30", out_time: r.out_time || "18:00", status: "P" };
+        return { ...r, in_time: r.in_time || DEFAULT_IN_TIME, out_time: r.out_time || DEFAULT_OUT_TIME, status: "P", dirty: true };
       }));
-      showToast(`All rows set to Present with default times (W/H skipped)`, "info");
+      showToast(`All rows set to Present with default times ${DEFAULT_IN_TIME}-${DEFAULT_OUT_TIME} (W/H skipped)`, "info");
     } else {
-      setBulkRows(prev => prev.map(r => (["W","H","Weekly Off","Holiday","W-Off"].includes(r.status) || ["W","H"].includes(r.shift) ? r : { ...r, in_time: "", out_time: "", status: "A" })));
+      setBulkRows(prev => prev.map(r => (["W","H","Weekly Off","Holiday","W-Off"].includes(r.status) || ["W","H"].includes(r.shift) ? r : { ...r, in_time: "", out_time: "", status: "A", dirty: true })));
       showToast(`All rows set to Absent (times cleared, W/H skipped)`, "info");
     }
   };
@@ -258,7 +389,7 @@ const HRAttendance = () => {
     if (!quickInTime) { showToast("Enter In Time first", "warning"); return; }
     setBulkRows(prev => prev.map(r => {
       if (["W","H"].includes(r.shift)) return r;
-      const nr = { ...r, in_time: quickInTime };
+      const nr = { ...r, in_time: quickInTime, dirty: true };
       nr.status = (nr.in_time && nr.out_time) ? "P" : (!nr.in_time && !nr.out_time ? "" : "A");
       if (["W","H"].includes(nr.shift)) nr.status = nr.shift;
       return nr;
@@ -269,7 +400,7 @@ const HRAttendance = () => {
     if (!quickOutTime) { showToast("Enter Out Time first", "warning"); return; }
     setBulkRows(prev => prev.map(r => {
       if (["W","H"].includes(r.shift)) return r;
-      const nr = { ...r, out_time: quickOutTime };
+      const nr = { ...r, out_time: quickOutTime, dirty: true };
       nr.status = (nr.in_time && nr.out_time) ? "P" : (!nr.in_time && !nr.out_time ? "" : "A");
       if (["W","H"].includes(nr.shift)) nr.status = nr.shift;
       return nr;
@@ -290,7 +421,8 @@ const HRAttendance = () => {
         in_time: r.in_time || null, out_time: r.out_time || null, late_hrs: r.late_hrs || 0, ot_hrs: r.ot_hrs || 0
       }]);
       showToast(`Saved ${r.empid} ${r.att_date}`, "success");
-      setBulkRows(prev => { const c = [...prev]; c[idx] = { ...c[idx], hasExisting: true }; return c; });
+      setBulkRows(prev => { const c = [...prev]; c[idx] = { ...c[idx], hasExisting: true, dirty: false }; return c; });
+      fetchData(true);
     } catch (err) {
       showToast(getErrorMessage(err, "Error saving row"), "error");
     } finally {
@@ -302,7 +434,7 @@ const HRAttendance = () => {
     setSaving(true);
     try {
       const list = bulkRows
-        .filter(r => r.hasExisting || r.in_time || r.out_time || (r.status !== 'P' && r.status !== 'Present'))
+        .filter(r => r.dirty)
         .map(r => ({
           empid: r.empid,
           att_date: r.att_date,
@@ -315,8 +447,8 @@ const HRAttendance = () => {
         }));
 
       if (list.length === 0) {
-        showToast("No new or modified attendance records to save", "info");
-        setBulkDialog(false);
+        showToast("No changes to save", "info");
+        setSaving(false);
         return;
       }
 
@@ -329,8 +461,14 @@ const HRAttendance = () => {
 
       await axios.post(`${import.meta.env.VITE_API_URL}/api/attendance/save-bulk`, list);
       showToast(`${list.length} records saved successfully`, "success");
-      setBulkDialog(false);
-      fetchData();
+
+      // Dialog stays open and the rows are marked clean, so a second Save All
+      // cannot re-write anything until the user edits a row again.
+      const savedKeys = new Set(list.map(r => `${r.empid}_${r.att_date}`));
+      setBulkRows(prev => prev.map(r =>
+        savedKeys.has(`${r.empid}_${r.att_date}`) ? { ...r, hasExisting: true, dirty: false } : r
+      ));
+      fetchData(true);
     } catch (err) {
       showToast(getErrorMessage(err, "Error saving attendance"), "error");
     } finally {
@@ -349,6 +487,15 @@ const HRAttendance = () => {
     }
   };
 
+  const applyMainFilter = () => {
+    if (filterType === "range" && (!fromDate || !toDate)) {
+      showToast("Please select both From Date and To Date", "warning");
+      return;
+    }
+    setMainFiltersDirty(false);
+    fetchData();
+  };
+
   const clearFilters = () => {
     setSelectedEmployee("");
     setDataDate(new Date().toISOString().split("T")[0]);
@@ -356,6 +503,7 @@ const HRAttendance = () => {
     setToDate("");
     setMonth(new Date().getMonth() + 1);
     setYear(new Date().getFullYear());
+    setMainFiltersDirty(false);
   };
 
   const getEffectiveStatus = (row) => {
@@ -409,7 +557,7 @@ const HRAttendance = () => {
             variant={filterType === "date" ? "contained" : "outlined"}
             color={filterType === "date" ? "secondary" : "inherit"}
             size="small"
-            onClick={() => setFilterType("date")}
+            onClick={() => { setFilterType("date"); markMainFiltersDirty(); }}
             startIcon={<CalendarMonthIcon />}
           >
             Date
@@ -418,7 +566,7 @@ const HRAttendance = () => {
             variant={filterType === "range" ? "contained" : "outlined"}
             color={filterType === "range" ? "secondary" : "inherit"}
             size="small"
-            onClick={() => setFilterType("range")}
+            onClick={() => { setFilterType("range"); markMainFiltersDirty(); }}
             startIcon={<FilterListIcon />}
           >
             Range
@@ -427,7 +575,7 @@ const HRAttendance = () => {
             variant={filterType === "month" ? "contained" : "outlined"}
             color={filterType === "month" ? "secondary" : "inherit"}
             size="small"
-            onClick={() => setFilterType("month")}
+            onClick={() => { setFilterType("month"); markMainFiltersDirty(); }}
           >
             Month
           </Button>
@@ -438,127 +586,125 @@ const HRAttendance = () => {
       </Box>
 
       <CardContent>
-        <Box sx={{ mb: 3, p: 2, bgcolor: "#f8f9fa", borderRadius: 1 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Filter Type</InputLabel>
-                <Select
-                  value={filterType}
-                  label="Filter Type"
-                  onChange={(e) => setFilterType(e.target.value)}
-                >
-                  <MenuItem value="date">Single Date</MenuItem>
-                  <MenuItem value="range">Date Range</MenuItem>
-                  <MenuItem value="month">Month/Year</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+        <Box sx={{ mb: 3, p: 2, bgcolor: "#f8f9fa", borderRadius: 1, display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
+          <FormControl size="small" sx={{ width: 150, flex: "0 0 auto" }}>
+            <InputLabel>Filter Type</InputLabel>
+            <Select
+              fullWidth
+              value={filterType}
+              label="Filter Type"
+              onChange={(e) => setFilterType(e.target.value)}
+            >
+              <MenuItem value="date">Single Date</MenuItem>
+              <MenuItem value="range">Date Range</MenuItem>
+              <MenuItem value="month">Month/Year</MenuItem>
+            </Select>
+          </FormControl>
 
-            {filterType === "date" && (
-              <Grid item xs={12} md={3}>
-                <TextField
+          {filterType === "date" && (
+            <TextField
+              size="small"
+              type="date"
+              label="Select Date"
+              InputLabelProps={{ shrink: true }}
+              value={dataDate}
+              onChange={(e) => { setDataDate(e.target.value); markMainFiltersDirty(); }}
+              sx={{ width: 170, flex: "0 0 auto" }}
+            />
+          )}
+
+          {filterType === "range" && (
+            <>
+              <TextField
+                size="small"
+                type="date"
+                label="From Date"
+                InputLabelProps={{ shrink: true }}
+                value={fromDate}
+                onChange={(e) => { setFromDate(e.target.value); markMainFiltersDirty(); }}
+                sx={{ width: 170, flex: "0 0 auto" }}
+              />
+              <TextField
+                size="small"
+                type="date"
+                label="To Date"
+                InputLabelProps={{ shrink: true }}
+                value={toDate}
+                onChange={(e) => { setToDate(e.target.value); markMainFiltersDirty(); }}
+                sx={{ width: 170, flex: "0 0 auto" }}
+              />
+            </>
+          )}
+
+          {filterType === "month" && (
+            <>
+              <FormControl size="small" sx={{ width: 150, flex: "0 0 auto" }}>
+                <InputLabel>Month</InputLabel>
+                <Select
                   fullWidth
-                  size="small"
-                  type="date"
-                  label="Select Date"
-                  InputLabelProps={{ shrink: true }}
-                  value={dataDate}
-                  onChange={(e) => setDataDate(e.target.value)}
-                />
-              </Grid>
-            )}
-
-            {filterType === "range" && (
-              <>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type="date"
-                    label="From Date"
-                    InputLabelProps={{ shrink: true }}
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type="date"
-                    label="To Date"
-                    InputLabelProps={{ shrink: true }}
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                  />
-                </Grid>
-              </>
-            )}
-
-            {filterType === "month" && (
-              <>
-                <Grid item xs={12} md={2}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Month</InputLabel>
-                    <Select
-                      value={month}
-                      label="Month"
-                      onChange={(e) => setMonth(e.target.value)}
-                    >
-                      {months.map((m) => (
-                        <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Year</InputLabel>
-                    <Select
-                      value={year}
-                      label="Year"
-                      onChange={(e) => setYear(e.target.value)}
-                    >
-                      {years.map((y) => (
-                        <MenuItem key={y} value={y}>{y}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </>
-            )}
-
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Employee</InputLabel>
-                <Select
-                  value={selectedEmployee}
-                  label="Employee"
-                  onChange={(e) => setSelectedEmployee(e.target.value)}
+                  value={month}
+                  label="Month"
+                  onChange={(e) => setMonth(e.target.value)}
                 >
-                  <MenuItem value="">All Employees</MenuItem>
-                  {employeeList.map((emp) => (
-                    <MenuItem key={emp.empid} value={emp.empid}>
-                      {emp.empid} - {emp.ename}
-                    </MenuItem>
+                  {months.map((m) => (
+                    <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
+              <FormControl size="small" sx={{ width: 120, flex: "0 0 auto" }}>
+                <InputLabel>Year</InputLabel>
+                <Select
+                  fullWidth
+                  value={year}
+                  label="Year"
+                  onChange={(e) => setYear(e.target.value)}
+                >
+                  {years.map((y) => (
+                    <MenuItem key={y} value={y}>{y}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </>
+          )}
 
-            <Grid item xs={12} md={1}>
-              <Button variant="outlined" fullWidth size="small" startIcon={<RefreshIcon />} onClick={fetchData}>
-                Refresh
-              </Button>
-            </Grid>
+          <FormControl size="small" sx={{ flex: "1 1 240px", minWidth: 240 }}>
+            <InputLabel>Employee</InputLabel>
+            <Select
+              fullWidth
+              value={selectedEmployee}
+              label="Employee"
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+            >
+              <MenuItem value="">All Employees</MenuItem>
+              {employeeList.map((emp) => (
+                <MenuItem key={emp.empid} value={emp.empid}>
+                  {emp.empid} - {emp.ename}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-            <Grid item xs={12} md={1}>
-              <Button variant="outlined" fullWidth size="small" startIcon={<ClearIcon />} onClick={clearFilters}>
-                Clear
-              </Button>
-            </Grid>
-          </Grid>
+          <Button
+            variant={mainFiltersDirty ? "contained" : "outlined"}
+            color="primary"
+            size="small"
+            startIcon={<FilterListIcon />}
+            onClick={applyMainFilter}
+            disabled={loading}
+            sx={{ flex: "0 0 auto", minWidth: 130 }}
+          >
+            {mainFiltersDirty ? "Apply Filter" : "Refresh"}
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ClearIcon />}
+            onClick={clearFilters}
+            sx={{ flex: "0 0 auto", minWidth: 100 }}
+          >
+            Clear
+          </Button>
         </Box>
 
         {payrollFinalized && (
@@ -660,16 +806,16 @@ const HRAttendance = () => {
         </Table>
       </CardContent>
 
-      <Dialog open={bulkDialog} onClose={() => setBulkDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog open={bulkDialog} onClose={closeBulkDialog} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: "primary.main", color: "primary.contrastText", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>Bulk Attendance Entry</span>
           {bulkRows.length > 0 && (
             <Chip label={`${bulkRows.length} rows`} size="small" sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "white", fontWeight: "bold" }} />
           )}
         </DialogTitle>
-        <DialogContent sx={{ p: 2 }}>
+        <DialogContent sx={{ p: 2, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <Box sx={{ mb: 2, p: 2, bgcolor: "#f8f9fa", borderRadius: 1, display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
-            <FormControl size="small" sx={{ minWidth: 150 }}>
+            <FormControl size="small" sx={{ width: 150, flex: "0 0 auto" }}>
               <InputLabel>Filter Type</InputLabel>
               <Select
                 value={bulkFilterType}
@@ -720,8 +866,8 @@ const HRAttendance = () => {
 
             {bulkFilterType === "month" && (
               <>
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Month</InputLabel>
+<FormControl size="small" sx={{ width: 150, flex: "0 0 auto" }}>
+                <InputLabel>Month</InputLabel>
                   <Select
                     value={bulkMonth}
                     label="Month"
@@ -733,8 +879,8 @@ const HRAttendance = () => {
                     ))}
                   </Select>
                 </FormControl>
-                <FormControl size="small" sx={{ minWidth: 100 }}>
-                  <InputLabel>Year</InputLabel>
+<FormControl size="small" sx={{ width: 120, flex: "0 0 auto" }}>
+                <InputLabel>Year</InputLabel>
                   <Select
                     value={bulkYear}
                     label="Year"
@@ -749,9 +895,10 @@ const HRAttendance = () => {
               </>
             )}
 
-            <FormControl size="small" sx={{ minWidth: 150 }}>
+            <FormControl size="small" sx={{ flex: "1 1 240px", minWidth: 240 }}>
               <InputLabel>Employee</InputLabel>
               <Select
+                fullWidth
                 value={bulkEmployeeId}
                 label="Employee"
                 onChange={(e) => setBulkEmployeeId(e.target.value)}
@@ -766,9 +913,10 @@ const HRAttendance = () => {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 150 }}>
+            <FormControl size="small" sx={{ flex: "1 1 240px", minWidth: 240 }}>
               <InputLabel>Department</InputLabel>
               <Select
+                fullWidth
                 value={bulkDepartmentFilter}
                 label="Department"
                 onChange={(e) => setBulkDepartmentFilter(e.target.value)}
@@ -819,7 +967,7 @@ const HRAttendance = () => {
             </Box>
           )}
 
-          <Box sx={{ maxHeight: "60vh", overflow: "auto" }}>
+          <Box sx={{ maxHeight: "60vh", overflowY: "auto", overflowX: "auto", flex: 1, minHeight: 0 }}>
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f5f5f5" }}>
@@ -830,13 +978,14 @@ const HRAttendance = () => {
                   <TableCell><strong>Status</strong></TableCell>
                   <TableCell><strong>In Time</strong></TableCell>
                   <TableCell><strong>Out Time</strong></TableCell>
+                  <TableCell align="center"><strong>Mark Absent / Cancel Woff</strong></TableCell>
                   <TableCell><strong>Save</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
                       <CircularProgress size={40} sx={{ mb: 2 }} />
                       <Typography variant="body1" color="text.secondary">
                         Loading bulk data, please wait...
@@ -845,7 +994,7 @@ const HRAttendance = () => {
                   </TableRow>
                 ) : bulkRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 3, color: "#777" }}>
+<TableCell colSpan={9} align="center" sx={{ py: 3, color: "#777" }}>
                       No matching records found.
                     </TableCell>
                   </TableRow>
@@ -853,12 +1002,12 @@ const HRAttendance = () => {
                   bulkRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, localIdx) => {
                     const globalIdx = page * rowsPerPage + localIdx;
                     return (
-                      <TableRow key={globalIdx} sx={{ bgcolor: row.hasExisting ? "#e8f5e9" : "#fff" }}>
+                      <TableRow key={globalIdx} sx={{ bgcolor: row.dirty ? "#fff8e1" : row.hasExisting ? "#e8f5e9" : "#fff" }}>
                         <TableCell>{row.att_date}</TableCell>
                         <TableCell>{row.empid}</TableCell>
                         <TableCell>{row.ename}</TableCell>
                         <TableCell>
-                          <Select size="small" value={row.shift} onChange={(e) => updateRow(globalIdx, "shift", e.target.value)}>
+                          <Select size="small" value={row.shift} onChange={(e) => updateRow(globalIdx, "shift", e.target.value)} sx={{ width: 130 }}>
                             <MenuItem value="G">G (General)</MenuItem>
                             <MenuItem value="A">A (Morning)</MenuItem>
                             <MenuItem value="B">B (Afternoon)</MenuItem>
@@ -874,6 +1023,49 @@ const HRAttendance = () => {
                         </TableCell>
                         <TableCell>
                           <TextField size="small" type="time" value={row.out_time} onChange={(e) => updateRow(globalIdx, "out_time", e.target.value)} />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}>
+                            <Tooltip title={["W", "H"].includes(row.shift) ? `Shift ${row.shift} cannot be marked Absent` : "Mark Absent (clears In/Out times)"}>
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  disabled={row.status === "A" || ["W", "H"].includes(row.shift)}
+                                  onClick={() => markRowAbsent(globalIdx)}
+                                >
+                                  <PersonOffIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            {isWeeklyOffRow(row) && (
+                              <Tooltip
+                                title={
+                                  row.cancel_status === "C"
+                                    ? `Weekly off cancelled: ${row.cancel_remarks || "-"} — click to restore`
+                                    : payrollFinalized
+                                      ? "Payslip is finalized for this month"
+                                      : "Cancel this weekly off (day counts Absent)"
+                                }
+                              >
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color={row.cancel_status === "C" ? "success" : "warning"}
+                                    disabled={payrollFinalized && row.cancel_status !== "C"}
+                                    onClick={() => row.cancel_status === "C" ? setRevokeTarget(row) : openWoffCancelDialog(row)}
+                                  >
+                                    <BlockIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            )}
+</Box>
+                        </TableCell>
+                        <TableCell>
+                          <IconButton size="small" color="success" onClick={() => saveSingleRow(globalIdx)} disabled={savingIdx===globalIdx}>
+                            {savingIdx===globalIdx ? <CircularProgress size={16} /> : <SaveIcon fontSize="small" />}
+                          </IconButton>
                         </TableCell>
                         <TableCell>
                           <IconButton size="small" color="success" onClick={() => saveSingleRow(globalIdx)} disabled={savingIdx===globalIdx}>
@@ -908,11 +1100,86 @@ const HRAttendance = () => {
             {bulkRows.length > 0 ? `${bulkRows.filter(r => (r.status === "P" || r.status === "Present") && r.in_time && r.out_time).length} Present, ${bulkRows.filter(r => r.status === "A" || ((r.status === "P" || r.status === "Present") && (!r.in_time || !r.out_time))).length} Absent, ${bulkRows.filter(r => ["W", "H", "L"].includes(r.status)).length} Other` : ""}
           </Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Button onClick={() => setBulkDialog(false)} disabled={loading || saving}>Cancel</Button>
-            <Button variant="contained" startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />} onClick={saveBulk} disabled={loading || saving}>
-              {saving ? `Saving ${bulkRows.length} records...` : "Save All"}
+            <Button onClick={closeBulkDialog} disabled={loading || saving}>Cancel</Button>
+            <Button variant="contained" startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />} onClick={saveBulk} disabled={loading || saving || dirtyCount === 0}>
+              {saving ? `Saving...` : dirtyCount > 0 ? `Save All (${dirtyCount})` : "Save All"}
             </Button>
           </Box>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!woffTarget} onClose={closeWoffCancelDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ bgcolor: "warning.main", color: "warning.contrastText" }}>
+          Cancel Weekly Off
+        </DialogTitle>
+        <DialogContent sx={{ p: 2 }}>
+          {woffTarget && (
+            <>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                The weekly off granted on {woffTarget.att_date} will no longer be honoured.
+                That day is counted as <strong>Absent</strong> regardless of punches,
+                leave or on-duty.
+              </Alert>
+              <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                {woffTarget.empid} - {woffTarget.ename}
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                minRows={3}
+                required
+                label="Cancel Remarks *"
+                placeholder="e.g. Worked without authorisation on weekly off"
+                value={woffForm.reason}
+                error={woffForm.reason.length > 0 && !woffForm.reason.trim()}
+                helperText="Remarks are mandatory and are stored as cancel_remarks on the Woff record."
+                onChange={(e) => setWoffForm({ reason: e.target.value })}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button onClick={closeWoffCancelDialog} disabled={woffSaving}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            startIcon={woffSaving ? <CircularProgress size={16} color="inherit" /> : <BlockIcon />}
+            onClick={submitWoffCancel}
+            disabled={woffSaving || !woffForm.reason.trim()}
+          >
+            {woffSaving ? "Saving..." : "Cancel Woff"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!revokeTarget} onClose={() => setRevokeTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ bgcolor: "success.main", color: "success.contrastText" }}>
+          Restore Weekly Off
+        </DialogTitle>
+        <DialogContent sx={{ p: 2 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This revokes the cancellation and puts the weekly off back.
+          </Alert>
+          <Typography variant="body2" color="text.secondary">
+            Employee: <strong>{revokeTarget?.empid} - {revokeTarget?.ename}</strong>
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Date: <strong>{revokeTarget?.att_date}</strong>
+          </Typography>
+          {revokeTarget?.cancel_remarks && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Cancelled because: <em>{revokeTarget.cancel_remarks}</em>
+            </Typography>
+          )}
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            The day will count as a weekly off again instead of Absent. Continue?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button onClick={() => setRevokeTarget(null)}>Keep Cancelled</Button>
+          <Button variant="contained" color="success" startIcon={<RefreshIcon />} onClick={confirmRevokeWoff}>
+            Revoke Cancellation
+          </Button>
         </DialogActions>
       </Dialog>
 

@@ -1,22 +1,40 @@
 const { AdvanceApplication, Payslip } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
+const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
 
 const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
+const isAnyScheduleFinalized = async (schedule) => {
+  if (!Array.isArray(schedule) || !schedule.length) return null;
+  for (const e of schedule) {
+    const m = MONTH_NAMES[(parseInt(e.month)-1)]; const y = String(e.year);
+    if (!m || !y) continue;
+    const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+    if (cnt>0) return `${m} ${y}`;
+  }
+  return null;
+};
 
 exports.saveAdvance = async (req, res) => {
   const application = req.body;
+  if (application.advance_date && await isPayrollFinalized(application.advance_date)) return res.status(400).json({ message: `Payslip finalized for ${String(application.advance_date).slice(0,7)} — cannot save advance.` });
+  if (application.deduction_schedule) {
+    let sched = typeof application.deduction_schedule==='string' ? JSON.parse(application.deduction_schedule) : application.deduction_schedule;
+    const blk = await isAnyScheduleFinalized(sched);
+    if (blk) return res.status(400).json({ message: `Payslip finalized for ${blk} — cannot save advance.` });
+  }
   const t = await AdvanceApplication.sequelize.transaction();
 
   try {
-    const maxIdResult = await AdvanceApplication.findOne({
-      attributes: [
-        [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('advance_id')), 0), 'maxId']
-      ],
-      raw: true,
-      transaction: t,
-      lock: t.LOCK.UPDATE
-    });
-    const nextAdvanceId = Number(maxIdResult.maxId) + 1;
+    const nextAdvanceId = await nextSequenceNumber(AdvanceApplication, 'advance_id', t, LOCK_KEYS.ADVANCE_APPLICATION);
     application.advance_id = nextAdvanceId;
     application.status = 'Pending';
     await AdvanceApplication.create(application, { transaction: t });
@@ -140,6 +158,16 @@ exports.approveAdvance = async (req, res) => {
     const application = await AdvanceApplication.findOne({
       where: { advance_id }
     });
+    if (deduction_schedule) {
+      let sched = typeof deduction_schedule==='string' ? JSON.parse(deduction_schedule) : deduction_schedule;
+      const blk = await isAnyScheduleFinalized(sched);
+      if (blk) return res.status(400).json({ success: false, message: `Payslip finalized for ${blk} — cannot approve.` });
+    } else if (application && application.deduction_schedule) {
+      let sched = typeof application.deduction_schedule==='string' ? JSON.parse(application.deduction_schedule) : application.deduction_schedule;
+      const blk = await isAnyScheduleFinalized(sched);
+      if (blk) return res.status(400).json({ success: false, message: `Payslip finalized for ${blk} — cannot approve.` });
+    }
+    if (application && application.advance_date && await isPayrollFinalized(application.advance_date)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(application.advance_date).slice(0,7)} — cannot approve.` });
 
     if (!application) {
       return res.status(404).json({ message: 'Advance application not found.' });
@@ -169,6 +197,12 @@ exports.cancelAdvance = async (req, res) => {
   try {
     const app = await AdvanceApplication.findOne({ where: { advance_id } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    if (app.advance_date && await isPayrollFinalized(app.advance_date)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(app.advance_date).slice(0,7)} — cannot cancel.` });
+    if (app.deduction_schedule) {
+      let sched = typeof app.deduction_schedule==='string' ? JSON.parse(app.deduction_schedule) : app.deduction_schedule;
+      const blk = await isAnyScheduleFinalized(sched);
+      if (blk) return res.status(400).json({ success: false, message: `Payslip finalized for ${blk} — cannot cancel.` });
+    }
 
     await app.update({ status: 'Cancelled', remarks: remarks });
     res.json({ success: true, message: "Advance approval cancelled" });
@@ -183,6 +217,12 @@ exports.reopenAdvance = async (req, res) => {
   try {
     const app = await AdvanceApplication.findOne({ where: { advance_id } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    if (app.advance_date && await isPayrollFinalized(app.advance_date)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(app.advance_date).slice(0,7)} — cannot reopen.` });
+    if (app.deduction_schedule) {
+      let sched = typeof app.deduction_schedule==='string' ? JSON.parse(app.deduction_schedule) : app.deduction_schedule;
+      const blk = await isAnyScheduleFinalized(sched);
+      if (blk) return res.status(400).json({ success: false, message: `Payslip finalized for ${blk} — cannot reopen.` });
+    }
 
     await app.update({ status: 'Pending' });
     res.json({ success: true, message: "Advance application reopened" });

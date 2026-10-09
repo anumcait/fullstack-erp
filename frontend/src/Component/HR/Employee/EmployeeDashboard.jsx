@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import EmployeeReport from "./EmployeeMasterReport";
 import EmployeeForm from "./AddEmployee";
 import ModuleTabBar from "../common/ModuleTabBar";
@@ -7,6 +8,26 @@ import './EmployeeDashboard.css';
 
 const EmployeeDashboard = () => {
   const [selectedAction, setSelectedAction] = useState("report");
+  const [stats, setStats] = useState({ active: 0, total: 0, depts: 0, retention: 0, newThisMonth: 0 });
+  useEffect(() => {
+    if (selectedAction !== 'stats') return;
+    (async () => {
+      try {
+        const [a, l] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_API_URL}/api/employees?filterType=active`, { withCredentials: true }),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/employees?filterType=left`, { withCredentials: true })
+        ]);
+        const active = a.data?.length || 0;
+        const left = l.data?.length || 0;
+        const total = active + left;
+        const depts = new Set((a.data||[]).map(e=>e.deptname).filter(Boolean)).size;
+        const retention = total ? ((active/total)*100).toFixed(1) : 0;
+        const curM = new Date().getMonth(), curY = new Date().getFullYear();
+        const newThisMonth = (a.data||[]).filter(e=>{ if(!e.doj) return false; const d=new Date(e.doj); return d.getMonth()===curM && d.getFullYear()===curY; }).length;
+        setStats({ active, total, depts, retention, newThisMonth });
+      } catch {}
+    })();
+  }, [selectedAction]);
 
   const tabs = [
     { label: "Employee Master List", value: "report", icon: <FaUsers /> },
@@ -36,18 +57,18 @@ const EmployeeDashboard = () => {
             <div className="stats-grid-simple">
               <div className="s-card">
                 <span className="s-label text-blue-500">Active Headcount</span>
-                <span className="s-value">842</span>
-                <span className="s-trend up font-bold text-green-500">+12 this month</span>
+                <span className="s-value">{stats.active}</span>
+                <span className="s-trend up font-bold text-green-500">+{stats.newThisMonth} this month</span>
               </div>
               <div className="s-card">
                 <span className="s-label text-purple-500">Departmental Spread</span>
-                <span className="s-value">14</span>
-                <span className="s-trend text-gray-400">Global divisions</span>
+                <span className="s-value">{stats.depts}</span>
+                <span className="s-trend text-gray-400">{stats.total} total employees</span>
               </div>
               <div className="s-card">
                 <span className="s-label text-orange-500">Retention Rate</span>
-                <span className="s-value">96.4%</span>
-                <span className="s-trend up font-bold text-green-500">Exceeding targets</span>
+                <span className="s-value">{stats.retention}%</span>
+                <span className="s-trend up font-bold text-green-500">{stats.retention>=95 ? 'Exceeding targets' : 'Monitoring'}</span>
               </div>
             </div>
           </div>

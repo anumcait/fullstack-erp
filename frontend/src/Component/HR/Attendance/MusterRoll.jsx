@@ -230,6 +230,89 @@ const MusterRoll = () => {
     return status;
   };
 
+// A run of W (Weekly Off) / H (Holiday) is shown as Absent only when the whole
+  // run is genuinely sandwiched:
+  //   A W H A   ->  A A A A     (both sides absent, so the run collapses)
+  //   CL W H P  ->  CL W H      (P is attendance, so the run is kept)
+  //   CL A H P  ->  CL A H P    (P is attendance, so the run is kept)
+  // Neighbours are looked at by scanning outward past any further H days. A
+  // neighbour of "A" is absence, and so is "CL" — leave is not counted as
+  // attendance here, so a run touching CL is not backed by real attendance.
+  // P / F / T / EL (or a missing day, e.g. first or last of the month) keep it.
+  const isWHCode = (s) => s === "W" || s === "H";
+  const isAbsentLike = (s) => s === "A" || s === "CL";
+
+  const resolveDayCodes = (statuses) => {
+    const resolved = statuses.map((s) => ({ code: s, masked: false }));
+    let i = 0;
+    while (i < statuses.length) {
+      if (!isWHCode(statuses[i])) { i += 1; continue; }
+      let end = i;
+      while (end + 1 < statuses.length && isWHCode(statuses[end + 1])) end += 1;
+
+      // scan outward past any further H days on each side
+      let l = i - 1;
+      while (l >= 0 && statuses[l] === "H") l -= 1;
+      let r = end + 1;
+      while (r < statuses.length && statuses[r] === "H") r += 1;
+
+      const left = l >= 0 ? statuses[l] : null;
+      const right = r < statuses.length ? statuses[r] : null;
+      const leftAbsent = left !== null && isAbsentLike(left);
+      const rightAbsent = right !== null && isAbsentLike(right);
+
+      if (leftAbsent && rightAbsent) {
+        for (let k = i; k <= end; k += 1) resolved[k] = { code: "A", masked: true };
+      }
+      i = end + 1;
+    }
+    return resolved;
+  };
+
+  // Single source of truth for the muster totals, shared by the on-screen grid
+  // and the Excel/PDF export so the two can never drift.
+  // W (Weekly Off) and H (Holiday) are the same category and are counted
+  // identically: both count as one paid day and both land in the H/W column.
+  const countMusterTotals = (days) => {
+    const dayStatuses = days.map((d) => getShortStatus(d?.status || ""));
+    const resolved = resolveDayCodes(dayStatuses);
+    let presentDays = 0, holidays = 0, woffCount = 0, cl = 0, el = 0, leave = 0, lopCount = 0, totalOT = 0;
+
+    days.forEach((day, i) => {
+      const status = day?.status || "";
+      const { code: s, masked } = resolved[i];
+
+      if (s === "P") presentDays++;
+      else if (s === "F") presentDays += 0.5;
+      else if (s === "FC" || s === "FE" || s === "FL") presentDays += 0.5;
+      else if (status === "Holiday+OT" || status === "W-Off+OT") presentDays++;
+
+      // H/W — identical treatment for both
+      if (s === "H") holidays++;
+      if (s === "W") woffCount++;
+
+      if (s === "CL") cl++;
+      else if (s === "FC") cl += 0.5;
+
+      if (s === "EL") el++;
+      else if (s === "FE") el += 0.5;
+
+      if (s === "L") lopCount++;
+      else if (s === "FL") { presentDays += 0.5; lopCount += 0.5; }
+      else if (day?.lop) lopCount += Number(day.lop);
+      else if (s && !["P", "F", "H", "A", "W", "CL", "EL", "L", "FC", "FE", "FL"].includes(s)) leave++;
+
+      // W/H shown as Absent is no longer a paid W/H day, so it becomes LOP.
+      if (masked) lopCount++;
+
+      if (day?.ot_hrs) totalOT += Number(day.ot_hrs);
+    });
+
+    const totalPaidDays = presentDays + holidays + woffCount + cl + el + leave;
+    const dayCodes = resolved.map((r) => r.code);
+    return { dayStatuses, dayCodes, presentDays, holidays, woffCount, cl, el, leave, lopCount, totalOT, totalPaidDays };
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       P: { bg: "#e8f5e9", text: "#2e7d32" },
@@ -298,56 +381,14 @@ const MusterRoll = () => {
       for (const emp of catEmployees) {
         globalIdx++;
         const days = emp.days || [];
-        let presentDays = 0, holidays = 0, cl = 0, el = 0, leave = 0, woffCount = 0, totalOT = 0, lopCount = 0;
 
-        const dayStatuses = days.map((d) => {
-          const s = d.status;
-          if (!s) return "";
-          if (s === "Present") return "P";
-          if (s === "Half Day") return "F";
-          if (s === "Absent") return "A";
-          if (s === "LOP") return "L";
-          if (s.startsWith("W-Off")) return "W";
-          if (s.startsWith("Holiday")) return "H";
-          return s;
-        });
+        const { dayCodes, presentDays, holidays, woffCount, cl, el, leave, lopCount, totalOT, totalPaidDays } =
+          countMusterTotals(days);
 
-        const dayDisplay = dayStatuses.map((s, i) => {
-          if (s !== "W" && s !== "H") return s;
-          const prevP = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i - 1]);
-          const nextP = i < dayStatuses.length - 1 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i + 1]);
-          return prevP || nextP ? s : "A";
-        });
-
-        days.forEach((day, i) => {
-          const s = dayStatuses[i];
-          const d = dayDisplay[i];
-          if (s === "P") presentDays++;
-          else if (s === "F") presentDays += 0.5;
-          else if (s === "FC" || s === "FE" || s === "FL") presentDays += 0.5;
-          else if (day.status === "Holiday+OT" || day.status === "W-Off+OT") presentDays++;
-          if (s === "H") holidays++;
-          else if (day.status === "Holiday+OT") holidays++;
-          if (s === "CL") cl++;
-          else if (s === "FC") cl += 0.5;
-          if (s === "EL") el++;
-          else if (s === "FE") el += 0.5;
-          if (s === "L") lopCount++;
-          else if (s === "FL") { presentDays += 0.5; lopCount += 0.5; }
-          else if (day.lop) lopCount += Number(day.lop);
-          else if (s && !["P", "F", "H", "A", "W", "CL", "EL", "L", "FC", "FE", "FL"].includes(s)) leave++;
-          if (s === "W") {
-            if (d === "W") woffCount++;
-            else lopCount++;
-          }
-          if (day.ot_hrs) totalOT += Number(day.ot_hrs);
-        });
-
-        const totalPaidDays = presentDays + holidays + woffCount + cl + el + leave;
         const hasBonus = lopCount === 0 && cl === 0 && el === 0 && leave === 0 && !days.some((d) => d.status === "Absent");
 
         const row = [globalIdx, emp.empid, emp.ename, emp.department || "-", "Attn"];
-        for (let d = 0; d < daysInMonth; d++) row.push(dayDisplay[d] || "");
+        for (let d = 0; d < daysInMonth; d++) row.push(dayCodes[d] || "");
         row.push(presentDays, holidays + woffCount, cl, el, lopCount, totalPaidDays, totalOT > 0 ? totalOT.toFixed(1) : "0.0", hasBonus ? "500" : "");
         rows.push(row);
 
@@ -497,10 +538,14 @@ const MusterRoll = () => {
   };
 
   return (
-    <Card sx={{ m: 2, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+    // m: 1 adds 8px top + 8px bottom outside the height, so subtract it
+    // — otherwise the Card overflows .layout-content and reintroduces a second scrollbar.
+    <Card sx={{ m: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.08)", height: "calc(100% - 16px)", display: "flex", flexDirection: "column" }}>
       <Box
         sx={{
-          p: 2,
+          py: 1,
+          px: 2,
+          flex: "0 0 auto",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -555,92 +600,81 @@ const MusterRoll = () => {
         </Box>
       </Box>
 
-      <CardContent sx={{ p: 2 }}>
-        <Grid container spacing={2} sx={{ mb: 3, alignItems: "center" }}>
-          <Grid item xs={12} sm={3} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Month</InputLabel>
-              <Select name="month" value={filters.month} onChange={handleFilterChange} label="Month">
-                {months.filter(m => {
-                  if (filters.year < currentYear) return true;
-                  if (filters.year > currentYear) return false;
-                  return m.value <= currentMonth;
-                }).map((m) => (
-                  <MenuItem key={m.value} value={m.value}>
-                    {m.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+      <CardContent sx={{ p: 1.5, flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <Box sx={{ mb: 1.5, flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
+          <FormControl size="small" sx={{ width: 150, flex: "0 0 auto" }}>
+            <InputLabel>Month</InputLabel>
+            <Select fullWidth name="month" value={filters.month} onChange={handleFilterChange} label="Month">
+              {months.filter(m => {
+                if (filters.year < currentYear) return true;
+                if (filters.year > currentYear) return false;
+                return m.value <= currentMonth;
+              }).map((m) => (
+                <MenuItem key={m.value} value={m.value}>
+                  {m.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-          <Grid item xs={12} sm={2} md={1.5}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Year</InputLabel>
-              <Select name="year" value={filters.year} onChange={(e) => {
-                const newYear = Number(e.target.value);
-                if (newYear > currentYear) return;
-                setFilters(prev => {
-                  const next = { ...prev, year: newYear };
-                  if (newYear === currentYear && next.month > currentMonth) {
-                    next.month = currentMonth;
-                  }
-                  return next;
-                });
-              }} label="Year">
-                {[2023, 2024, 2025, 2026].filter(y => y <= currentYear).map(y => (
-                  <MenuItem key={y} value={y}>{y}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+          <FormControl size="small" sx={{ width: 120, flex: "0 0 auto" }}>
+            <InputLabel>Year</InputLabel>
+            <Select fullWidth name="year" value={filters.year} onChange={(e) => {
+              const newYear = Number(e.target.value);
+              if (newYear > currentYear) return;
+              setFilters(prev => {
+                const next = { ...prev, year: newYear };
+                if (newYear === currentYear && next.month > currentMonth) {
+                  next.month = currentMonth;
+                }
+                return next;
+              });
+            }} label="Year">
+              {[2023, 2024, 2025, 2026].filter(y => y <= currentYear).map(y => (
+                <MenuItem key={y} value={y}>{y}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-          <Grid item xs={12} sm={4} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Employee</InputLabel>
-              <Select
-                name="empid"
-                value={filters.empid}
-                onChange={handleFilterChange}
-                label="Employee"
-                displayEmpty
-              >
-                <MenuItem value="">All Employees</MenuItem>
-                {musterData.map((emp) => (
-                  <MenuItem key={emp.empid} value={emp.empid}>
-                    {emp.empid} - {emp.ename}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+          <FormControl size="small" sx={{ width: 260, flex: "0 0 auto" }}>
+            <InputLabel>Employee</InputLabel>
+            <Select
+              fullWidth
+              name="empid"
+              value={filters.empid}
+              onChange={handleFilterChange}
+              label="Employee"
+              displayEmpty
+            >
+              <MenuItem value="">All Employees</MenuItem>
+              {musterData.map((emp) => (
+                <MenuItem key={emp.empid} value={emp.empid}>
+                  {emp.empid} - {emp.ename}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-          <Grid
-            item
-            xs={12}
-            sm={3}
-            md={5.5}
-            sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}
-          >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: "0 0 auto" }}>
             <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={fetchMusterData}>
               Refresh
             </Button>
             <Button variant="outlined" size="small" startIcon={<ClearIcon />} onClick={clearFilters}>
               Clear
             </Button>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         <Tabs
           value={tab}
           onChange={(e, v) => setTab(v)}
-          sx={{ mb: 2, borderBottom: "1px solid #e0e0e0", minHeight: 0 }}
+          sx={{ mb: 1, borderBottom: "1px solid #e0e0e0", minHeight: 0, flex: "0 0 auto" }}
         >
-          <Tab label="Muster Roll" value="muster" sx={{ textTransform: "none", fontWeight: "bold", fontSize: 14 }} />
-          <Tab label="Late Coming Report" value="late" sx={{ textTransform: "none", fontWeight: "bold", fontSize: 14 }} />
+          <Tab label="Muster Roll" value="muster" sx={{ textTransform: "none", fontWeight: "bold", fontSize: 14, minHeight: 38, py: 0 }} />
+          <Tab label="Late Coming Report" value="late" sx={{ textTransform: "none", fontWeight: "bold", fontSize: 14, minHeight: 38, py: 0 }} />
         </Tabs>
 
-        {loading && <LinearProgress sx={{ mb: 2 }} />}
+        {loading && <LinearProgress sx={{ mb: 1, flex: "0 0 auto" }} />}
 
         {tab === "muster" && (filteredData.length === 0 ? (
           <Typography
@@ -655,7 +689,7 @@ const MusterRoll = () => {
             <Box
               ref={tableRef}
               id="muster-roll-table"
-              sx={{ width: "100%" }}
+              sx={{ width: "100%", flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column" }}
             >
               <Box
                 ref={topScrollRef}
@@ -664,8 +698,9 @@ const MusterRoll = () => {
                   overflowX: "auto",
                   overflowY: "hidden",
                   width: "100%",
-                  height: "14px",
-                  mb: 1,
+                  height: "12px",
+                  mb: 0.5,
+                  flex: "0 0 auto",
                   bgcolor: "#f5f5f5",
                   borderRadius: "4px",
                   border: "1px solid #ccc",
@@ -686,7 +721,10 @@ const MusterRoll = () => {
                 sx={{
                   overflowX: "auto",
                   overflowY: "auto",
-                  maxHeight: "75vh",
+                  // The only vertical scrollbar on the page — the Card fills
+                  // .layout-content, so the table absorbs the leftover height.
+                  flex: "1 1 auto",
+                  minHeight: 0,
                   width: "100%",
                   border: "1px solid #ccc",
                   borderRadius: "4px",
@@ -701,8 +739,9 @@ const MusterRoll = () => {
                     "& th, & td": {
                       borderRight: "1px solid #ccc",
                       borderBottom: "1px solid #ccc",
-                      padding: "4px 6px",
+                      padding: "1px 6px",
                       fontSize: "11px",
+                      lineHeight: 1.35,
                       whiteSpace: "nowrap",
                     },
                   }}
@@ -830,68 +869,13 @@ const MusterRoll = () => {
                           </TableRow>
                         );
 
-                        for (const emp of catEmployees) {
+for (const emp of catEmployees) {
                           globalIdx++;
                           const days = emp.days || [];
-                          let presentDays = 0;
-                          let holidays = 0;
-                          let cl = 0;
-                          let el = 0;
-                          let leave = 0;
-                          let woffCount = 0;
-                          let totalOT = 0;
-                          let lopCount = 0;
 
-                          const dayStatuses = days.map(d => getShortStatus(d.status));
-        const dayDisplay = dayStatuses.map((s, i) => {
-          if (s !== "W" && s !== "H") return s;
-          const prevP = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i - 1]);
-          const nextP = i < dayStatuses.length - 1 && ["P", "F", "FC", "FE", "FL"].includes(dayStatuses[i + 1]);
-          return prevP || nextP ? s : "A";
-        });
+                          const { dayCodes, presentDays, holidays, woffCount, cl, el, leave, lopCount, totalOT, totalPaidDays } =
+                            countMusterTotals(days);
 
-                          days.forEach((day, dayIdx) => {
-                            const status = day.status;
-                            const short = dayStatuses[dayIdx];
-                            const display = dayDisplay[dayIdx];
-
-                            if (short === "P") presentDays++;
-                            else if (short === "F") presentDays += 0.5;
-                            else if (short === "FC" || short === "FE" || short === "FL") presentDays += 0.5;
-                            else if (status === "Holiday+OT" || status === "W-Off+OT") presentDays++;
-
-                            if (short === "H") holidays++;
-                            else if (status === "Holiday+OT") holidays++;
-
-                            if (short === "CL") cl++;
-                            else if (short === "FC") cl += 0.5;
-
-                            if (short === "EL") el++;
-                            else if (short === "FE") el += 0.5;
-
-                            if (short === "L") {
-                              lopCount++;
-                            } else if (short === "FL") {
-                              presentDays += 0.5;
-                              lopCount += 0.5;
-                            } else if (day.lop) {
-                              lopCount += Number(day.lop);
-                            } else if (short && !["P", "F", "H", "A", "W", "CL", "EL", "L", "FC", "FE", "FL"].includes(short)) {
-                              leave++;
-                            }
-
-                            if (short === "W") {
-                              if (display === "W") {
-                                woffCount++;
-                              } else {
-                                lopCount++;
-                              }
-                            }
-
-                            if (day.ot_hrs) totalOT += Number(day.ot_hrs);
-                          });
-
-                          const totalPaidDays = presentDays + holidays + woffCount + cl + el + leave;
                           const hasBonus = lopCount === 0 && cl === 0 && el === 0 && leave === 0 && !days.some((d) => d.status === "Absent");
 
                           catTotalDays += totalPaidDays;
@@ -920,9 +904,8 @@ const MusterRoll = () => {
                                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
                                   const dayData = days[d - 1];
                                   const status = dayData ? dayData.status : "";
-                                  const short = dayDisplay[d - 1] || getShortStatus(status);
-                                  const color = getStatusColor(status);
-                                  const displayColor = short !== getShortStatus(status) ? getStatusColor(short) : color;
+                                  const short = dayCodes[d - 1] ?? "";
+                                  const displayColor = getStatusColor(short === "A" ? "Absent" : (status || "Absent"));
                                   const dayOfWeek = new Date(filters.year, filters.month - 1, d).getDay();
                                   const isSunday = dayOfWeek === 0;
 
@@ -1125,7 +1108,11 @@ function LateComingReport({ musterData, daysInMonth, filters, months }) {
 
   useEffect(() => {
     if (tableContainerRef.current) {
-      setTimeout(() => { if (tableContainerRef.current) setContentWidth(tableContainerRef.current.scrollWidth); }, 100);
+      setTimeout(() => {
+        if (tableContainerRef.current) {
+          setContentWidth(tableContainerRef.current.scrollWidth);
+        }
+      }, 100);
     }
   }, [musterData, filters.month, filters.year]);
 
@@ -1146,11 +1133,13 @@ function LateComingReport({ musterData, daysInMonth, filters, months }) {
   ];
 
   return (
-    <Box>
+    <Box sx={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0 }}>
       <Box
         sx={{
-          mb: 2,
-          p: 1.5,
+          mb: 1.5,
+          px: 1.5,
+          py: 1,
+          flex: "0 0 auto",
           bgcolor: "#fff8e1",
           borderRadius: 1,
           border: "1px solid #ffe082",
@@ -1164,7 +1153,7 @@ function LateComingReport({ musterData, daysInMonth, filters, months }) {
         (e.g. 5 lates → 4 actual). Cost = late deduction per payroll rule (≤10 min → 1 hr basic; else → ½ day basic).
       </Box>
 
-      <Box ref={topScrollRef} onScroll={handleTopScroll} sx={{ overflowX: "auto", overflowY: "hidden", width: "100%", height: "14px", mb: 1, bgcolor: "#f5f5f5", borderRadius: "4px", border: "1px solid #ccc" }}>
+      <Box ref={topScrollRef} onScroll={handleTopScroll} sx={{ overflowX: "auto", overflowY: "hidden", width: "100%", height: "12px", mb: 0.5, flex: "0 0 auto", bgcolor: "#f5f5f5", borderRadius: "4px", border: "1px solid #ccc" }}>
         <Box sx={{ width: `${contentWidth}px`, height: "1px" }} />
       </Box>
 
@@ -1172,7 +1161,7 @@ function LateComingReport({ musterData, daysInMonth, filters, months }) {
         ref={tableContainerRef}
         data-late-scroll
         onScroll={handleTableScroll}
-        sx={{ overflowX: "auto", overflowY: "auto", maxHeight: "72vh", width: "100%", border: "1px solid #ccc", borderRadius: "4px" }}
+        sx={{ overflowX: "auto", overflowY: "auto", flex: "1 1 auto", minHeight: 0, width: "100%", border: "1px solid #ccc", borderRadius: "4px" }}
       >
         <Table
           size="small"
@@ -1180,7 +1169,7 @@ function LateComingReport({ musterData, daysInMonth, filters, months }) {
             minWidth: 1000,
             borderCollapse: "separate",
             borderSpacing: 0,
-            "& th, & td": { borderRight: "1px solid #ccc", borderBottom: "1px solid #ccc", padding: "4px 6px", fontSize: "11px", whiteSpace: "nowrap" },
+            "& th, & td": { borderRight: "1px solid #ccc", borderBottom: "1px solid #ccc", padding: "1px 6px", fontSize: "11px", lineHeight: 1.35, whiteSpace: "nowrap" },
           }}
         >
           <TableHead sx={{ position: "sticky", top: 0, zIndex: 10 }}>

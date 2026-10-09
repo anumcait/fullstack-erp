@@ -1,5 +1,16 @@
 const { TourApplication, EmployeeMaster, Payslip } = require('../../models');
 const { Op, Sequelize } = require('sequelize');
+const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
 
 exports.getAllTours = async (req, res) => {
   try {
@@ -53,52 +64,12 @@ exports.createTour = async (req, res) => {
   try {
     const { empid, ename, unit, division, designation, tour_from_date, tour_to_date, purpose, destination, estimated_amount } = req.body;
     
-    // 🛑 Check if payroll is already generated (Find Max Month/Year)
-    if (tour_from_date && empid) {
-      const [y, m, d] = tour_from_date.split('-').map(Number);
-      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      const monthMap = {};
-      monthNames.forEach((name, idx) => { monthMap[name] = idx + 1; });
-
-      const monthOrder = `CASE 
-        WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
-        WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
-        WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
-        WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
-        WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
-        WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
-        WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
-        WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
-        WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
-        WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
-        WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
-        WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
-        ELSE 0 END`;
-
-      const latestPayslip = await Payslip.findOne({
-        attributes: ['C_MONTH', 'C_YEAR'],
-        order: [['C_YEAR', 'DESC'], [Sequelize.literal(monthOrder), 'DESC']],
-        raw: true
-      });
-
-      if (latestPayslip) {
-        const finalMonthStr = (latestPayslip.C_MONTH || "").trim().toUpperCase();
-        const latestMonthNum = monthMap[finalMonthStr] || 0;
-        const latestYearNum = Number(latestPayslip.C_YEAR);
-        const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
-
-        if (isClosed) {
-          return res.status(400).json({ 
-            message: `Cannot apply for Tour. Payroll already processed up to ${finalMonthStr} ${latestYearNum}.` 
-          });
-        }
-      }
-    }
+    if (tour_from_date && await isPayrollFinalized(tour_from_date)) return res.status(400).json({ message: `Payslip finalized for ${tour_from_date.slice(0,7)} — cannot apply Tour.` });
+    if (tour_to_date && await isPayrollFinalized(tour_to_date)) return res.status(400).json({ message: `Payslip finalized for ${tour_to_date.slice(0,7)} — cannot apply Tour.` });
     const t = await TourApplication.sequelize.transaction();
     let newTourId;
     try {
-      const maxRow = await TourApplication.findOne({ attributes: [[Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('tour_id')), 0), 'maxId']], raw: true, transaction: t, lock: t.LOCK.UPDATE });
-      newTourId = Number(maxRow.maxId) + 1;
+      newTourId = await nextSequenceNumber(TourApplication, 'tour_id', t, LOCK_KEYS.TOUR_APPLICATION);
       const tour = await TourApplication.create({
         tour_id: newTourId,
       tour_date: new Date(),
@@ -132,6 +103,10 @@ exports.updateTour = async (req, res) => {
     if (!tour) {
       return res.status(404).json({ message: 'Tour not found' });
     }
+    const ct = tour.tour_from_date;
+    if (ct && await isPayrollFinalized(ct)) return res.status(400).json({ message: `Payslip finalized for ${String(ct).slice(0,7)} — cannot update.` });
+    if (req.body.tour_from_date && await isPayrollFinalized(req.body.tour_from_date)) return res.status(400).json({ message: `Payslip finalized for ${String(req.body.tour_from_date).slice(0,7)} — cannot update.` });
+    if (req.body.tour_to_date && await isPayrollFinalized(req.body.tour_to_date)) return res.status(400).json({ message: `Payslip finalized for ${String(req.body.tour_to_date).slice(0,7)} — cannot update.` });
 
     await tour.update(req.body);
     res.json({ message: 'Tour updated', data: tour });
@@ -149,6 +124,8 @@ exports.deleteTour = async (req, res) => {
     if (!tour) {
       return res.status(404).json({ message: 'Tour not found' });
     }
+    const ct2 = tour.tour_from_date;
+    if (ct2 && await isPayrollFinalized(ct2)) return res.status(400).json({ message: `Payslip finalized for ${String(ct2).slice(0,7)} — cannot delete.` });
 
     await tour.destroy();
     res.json({ message: 'Tour deleted' });
@@ -167,6 +144,8 @@ exports.approveTour = async (req, res) => {
     if (!tour) {
       return res.status(404).json({ message: 'Tour not found' });
     }
+    const chkT = tour.tour_from_date;
+    if (chkT && await isPayrollFinalized(chkT)) return res.status(400).json({ message: `Payslip finalized for ${String(chkT).slice(0,7)} — cannot approve.` });
 
     await tour.update({
       status,
@@ -187,6 +166,8 @@ exports.cancelTour = async (req, res) => {
   try {
     const app = await TourApplication.findByPk(tour_id);
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    const cT = app.tour_from_date;
+    if (cT && await isPayrollFinalized(cT)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(cT).slice(0,7)} — cannot cancel.` });
 
     await app.update({ status: 'Cancelled', approval_remark: remarks });
     res.json({ success: true, message: "Tour approval cancelled" });
@@ -201,6 +182,8 @@ exports.reopenTour = async (req, res) => {
   try {
     const app = await TourApplication.findByPk(tour_id);
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    const rT = app.tour_from_date;
+    if (rT && await isPayrollFinalized(rT)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(rT).slice(0,7)} — cannot reopen.` });
 
     await app.update({ status: 'Pending' });
     res.json({ success: true, message: "Tour application reopened" });

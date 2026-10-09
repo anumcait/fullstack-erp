@@ -130,6 +130,7 @@ const EmployeeMasterReport = ({ initialFilterType = "active", onNewEntry }) => {
     { header: "Salary", field: "salary" },
     { header: "Comm. Address", field: "comm_address", expandable: true },
   ];
+  const initialWidths = { sno: 60, photo: 70, empid: 85, ename: 130, gender: 80, divname: 110, deptname: 120, status: 90, salary: 90, comm_address: 180 };
 
   return (
     <div className="employee-report-container">
@@ -200,6 +201,7 @@ const EmployeeMasterReport = ({ initialFilterType = "active", onNewEntry }) => {
         <SmartTable
           title=""
           columns={columns}
+          initialWidths={initialWidths}
           data={filteredData}
           onPreview={(row) => { setSelectedRecord(row); setShowPreview(true); }}
           onEdit={(row) => { setEditEmpId(row.empid); setShowEditModal(true); }}

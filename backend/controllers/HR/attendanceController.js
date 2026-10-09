@@ -31,6 +31,114 @@ const toLocalDateStr = (val) => {
   return `${y}-${m}-${day}`;
 };
 
+// Approved Woff Changes drive three separate maps per employee:
+//   woffDatesByEmp   - dates granted as a weekly off
+//   woffExcludeByEmp - dates that gave up their default weekly off
+//   cancelledByEmp   - dates HR cancelled (cancel_status = 'C'), forced Absent
+// A cancelled record grants nothing and reinstates the original weekly-off day,
+// so it is skipped entirely.
+const buildWoffMaps = (woffApps) => {
+  const woffDatesByEmp = {};
+  const woffExcludeByEmp = {};
+  const cancelledByEmp = {};
+  woffApps.forEach(w => {
+    const toDate = toLocalDateStr(w.woff_to_date);
+    const fromDate = toLocalDateStr(w.woff_from_date);
+    if (w.cancel_status === 'C' && toDate) {
+      if (!cancelledByEmp[w.empid]) cancelledByEmp[w.empid] = [];
+      cancelledByEmp[w.empid].push(toDate);
+      return;
+    }
+    if (toDate) {
+      if (!woffDatesByEmp[w.empid]) woffDatesByEmp[w.empid] = [];
+      woffDatesByEmp[w.empid].push(toDate);
+    }
+    if (fromDate) {
+      if (!woffExcludeByEmp[w.empid]) woffExcludeByEmp[w.empid] = [];
+      woffExcludeByEmp[w.empid].push(fromDate);
+    }
+  });
+  return { woffDatesByEmp, woffExcludeByEmp, cancelledByEmp };
+};
+
+// Weekly offs are stored as attendance rows (status/shift 'W', woff_day 1),
+// so cancelling from Bulk Attendance Entry flags that row directly.
+// 'C' = cancelled, NULL = still a weekly off.
+const WOFF_CANCELLED = 'C';
+const isWeeklyOffRow = (row) => {
+  if (!row) return false;
+  const s = String(row.status || '').toUpperCase();
+  const sh = String(row.shift || '').toUpperCase();
+  return s === 'W' || s === 'WOFF' || s === 'W-OFF' || sh === 'W' || Number(row.woff_day) > 0;
+};
+
+exports.cancelWoffDay = async (req, res) => {
+  const { empid, att_date, reason } = req.body;
+  try {
+    if (!empid || !att_date) {
+      return res.status(400).json({ success: false, message: 'Employee and date are required.' });
+    }
+    if (!reason || !String(reason).trim()) {
+      return res.status(400).json({ success: false, message: 'Cancel remarks are mandatory.' });
+    }
+    if (await isPayrollFinalized(att_date)) {
+      return res.status(400).json({ success: false, message: `Payslip finalized for ${String(att_date).slice(0, 7)} — cannot cancel this weekly off.` });
+    }
+
+    const row = await Attendance.findOne({ where: { empid, att_date: formatDateForQuery(att_date) } });
+    if (!row) {
+      return res.status(404).json({ success: false, message: `No attendance row found for ${empid} on ${att_date}.` });
+    }
+    if (!isWeeklyOffRow(row)) {
+      return res.status(400).json({ success: false, message: `${att_date} is not a weekly off for ${empid}.` });
+    }
+    if (row.cancel_status === WOFF_CANCELLED) {
+      return res.status(400).json({ success: false, message: `The weekly off on ${att_date} is already cancelled.` });
+    }
+
+    await row.update({
+      cancel_status: WOFF_CANCELLED,
+      cancel_date: new Date(),
+      cancel_remarks: String(reason).trim(),
+      cancelled_by: req.session.user?.username || 'Admin'
+    });
+
+    res.json({ success: true, message: `Weekly off on ${att_date} cancelled.`, data: row });
+  } catch (error) {
+    console.error('Error cancelling weekly off:', error);
+    res.status(500).json({ success: false, message: 'Error cancelling weekly off' });
+  }
+};
+
+exports.revokeWoffDayCancel = async (req, res) => {
+  const { empid, att_date } = req.body;
+  try {
+    if (!empid || !att_date) {
+      return res.status(400).json({ success: false, message: 'Employee and date are required.' });
+    }
+    if (await isPayrollFinalized(att_date)) {
+      return res.status(400).json({ success: false, message: `Payslip finalized for ${String(att_date).slice(0, 7)} — cannot revoke this cancellation.` });
+    }
+
+    const row = await Attendance.findOne({ where: { empid, att_date: formatDateForQuery(att_date) } });
+    if (!row || row.cancel_status !== WOFF_CANCELLED) {
+      return res.status(404).json({ success: false, message: `No cancelled weekly off found for ${empid} on ${att_date}.` });
+    }
+
+    await row.update({
+      cancel_status: null,
+      cancel_date: null,
+      cancel_remarks: null,
+      cancelled_by: null
+    });
+
+    res.json({ success: true, message: `Cancellation removed for ${att_date}.`, data: row });
+  } catch (error) {
+    console.error('Error revoking weekly off cancellation:', error);
+    res.status(500).json({ success: false, message: 'Error revoking weekly off cancellation' });
+  }
+};
+
 exports.saveAttendance = async (req, res) => {
   try {
     let attendanceData = req.body;
@@ -367,10 +475,11 @@ exports.saveBulkAttendance = async (req, res) => {
 
 exports.getAttendance = async (req, res) => {
   try {
-    const { empid, month, year, startDate, endDate } = req.query;
+    const { empid, month, year, startDate, endDate, shift, limit } = req.query;
     const where = {};
 
     if (empid) where.empid = parseInt(empid);
+    if (shift && shift !== '') where.shift = shift;
 
     if (startDate && endDate) {
       where.att_date = {
@@ -389,6 +498,7 @@ exports.getAttendance = async (req, res) => {
       };
     }
 
+    const maxLimit = limit ? Math.min(parseInt(limit) || 0, 1000) : null;
     const data = await Attendance.findAll({
       where,
       include: [{
@@ -397,7 +507,8 @@ exports.getAttendance = async (req, res) => {
         attributes: ['empid', 'ename', 'deptname'],
         required: false
       }],
-      order: [['att_date', 'ASC'], ['empid', 'ASC']]
+      order: [['att_date', 'ASC'], ['empid', 'ASC']],
+      ...(maxLimit ? { limit: maxLimit } : {})
     });
 
     const plain = data.map(r => r.toJSON ? r.toJSON() : { ...r });
@@ -420,7 +531,11 @@ exports.getAttendance = async (req, res) => {
           const noPunch = !r.in_time && !r.out_time;
           const sLow = String(r.status||"").toLowerCase();
           const isLeaveLike = ['cl','el','sl','l','h','holiday','w','w-off','half day','hd','lop'].includes(sLow) || !!r.leave_type;
-          if (isPast && noPunch && (r.status === 'Present' || r.status === 'P') && !isLeaveLike && !r.holiday && r.woff_day !== 1) {
+          // A weekly off HR cancelled reads as Absent everywhere, so the grid and
+          // reports never disagree with the muster.
+          if (r.cancel_status === 'C' && ['w','woff','w-off'].includes(sLow)) {
+            r.status = 'Absent';
+          } else if (isPast && noPunch && (r.status === 'Present' || r.status === 'P') && !isLeaveLike && !r.holiday && r.woff_day !== 1) {
             r.status = 'Absent';
           } else if (r.in_time && r.out_time && (r.status === 'Present' || r.status === 'P')) {
             const sched = schedMap[`${r.empid}_${dk}`];
@@ -489,8 +604,8 @@ exports.importAttendance = async (req, res) => {
   const t = await Attendance.sequelize.transaction();
   try {
     const { empid, month, year, attendanceData } = req.body;
-
     for (const att of attendanceData) {
+      if (att.date && await isPayrollFinalized(att.date)) { await t.rollback(); return res.status(400).json({ message: `Payslip finalized for ${att.date.slice(0,7)} — import blocked.` }); }
       await Attendance.upsert({
         empid: parseInt(empid),
         att_date: att.date,
@@ -589,6 +704,17 @@ const calculateLateHrs = (inTime, shiftStart, graceMins = 0) => {
  */
 const getTimeMins = (time) => {
   if (!time) return null;
+
+  // Postgres TIME columns (shift_start_time, shift_end_time, in_time, out_time)
+  // arrive from Sequelize as Date objects anchored to 2000-01-01 with the real
+  // wall-clock time in the UTC parts. Handle those first: String(date) renders
+  // in local time, so 17:30 becomes "23:00" under UTC+5:30 and every full day
+  // would be misread as a half day.
+  if (time instanceof Date) {
+    if (isNaN(time.getTime())) return null;
+    return time.getUTCHours() * 60 + time.getUTCMinutes();
+  }
+
   const str = String(time).trim();
 
   // Try to match HH:mm or HH.mm or HH:mm:ss
@@ -768,20 +894,7 @@ exports.getMusterRoll = async (req, res) => {
         ]
       }
     });
-    const woffDatesByEmp = {};
-    const woffExcludeByEmp = {};
-    woffApps.forEach(w => {
-      const toDate = toLocalDateStr(w.woff_to_date);
-      const fromDate = toLocalDateStr(w.woff_from_date);
-      if (toDate) {
-        if (!woffDatesByEmp[w.empid]) woffDatesByEmp[w.empid] = [];
-        woffDatesByEmp[w.empid].push(toDate);
-      }
-      if (fromDate) {
-        if (!woffExcludeByEmp[w.empid]) woffExcludeByEmp[w.empid] = [];
-        woffExcludeByEmp[w.empid].push(fromDate);
-      }
-    });
+    const { woffDatesByEmp, woffExcludeByEmp, cancelledByEmp } = buildWoffMaps(woffApps);
 
     const silenceCheck = async () => { };
     const attendanceData = await Attendance.findAll({
@@ -849,6 +962,7 @@ exports.getMusterRoll = async (req, res) => {
       const empAttendance = attendanceMap[empId] || {};
       const empWoffs = woffDatesByEmp[empId] || [];
       const empWoffExclude = woffExcludeByEmp[empId] || [];
+      const empCancelledWoffs = cancelledByEmp[empId] || [];
       const empLeaves = leaveDatesByEmp[empId] || {};
       const empExtOt = extOtMap[empId] || {};
 
@@ -908,7 +1022,14 @@ exports.getMusterRoll = async (req, res) => {
           if (!outTime && extOt.out_time) outTime = extOt.out_time;
         }
 
-        if (attendance?.status === 'LOP' || attendance?.leave_type === 'LOP') {
+        // A weekly off HR cancelled overrides everything else on that day - punches,
+        // leave, on-duty and holidays cannot rescue it. Either the attendance row
+        // (bulk entry) or the Woff Change application may carry the flag.
+        if (empCancelledWoffs.includes(currentDate) || attendance?.cancel_status === 'C') {
+          dayStatus = 'Absent';
+          totalAbsent++;
+          lopDays = 1;
+        } else if (attendance?.status === 'LOP' || attendance?.leave_type === 'LOP') {
           dayStatus = 'LOP';
           totalLop += 1;
           lopDays = 1;
@@ -1036,26 +1157,42 @@ exports.getMusterRoll = async (req, res) => {
         });
       }
 
-      // Post-process the Weekly Off (W-Off) sandwich rule (match frontend: W-Off is absent unless adjacent to Present-like day)
-      const presentLikeStatuses = ['Present', 'Half Day', 'FC', 'FE', 'FL'];
+      // Post-process: a run of W-Off / Holiday is shown as Absent only when it
+      // is genuinely sandwiched by non-attendance days on BOTH sides. Neighbours
+      // are scanned outward past any further H days. "A" is absence and so is
+      // "CL" — leave is not attendance, so a run touching CL is not backed by
+      // real attendance. P / F / FC / FE / FL, or a missing neighbour (first or
+      // last day of the month), keep the run. Mirrors the frontend rule so the
+      // grid letters and these totals can never disagree.
+      const nonAttendanceStatuses = ['Absent', 'CL'];
       for (let i = 0; i < monthlyData.days.length; i++) {
-        if (monthlyData.days[i].status === 'W-Off') {
-          let j = i;
-          while (j + 1 < monthlyData.days.length && monthlyData.days[j + 1].status === 'W-Off') j++;
-          const beforeDay = (i > 0) ? monthlyData.days[i - 1] : null;
-          const beforeStatus = beforeDay ? beforeDay.status : 'Present';
-          const afterDay = (j < monthlyData.days.length - 1) ? monthlyData.days[j + 1] : null;
-          const afterStatus = afterDay ? afterDay.status : 'Present';
-          const beforePresent = presentLikeStatuses.includes(beforeStatus);
-          const afterPresent = presentLikeStatuses.includes(afterStatus);
-          if (!beforePresent && !afterPresent) {
-            for (let k = i; k <= j; k++) {
-              monthlyData.days[k].status = 'Absent';
-              monthlyData.days[k].lop = 1;
-            }
-          }
-          i = j;
+        const dayStatusNow = monthlyData.days[i].status;
+        if (dayStatusNow !== 'W-Off' && dayStatusNow !== 'Holiday') continue;
+
+        let j = i;
+        while (j + 1 < monthlyData.days.length) {
+          const n = monthlyData.days[j + 1].status;
+          if (n !== 'W-Off' && n !== 'Holiday') break;
+          j++;
         }
+
+        let l = i - 1;
+        while (l >= 0 && monthlyData.days[l].status === 'Holiday') l--;
+        let r = j + 1;
+        while (r < monthlyData.days.length && monthlyData.days[r].status === 'Holiday') r++;
+
+        const beforeStatus = l >= 0 ? monthlyData.days[l].status : null;
+        const afterStatus = r < monthlyData.days.length ? monthlyData.days[r].status : null;
+        const beforeNonAttendance = beforeStatus !== null && nonAttendanceStatuses.includes(beforeStatus);
+        const afterNonAttendance = afterStatus !== null && nonAttendanceStatuses.includes(afterStatus);
+
+        if (beforeNonAttendance && afterNonAttendance) {
+          for (let k = i; k <= j; k++) {
+            monthlyData.days[k].status = 'Absent';
+            monthlyData.days[k].lop = 1;
+          }
+        }
+        i = j;
       }
 
       // Re-sum the summary totals from post-processed daily status values
@@ -1190,7 +1327,7 @@ exports.saveMusterRollSummary = async (req, res) => {
     const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     const monthStr = monthNames[monthNum - 1];
     const existingPayslip = await Payslip.count({
-      where: { C_MONTH: monthStr, C_YEAR: yearNum }
+      where: { C_MONTH: monthStr, C_YEAR: yearNum, C_FINAL_STATUS: 2 }
     });
     if (existingPayslip > 0) {
       return res.status(400).json({ message: 'Salary already processed/finalized for this month. Attendance summary cannot be updated.' });
@@ -1220,20 +1357,7 @@ exports.saveMusterRollSummary = async (req, res) => {
         ]
       }
     });
-    const woffDatesByEmp = {};
-    const woffExcludeByEmp = {};
-    woffApps.forEach(w => {
-      const toDate = toLocalDateStr(w.woff_to_date);
-      const fromDate = toLocalDateStr(w.woff_from_date);
-      if (toDate) {
-        if (!woffDatesByEmp[w.empid]) woffDatesByEmp[w.empid] = [];
-        woffDatesByEmp[w.empid].push(toDate);
-      }
-      if (fromDate) {
-        if (!woffExcludeByEmp[w.empid]) woffExcludeByEmp[w.empid] = [];
-        woffExcludeByEmp[w.empid].push(fromDate);
-      }
-    });
+    const { woffDatesByEmp, woffExcludeByEmp, cancelledByEmp } = buildWoffMaps(woffApps);
 
     const attendanceData = await Attendance.findAll({
       where: { att_date: { [Sequelize.Op.between]: [startDate, endDate] } }
@@ -1298,7 +1422,8 @@ exports.saveMusterRollSummary = async (req, res) => {
         scheduleMap[empId] || {}, attendanceMap[empId] || {},
         woffDatesByEmp[empId] || [], woffExcludeByEmp[empId] || [],
         leaveDatesByEmp[empId] || {},
-        extOtMap[empId] || {}, holidayDates, doj, shiftLunchMap
+        extOtMap[empId] || {}, holidayDates, doj, shiftLunchMap,
+        cancelledByEmp[empId] || []
       );
 
       let clDays = 0, elDays = 0;
@@ -1338,7 +1463,7 @@ exports.saveMusterRollSummary = async (req, res) => {
   }
 };
 
-function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, startDate, endDate, empSchedule, empAttendance, empWoffs, empWoffExclude, empLeaves, empExtOt, holidayDates, doj, shiftLunchMap = {}) {
+function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, startDate, endDate, empSchedule, empAttendance, empWoffs, empWoffExclude, empLeaves, empExtOt, holidayDates, doj, shiftLunchMap = {}, empCancelledWoffs = []) {
   const monthlyData = { days: [] };
   let totalPresent = 0, totalAbsent = 0, totalLeave = 0, totalWoff = 0, totalHoliday = 0, totalLop = 0, totalLateHrs = 0, totalOTHrs = 0;
 
@@ -1374,7 +1499,12 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
       if (!outTime && extOt.out_time) outTime = extOt.out_time;
     }
 
-    if (attendance?.status === 'LOP' || attendance?.leave_type === 'LOP') {
+    // A weekly off HR cancelled overrides everything else on that day - punches,
+    // leave, on-duty and holidays cannot rescue it. Either the attendance row
+    // (bulk entry) or the Woff Change application may carry the flag.
+    if (empCancelledWoffs.includes(currentDate) || attendance?.cancel_status === 'C') {
+      dayStatus = 'Absent'; totalAbsent++; lopDays = 1;
+    } else if (attendance?.status === 'LOP' || attendance?.leave_type === 'LOP') {
       dayStatus = 'LOP'; totalLop += 1; lopDays = 1;
     } else if (isHoliday) {
       if (inTime || outTime) {
@@ -1637,6 +1767,7 @@ exports.approveOT = async (req, res) => {
     console.log('Approve OT request:', { id, app_ot, app_status, hr_app_ot, hr_app_status, auto_approve_hr });
 
     const existing = await Attendance.findByPk(id);
+    if (existing && existing.att_date && await isPayrollFinalized(existing.att_date)) return res.status(400).json({ message: `Payslip finalized for ${String(existing.att_date).slice(0,7)} — cannot approve OT.` });
     if (!existing) {
       return res.status(404).json({ message: 'Record not found' });
     }

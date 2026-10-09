@@ -7,6 +7,8 @@ const attendanceController = require('../../controllers/HR/attendanceController'
 router.post('/save', requirePermission(HR_PERMISSIONS.ATT_ENTRY), attendanceController.saveAttendance);
 router.post('/save-bulk', requirePermission(HR_PERMISSIONS.ATT_ENTRY), attendanceController.saveBulkAttendance);
 router.post('/import', requirePermission(HR_PERMISSIONS.ATT_ENTRY), attendanceController.importAttendance);
+router.post('/cancel-woff-day', requirePermission(HR_PERMISSIONS.ATT_ENTRY), attendanceController.cancelWoffDay);
+router.post('/revoke-woff-cancel', requirePermission(HR_PERMISSIONS.ATT_ENTRY), attendanceController.revokeWoffDayCancel);
 router.get('/', requirePermission(HR_PERMISSIONS.ATT_ENTRY), attendanceController.getAttendance);
 router.put('/:id', requirePermission(HR_PERMISSIONS.ATT_MOD), attendanceController.updateAttendance);
 router.delete('/:id', requirePermission(HR_PERMISSIONS.ATT_MOD), attendanceController.deleteAttendance);

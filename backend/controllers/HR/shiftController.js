@@ -1,5 +1,16 @@
 const { ShiftChange, ShiftMaster, ShiftSchedule, EmployeeMaster, Attendance, Holiday, EmpSalary, WoffApplication, Payslip } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
+const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
 
 exports.saveSChange = async (req, res) => {
   const application = req.body;
@@ -10,44 +21,8 @@ exports.saveSChange = async (req, res) => {
   }
 
   try {
-    // 🛑 Check if any payslip is already generated for this employee (Find Max Month/Year)
-    const [y, m, d] = schange_from.split('-').map(Number);
-    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    const monthMap = {};
-    monthNames.forEach((name, idx) => { monthMap[name] = idx + 1; });
-
-    const monthOrder = `CASE 
-      WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
-      WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
-      WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
-      WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
-      WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
-      WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
-      WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
-      WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
-      WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
-      WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
-      WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
-      WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
-      ELSE 0 END`;
-
-    const latestPayslip = await Payslip.findOne({
-      attributes: ['C_MONTH', 'C_YEAR'],
-      order: [['C_YEAR', 'DESC'], [Sequelize.literal(monthOrder), 'DESC']],
-      raw: true
-    });
-
-    if (latestPayslip) {
-      const finalMonthStr = (latestPayslip.C_MONTH || "").trim().toUpperCase();
-      const latestMonthNum = monthMap[finalMonthStr] || 0;
-      const latestYearNum = Number(latestPayslip.C_YEAR);
-      const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
-
-      if (isClosed) {
-        return res.status(400).json({ 
-          message: `Cannot apply for Shift Change. Payroll already processed up to ${finalMonthStr} ${latestYearNum}.` 
-        });
-      }
+    if (await isPayrollFinalized(schange_from)) {
+      return res.status(400).json({ message: `Cannot apply for Shift Change. Payroll already finalized for ${schange_from.slice(0,7)}.` });
     }
     const existing = await ShiftChange.findOne({
       where: {
@@ -63,16 +38,7 @@ exports.saveSChange = async (req, res) => {
 
     const t = await ShiftChange.sequelize.transaction();
     try {
-      const maxIdResult = await ShiftChange.findOne({
-        attributes: [
-          [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('schange_no')), 0), 'maxId']
-        ],
-        raw: true,
-        transaction: t,
-        lock: t.LOCK.UPDATE
-      });
-
-      const nextSchangeId = Number(maxIdResult.maxId) + 1;
+      const nextSchangeId = await nextSequenceNumber(ShiftChange, 'schange_no', t, LOCK_KEYS.SHIFT_CHANGE);
       application.schange_no = nextSchangeId;
       application.app_status = 'Pending';
 
@@ -206,6 +172,10 @@ exports.saveSchedule = async (req, res) => {
   const t = await ShiftSchedule.sequelize.transaction();
   try {
     const scheduleData = { ...req.body };
+    if (scheduleData.shift_date && await isPayrollFinalized(scheduleData.shift_date)) {
+      await t.rollback();
+      return res.status(400).json({ message: `Payslip finalized for ${String(scheduleData.shift_date).slice(0,7)} — cannot modify shift schedule.` });
+    }
     if (scheduleData.shift_start_time && typeof scheduleData.shift_start_time === 'string' && scheduleData.shift_start_time.includes(':')) {
       const [h, m] = scheduleData.shift_start_time.split(':');
       scheduleData.shift_start_time = new Date(2000, 0, 1, h, m);
@@ -265,6 +235,12 @@ exports.saveBulkSchedules = async (req, res) => {
   const t = await ShiftSchedule.sequelize.transaction();
   try {
     const rawSchedules = req.body;
+    for (const s of rawSchedules) {
+      if (s.shift_date && await isPayrollFinalized(s.shift_date)) {
+        await t.rollback();
+        return res.status(400).json({ message: `Payslip finalized for ${String(s.shift_date).slice(0,7)} — bulk save blocked.` });
+      }
+    }
     for (const s of rawSchedules) {
       const scheduleData = { ...s };
       if (scheduleData.shift_start_time && typeof scheduleData.shift_start_time === 'string' && scheduleData.shift_start_time.includes(':')) {
@@ -326,6 +302,10 @@ exports.saveBulkSchedules = async (req, res) => {
 exports.deleteSchedule = async (req, res) => {
   try {
     const { id } = req.params;
+    const rec = await ShiftSchedule.findByPk(id);
+    if (rec && rec.shift_date && await isPayrollFinalized(rec.shift_date)) {
+      return res.status(400).json({ message: `Payslip finalized for ${String(rec.shift_date).slice(0,7)} — cannot delete.` });
+    }
     await ShiftSchedule.destroy({ where: { id } });
     res.json({ message: 'Schedule deleted successfully' });
   } catch (error) {
@@ -517,6 +497,9 @@ exports.approveShiftChange = async (req, res) => {
     if (!application) {
       return res.status(404).json({ message: 'Shift Change application not found.' });
     }
+    if (application.schange_from && await isPayrollFinalized(application.schange_from)) {
+      return res.status(400).json({ message: `Payslip finalized for ${String(application.schange_from).slice(0,7)} — cannot approve.` });
+    }
 
     application.app_status = app_status === 'Reject' ? 'Rejected' : app_status || 'Approved';
     if (final_status) application.final_status = final_status;
@@ -535,6 +518,9 @@ exports.cancelShiftChange = async (req, res) => {
   try {
     const app = await ShiftChange.findOne({ where: { schange_no } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    if (app.schange_from && await isPayrollFinalized(app.schange_from)) {
+      return res.status(400).json({ success: false, message: `Payslip finalized for ${String(app.schange_from).slice(0,7)} — cannot cancel.` });
+    }
 
     await app.update({ app_status: 'Cancelled', remarks: remarks });
     res.json({ success: true, message: "Shift change approval cancelled" });
@@ -549,6 +535,9 @@ exports.reopenShiftChange = async (req, res) => {
   try {
     const app = await ShiftChange.findOne({ where: { schange_no } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    if (app.schange_from && await isPayrollFinalized(app.schange_from)) {
+      return res.status(400).json({ success: false, message: `Payslip finalized for ${String(app.schange_from).slice(0,7)} — cannot reopen.` });
+    }
 
     await app.update({ app_status: 'Pending' });
     res.json({ success: true, message: "Shift change application reopened" });

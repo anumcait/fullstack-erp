@@ -30,6 +30,10 @@ module.exports = (sequelize, DataTypes) => {
     status: {
       type: DataTypes.STRING(20)
     },
+    cancel_status: DataTypes.STRING(1),
+    cancel_date: DataTypes.DATE,
+    cancel_remarks: DataTypes.TEXT,
+    cancelled_by: DataTypes.STRING(50),
     approval_remark: DataTypes.STRING(200),
     approved_by: DataTypes.STRING(50),
     approved_date: DataTypes.DATE

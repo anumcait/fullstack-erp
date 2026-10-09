@@ -59,6 +59,37 @@ const MONTHLY_REPORTS = [
 const ALL_IDS = [...APP_REPORTS, ...MONTHLY_REPORTS].map(r => r.id);
 const LEGACY_MAP = { attendance: "attendance-log", leaves: "leaves", payslips: "payslips", ot: "att-req" };
 
+// A run of W (Weekly Off) / H (Holiday) is displayed as Absent only when the
+// whole run is genuinely sandwiched:
+//   A W H A   ->  A A A A
+//   CL W H P  ->  CL W H
+//   CL A H P  ->  CL A H P
+// Neighbours are scanned outward past any further H days. "A" is absence, and
+// so is "CL" — leave is not counted as attendance here. P / F / T / EL, or a
+// missing day (first/last of month), keep the run as W/H.
+const resolveDayCodes = (statuses) => {
+  const out = statuses.slice();
+  const isWH = (s) => s === "W" || s === "H";
+  const isAbsentLike = (s) => s === "A" || s === "CL";
+  let i = 0;
+  while (i < statuses.length) {
+    if (!isWH(statuses[i])) { i += 1; continue; }
+    let end = i;
+    while (end + 1 < statuses.length && isWH(statuses[end + 1])) end += 1;
+    let l = i - 1;
+    while (l >= 0 && statuses[l] === "H") l -= 1;
+    let r = end + 1;
+    while (r < statuses.length && statuses[r] === "H") r += 1;
+    const left = l >= 0 ? statuses[l] : null;
+    const right = r < statuses.length ? statuses[r] : null;
+    if (left !== null && isAbsentLike(left) && right !== null && isAbsentLike(right)) {
+      for (let k = i; k <= end; k += 1) out[k] = "A";
+    }
+    i = end + 1;
+  }
+  return out;
+};
+
 export default function EmployeeReports() {
   const theme = useTheme();
   const { companyName, companySettings } = useCompany();
@@ -405,8 +436,8 @@ export default function EmployeeReports() {
     const getShort = (s) => { if (!s) return ""; if (s === "Present") return "P"; if (s === "Half Day") return "F"; if (s === "Absent") return "A"; if (s === "LOP") return "L"; if (String(s).startsWith("W-Off")) return "W"; if (String(s).startsWith("Holiday")) return "H"; return String(s); };
     const byDay = {}; filtered.forEach(r => { const d = new Date(r.att_date).getDate(); if (d >= 1 && d <= dim) byDay[d] = r; });
     const statuses = Array.from({ length: dim }, (_, i) => getShort(byDay[i + 1]?.status || ""));
-    const display = statuses.map((s, i) => { if (s !== "W" && s !== "H") return s; const prev = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i - 1]); const next = i < dim - 1 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i + 1]); return prev || next ? s : "A"; });
-    let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; else if (s === "W" && d === "A") lop++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; const appr = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved"); if (appr && r?.ot_hrs) ot += Number(r.ot_hrs); });
+    const display = resolveDayCodes(statuses);
+    let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; if (d === "A" && (s === "W" || s === "H")) lop++; const appr = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved"); if (appr && r?.ot_hrs) ot += Number(r.ot_hrs); });
     const head = ["Emp ID", "Name", ...Array.from({ length: dim }, (_, i) => String(i + 1).padStart(2, "0")), "PRESENT", "H/W", "CL", "EL", "LOP", "TOTAL", "OT"];
     const row1 = [empid, empName, ...display.map(d => d || "-"), p, h + w, cl, el, lop, p + h + w + cl + el, ot.toFixed(2)];
     const row2 = ["", "OT", ...Array.from({ length: dim }, (_, i) => { const r = byDay[i + 1]; const appr = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved"); return appr && r?.ot_hrs ? Number(r.ot_hrs).toFixed(2) : ""; }), "", "", "", "", "", "", ""];
@@ -918,8 +949,8 @@ export default function EmployeeReports() {
         if (d.getDay() === 0) return "W";
         return "";
       });
-      const display = statuses.map((s, i) => { if (s !== "W" && s !== "H") return s; const prev = i > 0 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i - 1]); const next = i < dim - 1 && ["P", "F", "FC", "FE", "FL"].includes(statuses[i + 1]); return prev || next ? s : "A"; });
-      let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; else if (s === "W" && d === "A") lop++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; const approved = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved" || r.is_ot_approved == 1 || r.ot_approved_status === "Approved"); if (approved && r?.ot_hrs) ot += Number(r.ot_hrs); }); const total = p + h + w + cl + el;
+      const display = resolveDayCodes(statuses);
+      let p = 0, h = 0, w = 0, cl = 0, el = 0, lop = 0, ot = 0; display.forEach((d, i) => { const s = statuses[i]; const r = byDay[i + 1]; if (s === "P") p++; else if (s === "F") p += 0.5; if (d === "H") h++; if (d === "W") w++; if (s === "CL") cl++; if (s === "EL") el++; if (s === "L") lop++; if (d === "A" && (s === "W" || s === "H")) lop++; const approved = r && (r.ot_status === "Approved" || r.ot_approved == 1 || r.app_status === "Approved" || r.hr_app_status === "Approved" || r.is_ot_approved == 1 || r.ot_approved_status === "Approved"); if (approved && r?.ot_hrs) ot += Number(r.ot_hrs); }); const total = p + h + w + cl + el;
       return (
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small" stickyHeader sx={{ minWidth: 900, "& th, & td": { borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed", padding: "4px 6px", fontSize: "11px", textAlign: "center" } }}>

@@ -388,8 +388,8 @@ const LeaveApplication = ({ onClose }) => {
 
   return (
     <Box>
-      <div className="p-6 max-w-6xl mx-auto bg-white border rounded-lg shadow">
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+      <div className="p-4 max-w-6xl mx-auto bg-white border rounded-lg shadow">
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
           <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'var(--heading-color)', borderLeft: '4px solid', borderColor: 'primary.main', pl: 1.5, lineHeight: 1.2 }}>Leave Application</Typography>
           <Box>
             <Tooltip title="Refresh">
@@ -400,24 +400,25 @@ const LeaveApplication = ({ onClose }) => {
         </Stack>
 
         {/* Standardized Header: Left aligned ID and Date with Time */}
-        <Box sx={{ mb: 2, display: 'flex', gap: 4, justifyContent: 'flex-start', alignItems: 'center' }}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="body2" color="text.secondary">Leave ID:</Typography>
-            <Typography fontWeight={600}>{formData.lappNo}</Typography>
+        <Box sx={{ mb: 1.5, display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>Leave ID</Typography>
+            <Typography variant="body2" fontWeight={700}>{formData.lappNo}</Typography>
           </Box>
-          <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="body2" color="text.secondary">Date:</Typography>
-            <Typography fontWeight={600}>{formatDateTimeAMPM(formData.date)}</Typography>
+          <Divider orientation="vertical" flexItem />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>Date</Typography>
+            <Typography variant="body2" fontWeight={600}>{formatDateTimeAMPM(formData.date)}</Typography>
           </Box>
         </Box>
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 1.5 }} />
 
         {/* Two-panel layout: Left = Employee Details, Right = Leave Summary */}
-        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', md: 'row' }, mb: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', md: 'row' }, mb: 0.5 }}>
 
           {/* ── DIV 1: Employee Details ── */}
-          <Box component="fieldset" sx={{ flex: 7, border: '1px solid #e0e0e0', borderRadius: 1, p: 1.5, bgcolor: '#fafafa', m: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box component="fieldset" sx={{ flex: 7, border: '1px solid #e0e0e0', borderRadius: 1, p: 1.25, bgcolor: '#fafafa', m: 0, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
               Employee Details
             </Typography>
@@ -511,7 +512,7 @@ const LeaveApplication = ({ onClose }) => {
           </Box>
 
           {/* ── DIV 2: Leave Summary ── */}
-          <Box component="fieldset" sx={{ flex: 4, border: '1px solid #e0e0e0', borderRadius: 1, p: 1.5, bgcolor: '#fafafa', m: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box component="fieldset" sx={{ flex: 4, border: '1px solid #e0e0e0', borderRadius: 1, p: 1.25, bgcolor: '#fafafa', m: 0, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             <Typography component="legend" variant="subtitle2" fontWeight={700} color="primary.main" sx={{ px: 1 }}>
               Leave Summary
             </Typography>

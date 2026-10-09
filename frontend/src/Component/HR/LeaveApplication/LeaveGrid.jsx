@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Grid,
   Paper,
   TextField,
   Select,
@@ -9,7 +8,6 @@ import {
   Button,
   Typography,
   FormControl,
-  InputLabel,
   Box,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -18,6 +16,21 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { useToast } from "../../../context/ToastContext";
 import axios from "axios";
 import { InputAdornment } from "@mui/material";
+
+// One shared column definition for the header row and every data row, so all
+// rows line up exactly. Previously each row was its own Grid container mixing
+// fractional `md` widths with hardcoded pixel widths, which fought each other.
+const GRID_COLS = "34px 124px 172px 172px 104px minmax(190px, 1fr) 86px";
+const GRID_MIN_WIDTH = 940;
+
+const HEAD_CELL = {
+  fontSize: "11px",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: 0.4,
+  color: "text.secondary",
+  px: 0.5,
+};
 
 const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError, onSave, isSaveDisabled, empId, onDirty, minDateLimit, maxDateLimit }) => {
   const { showToast } = useToast();
@@ -252,52 +265,73 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
   }, [rows, empId]);
 
   return (
-    <Box sx={{ mt: 1 }}>
-      {rows.map((row, i) => (
+    <Box sx={{ mt: 0.5 }}>
+      {/* Scrolls sideways on narrow screens instead of squashing the columns */}
+      <Box sx={{ overflowX: "auto", pb: 0.5 }}>
+        <Box sx={{ minWidth: GRID_MIN_WIDTH }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: GRID_COLS,
+              gap: 1,
+              alignItems: "center",
+              px: 1,
+              pb: 0.5,
+            }}
+          >
+            <Box sx={HEAD_CELL} />
+            <Box sx={HEAD_CELL}>Day Type</Box>
+            <Box sx={HEAD_CELL}>From Date</Box>
+            <Box sx={HEAD_CELL}>To Date</Box>
+            <Box sx={{ ...HEAD_CELL, textAlign: "center" }}>Days</Box>
+            <Box sx={HEAD_CELL}>Remarks</Box>
+            <Box sx={HEAD_CELL} />
+          </Box>
+
+          {rows.map((row, i) => (
         <Paper
           key={i}
           sx={{
-            p: 1.2,
-            mb: 1.2,
+            py: 0.75,
+            px: 1,
+            mb: 0.75,
             border: overlapIndexes.includes(i) ? "1.5px solid #ef4444" : "1px solid #e2e8f0",
-            borderRadius: '12px',
+            borderRadius: '10px',
             bgcolor: overlapIndexes.includes(i) ? '#fef2f2' : '#ffffff',
             boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
             transition:'all 0.2s',
             '&:hover':{ boxShadow:'0 4px 12px rgba(0,0,0,0.08)', borderColor: overlapIndexes.includes(i) ? '#ef4444' : '#cbd5e1' }
           }}
         >
-          <Grid container spacing={1} alignItems="center" sx={{ flexWrap: "wrap" }}>
-            <Grid item xs={12} sm={6} md={0.5} sx={{ display:'flex', justifyContent:'center' }}>
-              <Box sx={{ width:28, height:28, borderRadius:'50%', bgcolor: isRowEdited(row) ? 'primary.main' : '#f1f5f9', color: isRowEdited(row) ? '#fff' : '#64748b', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:12, border: overlapIndexes.includes(i) ? '2px solid #ef4444' : '1px solid #e2e8f0' }}>{i + 1}</Box>
-            </Grid>
+          <Box sx={{ display: "grid", gridTemplateColumns: GRID_COLS, gap: 1, alignItems: "center" }}>
+            <Box sx={{ display:'flex', justifyContent:'center' }}>
+              <Box sx={{ width:26, height:26, borderRadius:'50%', bgcolor: isRowEdited(row) ? 'primary.main' : '#f1f5f9', color: isRowEdited(row) ? '#fff' : '#64748b', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:11, border: overlapIndexes.includes(i) ? '2px solid #ef4444' : '1px solid #e2e8f0' }}>{i + 1}</Box>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={1.2}>
+            <Box>
               <FormControl size="small" fullWidth sx={{ '& .MuiOutlinedInput-root':{borderRadius:'10px', bgcolor:'#fff'} }}>
-                <InputLabel>Day Type</InputLabel>
                 <Select
                   fullWidth
-                  label="Day Type"
                   size="small"
                   value={row.dayType}
                   onChange={(e) => updateRow(i, "dayType", e.target.value)}
+                  inputProps={{ 'aria-label': 'Day Type' }}
                   sx={{ borderRadius:'10px' }}
                 >
                   <MenuItem value="FULL DAY">FULL DAY</MenuItem>
                   <MenuItem value="HALF DAY">HALF DAY</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={1.7}>
+            <Box>
               <TextField
                 key={`from-${i}-${row.fromDate}`}
                 fullWidth
-                label="From Date"
                 type="text"
                 placeholder="DD-MM-YYYY"
                 size="small"
-                InputLabelProps={{ shrink: true }}
+                inputProps={{ maxLength: 10, id: `from-${i}`, 'aria-label': 'From Date', style:{ fontWeight:600 } }}
                 defaultValue={row.fromDate ? `${row.fromDate.slice(8,10)}-${row.fromDate.slice(5,7)}-${row.fromDate.slice(0,4)}` : ""}
                 onChange={(e) => {
                   let v = e.target.value.replace(/[^0-9-]/g, "");
@@ -375,17 +409,15 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                 inputProps={{ maxLength: 10, id: `from-${i}`, style:{ fontWeight:600 } }}
                 sx={{ '& .MuiOutlinedInput-root':{ borderRadius:'10px', bgcolor:'#fff', '&.Mui-focused fieldset':{ borderColor:'primary.main', borderWidth:'1.5px' } } }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={1.7}>
+            <Box>
               <TextField
                 key={`to-${i}-${row.toDate}`}
                 fullWidth
-                label="To Date"
                 type="text"
                 placeholder="DD-MM-YYYY"
                 size="small"
-                InputLabelProps={{ shrink: true }}
                 defaultValue={row.toDate ? `${row.toDate.slice(8,10)}-${row.toDate.slice(5,7)}-${row.toDate.slice(0,4)}` : ""}
                 onChange={(e) => {
                   let v = e.target.value.replace(/[^0-9-]/g, "");
@@ -460,49 +492,51 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                     </InputAdornment>
                   ),
                 }}
-                inputProps={{ maxLength: 10, id: `to-${i}`, style:{ fontWeight:600 } }}
+                inputProps={{ maxLength: 10, id: `to-${i}`, 'aria-label': 'To Date', style:{ fontWeight:600 } }}
                 sx={{ '& .MuiOutlinedInput-root':{ borderRadius:'10px', bgcolor:'#fff', '&.Mui-focused fieldset':{ borderColor:'primary.main', borderWidth:'1.5px' } } }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={1} sx={{ width: "100px" }}>
+            <Box>
               <TextField
                 fullWidth
-                label="No of Days"
                 size="small"
                 value={row.noOfDays}
+                inputProps={{ readOnly: true, 'aria-label': 'No of Days' }}
                 InputProps={{ readOnly: true }}
                 sx={{ bgcolor: "#f5f5f5" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={12} md={4} sx={{ minWidth: "180px" }}>
+            <Box>
               <TextField
                 fullWidth
-                label="Remarks"
                 size="small"
                 value={row.remarks}
                 onChange={(e) => updateRow(i, "remarks", e.target.value)}
-                inputProps={{ maxLength: 150, id: `remarks-${i}` }}
+                inputProps={{ maxLength: 150, id: `remarks-${i}`, 'aria-label': 'Remarks' }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={12} md={1} sx={{ width: "80px" }}>
-              <IconButton onClick={() => deleteRow(i)} color="error">
-                <DeleteIcon />
+            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton size="small" onClick={() => deleteRow(i)} color="error">
+                <DeleteIcon fontSize="small" />
               </IconButton>
               <IconButton
+                size="small"
                 onClick={() => resetRow(i)}
                 disabled={!isRowEdited(row)}
               >
-                <RestartAltIcon />
+                <RestartAltIcon fontSize="small" />
               </IconButton>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Paper>
-      ))}
+          ))}
+        </Box>
+      </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5 }}>
         <Button
           variant="outlined"
           onClick={addRow}

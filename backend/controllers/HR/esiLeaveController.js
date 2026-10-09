@@ -1,63 +1,32 @@
 const { ESILeaveApplication, Payslip } = require('../../models');
 const { Sequelize } = require('sequelize');
+const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
 
 exports.saveESILeave = async (req, res) => {
   const application = req.body;
   const t = await ESILeaveApplication.sequelize.transaction();
 
   try {
-    // 🛑 Check if any payslip is already generated (Find Max Month/Year)
-    const dateToCheck = application.act_date || application.esi_leave_date;
-    if (dateToCheck && application.empid) {
-      const [y, m, d] = dateToCheck.split('-').map(Number);
-      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      const monthMap = {};
-      monthNames.forEach((name, idx) => { monthMap[name] = idx + 1; });
-
-      const monthOrder = `CASE 
-        WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
-        WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
-        WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
-        WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
-        WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
-        WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
-        WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
-        WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
-        WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
-        WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
-        WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
-        WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
-        ELSE 0 END`;
-
-      const latestPayslip = await Payslip.findOne({
-        attributes: ['C_MONTH', 'C_YEAR'],
-        order: [['C_YEAR', 'DESC'], [Sequelize.literal(monthOrder), 'DESC']],
-        raw: true
-      });
-
-      if (latestPayslip) {
-        const finalMonthStr = (latestPayslip.C_MONTH || "").trim().toUpperCase();
-        const latestMonthNum = monthMap[finalMonthStr] || 0;
-        const latestYearNum = Number(latestPayslip.C_YEAR);
-        const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
-
-        if (isClosed) {
-          await t.rollback();
-          return res.status(400).json({ 
-            message: `Cannot apply for ESI Leave. Payroll already processed up to ${finalMonthStr} ${latestYearNum}.` 
-          });
-        }
-      }
+    const dateToCheck = application.act_date || application.esi_leave_date || application.from_date;
+    if (dateToCheck && await isPayrollFinalized(dateToCheck)) {
+      await t.rollback();
+      return res.status(400).json({ message: `Payslip finalized for ${String(dateToCheck).slice(0,7)} — cannot apply ESI Leave.` });
     }
-    const maxIdResult = await ESILeaveApplication.findOne({
-      attributes: [
-        [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('esi_leave_id')), 0), 'maxId']
-      ],
-      raw: true,
-      transaction: t,
-      lock: t.LOCK.UPDATE
-    });
-    const nextESILeaveId = Number(maxIdResult.maxId) + 1;
+    if (application.to_date && await isPayrollFinalized(application.to_date)) {
+      await t.rollback();
+      return res.status(400).json({ message: `Payslip finalized for ${String(application.to_date).slice(0,7)} — cannot apply ESI Leave.` });
+    }
+    const nextESILeaveId = await nextSequenceNumber(ESILeaveApplication, 'esi_leave_id', t, LOCK_KEYS.ESI_LEAVE_APPLICATION);
     application.esi_leave_id = nextESILeaveId;
     await ESILeaveApplication.create(application, { transaction: t });
     await t.commit();
@@ -126,6 +95,8 @@ exports.approveESILeave = async (req, res) => {
     if (!application) {
       return res.status(404).json({ message: 'ESI Leave application not found.' });
     }
+    const chkE = application.esi_leave_date || application.act_date;
+    if (chkE && await isPayrollFinalized(chkE)) return res.status(400).json({ message: `Payslip finalized for ${String(chkE).slice(0,7)} — cannot approve.` });
 
     application.status = status === 'Reject' ? 'Rejected' : status || 'Approved';
     if (remarks) application.remarks = remarks;
@@ -143,6 +114,8 @@ exports.cancelESILeave = async (req, res) => {
   try {
     const app = await ESILeaveApplication.findOne({ where: { esi_leave_id } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    const cE = app.esi_leave_date || app.act_date;
+    if (cE && await isPayrollFinalized(cE)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(cE).slice(0,7)} — cannot cancel.` });
 
     await app.update({ status: 'Cancelled', remarks: remarks });
     res.json({ success: true, message: "ESI Leave approval cancelled" });
@@ -157,6 +130,8 @@ exports.reopenESILeave = async (req, res) => {
   try {
     const app = await ESILeaveApplication.findOne({ where: { esi_leave_id } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    const rE = app.esi_leave_date || app.act_date;
+    if (rE && await isPayrollFinalized(rE)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(rE).slice(0,7)} — cannot reopen.` });
 
     await app.update({ status: 'Pending' });
     res.json({ success: true, message: "ESI Leave application reopened" });

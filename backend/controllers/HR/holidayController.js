@@ -1,5 +1,15 @@
-const { Holiday } = require('../../models');
+const { Holiday, Payslip } = require('../../models');
 const { Sequelize } = require('sequelize');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
 
 exports.getAllHolidays = async (req, res) => {
   try {
@@ -32,6 +42,7 @@ function sanitizeHoliday(input) {
 exports.saveHoliday = async (req, res) => {
   try {
     const holidayData = sanitizeHoliday(req.body);
+    if (holidayData.hdate && await isPayrollFinalized(holidayData.hdate)) return res.status(400).json({ message: `Payslip finalized for ${String(holidayData.hdate).slice(0,7)} — cannot save holiday.` });
     await Holiday.upsert(holidayData);
     res.json({ message: 'Holiday saved successfully' });
   } catch (error) {
@@ -45,7 +56,9 @@ exports.saveBulkHolidays = async (req, res) => {
   try {
     const holidays = req.body;
     for (const h of holidays) {
-      await Holiday.upsert(sanitizeHoliday(h), { transaction: t });
+      const sd = sanitizeHoliday(h);
+      if (sd.hdate && await isPayrollFinalized(sd.hdate)) { await t.rollback(); return res.status(400).json({ message: `Payslip finalized for ${String(sd.hdate).slice(0,7)} — bulk blocked.` }); }
+      await Holiday.upsert(sd, { transaction: t });
     }
     await t.commit();
     res.json({ message: 'Holidays saved successfully', count: holidays.length });
@@ -59,6 +72,8 @@ exports.saveBulkHolidays = async (req, res) => {
 exports.deleteHoliday = async (req, res) => {
   try {
     const { hno } = req.params;
+    const rec = await Holiday.findByPk(hno);
+    if (rec && rec.hdate && await isPayrollFinalized(rec.hdate)) return res.status(400).json({ message: `Payslip finalized for ${String(rec.hdate).slice(0,7)} — cannot delete.` });
     await Holiday.destroy({ where: { hno } });
     res.json({ message: 'Holiday deleted successfully' });
   } catch (error) {

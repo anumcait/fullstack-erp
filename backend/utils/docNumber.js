@@ -38,4 +38,49 @@ async function generateDocNumber(modelName, startField, prefixField, docField, s
   return nextDocNumber(Model, docField, startNo, prefix);
 }
 
-module.exports = { generateDocNumber, nextDocNumber };
+// Allocate the next sequential value for a numeric column inside a transaction.
+//
+// Why this exists instead of `findOne({ attributes: [MAX(col)], lock: UPDATE })`:
+//   1. PostgreSQL rejects that outright — "FOR UPDATE is not allowed with
+//      aggregate functions".
+//   2. Even without the lock, MAX() + 1 races: two concurrent requests can read
+//      the same max and insert duplicate numbers.
+// So: take a transaction-scoped advisory lock to serialize allocation, then lock
+// the highest existing row. The advisory lock is released automatically on
+// commit or rollback, so no cleanup is needed.
+//
+// lockKey must be a distinct int32 per table (see LOCK_KEYS below).
+async function nextSequenceNumber(Model, column, t, lockKey) {
+  if (!Model) throw new Error('Model not found');
+  if (!t) throw new Error('nextSequenceNumber requires a transaction');
+
+  await Model.sequelize.query('SELECT pg_advisory_xact_lock(:key)', {
+    replacements: { key: Number(lockKey) },
+    transaction: t
+  });
+
+  const last = await Model.findOne({
+    attributes: [column],
+    order: [[column, 'DESC']],
+    raw: true,
+    transaction: t,
+    lock: t.LOCK.UPDATE
+  });
+
+  return Number(last && last[column] ? last[column] : 0) + 1;
+}
+
+// Distinct advisory-lock keys — one per table so unrelated document numbering
+// never blocks on each other.
+const LOCK_KEYS = {
+  LEAVE_APPLICATION: 70001,
+  ADVANCE_APPLICATION: 70002,
+  ESI_LEAVE_APPLICATION: 70003,
+  SHIFT_CHANGE: 70004,
+  ON_DUTY_APPLICATION: 70005,
+  EXT_OT: 70006,
+  TOUR_APPLICATION: 70007,
+  WOFF_APPLICATION: 70008
+};
+
+module.exports = { generateDocNumber, nextDocNumber, nextSequenceNumber, LOCK_KEYS };

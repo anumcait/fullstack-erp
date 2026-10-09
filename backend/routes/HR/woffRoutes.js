@@ -15,5 +15,7 @@ router.get('/pending', requirePermission(HR_PERMISSIONS.WOFF_CHG_APPROVE), woffC
 router.post('/approve', requirePermission(HR_PERMISSIONS.WOFF_CHG_APPROVE), woffController.approveWoffChange);
 router.post('/cancel', requirePermission(HR_PERMISSIONS.WOFF_CHG_APPROVE), woffController.cancelWoff);
 router.post('/reopen', requirePermission(HR_PERMISSIONS.WOFF_CHG_APPROVE), woffController.reopenWoff);
+router.post('/mark-cancelled', requirePermission(HR_PERMISSIONS.WOFF_CHG_APPROVE), woffController.markWoffCancelled);
+router.post('/revoke-cancellation', requirePermission(HR_PERMISSIONS.WOFF_CHG_APPROVE), woffController.revokeWoffCancellation);
 
 module.exports = router;

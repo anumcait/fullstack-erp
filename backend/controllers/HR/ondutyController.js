@@ -1,80 +1,28 @@
 const { OnDutyApplication, Payslip } = require('../../models');
 const { Sequelize } = require('sequelize');
-
-function getMonthName(month) {
-  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  return months[month - 1];
-}
+const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const isPayrollFinalized = async (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  const m = MONTH_NAMES[d.getMonth()];
+  const y = String(d.getFullYear());
+  const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
+  return cnt > 0;
+};
 
 exports.saveOnDuty = async (req, res) => {
   const application = req.body;
   const t = await OnDutyApplication.sequelize.transaction();
 
   try {
-    // 🛑 Check if any payslip is already generated for this employee (Find Max Month/Year)
-    if (application.act_date && application.empid) {
-      const [y, m, d] = application.act_date.split('-').map(Number);
-
-      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      const monthMap = {};
-      monthNames.forEach((name, idx) => { monthMap[name] = idx + 1; });
-
-      const monthOrder = `CASE 
-        WHEN "C_MONTH" IN ('JAN','JANUARY','01','1') THEN 1
-        WHEN "C_MONTH" IN ('FEB','FEBRUARY','02','2') THEN 2
-        WHEN "C_MONTH" IN ('MAR','MARCH','03','3') THEN 3
-        WHEN "C_MONTH" IN ('APR','APRIL','04','4') THEN 4
-        WHEN "C_MONTH" IN ('MAY','MAY','05','5') THEN 5
-        WHEN "C_MONTH" IN ('JUN','JUNE','06','6') THEN 6
-        WHEN "C_MONTH" IN ('JUL','JULY','07','7') THEN 7
-        WHEN "C_MONTH" IN ('AUG','AUGUST','08','8') THEN 8
-        WHEN "C_MONTH" IN ('SEP','SEPTEMBER','09','9') THEN 9
-        WHEN "C_MONTH" IN ('OCT','OCTOBER','10','10') THEN 10
-        WHEN "C_MONTH" IN ('NOV','NOVEMBER','11','11') THEN 11
-        WHEN "C_MONTH" IN ('DEC','DECEMBER','12','12') THEN 12
-        ELSE 0 END`;
-
-      const latest = await Payslip.findOne({
-        where: {
-          [Sequelize.Op.or]: [
-            { C_EMPID: application.empid },
-            { C_EMPID: parseInt(application.empid) || 0 }
-          ]
-        },
-        attributes: ['C_MONTH', 'C_YEAR'],
-        order: [
-          ['C_YEAR', 'DESC'],
-          [Sequelize.literal(monthOrder), 'DESC']
-        ],
-        raw: true
-      });
-
-      if (latest) {
-        const finalMonthStr = (latest.C_MONTH || "").trim().toUpperCase();
-        const latestMonthNum = monthMap[finalMonthStr] || 0;
-        const latestYearNum = Number(latest.C_YEAR);
-
-        // isClosed if selected year < latest year OR (same year and selected month <= latest month)
-        const isClosed = (y < latestYearNum) || (y === latestYearNum && m <= latestMonthNum);
-
-        if (isClosed) {
-          await t.rollback();
-          return res.status(400).json({
-            message: `Cannot save On Duty. Payroll has already been processed up to ${finalMonthStr} ${latestYearNum}. Backdated entries are not allowed for closed months.`
-          });
-        }
-      }
-
+    const checkDate = application.act_date || application.movement_date;
+    if (checkDate && await isPayrollFinalized(checkDate)) {
+      await t.rollback();
+      return res.status(400).json({ message: `Payslip finalized for ${String(checkDate).slice(0,7)} — cannot save On Duty.` });
     }
-    const maxIdResult = await OnDutyApplication.findOne({
-      attributes: [
-        [Sequelize.fn('COALESCE', Sequelize.fn('MAX', Sequelize.col('movement_id')), 0), 'maxId']
-      ],
-      raw: true,
-      transaction: t,
-      lock: t.LOCK.UPDATE
-    });
-    const nextMovementId = Number(maxIdResult.maxId) + 1;
+    const nextMovementId = await nextSequenceNumber(OnDutyApplication, 'movement_id', t, LOCK_KEYS.ON_DUTY_APPLICATION);
     application.movement_id = nextMovementId;
     await OnDutyApplication.create(application, { transaction: t });
     await t.commit();
@@ -144,6 +92,8 @@ exports.approveOnDuty = async (req, res) => {
     if (!application) {
       return res.status(404).json({ message: 'On Duty application not found.' });
     }
+    const chkD = application.act_date || application.movement_date;
+    if (chkD && await isPayrollFinalized(chkD)) return res.status(400).json({ message: `Payslip finalized for ${String(chkD).slice(0,7)} — cannot approve.` });
 
     application.status = status === 'Reject' ? 'Rejected' : status || 'Approved';
     if (remarks) application.remarks = remarks;
@@ -161,6 +111,8 @@ exports.cancelOnDuty = async (req, res) => {
   try {
     const app = await OnDutyApplication.findOne({ where: { movement_id } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    const cd = app.act_date || app.movement_date;
+    if (cd && await isPayrollFinalized(cd)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(cd).slice(0,7)} — cannot cancel.` });
 
     // Set status to Cancelled (2 or string 'Cancelled')
     // Checking current model to see if it's string or int
@@ -179,6 +131,8 @@ exports.reopenOnDuty = async (req, res) => {
   try {
     const app = await OnDutyApplication.findOne({ where: { movement_id } });
     if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    const rd = app.act_date || app.movement_date;
+    if (rd && await isPayrollFinalized(rd)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(rd).slice(0,7)} — cannot reopen.` });
 
     await app.update({ status: 'Pending' });
 

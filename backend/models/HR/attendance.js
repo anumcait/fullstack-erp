@@ -27,6 +27,12 @@ module.exports = (sequelize, DataTypes) => {
     ot_mins: DataTypes.DECIMAL(5, 2),
     status: DataTypes.STRING(20),
     leave_type: DataTypes.STRING(20),
+    // Weekly off cancelled by HR (cancel_status = 'C'): the day is counted
+    // Absent regardless of punches, leave or on-duty.
+    cancel_status: DataTypes.STRING(1),
+    cancel_date: DataTypes.DATE,
+    cancel_remarks: DataTypes.TEXT,
+    cancelled_by: DataTypes.STRING(50),
     lop_days: DataTypes.DECIMAL(5, 2),
     woff_day: DataTypes.DECIMAL(5, 2),
     holiday: DataTypes.BOOLEAN,
