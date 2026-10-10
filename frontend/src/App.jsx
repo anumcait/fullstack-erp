@@ -36,6 +36,7 @@ import HRAttendance from "./Component/HR/HRAttendance/HRAttendance.jsx";
 import LeaveMaster from "./Component/HR/LeaveApplication/LeaveMaster.jsx";
 import TourDashboard from "./Component/HR/tour/TourDashboard.jsx";
 import WoffChangeDashboard from "./Component/HR/woffchange/WoffChangeDashboard.jsx";
+import IncrementDashboard from "./Component/HR/Increment/IncrementDashboard.jsx";
 import AdvanceDashboard from "./Component/HR/advance/AdvanceDashboard.jsx";
 import ESILeaveDashboard from "./Component/HR/esileave/ESILeaveDashboard.jsx";
 import PayrollDashboard from "./Component/HR/payroll/PayrollDashboard.jsx";
@@ -79,7 +80,8 @@ const SecureRoute = ({ children, fallback = '/dashboard' }) => {
     return children; // No specific permission required
   }
 
-  const hasPermission = userPermissions.includes(permission);
+  // "*" is the superuser wildcard (erpadmin / admin) and grants every route.
+  const hasPermission = userPermissions.includes('*') || userPermissions.includes(permission);
   if (!hasPermission) {
     // Redirect to dashboard with permission error in state
     return <Navigate to={fallback} replace state={{ 
@@ -648,6 +650,7 @@ function App() {
                     <Route path="/payroll" element={<PayrollDashboard />} />
                     <Route path="/holidays" element={<HolidayMaster />} />
                     <Route path="/shift-master" element={<ShiftMaster />} />
+                    <Route path="/increment" element={<IncrementDashboard />} />
                     <Route path="/shiftschedule" element={<ShiftSchedule />} />
                     <Route path="/muster-roll" element={<MusterRoll />} />
                     <Route path="/ot-approval" element={<OTApproval />} />

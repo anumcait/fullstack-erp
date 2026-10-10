@@ -1149,8 +1149,9 @@ function LateComingReport({ musterData, daysInMonth, filters, months }) {
       >
         <strong>Late Coming Criteria:</strong> Late is calculated from shift start time (grace 0 min).
         Late minutes shown per date in HH.MM format (e.g. 0.05 = 5 min, 1.30 = 1h 30m).
-        Late &gt; 2h → Half Day. The first late of the month is exempt, so Actual Hrs = Late Count − 1
-        (e.g. 5 lates → 4 actual). Cost = late deduction per payroll rule (≤10 min → 1 hr basic; else → ½ day basic).
+        Late &gt; 10 min → Half Day. The first late of the month is exempt, so Actual Hrs = Late Count − 1
+        (e.g. 5 lates → 4 actual). Cost = (no. of half days × half day gross) + (no. of half hours × half hour gross),
+        where a late ≤ 30 min counts as a half hour and &gt; 30 min counts as a half day.
       </Box>
 
       <Box ref={topScrollRef} onScroll={handleTopScroll} sx={{ overflowX: "auto", overflowY: "hidden", width: "100%", height: "12px", mb: 0.5, flex: "0 0 auto", bgcolor: "#f5f5f5", borderRadius: "4px", border: "1px solid #ccc" }}>

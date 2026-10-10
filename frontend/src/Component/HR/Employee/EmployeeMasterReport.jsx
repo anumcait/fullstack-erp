@@ -73,7 +73,11 @@ const EmployeeMasterReport = ({ initialFilterType = "active", onNewEntry }) => {
         ...row,
         dob: formatDate(row.dob),
         status: row.is_active ? (row.status === "Active" ? "Active" : row.status) : (row.status || "Left"),
-        salary: row.total || 0,
+        // Gross mirrors C_TOT_SAL on the payslip: basic + hra + conveyance + washing.
+        // row.total does not exist; row.salary is an object and must not be overwritten,
+        // since EmployeePreview reads basic/hra/etc. straight off it.
+        salaryTotal: ["basic", "hra", "conveyance", "washing_allowance"]
+          .reduce((sum, k) => sum + (Number(row.salary?.[k]) || 0), 0),
         permanent_address: [row.padd_sa, row.padd_city, row.padd_state, row.padd_pin].filter(Boolean).join(", "),
         comm_address: [row.cadd_sa, row.cadd_city, row.cadd_state, row.cadd_pin].filter(Boolean).join(", "),
       }));
@@ -127,7 +131,7 @@ const EmployeeMasterReport = ({ initialFilterType = "active", onNewEntry }) => {
     { header: "Division", field: "divname" },
     { header: "Department", field: "deptname" },
     { header: "Status", field: "status" },
-    { header: "Salary", field: "salary" },
+    { header: "Salary", field: "salaryTotal" },
     { header: "Comm. Address", field: "comm_address", expandable: true },
   ];
   const initialWidths = { sno: 60, photo: 70, empid: 85, ename: 130, gender: 80, divname: 110, deptname: 120, status: 90, salary: 90, comm_address: 180 };

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import SalarySetup from "./SalarySetup";
 import SalaryProcessing from "./SalaryProcessing";
+import PayrollAdjustments from "./PayrollAdjustments";
 import PayslipList from "./PayslipList";
 import ModuleTabBar from "../common/ModuleTabBar";
-import { FaCog, FaPlay, FaFileAlt } from "react-icons/fa";
+import { FaCog, FaPlay, FaFileAlt, FaSlidersH } from "react-icons/fa";
 
 const TABS = [
   { label: "Salary Processing", value: "processing", icon: <FaPlay /> },
   { label: "Salary Setup", value: "setup", icon: <FaCog /> },
+  { label: "Adjustments", value: "adjustments", icon: <FaSlidersH /> },
   { label: "Payslips", value: "payslips", icon: <FaFileAlt /> },
 ];
 
@@ -18,7 +20,7 @@ const PayrollDashboard = () => {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["processing", "setup", "payslips"].includes(tab)) {
+    if (tab && ["processing", "setup", "payslips", "adjustments"].includes(tab)) {
       setSelectedAction(tab);
     }
   }, [searchParams]);
@@ -29,6 +31,7 @@ const PayrollDashboard = () => {
       <div className="p-6">
         {selectedAction === "setup" && <SalarySetup />}
         {selectedAction === "processing" && <SalaryProcessing />}
+        {selectedAction === "adjustments" && <PayrollAdjustments />}
         {selectedAction === "payslips" && <PayslipList />}
       </div>
     </div>

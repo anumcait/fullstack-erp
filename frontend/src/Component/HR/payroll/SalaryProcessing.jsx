@@ -301,7 +301,7 @@ const months = [
                   <TableCell>{formatCurrency(row.C_HRA)}</TableCell>
                   <TableCell>{formatCurrency(row.C_CONV)}</TableCell>
                   <TableCell>{formatCurrency(row.C_OTHERS)}</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>{formatCurrency(row.C_TOT_SAL)}</TableCell>
+<TableCell sx={{ fontWeight: 'bold' }}>{formatCurrency(row.C_TOT_SAL)}</TableCell>
                   <TableCell>{row.C_PF_EXIST === 'Y' ? 'Yes' : 'No'}</TableCell>
                   <TableCell>{row.C_ESI_EXIST === 'Y' ? 'Yes' : 'No'}</TableCell>
                   {salaryData.some(r => r.C_OT_EXIST === 'Y') && (

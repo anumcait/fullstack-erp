@@ -80,7 +80,8 @@ const LOCK_KEYS = {
   ON_DUTY_APPLICATION: 70005,
   EXT_OT: 70006,
   TOUR_APPLICATION: 70007,
-  WOFF_APPLICATION: 70008
+  WOFF_APPLICATION: 70008,
+  EMP_INCREMENT: 70009
 };
 
 module.exports = { generateDocNumber, nextDocNumber, nextSequenceNumber, LOCK_KEYS };

@@ -3,7 +3,11 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 const PermissionRoute = ({ children, permission, fallback = '/unauthorized' }) => {
   const location = useLocation();
-  const userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+  let userPermissions = [];
+  try {
+    userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+    if (!Array.isArray(userPermissions)) userPermissions = [];
+  } catch { userPermissions = []; }
   const userRole = localStorage.getItem('userRole');
   const userName = localStorage.getItem('userName');
 
@@ -17,6 +21,11 @@ const PermissionRoute = ({ children, permission, fallback = '/unauthorized' }) =
   const isAdmin = userRole && userRole.toUpperCase() === 'ADMIN';
 
   if (isAdmin) {
+    return children;
+  }
+
+  // "*" is the superuser wildcard and grants every permission.
+  if (userPermissions.includes('*')) {
     return children;
   }
 

@@ -1,4 +1,6 @@
-const { Payslip, EmployeeMaster, EmpSalary, EmpOfficial, Attendance, LeaveApplication, LeaveDetails, LeaveApproval, TourApplication, WoffApplication, OnDutyApplication, AdvanceApplication, ExtOt, MusterRollSummary } = require('../../models');
+const { Payslip, EmployeeMaster, EmpSalary, EmpOfficial, Attendance, LeaveApplication, LeaveDetails, LeaveApproval, TourApplication, WoffApplication, OnDutyApplication, AdvanceApplication, ExtOt, MusterRollSummary, PayrollAdjustment } = require('../../models');
+const { getEffectiveSalary } = require('../../services/effectiveSalary');
+const { LATE_HALF_DAY_MIN, lateDeductionForMins } = require('../../constants/attendanceRules');
 const { Sequelize, Op } = require('sequelize');
 
 function getMonthName(month) {
@@ -45,6 +47,35 @@ function parseLateToHours(val) {
   const mins = Math.round((num - hours) * 100);
   return hours * 60 + mins;
 }
+
+// Deduction lines that a payroll adjustment is allowed to override, mapped to
+// their emp_payslip column. Keep this list and ADJUSTABLE_COMPONENTS in step.
+const ADJUSTABLE_COLUMNS = {
+  PF: 'C_DED_PF',
+  ESI: 'C_DED_ESI',
+  PT: 'C_DED_PT',
+  LIC: 'C_DED_LIC',
+  TAX: 'C_DED_TAX',
+  ADV: 'C_DED_ADV',
+  OTH: 'C_DED_OTH',
+  LATE_DED: 'C_LATE_DED_AMT'
+};
+const ADJUSTABLE_COMPONENTS = Object.keys(ADJUSTABLE_COLUMNS);
+
+/**
+ * Corrections saved for one employee-month, as { PF: 1682, ... }.
+ * Fetched in one query per payroll run so a regenerated payslip keeps a manual
+ * correction instead of reverting to the computed figure.
+ */
+const getAdjustments = async (empid, monthStr, yearNum, options = {}) => {
+  const rows = await PayrollAdjustment.findAll({
+    where: { empid, C_MONTH: monthStr, C_YEAR: yearNum },
+    ...options
+  });
+  const map = {};
+  rows.forEach(r => { map[r.component] = Number(r.amount) || 0; });
+  return map;
+};
 
 exports.processMonthlySalary = async (req, res) => {
   const { year, month } = req.body;
@@ -94,7 +125,9 @@ exports.processMonthlySalary = async (req, res) => {
 
     for (const emp of employees) {
       try {
-        const salary = await EmpSalary.findOne({ where: { empid: emp.empid } });
+        // Increments are effective-dated, so resolve the salary in force for
+        // this payslip month rather than always reading the current master.
+        const salary = await getEffectiveSalary(emp.empid, month, year);
         if (!salary) {
           console.log(`No salary for emp ${emp.empid}, skipping`);
           continue;
@@ -260,6 +293,9 @@ exports.processMonthlySalary = async (req, res) => {
 
         const totalMonthDays = new Date(year, month, 0).getDate();
         const perDayBasic = basic / workingDays;
+        // Late-coming deductions are charged on gross pay, not basic alone.
+        const perDayGross = workingDays > 0 ? totSal / workingDays : 0;
+        const perHourGross = perDayGross / 8;
         const earnedBasic = Math.round(paidDays * (basic / totalMonthDays));
         const earnedHra = Math.round(paidDays * (hra / totalMonthDays));
         const earnedConv = Math.round(paidDays * (conv / totalMonthDays));
@@ -286,13 +322,8 @@ exports.processMonthlySalary = async (req, res) => {
           lateHalfHoursCount += minsLate;
           if (index === 0) return; // First late occurrence always exempt
 
-          const perHourBasic = perDayBasic / 8;
-          if (minsLate <= 30) {
-            lateDed += perHourBasic; // within 30 min of shift start: 1-hour salary deduction
-          } else {
-            lateDed += perDayBasic / 2;
-            lateHalfDaysCount++;
-          }
+lateDed += lateDeductionForMins(minsLate, false, perHourGross, perDayGross);
+          if (minsLate > LATE_HALF_DAY_MIN) lateHalfDaysCount++;
         });
 
         const bonusEligible = musterSummary
@@ -317,13 +348,34 @@ exports.processMonthlySalary = async (req, res) => {
           dedPt = 200;
         }
 
-        const dedTax = parseFloat(salary.tds_amount) || 0;
-        const dedLic = parseFloat(salary.lic_amount) || 0;
+        let dedTax = parseFloat(salary.tds_amount) || 0;
+        let dedLic = parseFloat(salary.lic_amount) || 0;
 
         let dedAdv = 0;
         if (totalAdvDeducted < totalAdvApproved) {
           dedAdv = Math.min(totalMonthly, totalAdvApproved - totalAdvDeducted);
         }
+
+        // Manual corrections win over the computed figures. OTH is derived at
+        // write time from lopDays + lateDed, so it is carried separately.
+        const adj = await getAdjustments(emp.empid, monthStr, parseInt(year));
+        const adjusted = [];
+        const use = (key, apply) => {
+          if (adj[key] === undefined) return;
+          apply(adj[key]);
+          adjusted.push(key);
+        };
+        use('PF', v => { dedPf = v; });
+        use('ESI', v => { dedEsi = v; });
+        use('PT', v => { dedPt = v; });
+        use('LIC', v => { dedLic = v; });
+        use('TAX', v => { dedTax = v; });
+        use('ADV', v => { dedAdv = v; });
+        use('LATE_DED', v => { lateDed = v; });
+        if (adjusted.length) {
+          console.log(`Emp ${emp.empid}: applied payroll adjustment for ${adjusted.join(', ')}`);
+        }
+        const dedOth = adj.OTH !== undefined ? adj.OTH : Math.ceil(lopDays + lateDed);
 
         const totDed = dedPf + dedEsi + dedPt + dedTax + dedLic + dedAdv + lateDed;
         const netAmt = earnedGross - totDed;
@@ -363,7 +415,7 @@ exports.processMonthlySalary = async (req, res) => {
           C_DED_LIC: dedLic,
           C_DED_TAX: dedTax,
           C_DED_ADV: dedAdv,
-          C_DED_OTH: Math.ceil(lopDays + lateDed).toFixed(2),
+          C_DED_OTH: dedOth.toFixed(2),
           C_LATE_TIMES: lateTimesCount,
           C_LATE_HALF_DAYS: lateHalfDaysCount,
           C_LATE_HALF_HOURS: lateHalfHoursCount,
@@ -553,7 +605,7 @@ exports.createPayslipByEmployee = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
-    const salary = await EmpSalary.findOne({ where: { empid: emp.empid } });
+    const salary = await getEffectiveSalary(emp.empid, parseInt(month, 10), year);
     if (!salary) {
       return res.status(400).json({ message: 'Salary not configured for this employee' });
     }
@@ -667,15 +719,19 @@ exports.createPayslipByEmployee = async (req, res) => {
     const hra = parseFloat(salary.hra) || 0;
     const conv = parseFloat(salary.conveyance) || 0;
     const washingAllowance = parseFloat(salary.washing_allowance) || 0;
+    const totSal = basic + hra + conv + washingAllowance;
 
     const totalMonthDays = new Date(year, month, 0).getDate();
     const perDayBasic = workingDays > 0 ? basic / workingDays : 0;
+    // Late-coming deductions are charged on gross pay, not basic alone.
+    const perDayGross = workingDays > 0 ? totSal / workingDays : 0;
+    const perHourGross = perDayGross / 8;
     const earnedBasic = Math.round(paidDays * (basic / totalMonthDays));
     const earnedHra = Math.round(paidDays * (hra / totalMonthDays));
     const earnedConv = Math.round(paidDays * (conv / totalMonthDays));
     const earnedWA = Math.round(paidDays * (washingAllowance / totalMonthDays));
 
-    const otRate = ((basic + hra + conv + washingAllowance) / totalMonthDays) / 8;
+    const otRate = (totSal / totalMonthDays) / 8;
     const earnedOt = Math.round(totalOtHrs * otRate);
     const bonusEligible = musterSummary
       ? String(musterSummary.att_bonus).trim().toUpperCase() === 'Y'
@@ -701,13 +757,8 @@ exports.createPayslipByEmployee = async (req, res) => {
       lateHalfHoursCount += minsLate;
       if (index === 0) return; // First late occurrence always exempt
 
-      const perHourBasic = perDayBasic / 8;
-      if (minsLate <= 30) {
-        lateDed += perHourBasic; // within 30 min of shift start: 1-hour salary deduction
-      } else {
-        lateDed += perDayBasic / 2;
-        lateHalfDaysCount++;
-      }
+      lateDed += lateDeductionForMins(minsLate, false, perHourGross, perDayGross);
+      if (minsLate > LATE_HALF_DAY_MIN) lateHalfDaysCount++;
     });
 
     const earnedGross = earnedBasic + earnedHra + earnedConv + earnedWA + earnedOt + attendanceBonus;
@@ -723,8 +774,8 @@ exports.createPayslipByEmployee = async (req, res) => {
       dedPt = 200;
     }
 
-    const dedTax = parseFloat(salary.tds_amount) || 0;
-    const dedLic = parseFloat(salary.lic_amount) || 0;
+    let dedTax = parseFloat(salary.tds_amount) || 0;
+    let dedLic = parseFloat(salary.lic_amount) || 0;
 
     // Advance deduction
     const approvedAdvances = await AdvanceApplication.findAll({
@@ -773,6 +824,26 @@ exports.createPayslipByEmployee = async (req, res) => {
       dedAdv = Math.min(totalMonthly, totalAdvApproved - totalAdvDeducted);
     }
 
+    // Manual corrections win over the computed figures.
+    const adj = await getAdjustments(emp.empid, monthStr, year);
+    const adjusted = [];
+    const use = (key, apply) => {
+      if (adj[key] === undefined) return;
+      apply(adj[key]);
+      adjusted.push(key);
+    };
+    use('PF', v => { dedPf = v; });
+    use('ESI', v => { dedEsi = v; });
+    use('PT', v => { dedPt = v; });
+    use('LIC', v => { dedLic = v; });
+    use('TAX', v => { dedTax = v; });
+    use('ADV', v => { dedAdv = v; });
+    use('LATE_DED', v => { lateDed = v; });
+    if (adjusted.length) {
+      console.log(`Emp ${emp.empid}: applied payroll adjustment for ${adjusted.join(', ')}`);
+    }
+    const dedOth = adj.OTH !== undefined ? adj.OTH : Math.ceil(lopDays + lateDed);
+
     const totDed = dedPf + dedEsi + dedPt + dedTax + dedLic + dedAdv + lateDed;
     const netAmt = earnedGross - totDed;
 
@@ -793,7 +864,7 @@ exports.createPayslipByEmployee = async (req, res) => {
       C_HRA: hra,
       C_CONV: conv,
       C_OTHERS: washingAllowance,
-      C_TOT_SAL: basic + hra + conv + washingAllowance,
+      C_TOT_SAL: totSal,
       C_EARNED_BASIC: earnedBasic.toFixed(2),
       C_EARNED_HRA: earnedHra.toFixed(2),
       C_EARNED_CONV: earnedConv.toFixed(2),
@@ -810,7 +881,7 @@ exports.createPayslipByEmployee = async (req, res) => {
       C_DED_LIC: dedLic,
       C_DED_TAX: dedTax,
       C_DED_ADV: dedAdv,
-      C_DED_OTH: Math.ceil(lopDays + lateDed).toFixed(2),
+      C_DED_OTH: dedOth.toFixed(2),
       C_LATE_TIMES: lateTimesCount,
       C_LATE_HALF_DAYS: lateHalfDaysCount,
       C_LATE_HALF_HOURS: lateHalfHoursCount,
@@ -843,8 +914,14 @@ exports.getSalaryDetails = async (req, res) => {
       order: [['empid', 'ASC']]
     });
 
+    // Resolve against the current month so an increment dated for a future
+    // month is not applied here early — this screen is what feeds the payroll run.
+    const now = new Date();
+    const curMonth = parseInt(req.query.month, 10) || now.getMonth() + 1;
+    const curYear = parseInt(req.query.year, 10) || now.getFullYear();
+
     const employeeData = await Promise.all(employees.map(async (emp) => {
-      const salary = await EmpSalary.findOne({ where: { empid: emp.empid } });
+      const salary = await getEffectiveSalary(emp.empid, curMonth, curYear);
       return {
         ...emp.toJSON(),
         salary: salary ? salary.toJSON() : null
@@ -1046,6 +1123,142 @@ exports.getFinalizeStatus = async (req, res) => {
   } catch (error) {
     console.error('Error checking finalize status:', error);
     res.status(500).json({ message: 'Error checking finalize status' });
+  }
+};
+
+exports.getAdjustableComponents = async (req, res) => {
+  res.json({ components: ADJUSTABLE_COMPONENTS, columns: ADJUSTABLE_COLUMNS });
+};
+
+exports.getAdjustments = async (req, res) => {
+  try {
+    const { month, year, empid } = req.query;
+    const where = {};
+    if (year) where.C_YEAR = parseInt(year, 10);
+    if (month) where.C_MONTH = getMonthName(parseInt(month, 10));
+    if (empid) where.empid = parseInt(empid, 10);
+    const rows = await PayrollAdjustment.findAll({ where, order: [['C_YEAR', 'DESC'], ['C_MONTH', 'ASC'], ['empid', 'ASC']] });
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching payroll adjustments:', error);
+    res.status(500).json({ message: 'Error fetching payroll adjustments' });
+  }
+};
+
+/**
+ * Save a correction and apply it to the already-processed payslip straight away,
+ * so the user sees the new figure without re-running the month. The stored row
+ * is what makes it survive the next regeneration.
+ */
+exports.saveAdjustment = async (req, res) => {
+  const t = await Payslip.sequelize.transaction();
+  try {
+    const empid = parseInt(req.body.empid, 10);
+    const component = String(req.body.component || '').toUpperCase();
+    const amount = parseFloat(req.body.amount);
+    const reason = String(req.body.reason || '').trim();
+    const month = parseInt(req.body.month, 10);
+    const year = parseInt(req.body.year, 10);
+    const monthStr = getMonthName(month);
+
+    const errors = {};
+    if (!empid) errors.empid = 'Employee is required';
+    if (!ADJUSTABLE_COLUMNS[component]) errors.component = 'Choose a valid component';
+    if (!Number.isFinite(amount) || amount < 0) errors.amount = 'Enter a valid amount';
+    if (!reason) errors.reason = 'Reason is mandatory';
+    if (!month || month < 1 || month > 12) errors.month = 'Select a valid month';
+    if (!year || year < 2000 || year > 2100) errors.year = 'Select a valid year';
+    if (Object.keys(errors).length) {
+      await t.rollback();
+      return res.status(400).json({ message: 'Please correct the highlighted fields', errors });
+    }
+
+    const slip = await Payslip.findOne({
+      where: { C_EMPID: empid, C_MONTH: monthStr, C_YEAR: year },
+      transaction: t
+    });
+    if (!slip) {
+      await t.rollback();
+      return res.status(400).json({ message: `No payslip generated for ${monthStr} ${year} - process the month first.` });
+    }
+    if (slip.C_FINAL_STATUS === 2) {
+      await t.rollback();
+      return res.status(400).json({ message: `${monthStr} ${year} is finalized and can no longer be adjusted.` });
+    }
+
+    const column = ADJUSTABLE_COLUMNS[component];
+    const previous = parseFloat(slip[column]) || 0;
+
+    await PayrollAdjustment.upsert({
+      empid,
+      ename: slip.C_ENAME,
+      C_MONTH: monthStr,
+      C_YEAR: year,
+      component,
+      amount,
+      previous_amount: previous,
+      reason,
+      created_by: req.session?.user?.username || 'Admin',
+      created_date: new Date()
+    }, { transaction: t });
+
+    // Move the payslip totals by the delta so untouched lines stay intact.
+    const delta = amount - previous;
+    await Payslip.update({
+      [column]: amount.toFixed(2),
+      C_TOT_DED: (parseFloat(slip.C_TOT_DED) + delta).toFixed(2),
+      C_NET_AMT: (parseFloat(slip.C_NET_AMT) - delta).toFixed(2)
+    }, { where: { C_EMPID: empid, C_MONTH: monthStr, C_YEAR: year }, transaction: t });
+
+    await t.commit();
+
+    const updated = await Payslip.findOne({ where: { C_EMPID: empid, C_MONTH: monthStr, C_YEAR: year } });
+    res.json({
+      message: `${component} for emp ${empid} set to ${amount} (was ${previous})`,
+      data: updated
+    });
+  } catch (error) {
+    await t.rollback();
+    console.error('Error saving payroll adjustment:', error);
+    res.status(500).json({ message: 'Error saving payroll adjustment' });
+  }
+};
+
+exports.deleteAdjustment = async (req, res) => {
+  const t = await Payslip.sequelize.transaction();
+  try {
+    const adj = await PayrollAdjustment.findByPk(req.params.id, { transaction: t });
+    if (!adj) {
+      await t.rollback();
+      return res.status(404).json({ message: 'Adjustment not found' });
+    }
+
+    const slip = await Payslip.findOne({
+      where: { C_EMPID: adj.empid, C_MONTH: adj.C_MONTH, C_YEAR: adj.C_YEAR },
+      transaction: t
+    });
+
+    // Put the line back to whatever the run computes: re-running the month
+    // restores it, and without an adjustment the stored value no longer has a
+    // reason, so drop it back to zero rather than leave a stale correction.
+    if (slip) {
+      const column = ADJUSTABLE_COLUMNS[adj.component];
+      const current = parseFloat(slip[column]) || 0;
+      const delta = -current;
+      await Payslip.update({
+        [column]: 0,
+        C_TOT_DED: (parseFloat(slip.C_TOT_DED) + delta).toFixed(2),
+        C_NET_AMT: (parseFloat(slip.C_NET_AMT) - delta).toFixed(2)
+      }, { where: { C_EMPID: adj.empid, C_MONTH: adj.C_MONTH, C_YEAR: adj.C_YEAR }, transaction: t });
+    }
+
+    await adj.destroy({ transaction: t });
+    await t.commit();
+    res.json({ message: 'Adjustment removed. Re-process the month to restore the computed figures.' });
+  } catch (error) {
+    await t.rollback();
+    console.error('Error deleting payroll adjustment:', error);
+    res.status(500).json({ message: 'Error deleting payroll adjustment' });
   }
 };
 

@@ -37,6 +37,8 @@ const requirePermission = (permission) => {
     if (!user) return res.status(401).json({ message: 'Unauthorized. Please log in.' });
     if (String(user.role).toUpperCase() === 'ADMIN') return next();
     const perms = Array.isArray(user.permissions) ? user.permissions : [];
+    // "*" is the superuser wildcard used by erpadmin/admin accounts.
+    if (perms.includes('*')) return next();
     if (perms.includes(permission)) return next();
     return res.status(403).json({ message: 'Forbidden. Missing permission: ' + permission });
   };

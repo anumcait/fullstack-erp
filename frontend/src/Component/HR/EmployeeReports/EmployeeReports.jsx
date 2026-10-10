@@ -196,7 +196,7 @@ export default function EmployeeReports() {
       "onduty-movement": axios.get(`${API}/api/onduty/all`, cfg).catch(() => ({ data: [] })),
       "leaves-info": axios.get(`${API}/api/leave/balance/${empid}`, cfg).then(r => ({ data: r.data?.balance ? [r.data.balance] : r.data && !Array.isArray(r.data) && r.data.empid ? [r.data] : Array.isArray(r.data) ? r.data : [] })).catch(() => ({ data: [] })),
       holidays: axios.get(`${API}/api/holidays`, { withCredentials: true }).catch(async () => await axios.get(`${API}/api/holidays/list`, { withCredentials: true }).catch(() => ({ data: [] }))),
-      increment: axios.get(`${API}/api/payroll/my-payslips`, cfg).catch(() => ({ data: [] })),
+      increment: axios.get(`${API}/api/increment`, { params: { empid }, withCredentials: true }).catch(() => ({ data: [] })),
       encashment: axios.get(`${API}/api/leave/balance/${empid}`, cfg).then(r => ({ data: r.data?.balance ? [r.data.balance] : r.data && !Array.isArray(r.data) && r.data.empid ? [r.data] : Array.isArray(r.data) ? r.data : [] })).catch(() => ({ data: [] })),
       "att-percentage": axios.get(`${API}/api/attendance`, { params: { empid, month, year }, withCredentials: true }).catch(() => ({ data: [] })),
     };
@@ -266,7 +266,7 @@ export default function EmployeeReports() {
       else if (selected === "onduty-movement") { const r = await axios.get(`${API}/api/onduty/all`, cfg); raw = r.data || []; }
       else if (selected === "leaves-info" || selected === "encashment") { const r = await axios.get(`${API}/api/leave/balance/${empid}`, cfg).catch(async () => await axios.get(`${API}/api/leave/report`, { params: { empid }, withCredentials: true })); const d = r.data?.balance || r.data; raw = Array.isArray(d) ? d : d && d.empid ? [d] : d?.data || d?.records || []; }
       else if (selected === "holidays") { const r = await axios.get(`${API}/api/holidays`, { withCredentials: true }).catch(() => ({ data: [] })); raw = Array.isArray(r.data) ? r.data : r.data.data || []; }
-      else if (selected === "increment") { const r = await axios.get(`${API}/api/payroll/my-payslips`, cfg); raw = Array.isArray(r.data) ? r.data : r.data.payslips || []; }
+      else if (selected === "increment") { const r = await axios.get(`${API}/api/increment`, { params: { empid }, withCredentials: true }); raw = Array.isArray(r.data) ? r.data : r.data?.data || []; }
       setData(onlyMine(Array.isArray(raw) ? raw : []));
     } catch { setData([]); }
     setLoading(false);
@@ -1145,11 +1145,76 @@ export default function EmployeeReports() {
       );
     }
     if (selected === "increment") {
+      const HEAD_LABELS = {
+        basic: "Basic", hra: "HRA", conveyance: "Conveyance", washing_allowance: "Washing Allowance",
+        others1: "Others 1", others2: "Others 2", others3: "Others 3", others4: "Others 4",
+        others5: "Others 5", others6: "Others 6", others7: "Others 7", others8: "Others 8", others9: "Others 9"
+      };
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const inr = (v) => `₹${Number(v || 0).toLocaleString("en-IN")}`;
+      const effLabel = (r) => `${MONTHS[(Number(r.effective_month) || 1) - 1]} ${r.effective_year}`;
+
       return (
-        <Table size="small" stickyHeader><TableHead><TableRow>{["Date", "Type", "Amount", "Status", "Remarks"].map(h => <TableCell key={h} sx={headSx}>{h}</TableCell>)}</TableRow></TableHead>
-          <TableBody>{filtered.length === 0 ? <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No increments</TableCell></TableRow> : filtered.slice(0, 20).map((r, i) => (
-            <TableRow key={i} hover><TableCell sx={{ fontSize: 12 }}>{fmtDate(r.effective_date || r.date || r.C_MONTH)}</TableCell><TableCell sx={{ fontSize: 12 }}>{r.type || r.increment_type || "—"}</TableCell><TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{r.amount ? `₹${Number(r.amount).toLocaleString("en-IN")}` : r.C_BASIC ? `₹${r.C_BASIC}` : "—"}</TableCell><TableCell><Chip size="small" label={r.status || "Approved"} sx={{ height: 18, fontSize: 11 }} /></TableCell><TableCell sx={{ fontSize: 12 }}>{r.remarks || "—"}</TableCell></TableRow>
-          ))}</TableBody></Table>
+        <Table size="small" stickyHeader>
+          <TableHead><TableRow>
+            {["Inc ID", "Applied", "Effective From", "Heads", "Previous", "Increment", "New", "Arrears", "Status"].map(h => (
+              <TableCell key={h} sx={headSx}>{h}</TableCell>
+            ))}
+          </TableRow></TableHead>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={9} align="center" sx={{ py: 3, color: "#9e9e9e" }}>No increments</TableCell></TableRow>
+            ) : filtered.map((r) => {
+              const lines = Array.isArray(r.lines) ? r.lines : [];
+              const prev = lines.reduce((s, l) => s + Number(l.old_value || 0), 0);
+              const inc = lines.reduce((s, l) => s + (Number(l.new_value || 0) - Number(l.old_value || 0)), 0);
+              const nw = prev + inc;
+              return (
+                <React.Fragment key={r.increment_id}>
+                  <TableRow hover>
+                    <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{r.increment_id}</TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>{fmtDate(r.applied_date)}</TableCell>
+                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{effLabel(r)}</TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>{lines.length} head{lines.length === 1 ? "" : "s"}</TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>{inr(prev)}</TableCell>
+                    <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "success.main" }}>+{inr(inc)}</TableCell>
+                    <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{inr(nw)}</TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>{r.has_arrears ? `${r.arrears_months || 0} mo` : "—"}</TableCell>
+                    <TableCell><Chip size="small" label={r.status || "Approved"} sx={{ height: 18, fontSize: 11 }} /></TableCell>
+                  </TableRow>
+                  {lines.map((l) => {
+                    const delta = Number(l.new_value || 0) - Number(l.old_value || 0);
+                    const pct = Number(l.old_value) > 0 ? Math.round(((delta / Number(l.old_value)) * 100) * 100) / 100 : null;
+                    return (
+                      <TableRow key={`${r.increment_id}-${l.id}`}>
+                        <TableCell sx={{ pl: 5, fontSize: 11, color: "text.secondary", border: 0 }}>
+                          ↳ {HEAD_LABELS[l.component] || l.component}
+                        </TableCell>
+                        <TableCell colSpan={2} sx={{ fontSize: 11, color: "text.secondary", border: 0 }}>
+                          {l.inc_type === "PERCENT" ? `${l.inc_value}%` : `+${inr(l.inc_value)}`}
+                          {pct !== null && l.inc_type === "AMOUNT" ? ` (${pct}%)` : ""}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: 11, color: "text.secondary", border: 0 }}>previous</TableCell>
+                        <TableCell sx={{ fontSize: 11, border: 0 }}>{inr(l.old_value)}</TableCell>
+                        <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "success.main", border: 0 }}>+{inr(delta)}</TableCell>
+                        <TableCell sx={{ fontSize: 11, fontWeight: 700, border: 0 }}>{inr(l.new_value)}</TableCell>
+                        <TableCell colSpan={2} sx={{ border: 0 }} />
+                      </TableRow>
+                    );
+                  })}
+                  {r.reason && (
+                    <TableRow>
+                      <TableCell colSpan={9} sx={{ fontSize: 11, color: "text.secondary", border: 0 }}>
+                        Reason: {r.reason}
+                        {r.approved_by ? ` · approved by ${r.approved_by}` : ""}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </TableBody>
+        </Table>
       );
     }
     if (selected === "onduty-movement") {

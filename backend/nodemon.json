@@ -1,0 +1,26 @@
+{
+  "watch": [
+    "index.js",
+    "config",
+    "constants",
+    "controllers",
+    "middleware",
+    "models",
+    "routes",
+    "services",
+    "utils",
+    "db"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "model.nlp",
+    "node_modules",
+    "public",
+    "uploads",
+    "*.log",
+    "scripts/*",
+    "docs/*"
+  ],
+  "delay": 400,
+  "verbose": false
+}

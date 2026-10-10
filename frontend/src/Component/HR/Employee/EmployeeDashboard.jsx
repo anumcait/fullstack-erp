@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import EmployeeReport from "./EmployeeMasterReport";
 import EmployeeForm from "./AddEmployee";
+import EmployeeIncrements from "./EmployeeIncrements";
 import ModuleTabBar from "../common/ModuleTabBar";
-import { FaUsers, FaUserPlus, FaFileExport, FaChartBar } from "react-icons/fa";
+import { FaUsers, FaUserPlus, FaFileExport, FaChartBar, FaChartLine } from "react-icons/fa";
 import './EmployeeDashboard.css';
 
 const EmployeeDashboard = () => {
@@ -32,6 +33,7 @@ const EmployeeDashboard = () => {
   const tabs = [
     { label: "Employee Master List", value: "report", icon: <FaUsers /> },
     { label: "Onboard New Employee", value: "new", icon: <FaUserPlus /> },
+    { label: "Increments", value: "increments", icon: <FaChartLine /> },
     { label: "Statistics & Insights", value: "stats", icon: <FaChartBar /> },
     { label: "Export Data", value: "export", icon: <FaFileExport /> }
   ];
@@ -48,6 +50,7 @@ const EmployeeDashboard = () => {
       <div className="employee-dashboard-content">
         {selectedAction === "new" && <EmployeeForm />}
         {selectedAction === "report" && <EmployeeReport onNewEntry={() => setSelectedAction("new")} />}
+        {selectedAction === "increments" && <EmployeeIncrements />}
         {selectedAction === "stats" && (
           <div className="stats-insight-container animate-fadeIn">
             <div className="stats-header-section mb-6">

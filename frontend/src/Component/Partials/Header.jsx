@@ -199,10 +199,15 @@ const Header = () => {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+  let userPermissions = [];
+  try {
+    userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+    if (!Array.isArray(userPermissions)) userPermissions = [];
+  } catch { userPermissions = []; }
 
   const hasPermission = (perm) => {
-    if (userRole === 'ADMIN') return true;
+    if (String(userRole || '').trim().toUpperCase() === 'ADMIN') return true;
+    if (userPermissions.includes('*')) return true;
     return userPermissions.includes(perm);
   };
 

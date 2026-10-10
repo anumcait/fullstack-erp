@@ -742,6 +742,10 @@ const getTimeMins = (time) => {
  *  - out_time <  shift_end (even 1 min before shift end) -> 'Half Day'
  *  - otherwise                              -> 'Present'
  */
+// Late-coming thresholds live in constants/attendanceRules.js so the muster,
+// the muster cost and the payroll deduction cannot drift apart again.
+const { LATE_HALF_DAY_HRS, LATE_FULL_DAY_HRS, lopForLateHrs, reportedLateHrs, lateDeductionForMins } = require('../../constants/attendanceRules');
+
 const classifySwipedDay = (inTime, outTime, shiftStart, lunchStart, lunchEnd, shiftEnd) => {
   const inMins = getTimeMins(inTime);
   const outMins = getTimeMins(outTime);
@@ -877,7 +881,7 @@ exports.getMusterRoll = async (req, res) => {
     const employees = await EmployeeMaster.findAll({
       where: whereEmployees,
       order: [['empid', 'ASC']],
-      include: [{ model: EmpSalary, as: 'salary', attributes: ['basic'] }]
+      include: [{ model: EmpSalary, as: 'salary', attributes: ['basic', 'hra', 'conveyance', 'washing_allowance', 'others1', 'others2', 'others3', 'others4', 'others5', 'others6', 'others7', 'others8', 'others9'] }]
     });
 
     const holidays = await Holiday.findAll({
@@ -1126,12 +1130,12 @@ exports.getMusterRoll = async (req, res) => {
                 } else {
                   dayStatus = 'Present';
                   totalPresent++;
-                  if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+                  if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs);
                 }
               } else {
                 dayStatus = 'Present';
                 totalPresent++;
-                if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+                if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs);
               }
             } else {
               dayStatus = 'Absent';
@@ -1151,7 +1155,7 @@ exports.getMusterRoll = async (req, res) => {
           in_time: inTime,
           out_time: outTime,
           // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
-          late_hrs: Math.round((lateHrs >= 4 ? 0 : lateHrs) * 100) / 100,
+          late_hrs: reportedLateHrs(lateHrs),
           ot_hrs: Math.round(otHrs * 100) / 100,
           lop: lopDays
         });
@@ -1250,23 +1254,29 @@ exports.getMusterRoll = async (req, res) => {
         att_bonus: (totalLop === 0 && totalAbsent === 0 && totalLeave === 0) ? 'Yes' : 'No'
       };
 
-      // Compute late coming deduction cost (mirrors payroll late-deduction rule)
+      // Compute late coming deduction cost. Uses the same gross basis as payroll
+      // (basic + hra + conveyance + washing allowance) so the Late Coming Report
+      // and the payslip late deduction always agree.
       {
         const basic = parseFloat(emp.salary?.basic) || 0;
+        const hra = parseFloat(emp.salary?.hra) || 0;
+        const conv = parseFloat(emp.salary?.conveyance) || 0;
+        const washing = parseFloat(emp.salary?.washing_allowance) || 0;
+        const gross = basic + hra + conv + washing;
         const start = (doj && new Date(doj) > new Date(startDate)) ? new Date(doj) : new Date(startDate);
         const workingDays = Math.max(0, Math.round((new Date(endDate) - start) / (1000 * 60 * 60 * 24)) + 1);
-        const perDayBasic = workingDays > 0 ? basic / workingDays : 0;
-        const perHourBasic = perDayBasic / 8;
+        const perDay = workingDays > 0 ? gross / workingDays : 0;
+        const perHour = perDay / 8;
         let lateCost = 0;
-        let firstLateDone = false;
+        let firstLateSeen = false;
         for (const d of monthlyData.days) {
           const decLate = hhmmToDecimal(d.late_hrs);
-          // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
-          if (parseFloat(d.late_hrs) > 0 && decLate < 4) {
-            if (!firstLateDone) { firstLateDone = true; continue; } // first late exempt
+          // Exclude afternoon arrivals (>=4h late = came in the afternoon) - not a late
+          if (parseFloat(d.late_hrs) > 0 && decLate < LATE_FULL_DAY_HRS) {
             const minsLate = Math.round(decLate * 60);
-            if (minsLate <= 30) lateCost += perHourBasic; // within 30 min of shift start: 1-hour salary deduction
-            else lateCost += perDayBasic / 2;
+            const isFirstLate = !firstLateSeen;
+            firstLateSeen = true;
+            lateCost += lateDeductionForMins(minsLate, isFirstLate, perHour, perDay);
           }
         }
         monthlyData.late_cost = Math.round(lateCost);
@@ -1342,7 +1352,7 @@ exports.saveMusterRollSummary = async (req, res) => {
     const employees = await EmployeeMaster.findAll({
       where: whereEmployees,
       order: [['empid', 'ASC']],
-      include: [{ model: EmpSalary, as: 'salary', attributes: ['basic'] }]
+      include: [{ model: EmpSalary, as: 'salary', attributes: ['basic', 'hra', 'conveyance', 'washing_allowance', 'others1', 'others2', 'others3', 'others4', 'others5', 'others6', 'others7', 'others8', 'others9'] }]
     });
 
     const holidays = await Holiday.findAll({ where: { yr: String(yearNum) } });
@@ -1577,11 +1587,11 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
               dayStatus = 'Absent'; totalAbsent++; lopDays = 1;
             } else {
               dayStatus = 'Present'; totalPresent++;
-              if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+              if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs);
             }
           } else {
             dayStatus = 'Present'; totalPresent++;
-            if (lateHrs > 2) lopDays = lateHrs > 4 ? 1 : 0.5;
+            if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs);
           }
         } else {
           dayStatus = 'Absent'; totalAbsent++; lopDays = 1;
@@ -1595,7 +1605,7 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
       day, status: dayStatus, shift: schedule?.shift_cd || '-',
       in_time: inTime, out_time: outTime,
       // Exclude half-day arrivals (>=4h late = came in the afternoon) - not a late
-      late_hrs: Math.round((lateHrs >= 4 ? 0 : lateHrs) * 100) / 100,
+      late_hrs: reportedLateHrs(lateHrs),
       ot_hrs: Math.round(otHrs * 100) / 100,
       lop: lopDays
     });

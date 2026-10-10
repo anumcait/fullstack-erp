@@ -47,6 +47,14 @@ const SalarySetup = () => {
     fetchSalaryDetails();
   }, []);
 
+  // An increment approved on another screen rewrites m_emp_salary behind this
+  // grid, so pull the figures again whenever the tab comes back into view.
+  useEffect(() => {
+    const onFocus = () => fetchSalaryDetails();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
   const handleColumnToggle = (key) => {
     setColumnSettings(prev => ({ ...prev, [key]: !prev[key] }));
   };

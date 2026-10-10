@@ -1,4 +1,6 @@
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const dotenv = require('dotenv');
 const { Client } = require('pg');
 
@@ -12,6 +14,43 @@ const MAX_RETRIES = 20;   // for Sequelize connection
 const RETRY_DELAY = 3000; // in ms
 
 const waitForDB = require("./db/wait-for-db");
+
+// Sequelize's sync() introspects every table on every boot, which on the ERP
+// schema costs minutes. Nothing in the database changes when only controller
+// or route code does, so fingerprint the model definitions and skip the sync
+// unless they actually moved. The stamp lives in /tmp, so it survives the
+// nodemon restarts this exists to speed up.
+const SYNC_STAMP = '/tmp/.model_fingerprint';
+const fingerprintModels = () => {
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.js')) files.push(full);
+    }
+  };
+  walk(path.resolve(__dirname, 'models'));
+  const hash = crypto.createHash('sha1');
+  for (const f of files.sort()) {
+    const st = fs.statSync(f);
+    hash.update(f).update(String(st.mtimeMs)).update(String(st.size));
+  }
+  return hash.digest('hex');
+};
+
+const shouldSyncModels = () => {
+  try {
+    if (fs.existsSync(SYNC_STAMP) && fs.readFileSync(SYNC_STAMP, 'utf8').trim() === fingerprintModels()) {
+      return false;
+    }
+  } catch (_) { /* unreadable stamp just forces a sync */ }
+  return true;
+};
+
+const rememberFingerprint = () => {
+  try { fs.writeFileSync(SYNC_STAMP, fingerprintModels()); } catch (_) { /* best effort */ }
+};
 
 async function startServer(retries = MAX_RETRIES) {
   // 1. Wait for DB hardware/network to be ready
@@ -56,6 +95,7 @@ async function startServer(retries = MAX_RETRIES) {
       // data that has orphaned rows (e.g. emp_attendance). Force-sync (drop &
       // recreate) is opt-in via DB_SYNC_FORCE=true.
       const syncOptions = FORCE_SYNC ? { force: true } : { force: false };
+      const syncModels = FORCE_SYNC || shouldSyncModels();
 
       if (FORCE_SYNC) {
         console.warn('⚠️ WARNING: DB_SYNC_FORCE is enabled. All tables will be dropped and recreated!');
@@ -552,17 +592,24 @@ END $$;`,
       } catch (_) { /* ignore */ }
 
       // 5. Sync models (HR + ERP share the same database now)
-      await db.sequelize.sync(syncOptions);
-      console.log('✅ HR database synced.');
+      if (syncModels) {
+        await db.sequelize.sync(syncOptions);
+        console.log('✅ HR database synced.');
 
-      await erpDb.sequelize.sync(syncOptions);
-      console.log('✅ ERP database synced.');
+        await erpDb.sequelize.sync(syncOptions);
+        console.log('✅ ERP database synced.');
 
-      await accountsDb.sequelize.sync(syncOptions);
-      console.log('✅ Accounts database synced.');
+        await accountsDb.sequelize.sync(syncOptions);
+        console.log('✅ Accounts database synced.');
+        rememberFingerprint();
+      } else {
+        console.log('⏭️  Models unchanged - schema sync skipped (set FORCE_SYNC=true to force).');
+      }
 
-      // 6. One-time data fix: drop obsolete Category/Model/SKU tree rows and normalize to PRODnnnn + new product_code
+      // 6. One-time data fix: drop obsolete Category/Model/SKU tree rows and normalize to PRODnnnn + new product_code.
+      // This walks every product row, so it only runs on a boot that also synced.
       try {
+        if (!syncModels) throw new Error('sync skipped');
         const { ProductMaster, ProductCategory, Sequelize } = erpDb;
         const COLOR_CODES = { white: 'WT', black: 'BK', brown: 'BN', grey: 'GY', gray: 'GY', blue: 'BL', red: 'RD', green: 'GN', ivory: 'IV', silver: 'SV', gold: 'GD', golden: 'GD' };
         const buildCode = (subName, color, seq) => {

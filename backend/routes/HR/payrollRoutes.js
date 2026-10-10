@@ -18,6 +18,10 @@ router.post('/salary-details', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), p
 router.get('/check-status', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.checkPayslipStatus);
 router.get('/latest-processed', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getLatestProcessedDate);
 router.post('/finalize', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.finalizeSalary);
+router.get('/adjustments', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getAdjustments);
+router.get('/adjustments/components', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getAdjustableComponents);
+router.post('/adjustments', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.saveAdjustment);
+router.delete('/adjustments/:id', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.deleteAdjustment);
 router.get('/finalize-status', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getFinalizeStatus);
 router.get('/pf-report', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getPfReport);
 router.get('/pt-report', requirePermission(HR_PERMISSIONS.PAYROLL_PROC), payrollController.getPtReport);

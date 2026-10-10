@@ -116,6 +116,7 @@ const PAGE_TITLES = [
   ['/profile-requests', 'Profile Requests'],
   ['/leave-report', 'Leave Report'],
   ['/leaves-master', 'Leave Master'],
+  ['/increment', 'Increments'],
   ['/leave', 'Leave Applications'],
   ['/onduty-preview', 'On-Duty Preview'],
   ['/onduty', 'On-Duty'],

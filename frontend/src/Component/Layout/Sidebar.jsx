@@ -65,7 +65,7 @@ import "./Sidebar.css";
 const SUBMENUS = {
   accInv: ["/invoice/sales", "/invoice/purchase", "/invoice/debit-note", "/invoice/credit-note"],
   accVouch: ["/accounts/payment", "/accounts/receipt", "/accounts/journal", "/accounts/contra"],
-  hrMaster: ["/employees", "/shift-master", "/holidays", "/leaves-master", "/profile-requests", "/training", "/pms", "/disciplinary", "/exit-settlement"],
+  hrMaster: ["/employees", "/shift-master", "/holidays", "/leaves-master", "/profile-requests", "/training", "/pms", "/disciplinary", "/exit-settlement", "/increment"],
   hrAtt: ["/hr-attendance", "/attendance-mod", "/shiftschedule", "/muster-roll", "/ot-approval", "/attendance-collector", "/my-attendance", "/attendance-requests"],
   hrPayroll: ["/advance", "/payroll", "/esileave", "/tax"],
   hrTrans: ["/leave", "/onduty", "/tour", "/shiftchange", "/woffchange"],
@@ -155,10 +155,16 @@ const Sidebar = () => {
   const cancelLogout = () => setLogoutConfirmOpen(false);
 
   const userRole = localStorage.getItem('userRole');
-  const userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+  let userPermissions = [];
+  try {
+    userPermissions = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+    if (!Array.isArray(userPermissions)) userPermissions = [];
+  } catch { userPermissions = []; }
 
   const hasPermission = (permission) => {
-    if (userRole === 'ADMIN') return true;
+    if (String(userRole || '').trim().toUpperCase() === 'ADMIN') return true;
+    // "*" is the superuser wildcard and must satisfy every check.
+    if (userPermissions.includes('*')) return true;
     return userPermissions.includes(permission);
   };
 
@@ -376,6 +382,7 @@ const Sidebar = () => {
                     {hasPermission('HR_SHIFT_MASTER') && <SubItem to="/shift-master" label="Shift Master" icon={FiClock} />}
                     {hasPermission('HR_HOLIDAY_MASTER') && <SubItem to="/holidays" label="Holiday Master" icon={FiCalendar} />}
                     {hasPermission('HR_LEAVE_MASTER') && <SubItem to="/leaves-master" label="Leaves Master" icon={FiCheckSquare} />}
+                    {hasPermission('HR_INCR') && <SubItem to="/increment" label="Increments" icon={FiTrendingUp} />}
                     {hasPermission('HR_PROFILE_APPROVE') && <SubItem to="/profile-requests" label="Profile Requests" icon={FiRefreshCw} />}
                     {hasPermission('HR_TRAINING') && <SubItem to="/training" label="Training & Skills" icon={FiBookOpen} />}
                     {hasPermission('HR_PMS') && <SubItem to="/pms" label="PMS & Appraisals" icon={FiTarget} />}

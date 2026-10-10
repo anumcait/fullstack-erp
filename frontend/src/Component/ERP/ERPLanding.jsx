@@ -55,9 +55,15 @@ export default function ERPLanding() {
   }, []);
 
   const userRole = (localStorage.getItem("userRole") || sessionStorage.getItem("userRole") || "EMPLOYEE").trim().toUpperCase();
-  const userPerms = JSON.parse(localStorage.getItem("userPermissions") || sessionStorage.getItem("userPermissions") || "[]");
+  let userPerms = [];
+  try {
+    userPerms = JSON.parse(localStorage.getItem("userPermissions") || sessionStorage.getItem("userPermissions") || "[]");
+    if (!Array.isArray(userPerms)) userPerms = [];
+  } catch { userPerms = []; }
   const empName = localStorage.getItem("empName") || sessionStorage.getItem("empName") || "User";
-  const hasPermission = (p) => userRole === "ADMIN" || userPerms.includes(p);
+  // "*" is the wildcard used by superusers (e.g. erpadmin / admin), so it has to
+  // satisfy every check here, not just the ADMIN role test.
+  const hasPermission = (p) => userRole === "ADMIN" || userPerms.includes("*") || userPerms.includes(p);
 
   const visibleModules = MODULES.filter((m) => hasPermission(m.key));
 
