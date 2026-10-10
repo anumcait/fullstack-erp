@@ -42,6 +42,21 @@ const PayrollAdjustments = () => {
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [finalized, setFinalized] = useState(false);
+
+  // A finalized month is closed for business. The API rejects writes anyway;
+  // this is here so the controls are visibly disabled instead of the user
+  // discovering it through an error toast.
+  const fetchStatus = useCallback(async () => {
+    try {
+      const r = await axios.get(`${API}/api/payroll/finalize-status`, { params: { month: month + 1, year } });
+      setFinalized(!!r.data?.finalized);
+    } catch {
+      setFinalized(false);
+    }
+  }, [month, year]);
+
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -139,7 +154,7 @@ const PayrollAdjustments = () => {
                 {YEARS.map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
               </TextField>
               <Button size="small" variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData}>Refresh</Button>
-              <Button size="small" variant="contained" onClick={openNew}>+ Add Adjustment</Button>
+              <Button size="small" variant="contained" onClick={openNew} disabled={finalized}>+ Add Adjustment</Button>
             </Stack>
           </Stack>
 
@@ -182,6 +197,13 @@ const PayrollAdjustments = () => {
             </>
           )}
 
+          {finalized && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {MONTHS[month].l} {year} is finalized. Existing adjustments are locked and cannot be edited or
+              removed.
+            </Alert>
+          )}
+
           <Divider sx={{ my: 2 }} />
 
           {loading ? (
@@ -217,8 +239,8 @@ const PayrollAdjustments = () => {
                       <TableCell>{fmtDate(r.created_date)}</TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          <Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(r)}>Edit</Button>
-                          <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => remove(r)}>Remove</Button>
+                          <Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(r)} disabled={finalized}>Edit</Button>
+                          <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => remove(r)} disabled={finalized}>Remove</Button>
                         </Stack>
                       </TableCell>
                     </TableRow>

@@ -362,6 +362,16 @@ exports.updateIncrement = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please correct the highlighted fields', errors });
     }
 
+    // The period it currently sits in matters too: moving an entry out of a
+    // finalized month would change a salary that has already been paid.
+    if ((inc.effective_month !== effectiveMonth || inc.effective_year !== effectiveYear)
+      && await isPayrollFinalized(inc.effective_month, inc.effective_year)) {
+      return res.status(400).json({
+        success: false,
+        message: `Payslip finalized for ${MONTH_NAMES[inc.effective_month - 1]} ${inc.effective_year} — cannot move this increment out of it.`
+      });
+    }
+
     if (await isPayrollFinalized(effectiveMonth, effectiveYear)) {
       return res.status(400).json({
         success: false,

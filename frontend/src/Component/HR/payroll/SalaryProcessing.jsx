@@ -20,7 +20,11 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-const ScrollSyncWrapper = ({ children, maxHeight = 600 }) => {
+// Only mirrors horizontal scrolling between the bar and the table. It must not
+// impose its own vertical scroll - that produced a second scrollbar next to the
+// page one - so the page owns vertical scrolling and the grand total sticks to
+// the bottom of the viewport instead.
+const ScrollSyncWrapper = ({ children }) => {
   const topRef = useRef(null);
   const tableRef = useRef(null);
   const isScrollingRef = useRef(false);
@@ -74,7 +78,7 @@ const ScrollSyncWrapper = ({ children, maxHeight = 600 }) => {
         ref={tableRef}
         onScroll={() => handleScroll(tableRef, topRef)}
         component={Paper}
-        sx={{ maxHeight, overflowX: "auto", overflowY: "auto" }}
+        sx={{ overflowX: "auto" }}
       >
         {children}
       </TableContainer>
@@ -321,7 +325,7 @@ const months = [
             </TableBody>
           );
         })}
-        <TableBody sx={{ '& .MuiTableCell-root': { borderTop: '2px solid primary.main', fontWeight: 'bold', backgroundColor: '#e3f2fd' } }}>
+        <TableBody sx={{ '& .MuiTableCell-root': { position: 'sticky', bottom: 0, zIndex: 3, borderTop: '2px solid primary.main', fontWeight: 'bold', backgroundColor: '#e3f2fd' } }}>
           <TableRow>
             <TableCell colSpan={3} sx={{ fontWeight: 'bold', backgroundColor: '#e3f2fd', borderTop: '2px solid primary.main', textAlign: 'right', pr: 2 }}>
               <strong>Grand Total →</strong>
@@ -409,7 +413,7 @@ const months = [
             </TableBody>
           );
         })}
-        <TableBody sx={{ '& .MuiTableCell-root': { borderTop: '2px solid #2e7d32', fontWeight: 'bold', backgroundColor: '#c8e6c9' } }}>
+        <TableBody sx={{ '& .MuiTableCell-root': { position: 'sticky', bottom: 0, zIndex: 3, borderTop: '2px solid #2e7d32', fontWeight: 'bold', backgroundColor: '#c8e6c9' } }}>
           <TableRow>
             <TableCell colSpan={3} sx={{ fontWeight: 'bold', backgroundColor: '#c8e6c9', borderTop: '2px solid #2e7d32', textAlign: 'right', pr: 2 }}><strong>Grand Total →</strong></TableCell>
             <TableCell>{salaryData.reduce((s, r) => s + (parseFloat(r.C_TOT_DAYS) || 0), 0)}</TableCell>
@@ -578,7 +582,7 @@ const months = [
             </TableBody>
           );
         })}
-        <TableBody sx={{ '& .MuiTableCell-root': { borderTop: '2px solid primary.main', fontWeight: 'bold', backgroundColor: '#e3f2fd' } }}>
+        <TableBody sx={{ '& .MuiTableCell-root': { position: 'sticky', bottom: 0, zIndex: 3, borderTop: '2px solid primary.main', fontWeight: 'bold', backgroundColor: '#e3f2fd' } }}>
           <TableRow>
             <TableCell colSpan={3} sx={{ fontWeight: 'bold', backgroundColor: '#e3f2fd', borderTop: '2px solid primary.main', textAlign: 'right', pr: 2 }}><strong>Grand Total →</strong></TableCell>
             {showFixedBasic && <TableCell>{sum(salaryData, 'C_BASIC')}</TableCell>}

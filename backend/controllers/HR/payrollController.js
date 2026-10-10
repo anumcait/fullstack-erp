@@ -611,6 +611,19 @@ exports.createPayslipByEmployee = async (req, res) => {
     }
 
     const monthStr = getMonthName(month);
+
+    // Regenerating a single payslip must never reopen a finalized month: the
+    // upsert below writes C_FINAL_STATUS: 1 and would silently unlock it.
+    const existingSlip = await Payslip.findOne({
+      where: { C_EMPID: parseInt(empid, 10), C_MONTH: monthStr, C_YEAR: parseInt(year, 10) }
+    });
+    if (existingSlip && existingSlip.C_FINAL_STATUS === 2) {
+      await t.rollback();
+      return res.status(400).json({
+        message: `Salary already finalized for ${monthStr} ${year}. Cannot reprocess.`
+      });
+    }
+
     const monthStartStr = `${year}-${String(month).padStart(2, '0')}-01`;
     const monthDays = new Date(year, month, 0).getDate();
     const endDate = `${year}-${String(month).padStart(2, '0')}-${String(monthDays).padStart(2, '0')}`;
@@ -1237,6 +1250,14 @@ exports.deleteAdjustment = async (req, res) => {
       where: { C_EMPID: adj.empid, C_MONTH: adj.C_MONTH, C_YEAR: adj.C_YEAR },
       transaction: t
     });
+
+    // Same lock as saveAdjustment: a finalized month is a closed book.
+    if (slip && slip.C_FINAL_STATUS === 2) {
+      await t.rollback();
+      return res.status(400).json({
+        message: `${adj.C_MONTH} ${adj.C_YEAR} is finalized and can no longer be adjusted.`
+      });
+    }
 
     // Put the line back to whatever the run computes: re-running the month
     // restores it, and without an adjustment the stored value no longer has a
