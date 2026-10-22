@@ -45,13 +45,40 @@ const allowedOrigins = [
   'http://localhost',
   'http://localhost:5173',
   'http://localhost:5000',
+  'https://caprice-endamebic-lyndon.ngrok-free.dev',
   process.env.FRONTEND_URL,   // set this in .env for production
 ].filter(Boolean);
 
 // Middlewares
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.endsWith('.ngrok-free.dev') ||
+      origin.endsWith('.ngrok-free.app') ||
+      origin.endsWith('.ngrok.io') ||
+      origin.endsWith('.ngrok.app')
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'ngrok-skip-browser-warning',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers',
+  ],
+  exposedHeaders: ['set-cookie'],
 }));
 
 app.use(express.json({ limit: '10mb' }));
