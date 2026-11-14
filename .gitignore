@@ -26,7 +26,7 @@ pg_restore/
 pg_backup/
 
 # Build output
-frontend/dist/
+# frontend/dist/ is tracked for zero-build zero-OOM production deployments
 
 # OS files
 .DS_Store
