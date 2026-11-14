@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:17
+    container_name: erp-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: hrdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      RESTORE_MODE: ${RESTORE_MODE:-schema}
+    volumes:
+      - ./pg_backup:/pg_backup
+      - erp_postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hrdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    shm_size: '256mb'
+    ports:
+      - "5434:5432"
+    command: ["/bin/bash", "-c", "/docker-entrypoint-initdb.d/01-init-db.sh & exec docker-entrypoint.sh postgres"]
+    networks:
+      - erp-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: erp-backend
+    restart: always
+    environment:
+      - DB_DIALECT=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=hrdb
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - ERP_DB_DIALECT=postgres
+      - ERP_DB_HOST=db
+      - ERP_DB_PORT=5432
+      - ERP_DB_NAME=erpdb
+      - ERP_DB_USER=postgres
+      - ERP_DB_PASSWORD=postgres
+      - BOOTSTRAP_ADMIN_PASSWORD=Admin@123
+      - PORT=5000
+      - NODE_ENV=production
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    working_dir: /app
+    networks:
+      - erp-network
+
+  frontend:
+    image: nginx:alpine
+    container_name: erp-frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - erp-network
+
+networks:
+  erp-network:
+    name: erp-network
+    driver: bridge
+
+volumes:
+  erp_postgres_data:
+    name: erp_postgres_data

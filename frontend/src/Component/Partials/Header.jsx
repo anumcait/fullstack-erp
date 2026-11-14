@@ -15,7 +15,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useThemeMode } from '../../context/ThemeContext';
 import { useCompany } from '../../context/CompanyContext';
 import './Header.css';
-import fallbackLogo from "../../assets/images/EQIC_Image.jpg";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -23,7 +22,7 @@ const Header = () => {
   const { mode, toggleTheme, accent, setAccentColor, ACCENT_COLORS } = useThemeMode();
   const { companySettings, companyShortName } = useCompany();
   const cachedLogoEarly = localStorage.getItem('cached_logo_url') || '';
-  const logoUrl = companySettings?.logo_url || cachedLogoEarly || fallbackLogo;
+  const logoUrl = companySettings?.logo_url || cachedLogoEarly || null;
   const brandTitle = companySettings?.title
     || (companyShortName ? `${companyShortName} ERP` : 'ERP');
   const [userName, setUserName] = useState('Guest');
@@ -43,12 +42,12 @@ const Header = () => {
   const location = useLocation();
 
   const cachedFav = localStorage.getItem('cached_favicon_url') || '';
-  const cachedLogo = localStorage.getItem('cached_logo_url') || fallbackLogo;
-  const faviconUrl = companySettings?.favicon_url || logoUrl || cachedFav || cachedLogo || '/logo.png';
+  const cachedLogo = localStorage.getItem('cached_logo_url') || '';
+  const faviconUrl = companySettings?.favicon_url || logoUrl || cachedFav || cachedLogo || null;
 
   useEffect(() => {
     const link = document.getElementById('favicon');
-    if (link) link.href = faviconUrl;
+    if (link && faviconUrl) link.href = faviconUrl;
     if (logoUrl) localStorage.setItem('cached_logo_url', logoUrl);
     if (companySettings?.favicon_url) localStorage.setItem('cached_favicon_url', companySettings.favicon_url);
   }, [faviconUrl]);
