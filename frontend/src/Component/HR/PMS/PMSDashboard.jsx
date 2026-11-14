@@ -10,6 +10,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const API = '/api/pms';
 const EMP_API = '/api/employees';
@@ -244,8 +245,8 @@ export default function PMSDashboard() {
                     <TableCell>{c.cycle_name}</TableCell>
                     <TableCell>{c.cycle_type}</TableCell>
                     <TableCell>{c.financial_year}</TableCell>
-                    <TableCell>{c.start_date}</TableCell>
-                    <TableCell>{c.end_date}</TableCell>
+                    <TableCell>{formatDate(c.start_date)}</TableCell>
+                    <TableCell>{formatDate(c.end_date)}</TableCell>
                     <TableCell><Chip label={c.status} size="small" color={STATUS_COLORS[c.status] || 'default'} /></TableCell>
                   </TableRow>
                 ))}

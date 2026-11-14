@@ -11,7 +11,7 @@ import TransformIcon from '@mui/icons-material/Transform';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
-import { formatQty } from '../../../../utils/format';
+import { formatQty, formatDate } from '../../../../utils/format';
 import PRConversionDialog from '../MaterialRequisition/PRConversionDialog';
 
 const API = '/api/erp/stores/material-issues';
@@ -63,7 +63,7 @@ export default function MaterialIssueList() {
       field: 'issue_type', headerName: 'Type', width: 90,
       renderCell: (p) => <Chip label={p.value || 'General'} size="small" color={p.value === 'GRR' ? 'primary' : p.value === 'PR' ? 'warning' : 'default'} />,
     },
-    { field: 'issue_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? v.split('T')[0] : '' },
+    { field: 'issue_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? formatDate(v) : '' },
     { field: 'issued_to', headerName: 'Issued To', width: 150 },
     { field: 'department', headerName: 'Department', width: 130 },
     {
@@ -150,7 +150,7 @@ export default function MaterialIssueList() {
           <DialogContent dividers>
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
               <Typography variant="body2"><strong>Issue #:</strong> {detailsDlg.data.issue_no}</Typography>
-              <Typography variant="body2"><strong>Date:</strong> {detailsDlg.data.issue_date?.replace("T", " ").slice(0, 16)}</Typography>
+              <Typography variant="body2"><strong>Date:</strong> {formatDate(detailsDlg.data.issue_date)}</Typography>
               <Typography variant="body2"><strong>Department:</strong> {detailsDlg.data.department}</Typography>
               <Typography variant="body2"><strong>Issued To:</strong> {detailsDlg.data.issued_to}</Typography>
               <Typography variant="body2"><strong>Status:</strong> <Chip label={detailsDlg.data.status} size="small" color={statusColors[detailsDlg.data.status] || 'default'} /></Typography>

@@ -4,6 +4,7 @@ import PrintIcon from "@mui/icons-material/Print";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { formatDate } from "../../../../utils/format";
 
 const API = "/api/erp/stores/grn";
 
@@ -40,7 +41,7 @@ export default function GRRPrintView() {
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, px: 1 }}>
           <Box>
             <Typography variant="body2"><strong>GRR No:</strong> {data.ir_no}</Typography>
-            <Typography variant="body2"><strong>Date:</strong> {data.ir_date}</Typography>
+            <Typography variant="body2"><strong>Date:</strong> {formatDate(data.ir_date)}</Typography>
             <Typography variant="body2"><strong>PO No:</strong> {data.purchaseOrder?.po_no || "—"}</Typography>
             <Typography variant="body2"><strong>PR No:</strong> {data.purchaseRequisition?.req_no || "—"}</Typography>
           </Box>

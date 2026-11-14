@@ -168,7 +168,7 @@ exports.saveAttendance = async (req, res) => {
         }
       }
     }
-    if (attendanceData.status === 'A') {
+    if (attendanceData.status === 'A' && !attendanceData.in_time && !attendanceData.out_time) {
       attendanceData.in_time = null;
       attendanceData.out_time = null;
       attendanceData.late_hrs = 0;
@@ -256,7 +256,7 @@ exports.updateAttendance = async (req, res) => {
     }
 
     // Absent status: no in/out times, no late/OT hours
-    if (attendanceData.status === 'A') {
+    if (attendanceData.status === 'A' && !attendanceData.in_time && !attendanceData.out_time) {
       attendanceData.in_time = null;
       attendanceData.out_time = null;
       attendanceData.late_hrs = 0;
@@ -519,11 +519,30 @@ exports.getAttendance = async (req, res) => {
         const empIds = [...new Set(plain.map(r => r.empid).filter(Boolean))];
         let schedMap = {};
         let lunchMap = {};
+        let woffFromMap = {};
+        let woffToMap = {};
         if (empIds.length) {
           const schedules = await ShiftSchedule.findAll({ where: { empid: empIds, shift_date: { [Op.between]: [dateFrom, dateTo] } } });
           schedules.forEach(s => { const k = `${s.empid}_${toLocalDateStr(s.shift_date)}`; schedMap[k] = s; });
           const masters = await ShiftMaster.findAll();
           masters.forEach(sm => { lunchMap[sm.shift_cd] = { start: sm.lunch_start_time, end: sm.lunch_end_time }; });
+
+          const woffApps = await WoffApplication.findAll({
+            where: {
+              empid: empIds,
+              status: 'Approved',
+              [Op.or]: [
+                { woff_to_date: { [Op.between]: [dateFrom, dateTo] } },
+                { woff_from_date: { [Op.between]: [dateFrom, dateTo] } }
+              ]
+            }
+          });
+          woffApps.forEach(w => {
+            const fd = toLocalDateStr(w.woff_from_date);
+            const td = toLocalDateStr(w.woff_to_date);
+            if (fd) woffFromMap[`${w.empid}_${fd}`] = w;
+            if (td) woffToMap[`${w.empid}_${td}`] = w;
+          });
         }
         plain.forEach(r => {
           const dk = toLocalDateStr(r.att_date);
@@ -531,20 +550,48 @@ exports.getAttendance = async (req, res) => {
           const noPunch = !r.in_time && !r.out_time;
           const sLow = String(r.status||"").toLowerCase();
           const isLeaveLike = ['cl','el','sl','l','h','holiday','w','w-off','half day','hd','lop'].includes(sLow) || !!r.leave_type;
+
+          const woffFromApp = woffFromMap[`${r.empid}_${dk}`];
+          const woffToApp = woffToMap[`${r.empid}_${dk}`];
+
+          if (woffFromApp) {
+            // Weekly off was exchanged for working shift
+            if (r.shift === 'W') r.shift = woffFromApp.shift_cd || 'G';
+            r.woff_day = 0;
+            if (r.in_time && r.out_time) {
+              r.status = 'Present';
+            }
+          } else if (woffToApp && !r.in_time && !r.out_time) {
+            // Compensatory weekly off granted
+            r.shift = 'W';
+            r.status = 'Weekly Off';
+            r.woff_day = 1;
+          }
+
           // A weekly off HR cancelled reads as Absent everywhere, so the grid and
           // reports never disagree with the muster.
           if (r.cancel_status === 'C' && ['w','woff','w-off'].includes(sLow)) {
             r.status = 'Absent';
           } else if (isPast && noPunch && (r.status === 'Present' || r.status === 'P') && !isLeaveLike && !r.holiday && r.woff_day !== 1) {
             r.status = 'Absent';
-          } else if (r.in_time && r.out_time && (r.status === 'Present' || r.status === 'P')) {
+          } else if (r.in_time && r.out_time && (r.status === 'Present' || r.status === 'P' || r.status === 'Half Day' || r.status === 'Absent' || r.status === 'A')) {
             const sched = schedMap[`${r.empid}_${dk}`];
             const lunch = sched ? lunchMap[sched.shift_cd] : null;
             const shiftStart = sched?.shift_start_time || r.shift_start || '09:00';
             let shiftEnd = sched?.shift_end_time || r.shift_end || '17:30';
             if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30';
             const derived = classifySwipedDay(r.in_time, r.out_time, shiftStart, lunch?.start, lunch?.end, shiftEnd);
-            if (derived === 'Half Day') r.status = 'Half Day';
+            if (derived === 'Half Day') {
+              r.status = 'Half Day';
+            } else if (derived === 'Absent') {
+              r.status = 'Absent';
+              const ot = calculateOTHrs(r.out_time, shiftEnd, shiftStart, r.in_time);
+              if (ot > 0) {
+                r.ot_hrs = ot.toFixed(2);
+                r.app_ot = decimalToHHMM(ot);
+                r.hr_app_ot = decimalToHHMM(ot);
+              }
+            }
           }
         });
       }
@@ -769,6 +816,13 @@ const classifySwipedDay = (inTime, outTime, shiftStart, lunchStart, lunchEnd, sh
     effectiveShiftEndMins = shiftEndMins + 1440;
   }
 
+  const workedMins = effectiveOutMins - inMins;
+  // An employee must work at least 4 hours (240 mins) to qualify for Half Day.
+  // Working less than 4 hours is treated as Absent (and the worked duration is credited as OT).
+  if (workedMins < 240) {
+    return 'Absent';
+  }
+
   if (lunchEndMins !== null && effectiveOutMins <= lunchEndMins) return 'Half Day';
   if (lunchStartMins !== null && inMins >= lunchStartMins) return 'Half Day';
 
@@ -781,8 +835,22 @@ const calculateOTHrs = (outTime, shiftEnd, shiftStart, inTime) => {
   try {
     const outMins = getTimeMins(outTime);
     const shiftEndMins = getTimeMins(shiftEnd);
+    const inMins = inTime ? getTimeMins(inTime) : null;
 
     if (outMins === null || shiftEndMins === null) return 0;
+
+    let effectiveOutMins = outMins;
+    if (inMins !== null && outMins < inMins) {
+      effectiveOutMins += 1440;
+    }
+
+    // If an employee worked less than 4 hours, the day is Absent and the worked time is credited as OT
+    if (inMins !== null) {
+      const workedMins = effectiveOutMins - inMins;
+      if (workedMins > 0 && workedMins < 240) {
+        return Math.round((workedMins / 60) * 100) / 100;
+      }
+    }
 
     let extraMins = outMins - shiftEndMins;
 
@@ -979,6 +1047,7 @@ exports.getMusterRoll = async (req, res) => {
       };
 
       let totalPresent = 0, totalAbsent = 0, totalLeave = 0, totalWoff = 0, totalHoliday = 0, totalLop = 0, totalLateHrs = 0, totalOTHrs = 0;
+      let firstLateSeen = false;
 
       // Fetch date of joining
       const empOfficial = empId ? await EmpOfficial.findOne({ where: { empid: empId }, attributes: ['doj'] }) : null;
@@ -1019,6 +1088,9 @@ exports.getMusterRoll = async (req, res) => {
         let lateHrs = 0;
         let otHrs = 0;
         let lopDays = 0;
+        const shiftStart = schedule?.shift_start_time || '09:00';
+        let shiftEnd = schedule?.shift_end_time || '17:30';
+        if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30';
 
         const extOt = empExtOt[currentDate];
         if (extOt) {
@@ -1043,8 +1115,13 @@ exports.getMusterRoll = async (req, res) => {
             totalHoliday++;
             if (extOt && Number(extOt.app_status) >= 1) {
               otHrs = hhmmToDecimal(extOt.ot_hrs);
-            } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+            } else if (attendance && (Number(attendance.hr_app_status) === 1 || Number(attendance.app_status) === 1) && attendance.ot_hrs) {
               otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+            } else if (attendance && attendance.ot_hrs && Number(attendance.ot_hrs) > 0) {
+              otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+            } else if (inTime && outTime) {
+              const expectedOt = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+              if (expectedOt > 0) otHrs = expectedOt;
             }
             totalOTHrs += otHrs;
           } else {
@@ -1057,8 +1134,13 @@ exports.getMusterRoll = async (req, res) => {
             totalWoff++;
             if (extOt && Number(extOt.app_status) >= 1) {
               otHrs = hhmmToDecimal(extOt.ot_hrs);
-            } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+            } else if (attendance && (Number(attendance.hr_app_status) === 1 || Number(attendance.app_status) === 1) && attendance.ot_hrs) {
               otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+            } else if (attendance && attendance.ot_hrs && Number(attendance.ot_hrs) > 0) {
+              otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+            } else if (inTime && outTime) {
+              const expectedOt = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+              if (expectedOt > 0) otHrs = expectedOt;
             }
             totalOTHrs += otHrs;
           } else {
@@ -1074,17 +1156,18 @@ exports.getMusterRoll = async (req, res) => {
           totalLateHrs += lateHrs;
           totalOTHrs += otHrs;
         } else if (leaveInfo || schedule || attendance) {
-          const shiftStart = schedule?.shift_start_time || '09:00';
-          let shiftEnd = schedule?.shift_end_time || '17:30';
-          if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30';
-
           const hasSwipes = !!(inTime || outTime);
           if (hasSwipes) {
             if (inTime) lateHrs = calculateLateHrs(inTime, shiftStart);
             if (extOt && Number(extOt.app_status) >= 1) {
               otHrs = hhmmToDecimal(extOt.ot_hrs);
-            } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+            } else if (attendance && (Number(attendance.hr_app_status) === 1 || Number(attendance.app_status) === 1) && attendance.ot_hrs) {
               otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+            } else if (attendance && attendance.ot_hrs && Number(attendance.ot_hrs) > 0) {
+              otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+            } else if (inTime && outTime) {
+              const expectedOt = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+              if (expectedOt > 0) otHrs = expectedOt;
             }
             totalLateHrs += lateHrs;
             totalOTHrs += otHrs;
@@ -1127,15 +1210,20 @@ exports.getMusterRoll = async (req, res) => {
                   dayStatus = 'Absent';
                   totalAbsent++;
                   lopDays = 1;
+                  lateHrs = 0;
                 } else {
                   dayStatus = 'Present';
                   totalPresent++;
-                  if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs);
+                  const isFirst = !firstLateSeen;
+                  if (lateHrs > 0) firstLateSeen = true;
+                  if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs, isFirst);
                 }
               } else {
                 dayStatus = 'Present';
                 totalPresent++;
-                if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs);
+                const isFirst = !firstLateSeen;
+                if (lateHrs > 0) firstLateSeen = true;
+                if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs, isFirst);
               }
             } else {
               dayStatus = 'Absent';
@@ -1476,6 +1564,7 @@ exports.saveMusterRollSummary = async (req, res) => {
 function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, startDate, endDate, empSchedule, empAttendance, empWoffs, empWoffExclude, empLeaves, empExtOt, holidayDates, doj, shiftLunchMap = {}, empCancelledWoffs = []) {
   const monthlyData = { days: [] };
   let totalPresent = 0, totalAbsent = 0, totalLeave = 0, totalWoff = 0, totalHoliday = 0, totalLop = 0, totalLateHrs = 0, totalOTHrs = 0;
+  let firstLateSeen = false;
 
   const dayStatuses = [];
 
@@ -1500,6 +1589,9 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
 
     let dayStatus = 'Absent';
     let lateHrs = 0, otHrs = 0, lopDays = 0;
+    const shiftStart = schedule?.shift_start_time || '09:00';
+    let shiftEnd = schedule?.shift_end_time || '17:30';
+    if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30';
 
     const extOt = empExtOt[currentDate];
     let inTime = attendance?.in_time || null;
@@ -1521,8 +1613,13 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
         dayStatus = 'Holiday'; totalHoliday++;
         if (extOt && Number(extOt.app_status) >= 1) {
           otHrs = hhmmToDecimal(extOt.ot_hrs);
-        } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+        } else if (attendance && (Number(attendance.hr_app_status) === 1 || Number(attendance.app_status) === 1) && attendance.ot_hrs) {
           otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+        } else if (attendance && attendance.ot_hrs && Number(attendance.ot_hrs) > 0) {
+          otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+        } else if (inTime && outTime) {
+          const expectedOt = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+          if (expectedOt > 0) otHrs = expectedOt;
         }
         totalOTHrs += otHrs;
       } else {
@@ -1533,8 +1630,13 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
         dayStatus = 'W-Off'; totalWoff++;
         if (extOt && Number(extOt.app_status) >= 1) {
           otHrs = hhmmToDecimal(extOt.ot_hrs);
-        } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+        } else if (attendance && (Number(attendance.hr_app_status) === 1 || Number(attendance.app_status) === 1) && attendance.ot_hrs) {
           otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+        } else if (attendance && attendance.ot_hrs && Number(attendance.ot_hrs) > 0) {
+          otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+        } else if (inTime && outTime) {
+          const expectedOt = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+          if (expectedOt > 0) otHrs = expectedOt;
         }
         totalOTHrs += otHrs;
       } else {
@@ -1546,16 +1648,18 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
       otHrs = hhmmToDecimal(extOt.ot_hrs);
       totalLateHrs += lateHrs; totalOTHrs += otHrs;
     } else if (leaveInfo || schedule || attendance) {
-      const shiftStart = schedule?.shift_start_time || '09:00';
-      let shiftEnd = schedule?.shift_end_time || '17:30';
-      if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30';
       const hasSwipes = !!(inTime || outTime);
       if (hasSwipes) {
         if (inTime) lateHrs = calculateLateHrs(inTime, shiftStart);
         if (extOt && Number(extOt.app_status) >= 1) {
           otHrs = hhmmToDecimal(extOt.ot_hrs);
-        } else if (attendance && Number(attendance.hr_app_status) === 1 && attendance.ot_hrs) {
+        } else if (attendance && (Number(attendance.hr_app_status) === 1 || Number(attendance.app_status) === 1) && attendance.ot_hrs) {
           otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+        } else if (attendance && attendance.ot_hrs && Number(attendance.ot_hrs) > 0) {
+          otHrs = otHrsToDecimal(attendance.ot_hrs, attendance.in_time, attendance.out_time);
+        } else if (inTime && outTime) {
+          const expectedOt = calculateOTHrs(outTime, shiftEnd, shiftStart, inTime);
+          if (expectedOt > 0) otHrs = expectedOt;
         }
         totalLateHrs += lateHrs; totalOTHrs += otHrs;
       }
@@ -1584,14 +1688,18 @@ function computeSingleEmployeeMuster(empId, daysInMonth, yearNum, monthNum, star
             if (swipedStatus === 'Half Day') {
               dayStatus = 'Half Day'; totalPresent += 0.5; lopDays = 0.5;
             } else if (swipedStatus === 'Absent') {
-              dayStatus = 'Absent'; totalAbsent++; lopDays = 1;
+              dayStatus = 'Absent'; totalAbsent++; lopDays = 1; lateHrs = 0;
             } else {
               dayStatus = 'Present'; totalPresent++;
-              if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs);
+              const isFirst = !firstLateSeen;
+              if (lateHrs > 0) firstLateSeen = true;
+              if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs, isFirst);
             }
           } else {
             dayStatus = 'Present'; totalPresent++;
-            if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs);
+            const isFirst = !firstLateSeen;
+            if (lateHrs > 0) firstLateSeen = true;
+            if (lateHrs > LATE_HALF_DAY_HRS) lopDays = lopForLateHrs(lateHrs, isFirst);
           }
         } else {
           dayStatus = 'Absent'; totalAbsent++; lopDays = 1;

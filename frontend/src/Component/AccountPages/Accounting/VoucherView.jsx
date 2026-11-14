@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../Common/PageHeader';
 import StatusChip from '../../Common/StatusChip';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const VoucherView = () => {
   const { type, id } = useParams();
@@ -20,7 +21,7 @@ const VoucherView = () => {
   return (
     <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
       <PageHeader title={`${v.voucherType?.name || 'Voucher'} #${v.voucher_no}`}
-        subtitle={`Date: ${v.date}${v.reference_no ? ` | Ref: ${v.reference_no}` : ''}`}
+        subtitle={`Date: ${formatDate(v.date)}${v.reference_no ? ` | Ref: ${v.reference_no}` : ''}`}
         icon={<FiDollarSign size={22} />}
         actions={
           <Stack direction="row" spacing={0.75}>

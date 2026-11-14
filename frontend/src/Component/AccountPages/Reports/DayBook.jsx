@@ -3,6 +3,7 @@ import { Box, Typography, TextField, Button, Card, CardContent, Table, TableHead
 import { FiSearch, FiFileText, FiDownload } from 'react-icons/fi';
 import PageHeader from '../../Common/PageHeader';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 34 }, "& .MuiInputLabel-root": { fontSize: "0.88rem", mt: -0.25 } };
 
@@ -59,7 +60,7 @@ const DayBook = () => {
                 {rows.map((v, i) => (
                   <TableRow key={v.id} sx={{ "&:hover": { bgcolor: "#eef2ff" }, bgcolor: i % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
                     <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", fontFamily: 'monospace', fontWeight: 600 }}>{v.voucher_no}</TableCell>
-                    <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{v.date}</TableCell>
+                    <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{formatDate(v.date)}</TableCell>
                     <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{v.voucherType?.code}</TableCell>
                     <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.narration}</TableCell>
                     <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", fontFamily: 'monospace' }}>{parseFloat(v.total_debit || 0).toFixed(2)}</TableCell>

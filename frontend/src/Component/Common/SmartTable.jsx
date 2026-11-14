@@ -9,6 +9,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 import { useCompany } from "../../context/CompanyContext";
+import { formatCellValue } from "../../utils/format";
 
 const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, renderExpanded, headerAction, disableActions = false, disableExpand = false, initialWidths = {}, loading = false, onRowClick = null }) => {
   const { companyName } = useCompany();
@@ -144,7 +145,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
       const output = {};
       visibleColumns.forEach((col) => {
         const header = columns.find((c) => c.field === col)?.header || col;
-        output[header] = row[col];
+        output[header] = formatCellValue(row[col]);
       });
       return output;
     });
@@ -155,7 +156,8 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
 
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, `${companyName}_${title || "Report"}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const todayDmy = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}`;
+    saveAs(blob, `${companyName}_${title || "Report"}_${todayDmy}.xlsx`);
   };
 
   const exportToPDF = () => {
@@ -167,7 +169,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
     });
 
     const tableRows = filteredData.map((row) =>
-      visibleColumns.map((col) => row[col] ?? "")
+      visibleColumns.map((col) => formatCellValue(row[col]) ?? "")
     );
 
     autoTable(doc, {
@@ -185,7 +187,8 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
       startY: 25 // Start after the company header
     });
 
-    doc.save(`${companyName}_${title || "Report"}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    const todayDmy = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}`;
+    doc.save(`${companyName}_${title || "Report"}_${todayDmy}.pdf`);
   };
   const actionColCount = (disableActions ? 0 : 1) + (disableExpand ? 0 : 1);
 
@@ -362,7 +365,7 @@ const SmartTable = ({ title, columns, data, onPreview, onEdit, onToggleExpand, r
                           <span className="reason-text">{row[col.field]}</span>
                         </div>
                       ) : (
-                        row[col.field]
+                        formatCellValue(row[col.field])
                       )}
                     </td>
                   ))}

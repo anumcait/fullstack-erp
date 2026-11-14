@@ -12,6 +12,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { formatDate } from "../../../../utils/format";
 
 const API = "/api/erp/purchase/suppliers";
 const RATING_API = "/api/erp/purchase/vendor-ratings";
@@ -384,7 +385,7 @@ export default function AddSupplier() {
                           </Box>
                           <Box><Typography variant="body2" sx={{ fontWeight: 600 }}>{r.overall_score}</Typography></Box>
                           <Chip label={`Q:${r.quality_score} D:${r.delivery_score} P:${r.price_score} S:${r.service_score}`} size="small" variant="outlined" />
-                          <Typography variant="caption" color="textSecondary">{r.rating_date?.split("T")[0]}</Typography>
+                          <Typography variant="caption" color="textSecondary">{r.rating_date ? formatDate(r.rating_date) : ""}</Typography>
                           <Typography variant="caption" color="textSecondary">by {r.rated_by}</Typography>
                         </Box>
                       ))}

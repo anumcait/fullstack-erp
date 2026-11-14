@@ -4,6 +4,7 @@ import PrintIcon from "@mui/icons-material/Print";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { formatDate } from "../../../../utils/format";
 
 const API = "/api/erp/purchase/requisitions";
 
@@ -41,7 +42,7 @@ export default function PRPrintView() {
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, px: 1 }}>
           <Box>
             <Typography variant="body2"><strong>PR No:</strong> {data.req_no}</Typography>
-            <Typography variant="body2"><strong>Date:</strong> {data.req_date?.split("T")[0]}</Typography>
+            <Typography variant="body2"><strong>Date:</strong> {formatDate(data.req_date)}</Typography>
             <Typography variant="body2"><strong>Indent Type:</strong> {data.indent_type}</Typography>
             <Typography variant="body2"><strong>Priority:</strong> {data.priority}</Typography>
           </Box>

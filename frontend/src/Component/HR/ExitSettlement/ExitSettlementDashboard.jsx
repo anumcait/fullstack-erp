@@ -9,6 +9,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const API = '/api/exit';
 const EMP_API = '/api/employees';
@@ -210,8 +211,8 @@ export default function ExitSettlementDashboard() {
                   <TableRow key={e.id} hover sx={{ cursor: 'pointer' }} onClick={() => openExitView(e)}>
                     <TableCell>{e.empname} ({e.empid})</TableCell>
                     <TableCell>{e.type}</TableCell>
-                    <TableCell>{e.resignation_date}</TableCell>
-                    <TableCell>{e.last_working_day}</TableCell>
+                    <TableCell>{formatDate(e.resignation_date)}</TableCell>
+                    <TableCell>{formatDate(e.last_working_day)}</TableCell>
                     <TableCell><Chip label={e.status} size="small" color={STATUS_COLORS[e.status] || 'default'} /></TableCell>
                     <TableCell onClick={(ev) => ev.stopPropagation()}>
                       {e.status === 'Submitted' && (

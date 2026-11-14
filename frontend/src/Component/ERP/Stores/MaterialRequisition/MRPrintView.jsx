@@ -4,7 +4,7 @@ import PrintIcon from "@mui/icons-material/Print";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { formatQty } from "../../../../utils/format";
+import { formatQty, formatDate } from "../../../../utils/format";
 
 const API = "/api/erp/stores/material-requisitions";
 
@@ -46,7 +46,7 @@ export default function MRPrintView() {
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5, px: 1, "@media print": { mb: 1, px: 0.5 } }}>
           <Box>
             <Typography variant="body2" sx={{ "@media print": { fontSize: "8pt" } }}><strong>MR No:</strong> {data.req_no}</Typography>
-            <Typography variant="body2" sx={{ "@media print": { fontSize: "8pt" } }}><strong>Date:</strong> {data.req_date?.split("T")[0]}</Typography>
+            <Typography variant="body2" sx={{ "@media print": { fontSize: "8pt" } }}><strong>Date:</strong> {formatDate(data.req_date)}</Typography>
             <Typography variant="body2" sx={{ "@media print": { fontSize: "8pt" } }}><strong>Department:</strong> {data.department}</Typography>
           </Box>
           <Box sx={{ textAlign: "right" }}>

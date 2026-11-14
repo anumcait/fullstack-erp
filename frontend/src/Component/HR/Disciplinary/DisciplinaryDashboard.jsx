@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const API = '/api/disciplinary';
 const EMP_API = '/api/employees';
@@ -161,7 +162,7 @@ export default function DisciplinaryDashboard() {
                     <TableCell>{c.empid}</TableCell>
                     <TableCell>{c.nature}</TableCell>
                     <TableCell><Chip label={c.severity} size="small" color={c.severity === 'Critical' ? 'error' : c.severity === 'High' ? 'warning' : 'default'} /></TableCell>
-                    <TableCell>{c.incident_date}</TableCell>
+                    <TableCell>{formatDate(c.incident_date)}</TableCell>
                     <TableCell><Chip label={c.status} size="small" color={STATUS_COLORS[c.status] || 'default'} /></TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {c.status === 'Open' && (
@@ -218,8 +219,8 @@ export default function DisciplinaryDashboard() {
                       {showCauses.map((sc) => (
                         <TableRow key={sc.id}>
                           <TableCell>{sc.notice_no}</TableCell>
-                          <TableCell>{sc.issued_date}</TableCell>
-                          <TableCell>{sc.response_deadline}</TableCell>
+                          <TableCell>{formatDate(sc.issued_date)}</TableCell>
+                          <TableCell>{formatDate(sc.response_deadline)}</TableCell>
                           <TableCell><Chip label={sc.status} size="small" /></TableCell>
                           <TableCell>
                             {sc.employee_response ? (
@@ -258,7 +259,7 @@ export default function DisciplinaryDashboard() {
                     {actions.map((a) => (
                       <TableRow key={a.id}>
                         <TableCell>{a.action_type}</TableCell>
-                        <TableCell>{a.action_date}</TableCell>
+                        <TableCell>{formatDate(a.action_date)}</TableCell>
                         <TableCell>{a.description}</TableCell>
                         <TableCell>{a.approved_by}</TableCell>
                       </TableRow>

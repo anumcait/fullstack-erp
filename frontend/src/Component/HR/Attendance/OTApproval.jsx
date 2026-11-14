@@ -14,6 +14,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { getErrorMessage } from "../../../utils/errorUtils";
+import { formatDate } from "../../../utils/format";
 
 const OTApproval = () => {
   const { showToast } = useToast();
@@ -487,7 +488,7 @@ const OTApproval = () => {
                           onChange={() => handleSelectRow(row.id)}
                         />
                       </TableCell>
-                      <TableCell>{row.date}</TableCell>
+                      <TableCell>{formatDate(row.date)}</TableCell>
                       <TableCell>{row.empid}</TableCell>
                       <TableCell>{row.empName}</TableCell>
                       <TableCell>{row.department}</TableCell>
@@ -637,7 +638,7 @@ const OTApproval = () => {
                 extOtData.map((row) => (
                   <TableRow key={row.id} sx={{ "&:nth-of-type(odd)": { bgcolor: "#fff3e0" } }}>
                     <TableCell><Checkbox size="small" checked={extOtSelectedRows.includes(row.id)} onChange={() => handleExtSelectRow(row.id)} /></TableCell>
-                    <TableCell>{row.ot_date}</TableCell>
+                    <TableCell>{formatDate(row.ot_date)}</TableCell>
                     <TableCell>{row.empid}</TableCell>
                     <TableCell>{row.ename}</TableCell>
                     <TableCell>{row.in_time || "-"}</TableCell>
@@ -817,7 +818,7 @@ const OTApproval = () => {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={6}><Typography><strong>Emp ID:</strong> {selectedExtOtRow?.empid}</Typography></Grid>
-            <Grid item xs={6}><Typography><strong>Date:</strong> {selectedExtOtRow?.ot_date}</Typography></Grid>
+            <Grid item xs={6}><Typography><strong>Date:</strong> {formatDate(selectedExtOtRow?.ot_date)}</Typography></Grid>
             <Grid item xs={6}><Typography><strong>Type:</strong> {selectedExtOtRow?.ot_type}</Typography></Grid>
             <Grid item xs={6}><Typography><strong>In/Out:</strong> {selectedExtOtRow?.in_time || "-"} / {selectedExtOtRow?.out_time || "-"}</Typography></Grid>
             <Grid item xs={6}>
@@ -868,7 +869,7 @@ const OTApproval = () => {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={6}><Typography><strong>Emp ID:</strong> {selectedRow?.empid}</Typography></Grid>
-            <Grid item xs={6}><Typography><strong>Date:</strong> {selectedRow?.date}</Typography></Grid>
+            <Grid item xs={6}><Typography><strong>Date:</strong> {formatDate(selectedRow?.date)}</Typography></Grid>
             <Grid item xs={6}>
               <TextField fullWidth label="Actual OT" value={selectedRow?.ot_hrs || 0} disabled size="small" />
             </Grid>

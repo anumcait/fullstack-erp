@@ -9,6 +9,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from "../../../../utils/format";
 
 const API = "/api/erp/purchase/price-list";
 
@@ -41,8 +42,8 @@ export default function PriceList() {
     { field: "item", headerName: "Item", width: 200, valueGetter: (v) => v?.item_name || "" },
     { field: "rate", headerName: "Rate", width: 120, valueGetter: (v) => parseFloat(v || 0).toLocaleString("en-IN", { style: "currency", currency: "INR" }) },
     { field: "currency", headerName: "Currency", width: 90 },
-    { field: "effective_from", headerName: "From", width: 110, valueGetter: (v) => v ? v.split("T")[0] : "" },
-    { field: "effective_to", headerName: "To", width: 110, valueGetter: (v) => v ? v.split("T")[0] : "" },
+    { field: "effective_from", headerName: "From", width: 110, valueGetter: (v) => v ? formatDate(v) : "" },
+    { field: "effective_to", headerName: "To", width: 110, valueGetter: (v) => v ? formatDate(v) : "" },
     { field: "moq", headerName: "MOQ", width: 80 },
     { field: "lead_days", headerName: "Lead Days", width: 100 },
     { field: "is_active", headerName: "Status", width: 90, renderCell: (p) => (

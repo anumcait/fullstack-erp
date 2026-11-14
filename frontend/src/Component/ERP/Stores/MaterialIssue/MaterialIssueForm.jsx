@@ -17,7 +17,7 @@ import TransformIcon from "@mui/icons-material/Transform";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import ItemSelectDialog from "../ItemMaster/ItemSelectDialog";
-import { formatQty } from "../../../../utils/format";
+import { formatQty, formatDate } from "../../../../utils/format";
 import PRConversionDialog from "../MaterialRequisition/PRConversionDialog";
 
 const API = "/api/erp/stores/material-issues";
@@ -370,7 +370,7 @@ export default function MaterialIssueForm() {
                       <Typography variant="caption" sx={{ color: cl.textMuted, fontSize: "0.7rem", lineHeight: 1.4 }}>
                         <strong>{selectedMr.req_no}</strong> | {selectedMr.department} | Requested by: {selectedMr.requested_by}
                         {selectedMr.remarks ? <><br />{selectedMr.remarks}</> : ""}
-                        {selectedMr.created_date ? <><br />Date: {selectedMr.created_date}</> : ""}
+                        {selectedMr.created_date ? <><br />Date: {formatDate(selectedMr.created_date)}</> : ""}
                       </Typography>
                     </Box>
                   );

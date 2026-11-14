@@ -20,6 +20,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import axios from "axios";
 import { useToast } from "../../../context/ToastContext";
 import { getErrorMessage } from "../../../utils/errorUtils";
+import { formatDate } from "../../../utils/format";
 
 // General shift defaults — must match backend attendanceController.js fallbacks
 const DEFAULT_IN_TIME = "09:00";
@@ -332,7 +333,7 @@ const HRAttendance = () => {
         in_time: editRow.in_time || null,
         out_time: editRow.out_time || null,
         late_hrs: editRow.status === 'A' ? 0 : (editRow.late_hrs || 0),
-        ot_hrs: editRow.status === 'A' ? 0 : (editRow.ot_hrs || 0)
+        ot_hrs: (editRow.status === 'A' && !editRow.in_time) ? 0 : (editRow.ot_hrs || 0)
       });
       showToast("Attendance updated successfully", "success");
       setEditDialog(false);
@@ -755,7 +756,7 @@ const HRAttendance = () => {
             ) : (
               filteredAttendanceData.map((row) => (
                 <TableRow key={row.id} sx={{ "&:nth-of-type(odd)": { bgcolor: "#fafafa" } }}>
-                  <TableCell>{row.att_date}</TableCell>
+                  <TableCell>{formatDate(row.att_date)}</TableCell>
                   <TableCell>{row.empid}</TableCell>
                   <TableCell>{row.employee?.ename || "-"}</TableCell>
                   <TableCell>
@@ -1003,7 +1004,7 @@ const HRAttendance = () => {
                     const globalIdx = page * rowsPerPage + localIdx;
                     return (
                       <TableRow key={globalIdx} sx={{ bgcolor: row.dirty ? "#fff8e1" : row.hasExisting ? "#e8f5e9" : "#fff" }}>
-                        <TableCell>{row.att_date}</TableCell>
+                        <TableCell>{formatDate(row.att_date)}</TableCell>
                         <TableCell>{row.empid}</TableCell>
                         <TableCell>{row.ename}</TableCell>
                         <TableCell>
@@ -1194,7 +1195,7 @@ const HRAttendance = () => {
                 Employee: {editRow?.employee?.ename || editRow?.empid}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Date: {editRow?.att_date}
+                Date: {formatDate(editRow?.att_date)}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>

@@ -4,6 +4,7 @@ import { FiSave, FiPlus, FiSettings } from 'react-icons/fi';
 import PageHeader from '../../Common/PageHeader';
 import StatusChip from '../../Common/StatusChip';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 34 }, "& .MuiInputLabel-root": { fontSize: "0.88rem", mt: -0.25 } };
 
@@ -81,8 +82,8 @@ const AccountSettings = () => {
               {fys.map((fy) => (
                 <TableRow key={fy.id} sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
                   <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", fontWeight: 600 }}>{fy.name}</TableCell>
-                  <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{fy.start_date}</TableCell>
-                  <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{fy.end_date}</TableCell>
+                  <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{formatDate(fy.start_date)}</TableCell>
+                  <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{formatDate(fy.end_date)}</TableCell>
                   <TableCell sx={{ py: 0.5, borderBottom: "1px solid #f1f5f9" }}>
                     {fy.is_active ? <StatusChip status="active" /> : fy.is_closed ? <StatusChip status="closed" /> : <StatusChip status="open" />}
                   </TableCell>

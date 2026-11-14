@@ -6,6 +6,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
+import { formatDate } from '../../../../utils/format';
 
 const API = '/api/erp/stores/batches';
 const ITEM_API = '/api/erp/stores/items';
@@ -70,8 +71,8 @@ export default function BatchMaster() {
                   <TableCell>{b.item?.item_code || '-'}</TableCell>
                   <TableCell>{b.item?.item_name || '-'}</TableCell>
                   <TableCell align="right">{b.quantity}</TableCell>
-                  <TableCell>{b.mfg_date || '-'}</TableCell>
-                  <TableCell>{b.exp_date || '-'}</TableCell>
+                  <TableCell>{b.mfg_date ? formatDate(b.mfg_date) : '-'}</TableCell>
+                  <TableCell>{b.exp_date ? formatDate(b.exp_date) : '-'}</TableCell>
                   <TableCell>{b.is_active ? <span style={{ color: 'green' }}>Active</span> : <span style={{ color: 'gray' }}>Inactive</span>}</TableCell>
                   <TableCell align="right">
                     <IconButton size="small" color="primary" onClick={() => openEdit(b)}><EditIcon fontSize="small" /></IconButton>

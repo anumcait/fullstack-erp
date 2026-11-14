@@ -1,4 +1,4 @@
-const { WoffApplication, Payslip } = require('../../models');
+const { WoffApplication, Payslip, Attendance, ShiftSchedule, ShiftMaster, EmployeeMaster } = require('../../models');
 const { Sequelize, Op } = require('sequelize');
 const { nextSequenceNumber, LOCK_KEYS } = require('../../utils/docNumber');
 const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -11,6 +11,218 @@ const isPayrollFinalized = async (dateStr) => {
   const cnt = await Payslip.count({ where: { C_MONTH: m, C_YEAR: y, C_FINAL_STATUS: 2 } });
   return cnt > 0;
 };
+
+const toLocalDateStr = (val) => {
+  if (!val) return null;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getTimeMins = (timeStr) => {
+  if (!timeStr) return null;
+  const parts = String(timeStr).trim().split(':');
+  if (parts.length < 2) return null;
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(m)) return null;
+  return h * 60 + m;
+};
+
+const calculateOTHrs = (outTime, shiftEnd, shiftStart, inTime) => {
+  if (!outTime || !shiftEnd) return 0;
+  try {
+    const outMins = getTimeMins(outTime);
+    const shiftEndMins = getTimeMins(shiftEnd);
+    if (outMins === null || shiftEndMins === null) return 0;
+
+    let extraMins = outMins - shiftEndMins;
+    if (extraMins < 0 && outMins < 600) {
+      extraMins = (outMins + 1440) - shiftEndMins;
+    }
+    if (extraMins > 0) {
+      return extraMins / 60;
+    }
+    return 0;
+  } catch (e) {
+    return 0;
+  }
+};
+
+const decimalToHHMM = (decimalHours) => {
+  if (!decimalHours && decimalHours !== 0) return '';
+  const h = Math.floor(decimalHours);
+  const m = Math.round((decimalHours - h) * 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+const makeShiftDate = (timeStr) => {
+  if (!timeStr) return null;
+  const parts = String(timeStr).split(':');
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return new Date(Date.UTC(2000, 0, 1, h, m));
+};
+
+/**
+ * Synchronize an approved / cancelled Woff application to Attendance & ShiftSchedule.
+ * - fromDate: Original weekly off given up -> becomes working shift (default 'G'), W-off cancelled,
+ *             punches evaluated for Present and OT calculated.
+ * - toDate:   Compensatory day off -> becomes Weekly Off ('W'), woff_day = 1.00.
+ */
+const syncWoffToAttendanceAndSchedule = async (woff, isApproved, transaction = null) => {
+  try {
+    const opt = transaction ? { transaction } : {};
+    const empid = woff.empid;
+    const fromDate = toLocalDateStr(woff.woff_from_date);
+    const toDate = toLocalDateStr(woff.woff_to_date);
+    if (!empid || !fromDate || !toDate) return;
+
+    const shiftCd = woff.shift_cd || 'G';
+    const shiftMaster = await ShiftMaster.findOne({ where: { shift_cd: shiftCd } });
+    const shiftStart = shiftMaster?.start_time ? `${shiftMaster.start_time}:00`.slice(0, 8) : '09:00:00';
+    let shiftEnd = shiftMaster?.end_time ? `${shiftMaster.end_time}:00`.slice(0, 8) : '17:30:00';
+    if (getTimeMins(shiftEnd) === 1080) shiftEnd = '17:30:00';
+    const schedStart = makeShiftDate(shiftStart);
+    const schedEnd = makeShiftDate(shiftEnd);
+
+    if (isApproved) {
+      // 1. FROM DATE (Original W-Off given up to work)
+      const existingSchedFrom = await ShiftSchedule.findOne({
+        where: {
+          empid,
+          shift_date: {
+            [Op.between]: [new Date(`${fromDate}T00:00:00.000Z`), new Date(`${fromDate}T23:59:59.999Z`)]
+          }
+        }
+      });
+      if (existingSchedFrom) {
+        await existingSchedFrom.update({ shift_cd: shiftCd, shift_start_time: schedStart, shift_end_time: schedEnd }, opt);
+      } else {
+        await ShiftSchedule.create({ empid, shift_date: new Date(`${fromDate}T00:00:00.000Z`), shift_cd: shiftCd, shift_start_time: schedStart, shift_end_time: schedEnd }, opt);
+      }
+
+      const attFrom = await Attendance.findOne({ where: { empid, att_date: fromDate } });
+      if (attFrom) {
+        const updateData = {
+          shift: shiftCd,
+          shift_start: shiftStart,
+          shift_end: shiftEnd,
+          woff_day: 0.00,
+        };
+        if (attFrom.in_time && attFrom.out_time) {
+          updateData.status = 'P';
+          const ot = calculateOTHrs(attFrom.out_time, shiftEnd.slice(0, 5), shiftStart, attFrom.in_time);
+          updateData.ot_hrs = Math.round(ot * 100) / 100;
+          if (ot > 0) {
+            const otHHMM = decimalToHHMM(ot);
+            updateData.app_ot = otHHMM;
+            updateData.app_status = 1;
+            updateData.hr_app_ot = otHHMM;
+            updateData.hr_app_status = 1;
+            updateData.app_remarks = updateData.app_remarks || `Woff change to Shift ${shiftCd}`;
+            updateData.hr_remarks = updateData.hr_remarks || `Woff change to Shift ${shiftCd}`;
+          }
+        } else if (!attFrom.in_time && !attFrom.out_time) {
+          const isPast = new Date(fromDate) < new Date(new Date().toISOString().slice(0, 10));
+          updateData.status = 'A';
+          updateData.lop_days = isPast ? 1 : 0;
+        }
+        await attFrom.update(updateData, opt);
+      }
+
+      // 2. TO DATE (Compensatory weekly off granted)
+      const existingSchedTo = await ShiftSchedule.findOne({
+        where: {
+          empid,
+          shift_date: {
+            [Op.between]: [new Date(`${toDate}T00:00:00.000Z`), new Date(`${toDate}T23:59:59.999Z`)]
+          }
+        }
+      });
+      if (existingSchedTo) {
+        await existingSchedTo.update({ shift_cd: 'W', shift_start_time: null, shift_end_time: null }, opt);
+      } else {
+        await ShiftSchedule.create({ empid, shift_date: new Date(`${toDate}T00:00:00.000Z`), shift_cd: 'W', shift_start_time: null, shift_end_time: null }, opt);
+      }
+
+      const attTo = await Attendance.findOne({ where: { empid, att_date: toDate } });
+      if (attTo) {
+        const updateDataTo = {
+          shift: 'W',
+          shift_start: null,
+          shift_end: null,
+          woff_day: 1.00,
+          lop_days: 0.00,
+        };
+        if (!attTo.in_time && !attTo.out_time) {
+          updateDataTo.status = 'W';
+          updateDataTo.ot_hrs = 0.00;
+        }
+        await attTo.update(updateDataTo, opt);
+      }
+    } else {
+      // Revert if Cancelled / Rejected / Reopened
+      const attFrom = await Attendance.findOne({ where: { empid, att_date: fromDate } });
+      if (attFrom) {
+        const revertFrom = {
+          shift: 'W',
+          shift_start: null,
+          shift_end: null,
+          woff_day: 1.00,
+        };
+        if (!attFrom.in_time && !attFrom.out_time) {
+          revertFrom.status = 'W';
+          revertFrom.ot_hrs = 0.00;
+          revertFrom.app_status = 0;
+          revertFrom.hr_app_status = 0;
+        }
+        await attFrom.update(revertFrom, opt);
+      }
+      const schedFrom = await ShiftSchedule.findOne({
+        where: {
+          empid,
+          shift_date: {
+            [Op.between]: [new Date(`${fromDate}T00:00:00.000Z`), new Date(`${fromDate}T23:59:59.999Z`)]
+          }
+        }
+      });
+      if (schedFrom) {
+        await schedFrom.update({ shift_cd: 'W', shift_start_time: null, shift_end_time: null }, opt);
+      }
+
+      const attTo = await Attendance.findOne({ where: { empid, att_date: toDate } });
+      if (attTo) {
+        const revertTo = {
+          shift: 'G',
+          woff_day: 0.00,
+        };
+        if (!attTo.in_time && !attTo.out_time) {
+          revertTo.status = 'A';
+        }
+        await attTo.update(revertTo, opt);
+      }
+      const schedTo = await ShiftSchedule.findOne({
+        where: {
+          empid,
+          shift_date: {
+            [Op.between]: [new Date(`${toDate}T00:00:00.000Z`), new Date(`${toDate}T23:59:59.999Z`)]
+          }
+        }
+      });
+      if (schedTo) {
+        await schedTo.update({ shift_cd: 'G', shift_start_time: makeShiftDate('09:00:00'), shift_end_time: makeShiftDate('17:30:00') }, opt);
+      }
+    }
+  } catch (err) {
+    console.error('Error syncing Woff to Attendance/Schedule:', err);
+  }
+};
+
+exports.syncWoffToAttendanceAndSchedule = syncWoffToAttendanceAndSchedule;
 
 exports.getAllWoffs = async (req, res) => {
   try {
@@ -180,6 +392,8 @@ exports.approveWoff = async (req, res) => {
       approved_date: new Date()
     });
     
+    await syncWoffToAttendanceAndSchedule(woff, status === 'Approved');
+    
     res.json({ message: `Woff ${status}` });
   } catch (err) {
     console.error('Error approving woff:', err);
@@ -220,6 +434,8 @@ exports.approveWoffChange = async (req, res) => {
     if (remarks) application.remarks = remarks;
     await application.save();
 
+    await syncWoffToAttendanceAndSchedule(application, application.status === 'Approved');
+
     res.json({ success: true, message: `Woff application ${application.status.toLowerCase()}d successfully.` });
   } catch (error) {
     console.error('❌ Error approving Woff application:', error);
@@ -237,6 +453,7 @@ exports.cancelWoff = async (req, res) => {
     if (app.woff_to_date && await isPayrollFinalized(app.woff_to_date)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(app.woff_to_date).slice(0,7)} — cannot cancel.` });
 
     await app.update({ status: 'Cancelled', remarks: remarks });
+    await syncWoffToAttendanceAndSchedule(app, false);
     res.json({ success: true, message: "Woff approval cancelled" });
   } catch (error) {
     console.error(error);
@@ -254,6 +471,7 @@ exports.reopenWoff = async (req, res) => {
     if (app.woff_to_date && await isPayrollFinalized(app.woff_to_date)) return res.status(400).json({ success: false, message: `Payslip finalized for ${String(app.woff_to_date).slice(0,7)} — cannot reopen.` });
 
     await app.update({ status: 'Pending' });
+    await syncWoffToAttendanceAndSchedule(app, false);
     res.json({ success: true, message: "Woff application reopened" });
   } catch (error) {
     console.error(error);

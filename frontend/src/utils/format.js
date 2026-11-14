@@ -23,10 +23,44 @@ export const formatQty = (value) => {
   return n.toString();
 };
 
+export const formatCellValue = (val) => {
+  if (val == null || val === '') return '';
+  if (typeof val === 'string') {
+    const s = val.trim();
+    if (/^\d{2}-\d{2}-\d{4}/.test(s)) return s;
+    const m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{2}))?/);
+    if (m) {
+      const dd = String(m[3]).padStart(2, '0');
+      const mm = String(m[2]).padStart(2, '0');
+      const yyyy = m[1];
+      if (m[4] !== undefined && m[5] !== undefined) {
+        let hh = parseInt(m[4], 10);
+        const min = m[5];
+        const ampm = hh >= 12 ? 'PM' : 'AM';
+        hh = hh % 12 || 12;
+        return `${dd}-${mm}-${yyyy} ${hh}:${min} ${ampm}`;
+      }
+      return `${dd}-${mm}-${yyyy}`;
+    }
+  }
+  return val;
+};
+
 export const formatDate = (value) => {
-  if (!value) return '—';
+  if (!value || value === '-' || value === '—' || value === '--') return '—';
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (/^\d{2}-\d{2}-\d{4}/.test(s)) return s;
+    const m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (m) {
+      const yyyy = m[1];
+      const mm = String(m[2]).padStart(2, '0');
+      const dd = String(m[3]).padStart(2, '0');
+      return `${dd}-${mm}-${yyyy}`;
+    }
+  }
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return typeof value === 'string' ? value : '—';
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = d.getFullYear();
@@ -34,18 +68,37 @@ export const formatDate = (value) => {
 };
 
 export const formatDateTime = (value) => {
-  if (!value) return '—';
+  if (!value || value === '-' || value === '—') return '—';
+  if (typeof value === 'string') {
+    const s = value.trim();
+    const m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T\s](\d{1,2}):(\d{2})/);
+    if (m) {
+      const yyyy = m[1];
+      const mm = String(m[2]).padStart(2, '0');
+      const dd = String(m[3]).padStart(2, '0');
+      let hh = parseInt(m[4], 10);
+      const min = m[5];
+      const ampm = hh >= 12 ? 'PM' : 'AM';
+      hh = hh % 12 || 12;
+      return `${dd}-${mm}-${yyyy} ${hh}:${min} ${ampm}`;
+    }
+  }
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${dd}-${mm}-${yyyy} ${hours}:${minutes} ${ampm}`;
 };
 
 // Shows time only when the value carries a time component (date-only stays date-only).
 export const formatSmartDateTime = (value) => {
-  if (!value) return '—';
+  if (!value || value === '-' || value === '—') return '—';
   const raw = String(value).trim();
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
   const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw.slice(0, 10)) && raw.length === 10;
   return isDateOnly ? formatDate(value) : formatDateTime(value);
 };

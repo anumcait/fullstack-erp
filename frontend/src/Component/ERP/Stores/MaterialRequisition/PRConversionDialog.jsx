@@ -10,6 +10,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import ItemSelectDialog from "../ItemMaster/ItemSelectDialog";
+import { formatDate } from "../../../../utils/format";
 
 const ITEMS_API = "/api/erp/stores/items";
 const STOCK_API = "/api/erp/stores/stock";
@@ -141,7 +142,7 @@ export default function PRConversionDialog({ open, onClose, title, previewApi, c
               {docInfo && (
                 <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2, p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
                   <Typography variant="body2"><strong>Ref #:</strong> {docInfo.doc_no}</Typography>
-                  {docInfo.doc_date && <Typography variant="body2"><strong>Date:</strong> {docInfo.doc_date?.split("T")[0]}</Typography>}
+                  {docInfo.doc_date && <Typography variant="body2"><strong>Date:</strong> {formatDate(docInfo.doc_date)}</Typography>}
                   {docInfo.doc_department && <Typography variant="body2"><strong>Dept:</strong> {docInfo.doc_department}</Typography>}
                 </Box>
               )}

@@ -295,7 +295,7 @@ export default function AttendanceRequestTable() {
             const isPending = req?.request_status === "Pending";
             const isApproved = req?.request_status === "Approved";
             return (
-              <Box key={ds} onClick={() => canRegularize(ds) && setDialogDate(ds)} sx={{ bgcolor: "#fff", minHeight: 88, p: 1, borderRadius: 0, cursor: canRegularize(ds) ? "pointer" : "default", opacity: isFuture ? 0.45 : 1, position: "relative", border: isPending ? "1.5px solid #ef6c00" : isApproved ? "1.5px solid #2e7d32" : "1px solid transparent", bgcolor: isPending ? "#fff8e1" : isApproved ? "#e8f5e9" : "#fff", "&:hover": canRegularize(ds) ? { bgcolor: "#f4f6f8" } : {} }}>
+              <Box key={ds} onClick={() => canRegularize(ds) && setDialogDate(ds)} sx={{ minHeight: 88, p: 1, borderRadius: 0, cursor: canRegularize(ds) ? "pointer" : "default", opacity: isFuture ? 0.45 : 1, position: "relative", border: isPending ? "1.5px solid #ef6c00" : isApproved ? "1.5px solid #2e7d32" : "1px solid transparent", bgcolor: isPending ? "#fff8e1" : isApproved ? "#e8f5e9" : "#fff", "&:hover": canRegularize(ds) ? { bgcolor: "#f4f6f8" } : {} }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
                     <Typography fontSize={11} fontWeight={600} sx={{ width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: isToday ? theme.palette.primary.main : theme.palette.background.default, color: isToday ? "#fff" : theme.palette.text.primary, border: "1px solid #e0e0e0" }}>{day}</Typography>

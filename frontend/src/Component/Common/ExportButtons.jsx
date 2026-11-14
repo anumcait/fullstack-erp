@@ -6,13 +6,14 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useCompany } from '../../context/CompanyContext';
-import { formatDate } from '../../utils/format';
+import { formatDate, formatCellValue } from '../../utils/format';
 
 // columns: [{ field, header, type }]  rows: array of objects
 const ExportButtons = ({ title, columns, rows, fileName }) => {
   const { companyName } = useCompany();
 
-  const baseName = fileName || `${title || 'Report'}_${new Date().toISOString().slice(0, 10)}`;
+  const todayDmy = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}`;
+  const baseName = fileName || `${title || 'Report'}_${todayDmy}`;
 
   const exportExcel = () => {
     const data = rows.map((row) => {
@@ -20,6 +21,7 @@ const ExportButtons = ({ title, columns, rows, fileName }) => {
       columns.forEach((c) => {
         let v = row[c.field];
         if (c.type === 'date' && v) v = formatDate(v);
+        else v = formatCellValue(v);
         o[c.header] = v ?? '';
       });
       return o;
@@ -38,7 +40,8 @@ const ExportButtons = ({ title, columns, rows, fileName }) => {
       columns.map((c) => {
         let v = row[c.field];
         if (c.type === 'date' && v) v = formatDate(v);
-        if (typeof v === 'number') v = v.toLocaleString('en-IN');
+        else if (typeof v === 'number') v = v.toLocaleString('en-IN');
+        else v = formatCellValue(v);
         return v ?? '';
       })
     );

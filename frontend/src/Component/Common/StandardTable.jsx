@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import SmartTable from "./SmartTable";
+import { formatCellValue } from "../../utils/format";
 
 /**
  * StandardTable — a drop-in wrapper that adapts MUI DataGrid-style props
@@ -54,8 +55,11 @@ const StandardTable = ({
       align: col.type === "number" || col.align === "right" ? "right" : "left",
       width: col.width,
       render: col.renderCell
-        ? (row) => col.renderCell({ row, value: row[col.field], id: row.id, field: col.field })
-        : undefined,
+        ? (row) => {
+            const res = col.renderCell({ row, value: row[col.field], id: row.id, field: col.field });
+            return typeof res === "string" ? formatCellValue(res) : res;
+          }
+        : (row) => formatCellValue(row[col.field]),
     }));
   }, [columns]);
 

@@ -3,6 +3,7 @@ import { Box, Typography, TextField, Button, Card, CardContent, Table, TableHead
 import { FiSearch, FiTrendingUp, FiDownload } from 'react-icons/fi';
 import PageHeader from '../../Common/PageHeader';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 34 } };
 
@@ -101,7 +102,7 @@ const ProfitLoss = () => {
               <Typography variant="h5" sx={{ fontWeight: 800, color: data.net_profit >= 0 ? '#166534' : '#991b1b' }}>
                 {data.net_profit >= 0 ? 'Net Profit' : 'Net Loss'}: ₹{Math.abs(data.net_profit).toFixed(2)}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>For period {from} to {to}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>For period {formatDate(from)} to {formatDate(to)}</Typography>
             </CardContent>
           </Card>
         </>

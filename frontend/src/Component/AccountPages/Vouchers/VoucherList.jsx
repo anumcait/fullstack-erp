@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../Common/PageHeader';
 import StatusChip from '../../Common/StatusChip';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const TYPES = {
   'sales': { id: 1, title: 'Sales Invoices', icon: FiDollarSign, color: '#1976d2' },
@@ -71,7 +72,7 @@ const VoucherList = ({ type }) => {
                 {filtered.map((r, i) => (
                   <TableRow key={r.id} sx={{ "&:hover": { bgcolor: "#eef2ff" }, bgcolor: i % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
                     <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", fontFamily: 'monospace', fontWeight: 600 }}>{r.voucher_no}</TableCell>
-                    <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{r.date}</TableCell>
+                    <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{formatDate(r.date)}</TableCell>
                     <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{r.reference_no || '-'}</TableCell>
                     <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.narration || '-'}</TableCell>
                     <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", fontFamily: 'monospace' }}>{Number(r.total_debit || 0).toFixed(2)}</TableCell>

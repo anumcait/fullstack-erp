@@ -101,7 +101,7 @@ function PRTable({ rows, expandedId, setExpandedId, onApproveClick, onRejectClic
               <TableRow hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#f8fafc", transition: "background 0.1s", "&:hover": { bgcolor: "#eef2ff" }, "& td": { fontSize: "0.9rem", py: 0.75, borderBottom: "1px solid #f1f5f9" } }}>
                 <TableCell sx={{ color: "#94a3b8" }}>{idx + 1}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{row.req_no}</TableCell>
-                <TableCell>{row.req_date ? row.req_date.split("T")[0] : ""}</TableCell>
+                <TableCell>{row.req_date ? formatDate(row.req_date) : ""}</TableCell>
                 <TableCell>{row.department}</TableCell>
                 <TableCell>{row.requested_by}</TableCell>
                 <TableCell>{row.indent_type}</TableCell>
@@ -169,7 +169,7 @@ function ApproveDialog({ row, open, onClose, onConfirm }) {
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5, mb: 2 }}>
           <Box><Typography variant="caption" color="text.secondary">Req No</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{row.req_no}</Typography></Box>
-          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.req_date ? row.req_date.split("T")[0] : "—"}</Typography></Box>
+          <Box><Typography variant="caption" color="text.secondary">Date</Typography><Typography variant="body2">{row.req_date ? formatDate(row.req_date) : "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Department</Typography><Typography variant="body2">{row.department || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Requested By</Typography><Typography variant="body2">{row.requested_by || "—"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Indent Type</Typography><Typography variant="body2">{row.indent_type || "—"}</Typography></Box>

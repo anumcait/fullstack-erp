@@ -1,5 +1,18 @@
 export const formatDate = (date) => {
-  if (!date || date === "--") return "-";
+  if (!date || date === "--" || date === "-" || date === "—") return "-";
+
+  if (typeof date === 'string') {
+    const s = date.trim();
+    if (/^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
+    // Date only string YYYY-MM-DD
+    const mDateOnly = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (mDateOnly) {
+      const yyyy = mDateOnly[1];
+      const mm = String(mDateOnly[2]).padStart(2, '0');
+      const dd = String(mDateOnly[3]).padStart(2, '0');
+      return `${dd}-${mm}-${yyyy}`;
+    }
+  }
 
   let d;
   try {
@@ -10,12 +23,11 @@ export const formatDate = (date) => {
       const parts = date.split('-');
       if (parts.length === 3) {
         let yyyy, mm, dd;
-        // Smart format detection: Year is usually 4 digits
-        if (parts[0].length === 4) { // YYYY-MM-DD
+        if (parts[0].length === 4) {
           [yyyy, mm, dd] = parts.map(Number);
-        } else if (parts[2].length === 4) { // DD-MM-YYYY
+        } else if (parts[2].length === 4) {
           [dd, mm, yyyy] = parts.map(Number);
-        } else { // Fallback to legacy parsing but protect against small years
+        } else {
           [yyyy, mm, dd] = parts.map(Number);
           if (yyyy < 100) yyyy += 2000;
         }
@@ -30,13 +42,25 @@ export const formatDate = (date) => {
     return date;
   }
 
-  if (!d || isNaN(d.getTime())) return date;
+  if (!d || isNaN(d.getTime())) {
+    if (typeof date === 'string') {
+      const m = date.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+      if (m) return `${String(m[3]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}-${m[1]}`;
+    }
+    return date;
+  }
 
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   let hours = d.getHours();
   const minutes = String(d.getMinutes()).padStart(2, '0');
+
+  // If time is 00:00 and input didn't have time, return date only
+  if (typeof date === 'string' && !date.includes(':') && !date.includes('T')) {
+    return `${day}-${month}-${year}`;
+  }
+
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12 || 12;
 
@@ -44,36 +68,22 @@ export const formatDate = (date) => {
 };
 
 export const formatDateOnly = (date) => {
-  if (!date || date === "--") return "-";
-  let d;
-
-  try {
-    if (typeof date === 'string') {
-      if (date.includes('T')) {
-        d = new Date(date);
-      } else if (date.includes('-')) {
-        const parts = date.split('-');
-        if (parts.length === 3) {
-          let yyyy, mm, dd;
-          // Smart format detection
-          if (parts[0].length === 4) { // YYYY-MM-DD
-            [yyyy, mm, dd] = parts.map(Number);
-          } else if (parts[2].length === 4) { // DD-MM-YYYY
-            [dd, mm, yyyy] = parts.map(Number);
-          } else {
-            [yyyy, mm, dd] = parts.map(Number);
-            if (yyyy < 100) yyyy += 2000;
-          }
-          d = new Date(yyyy, mm - 1, dd);
-        } else {
-          d = new Date(date);
-        }
-      } else {
-        return date;
-      }
-    } else {
-      d = new Date(date);
+  if (!date || date === "--" || date === "-" || date === "—") return "-";
+  if (typeof date === 'string') {
+    const s = date.trim();
+    if (/^\d{2}-\d{2}-\d{4}/.test(s)) return s.slice(0, 10);
+    const m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (m) {
+      const yyyy = m[1];
+      const mm = String(m[2]).padStart(2, '0');
+      const dd = String(m[3]).padStart(2, '0');
+      return `${dd}-${mm}-${yyyy}`;
     }
+  }
+
+  let d;
+  try {
+    d = new Date(date);
   } catch (e) {
     return date;
   }

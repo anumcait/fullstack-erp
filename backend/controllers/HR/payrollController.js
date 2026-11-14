@@ -2,6 +2,8 @@ const { Payslip, EmployeeMaster, EmpSalary, EmpOfficial, Attendance, LeaveApplic
 const { getEffectiveSalary } = require('../../services/effectiveSalary');
 const { LATE_HALF_DAY_MIN, lateDeductionForMins } = require('../../constants/attendanceRules');
 const { Sequelize, Op } = require('sequelize');
+const PF_WAGES_CEILING = 25000;
+const PF_MAX_DEDUCTION = Math.round(PF_WAGES_CEILING * 0.12); // 3000
 
 function getMonthName(month) {
   const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -335,7 +337,7 @@ lateDed += lateDeductionForMins(minsLate, false, perHourGross, perDayGross);
 
         let dedPf = 0, dedEsi = 0, dedPt = 0;
         if (salary.IS_pf === 'Y') {
-          dedPf = Math.round(Math.min(earnedBasic * 0.12, 1800));
+          dedPf = Math.round(Math.min(earnedBasic * 0.12, PF_MAX_DEDUCTION));
         }
         if (salary.IS_esi === 'Y') {
           dedEsi = Math.ceil(earnedBasic * 0.0075);
@@ -777,7 +779,7 @@ exports.createPayslipByEmployee = async (req, res) => {
     const earnedGross = earnedBasic + earnedHra + earnedConv + earnedWA + earnedOt + attendanceBonus;
 
     let dedPf = 0, dedEsi = 0, dedPt = 0;
-    if (salary.IS_pf === 'Y') dedPf = Math.round(Math.min(earnedBasic * 0.12, 1800));
+    if (salary.IS_pf === 'Y') dedPf = Math.round(Math.min(earnedBasic * 0.12, PF_MAX_DEDUCTION));
     if (salary.IS_esi === 'Y') dedEsi = Math.ceil(earnedBasic * 0.0075);
     if (earnedGross < 15000) {
       dedPt = 0;

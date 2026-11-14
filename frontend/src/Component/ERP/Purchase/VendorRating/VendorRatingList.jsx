@@ -7,6 +7,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from "../../../../utils/format";
 
 const API = "/api/erp/purchase/vendor-ratings";
 
@@ -35,7 +36,7 @@ export default function VendorRatingList() {
 
   const columns = [
     { field: "supplier", headerName: "Supplier", width: 200, valueGetter: (v) => v?.supplier_name || "" },
-    { field: "rating_date", headerName: "Date", width: 110, valueGetter: (v) => v ? v.split("T")[0] : "" },
+    { field: "rating_date", headerName: "Date", width: 110, valueGetter: (v) => v ? formatDate(v) : "" },
     { field: "quality_score", headerName: "Quality", width: 100, renderCell: (p) => <Rating value={parseFloat(p.value || 0) / 2} readOnly size="small" precision={0.5} /> },
     { field: "delivery_score", headerName: "Delivery", width: 100, renderCell: (p) => <Rating value={parseFloat(p.value || 0) / 2} readOnly size="small" precision={0.5} /> },
     { field: "price_score", headerName: "Price", width: 100, renderCell: (p) => <Rating value={parseFloat(p.value || 0) / 2} readOnly size="small" precision={0.5} /> },

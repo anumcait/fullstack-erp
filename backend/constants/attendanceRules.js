@@ -5,8 +5,7 @@
 // drifted apart, so they live here now.
 //
 //   First late of month:
-//     <= 10 min -> exempt, no deduction
-//     > 10 min  -> half day deduction (perDayBasis/2)
+//     Exempt, no deduction
 //
 //   Subsequent lates:
 //     <= 30 min -> half hour deduction (perHourBasis/2)
@@ -20,8 +19,8 @@
 // caller must derive perHourBasis/perDayBasis from gross, so the payslip and the
 // muster roll charge the same amount.
 
-// First late of month: exempt if <= this many minutes
-const LATE_FIRST_EXEMPT_MIN = 10;
+// First late of month: exempt
+const LATE_FIRST_EXEMPT_MIN = 30;
 
 // Subsequent lates: at or below this many minutes -> half hour deduction
 //                    above this many minutes -> half day deduction
@@ -30,12 +29,13 @@ const LATE_HALF_DAY_MIN = 30;
 // This many hours late is treated as an afternoon arrival rather than a late coming.
 const LATE_AFTERNOON_HRS = 4;
 
-// Threshold for half-day LOP (loss of pay): 10 minutes in decimal hours
-const LATE_HALF_DAY_HRS = 10 / 60;
+// Threshold for half-day deduction / LOP: 30 minutes in decimal hours (0.5 hrs)
+const LATE_HALF_DAY_HRS = 30 / 60;
 
-const lopForLateHrs = (lateHrs) => {
+const lopForLateHrs = (lateHrs, isFirstLate = false) => {
+  if (isFirstLate) return 0;
   if (!(lateHrs > LATE_HALF_DAY_HRS)) return 0;
-  return lateHrs > LATE_AFTERNOON_HRS ? 1 : 0.5;
+  return lateHrs >= LATE_AFTERNOON_HRS ? 1 : 0.5;
 };
 
 const reportedLateHrs = (lateHrs) =>
@@ -50,9 +50,9 @@ const reportedLateHrs = (lateHrs) =>
  * @returns {number} amount to deduct
  */
 const lateDeductionForMins = (minsLate, isFirstLate, perHourBasis, perDayBasis) => {
-  // First late of month
+  // First late of month is exempt
   if (isFirstLate) {
-    return minsLate <= LATE_FIRST_EXEMPT_MIN ? 0 : perDayBasis / 2;
+    return 0;
   }
   // Subsequent lates:
   if (minsLate <= LATE_HALF_DAY_MIN) {

@@ -406,7 +406,6 @@ const LeaveGrid = ({ leaveDetails, setLeaveDetails, totalDays, onValidationError
                     </InputAdornment>
                   ),
                 }}
-                inputProps={{ maxLength: 10, id: `from-${i}`, style:{ fontWeight:600 } }}
                 sx={{ '& .MuiOutlinedInput-root':{ borderRadius:'10px', bgcolor:'#fff', '&.Mui-focused fieldset':{ borderColor:'primary.main', borderWidth:'1.5px' } } }}
               />
             </Box>

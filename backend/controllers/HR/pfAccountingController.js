@@ -4,7 +4,7 @@ const { Op, Sequelize } = require('sequelize');
 const PF_EMPLOYEE_RATE = 0.12;
 const EPS_RATE = 0.0367;
 const EPF_RATE = 0.0833;
-const PF_WAGES_CEILING = 15000;
+const PF_WAGES_CEILING = 25000;
 
 // ===== LEDGER =====
 exports.getLedger = async (req, res) => {

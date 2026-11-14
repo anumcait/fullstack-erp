@@ -8,6 +8,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '../../../../utils/format';
 
 const API = '/api/erp/stores/gate-entry';
 
@@ -35,7 +36,7 @@ export default function GateEntryList() {
 
   const columns = [
     { field: 'entry_no', headerName: 'Entry #', width: 140 },
-    { field: 'entry_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? v.split('T')[0] : '' },
+    { field: 'entry_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? formatDate(v) : '' },
     {
       field: 'entry_type', headerName: 'Type', width: 100,
       renderCell: (p) => <Chip label={p.value} size="small" color={typeColors[p.value] || 'default'} />,

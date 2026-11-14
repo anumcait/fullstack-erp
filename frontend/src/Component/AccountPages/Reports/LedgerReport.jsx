@@ -3,6 +3,7 @@ import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem, 
 import { FiSearch, FiBookOpen, FiDownload } from 'react-icons/fi';
 import PageHeader from '../../Common/PageHeader';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const fsx = { "& .MuiInputBase-root": { fontSize: "0.88rem", height: 34 }, "& .MuiInputLabel-root": { fontSize: "0.88rem", mt: -0.25 } };
 
@@ -85,7 +86,7 @@ const LedgerReport = () => {
                   </TableRow>
                   {data.entries?.map((e, i) => (
                     <TableRow key={i} sx={{ "&:hover": { bgcolor: "#eef2ff" }, bgcolor: i % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
-                      <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{e.date}</TableCell>
+                      <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{formatDate(e.date)}</TableCell>
                       <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", fontFamily: 'monospace' }}>{e.voucher_no}</TableCell>
                       <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9" }}>{e.voucher_type}</TableCell>
                       <TableCell sx={{ fontSize: "0.82rem", py: 0.75, borderBottom: "1px solid #f1f5f9", maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.narration}</TableCell>

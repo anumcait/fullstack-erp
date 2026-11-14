@@ -15,7 +15,7 @@ import SendIcon from '@mui/icons-material/Send';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
-import { formatQty } from '../../../../utils/format';
+import { formatQty, formatDate } from '../../../../utils/format';
 import PRConversionDialog from './PRConversionDialog';
 
 const API = '/api/erp/stores/material-requisitions';
@@ -215,7 +215,7 @@ export default function MaterialRequisitionList() {
           <DialogContent dividers>
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
               <Typography variant="body2"><strong>MR #:</strong> {detailsDlg.data.req_no}</Typography>
-              <Typography variant="body2"><strong>Date:</strong> {detailsDlg.data.req_date?.replace("T", " ").slice(0, 16)}</Typography>
+              <Typography variant="body2"><strong>Date:</strong> {formatDate(detailsDlg.data.req_date)}</Typography>
               <Typography variant="body2"><strong>Department:</strong> {detailsDlg.data.department}</Typography>
               <Typography variant="body2"><strong>Requested By:</strong> {detailsDlg.data.requested_by}</Typography>
               <Typography variant="body2"><strong>Status:</strong> <Chip label={detailsDlg.data.status} size="small" color={statusColors[detailsDlg.data.status] || 'default'} /></Typography>
@@ -263,7 +263,7 @@ export default function MaterialRequisitionList() {
           <DialogContent dividers>
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
               <Typography variant="body2"><strong>MR #:</strong> {confirm.data.req_no}</Typography>
-              <Typography variant="body2"><strong>Date:</strong> {confirm.data.req_date?.split("T")[0]}</Typography>
+              <Typography variant="body2"><strong>Date:</strong> {formatDate(confirm.data.req_date)}</Typography>
               <Typography variant="body2"><strong>Department:</strong> {confirm.data.department}</Typography>
               <Typography variant="body2"><strong>Requested By:</strong> {confirm.data.requested_by}</Typography>
               <Typography variant="body2"><strong>Status:</strong> {confirm.data.status}</Typography>
@@ -338,7 +338,7 @@ export default function MaterialRequisitionList() {
           <DialogContent dividers>
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
               <Typography variant="body2"><strong>MR #:</strong> {submitDlg.data.req_no}</Typography>
-              <Typography variant="body2"><strong>Date:</strong> {submitDlg.data.req_date?.split("T")[0]}</Typography>
+              <Typography variant="body2"><strong>Date:</strong> {formatDate(submitDlg.data.req_date)}</Typography>
               <Typography variant="body2"><strong>Department:</strong> {submitDlg.data.department}</Typography>
               <Typography variant="body2"><strong>Requested By:</strong> {submitDlg.data.requested_by}</Typography>
               <Typography variant="body2"><strong>Status:</strong> {submitDlg.data.status}</Typography>

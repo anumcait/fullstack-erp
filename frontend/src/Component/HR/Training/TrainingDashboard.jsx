@@ -9,6 +9,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
+import { formatDate } from '../../../utils/format';
 
 const API = '/api/training';
 const EMP_API = '/api/employees';
@@ -272,8 +273,8 @@ export default function TrainingDashboard() {
                       <TableCell>{course?.course_name || s.course_id}</TableCell>
                       <TableCell>{s.trainer}</TableCell>
                       <TableCell>{s.mode}</TableCell>
-                      <TableCell>{s.start_date}</TableCell>
-                      <TableCell>{s.end_date}</TableCell>
+                      <TableCell>{formatDate(s.start_date)}</TableCell>
+                      <TableCell>{formatDate(s.end_date)}</TableCell>
                       <TableCell><Chip label={s.status} size="small" /></TableCell>
                       <TableCell>
                         <Button size="small" onClick={() => openParticipantForm(s.id)}>Participants</Button>
@@ -315,8 +316,8 @@ export default function TrainingDashboard() {
                     <TableRow key={c.id}>
                       <TableCell>{c.certification_name}</TableCell>
                       <TableCell>{c.issued_by}</TableCell>
-                      <TableCell>{c.issued_date}</TableCell>
-                      <TableCell>{c.expiry_date || '-'}</TableCell>
+                      <TableCell>{formatDate(c.issued_date)}</TableCell>
+                      <TableCell>{c.expiry_date ? formatDate(c.expiry_date) : '-'}</TableCell>
                       <TableCell>
                         <IconButton size="small" color="error" onClick={() => deleteCert(c.id)}><DeleteIcon /></IconButton>
                       </TableCell>

@@ -8,6 +8,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '../../../../utils/format';
 
 const API = '/api/erp/stores/stock-audit';
 
@@ -34,7 +35,7 @@ export default function StockAuditList() {
 
   const columns = [
     { field: 'audit_no', headerName: 'Audit #', width: 130 },
-    { field: 'audit_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? v.split('T')[0] : '' },
+    { field: 'audit_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? formatDate(v) : '' },
     { field: 'warehouse', headerName: 'Warehouse', width: 150 },
     { field: 'auditor', headerName: 'Auditor', width: 150 },
     {

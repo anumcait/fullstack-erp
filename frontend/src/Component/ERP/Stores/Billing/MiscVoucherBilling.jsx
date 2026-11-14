@@ -10,6 +10,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import { useToast } from "../../../../context/ToastContext";
+import { formatDate } from "../../../../utils/format";
 
 const API = "/api/erp/stores/misc-vouchers";
 const today = () => new Date().toISOString().split("T")[0];
@@ -206,7 +207,7 @@ export default function MiscVoucherBilling() {
                         </TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#64748b" }}>{idx + 1}</TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center", fontWeight: 600, color: "#1565c0" }}>{r.voucher_no}</TableCell>
-                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{r.voucher_date || "-"}</TableCell>
+                        <TableCell sx={{ ...tdSx, textAlign: "center" }}>{r.voucher_date ? formatDate(r.voucher_date) : "-"}</TableCell>
                         <TableCell sx={{ ...tdSx, textAlign: "center" }}>
                           <Chip size="small" label={r.voucher_type} color={typeColor[r.voucher_type] || "default"} sx={{ fontSize: "0.7rem", height: 22, fontWeight: 600 }} />
                         </TableCell>

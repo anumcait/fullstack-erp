@@ -44,12 +44,18 @@ const hhmmToDecimalHrs = (v) => {
 const computeLateSummary = (emp) => {
   const days = emp.days || [];
   let lateCount = 0, totalLateMin = 0, halfDays = 0;
+  let isFirstLate = true;
   const dayLate = days.map((d) => {
     const dec = hhmmToDecimalHrs(d.late_hrs);
     if (dec > 0) {
       lateCount++;
-      totalLateMin += Math.round(dec * 60);
-      if (dec > 2) halfDays += 1;
+      const mins = Math.round(dec * 60);
+      totalLateMin += mins;
+      if (isFirstLate) {
+        isFirstLate = false;
+      } else {
+        if (mins > 30) halfDays += 1;
+      }
     }
     return dec;
   });
@@ -325,7 +331,6 @@ const MusterRoll = () => {
       W: { bg: "#f3e5f5", text: "#7b1fa2" },
       CL: { bg: "#fff8e1", text: "#f57f17" },
       EL: { bg: "#e0f2f1", text: "#00695c" },
-      SL: { bg: "#fbe9e7", text: "#d84315" },
       Leave: { bg: "#fffde7", text: "#f57f17" },
       L: { bg: "#fffde7", text: "#f57f17" },
     };
@@ -1060,7 +1065,6 @@ for (const emp of catEmployees) {
               <Chip label="W: Weekly Off" size="small" sx={{ bgcolor: "#f3e5f5", color: "#7b1fa2", fontWeight: "500" }} />
               <Chip label="CL: Casual Leave" size="small" sx={{ bgcolor: "#fff8e1", color: "#f57f17", fontWeight: "500" }} />
               <Chip label="EL: Earned Leave" size="small" sx={{ bgcolor: "#e0f2f1", color: "#00695c", fontWeight: "500" }} />
-              <Chip label="SL/ML: Medical/Special Leave" size="small" sx={{ bgcolor: "#fbe9e7", color: "#d84315", fontWeight: "500" }} />
             </Box>
           </>
         ))}
@@ -1149,7 +1153,7 @@ function LateComingReport({ musterData, daysInMonth, filters, months }) {
       >
         <strong>Late Coming Criteria:</strong> Late is calculated from shift start time (grace 0 min).
         Late minutes shown per date in HH.MM format (e.g. 0.05 = 5 min, 1.30 = 1h 30m).
-        Late &gt; 10 min → Half Day. The first late of the month is exempt, so Actual Hrs = Late Count − 1
+        Late &gt; 30 min → Half Day. The first late of the month is exempt, so Actual Hrs = Late Count − 1
         (e.g. 5 lates → 4 actual). Cost = (no. of half days × half day gross) + (no. of half hours × half hour gross),
         where a late ≤ 30 min counts as a half hour and &gt; 30 min counts as a half day.
       </Box>
@@ -1252,7 +1256,7 @@ function LateComingReport({ musterData, daysInMonth, filters, months }) {
                           <TableCell
                             key={d}
                             align="center"
-                            sx={{ color: dec > 2 ? "#e65100" : dec > 0 ? "#f57f17" : "inherit", fontWeight: dec > 0 ? "bold" : "normal", bgcolor: dec > 0 ? "#fff3e0" : "inherit" }}
+                            sx={{ color: Math.round(dec * 60) > 30 ? "#e65100" : dec > 0 ? "#f57f17" : "inherit", fontWeight: dec > 0 ? "bold" : "normal", bgcolor: dec > 0 ? "#fff3e0" : "inherit" }}
                           >
                             {val}
                           </TableCell>

@@ -9,6 +9,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 import { useToast } from '../../../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '../../../../utils/format';
 
 const API = '/api/erp/stores/material-returns';
 
@@ -35,7 +36,7 @@ export default function MaterialReturnList() {
 
   const columns = [
     { field: 'return_no', headerName: 'Return #', width: 130 },
-    { field: 'return_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? v.split('T')[0] : '' },
+    { field: 'return_date', headerName: 'Date', width: 110, valueGetter: (v) => v ? formatDate(v) : '' },
     { field: 'return_type', headerName: 'Type', width: 140 },
     { field: 'party_name', headerName: 'Party', width: 200 },
     { field: 'reference_no', headerName: 'Ref #', width: 130 },
