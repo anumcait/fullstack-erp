@@ -1,15 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { requirePermission } = require('../../middleware/auth');
-const { HR_PERMISSIONS } = require('../../constants/permissions');
 const settingsController = require('../../controllers/HR/settingsController');
 
-const isAuthenticated = (req, res, next) => {
-  if (req.session.user) return next();
-  res.status(401).json({ message: 'Not logged in' });
-};
-
+// Company settings routes:
+// - GET /api/settings/company: public (read-only branding)
+// - POST /api/settings/company: first-run setup is public; subsequent updates require auth & permissions (enforced in controller)
 router.get('/company', settingsController.getCompanySettings);
-router.post('/company', isAuthenticated, requirePermission(HR_PERMISSIONS.SETTINGS), settingsController.updateCompanySettings);
+router.post('/company', settingsController.updateCompanySettings);
 
 module.exports = router;

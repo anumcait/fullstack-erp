@@ -22,9 +22,15 @@ exports.updateCompanySettings = async (req, res) => {
         let settings = await CompanySettings.findOne();
 
         if (settings) {
-            // Existing company: only an authenticated user may modify it.
+            // Existing company: only an authenticated user with permission may modify it.
             if (!req.session || !req.session.user) {
-                return res.status(403).json({ error: 'Login required to update company settings.' });
+                return res.status(401).json({ error: 'Login required to update company settings.' });
+            }
+            const user = req.session.user;
+            const perms = Array.isArray(user.permissions) ? user.permissions : [];
+            const isAuthorized = String(user.role).toUpperCase() === 'ADMIN' || perms.includes('*') || perms.includes('SETTINGS');
+            if (!isAuthorized) {
+                return res.status(403).json({ error: 'Forbidden. Missing permission: SETTINGS' });
             }
             await settings.update({
                 company_name, short_name, title, address, phone, email, website,
