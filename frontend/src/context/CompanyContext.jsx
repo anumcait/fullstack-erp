@@ -74,13 +74,25 @@ export const CompanyProvider = ({ children }) => {
         : '';
 
     useEffect(() => {
-        const cachedLogo = localStorage.getItem('cached_logo_url') || '';
-        const cachedFav = localStorage.getItem('cached_favicon_url') || '';
-        const url = companySettings?.favicon_url || companySettings?.logo_url || cachedFav || cachedLogo;
+        const url = companySettings?.favicon_url || companySettings?.logo_url;
         const link = document.getElementById('favicon');
-        if (link && url) link.href = url;
-        if (companySettings?.logo_url) localStorage.setItem('cached_logo_url', companySettings.logo_url);
-        if (companySettings?.favicon_url) localStorage.setItem('cached_favicon_url', companySettings.favicon_url);
+        if (link) {
+            if (url && url !== '/logo.png') {
+                link.href = url;
+            } else {
+                link.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231976d2'/%3E%3Ctext x='50%25' y='68%25' font-size='55' font-weight='bold' font-family='sans-serif' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E";
+            }
+        }
+        if (companySettings?.logo_url && companySettings.logo_url !== '/logo.png') {
+            localStorage.setItem('cached_logo_url', companySettings.logo_url);
+        } else {
+            localStorage.removeItem('cached_logo_url');
+        }
+        if (companySettings?.favicon_url && companySettings.favicon_url !== '/logo.png') {
+            localStorage.setItem('cached_favicon_url', companySettings.favicon_url);
+        } else {
+            localStorage.removeItem('cached_favicon_url');
+        }
     }, [companySettings?.favicon_url, companySettings?.logo_url]);
 
     return (
