@@ -13,15 +13,7 @@ export default defineConfig({
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
       'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization, ngrok-skip-browser-warning',
     },
-    allowedHosts: [
-      'caprice-endamebic-lyndon.ngrok-free.dev',
-      '.ngrok-free.dev',
-      '.ngrok-free.app',
-      '.ngrok.io',
-      '.ngrok.app',
-      'localhost',
-      '127.0.0.1',
-    ],
+    allowedHosts: true,
     hmr: {
       clientPort: 443,
     },
