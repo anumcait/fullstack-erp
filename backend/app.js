@@ -40,6 +40,9 @@ const pfAccountingRoutes = require('./routes/HR/pfAccountingRoutes');
 const app = express();
 const logger = require('./utils/logger');
 
+// Trust proxy before session & rate limiters behind reverse proxy (Cloudflare, Nginx, Docker)
+app.set('trust proxy', 1);
+
 // Allowed origins for CORS
 const allowedOrigins = [
   'http://localhost',
@@ -105,7 +108,7 @@ app.use(session({
   saveUninitialized: false,
   rolling: true,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: 'auto',
     httpOnly: true,
     maxAge: IDLE_TIMEOUT_MS,
     sameSite: 'lax'
@@ -113,9 +116,6 @@ app.use(session({
 }));
 app.locals.SESSION_IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MS;
 app.locals.SESSION_ABSOLUTE_TIMEOUT_MS = ABSOLUTE_TIMEOUT_MS;
-
-// Trust proxy for rate limiting behind reverse proxy (nginx, Docker, etc.)
-app.set('trust proxy', 1);
 
 // Rate limiting
 app.use('/api/', apiLimiter); // General API rate limit

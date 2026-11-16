@@ -25,8 +25,9 @@ const ChangePasswordForm = () => {
       return;
     }
     setLoading(true);
+    const username = localStorage.getItem('userName') || '';
     try {
-      await axios.post('/api/auth/change-password', { oldPassword, newPassword });
+      await axios.post('/api/auth/change-password', { oldPassword, newPassword, username }, { withCredentials: true });
       sessionStorage.removeItem('mustChangePassword');
       setSuccess("Password changed successfully! Redirecting...");
       setTimeout(() => navigate('/dashboard'), 1200);

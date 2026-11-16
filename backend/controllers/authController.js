@@ -214,20 +214,24 @@ exports.me = async (req, res) => {
 };
 
 exports.changePassword = async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
-  if (!req.session || !req.session.user) {
-    return res.status(401).json({ message: 'Login required to change password.' });
-  }
+  const { oldPassword, newPassword, username } = req.body;
   if (!oldPassword || !newPassword) {
     return res.status(400).json({ message: 'Old and new password are required.' });
   }
   if (newPassword.length < 4) {
     return res.status(400).json({ message: 'New password must be at least 4 characters.' });
   }
+
   try {
-    const user = await User.findByPk(req.session.user.id);
+    let user = null;
+    if (req.session && req.session.user) {
+      user = await User.findByPk(req.session.user.id);
+    } else if (username) {
+      user = await User.findOne({ where: { username } });
+    }
+
     if (!user || !user.is_active) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(401).json({ message: 'Login required to change password.' });
     }
 
     const match = await bcrypt.compare(oldPassword, user.password_hash);
@@ -243,6 +247,18 @@ exports.changePassword = async (req, res) => {
       password_changed_at: new Date(),
       failed_attempts: 0
     });
+
+    if (req.session) {
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        empid: user.empid,
+        role: user.role,
+        permissions: user.permissions,
+        ename: user.ename,
+        mustChangePassword: false
+      };
+    }
 
     res.json({ message: 'Password changed successfully.' });
   } catch (err) {
