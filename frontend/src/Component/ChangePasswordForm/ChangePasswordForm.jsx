@@ -25,12 +25,18 @@ const ChangePasswordForm = () => {
       return;
     }
     setLoading(true);
-    const username = localStorage.getItem('userName') || '';
+    const username = localStorage.getItem('userName')
+      || sessionStorage.getItem('userName')
+      || sessionStorage.getItem('changePasswordUsername')
+      || localStorage.getItem('rememberedUsername')
+      || '';
     try {
       await axios.post('/api/auth/change-password', { oldPassword, newPassword, username }, { withCredentials: true });
       sessionStorage.removeItem('mustChangePassword');
       setSuccess("Password changed successfully! Redirecting...");
-      setTimeout(() => navigate('/dashboard'), 1200);
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1200);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to change password.');
     } finally {

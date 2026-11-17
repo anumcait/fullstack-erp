@@ -226,12 +226,21 @@ exports.changePassword = async (req, res) => {
     let user = null;
     if (req.session && req.session.user) {
       user = await User.findByPk(req.session.user.id);
-    } else if (username) {
-      user = await User.findOne({ where: { username } });
+    } else if (username && username.trim()) {
+      user = await User.findOne({ where: { username: username.trim() } });
+    } else {
+      // Fallback: match user by verifying oldPassword against active users
+      const allActive = await User.findAll({ where: { is_active: true } });
+      for (const u of allActive) {
+        if (await bcrypt.compare(oldPassword, u.password_hash)) {
+          user = u;
+          break;
+        }
+      }
     }
 
     if (!user || !user.is_active) {
-      return res.status(401).json({ message: 'Login required to change password.' });
+      return res.status(401).json({ message: 'Current password is incorrect.' });
     }
 
     const match = await bcrypt.compare(oldPassword, user.password_hash);
