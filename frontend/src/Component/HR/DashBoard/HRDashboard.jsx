@@ -182,7 +182,7 @@ const HRDashboard = () => {
   const isStale = coverageDate && coverageDate !== todayStr;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300 animate-fadeIn">
+    <div className="min-h-screen bg-slate-50 p-2 sm:p-4 transition-all duration-300 animate-fadeIn">
       {isStale && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <p className="text-sm font-bold text-amber-800">⚠️ Attendance data up to <span className="underline">{fmt(coverageDate)}</span> only (today {fmt(todayStr)}). Generate Shift Schedule / HR Attendance for {fmt(coverageDate)} → {fmt(todayStr)} via perfect flow.</p>
@@ -199,7 +199,7 @@ const HRDashboard = () => {
             Strategic Workforce Management Hub
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={fetchAll}
             className="px-3 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[var(--primary-main)] transition"
@@ -229,7 +229,7 @@ const HRDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8 animate-fadeIn">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-6 mb-6 sm:mb-8 animate-fadeIn">
         <KpiCard
           title="Headcount"
           icon={<FaUsers size={24} className="text-blue-500" />}

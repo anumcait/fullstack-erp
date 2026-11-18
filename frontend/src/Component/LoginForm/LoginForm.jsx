@@ -165,7 +165,7 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#eaf2ff] px-4">
+    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#eaf2ff] px-3 sm:px-4 py-4 sm:py-8 box-border">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 overflow-hidden">
 
         {/* Left Illustration */}
@@ -183,7 +183,7 @@ const LoginForm = () => {
         </div>
 
         {/* Right Login Panel */}
-        <div className="flex flex-col justify-center px-8 py-10 relative overflow-hidden">
+        <div className="flex flex-col justify-center px-4 sm:px-8 py-6 sm:py-10 relative overflow-hidden">
           {/* Subtle decorative background glow */}
           <div className="absolute -top-24 -right-24 w-80 h-80 bg-[#56c7be]/10 blur-[100px] rounded-full"></div>
 
@@ -194,7 +194,7 @@ const LoginForm = () => {
               <div className="absolute -inset-2 bg-gradient-to-r from-[#56c7be] via-[#214c94] to-[#56c7be] rounded-full blur-md opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
 
               {/* Logo Container */}
-              <div className="relative w-28 h-28 rounded-full border-4 border-white shadow-2xl p-2 bg-white flex items-center justify-center transform transition-all duration-700 hover:rotate-[360deg] hover:scale-105 active:scale-95">
+              <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-2xl p-2 bg-white flex items-center justify-center transform transition-all duration-700 hover:rotate-[360deg] hover:scale-105 active:scale-95">
                 {logoUrl ? (
                   <img
                     src={logoUrl}
@@ -207,16 +207,16 @@ const LoginForm = () => {
               </div>
             </div>
 
-            <div className="text-center mt-6">
+            <div className="text-center mt-4 sm:mt-6">
               <span className="text-[#56c7be] text-[10px] font-black tracking-[0.5em] uppercase mb-1 block opacity-100 drop-shadow-sm">
                 Welcome to
               </span>
               <h2 className="font-black leading-none tracking-tighter flex items-baseline justify-center">
-                <span className="text-4xl bg-gradient-to-tr from-[#56c7be] via-[#214c94] to-[#1e3a8a] bg-clip-text text-transparent uppercase drop-shadow-sm select-none">
+                <span className="text-2xl sm:text-4xl bg-gradient-to-tr from-[#56c7be] via-[#214c94] to-[#1e3a8a] bg-clip-text text-transparent uppercase drop-shadow-sm select-none">
                   {companyShortName ? companyShortName.trim() : 'ERP'}
                 </span>
                 {companyShortName && (
-                  <span className="text-4xl text-orange-500 drop-shadow-[0_2px_10px_rgba(249,115,22,0.3)] uppercase ml-1">
+                  <span className="text-2xl sm:text-4xl text-orange-500 drop-shadow-[0_2px_10px_rgba(249,115,22,0.3)] uppercase ml-1">
                     ERP
                   </span>
                 )}
@@ -246,7 +246,7 @@ const LoginForm = () => {
                   required
                   className="w-full px-4 py-3 mb-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 focus:border-[#56c7be] bg-white/50"
                 />
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className="block mb-2 text-sm font-semibold text-gray-700">Short Name (brand)</label>
                     <input
@@ -278,7 +278,7 @@ const LoginForm = () => {
                   onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })}
                   className="w-full px-4 py-3 mb-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50 resize-none"
                 />
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className="block mb-2 text-sm font-semibold text-gray-700">GSTIN</label>
                     <input type="text" placeholder="GSTIN" value={companyForm.gstin} onChange={(e) => setCompanyForm({ ...companyForm, gstin: e.target.value })} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50" />
@@ -288,7 +288,7 @@ const LoginForm = () => {
                     <input type="text" placeholder="PAN" value={companyForm.pan} onChange={(e) => setCompanyForm({ ...companyForm, pan: e.target.value })} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className="block mb-2 text-sm font-semibold text-gray-700">Phone</label>
                     <input type="text" placeholder="Phone" value={companyForm.phone} onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#56c7be]/50 bg-white/50" />

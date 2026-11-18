@@ -62,14 +62,26 @@ const AccountsDashboard = () => {
       />
 
       <Card sx={{ mb: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }}>
-        <Stack direction="row" divider={<Box sx={{ borderRight: '1px solid', borderColor: 'divider' }} />} sx={{ overflow: 'hidden' }}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+          '& > div:not(:last-child)': {
+            borderRight: { sm: '1px solid' },
+            borderBottom: { xs: '1px solid', sm: 'none' },
+            borderColor: 'divider',
+          },
+          '& > div:nth-of-type(odd)': {
+            borderRight: '1px solid',
+            borderColor: 'divider',
+          },
+        }}>
           {heroStats.map((s, i) => (
-            <Box key={i} sx={{ flex: 1, p: 2, textAlign: 'center' }}>
+            <Box key={i} sx={{ p: { xs: 1.25, sm: 2 }, textAlign: 'center' }}>
               <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'text.secondary', mb: 0.5 }}>{s.label}</Typography>
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1, letterSpacing: -0.5, color: s.color }}>{s.value}</Typography>
+              <Typography sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, fontWeight: 800, lineHeight: 1, letterSpacing: -0.5, color: s.color }}>{s.value}</Typography>
             </Box>
           ))}
-        </Stack>
+        </Box>
       </Card>
 
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexDirection: { xs: 'column', md: 'row' } }}>

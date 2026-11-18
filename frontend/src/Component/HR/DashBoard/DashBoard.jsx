@@ -84,8 +84,8 @@ export default function DashboardTabs() {
         <div className="bg-slate-50 min-h-screen">
             {/* Tab Navigation - Shown only if the user has access to more than 1 dashboard */}
             {accessibleTabs.length > 1 && (
-                <div className="p-4 bg-slate-50 pb-0">
-                    <div className="flex flex-wrap justify-center gap-3">
+                <div className="p-2 sm:p-4 bg-slate-50 pb-0">
+                    <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                         {accessibleTabs.map((tab) => {
                             const isActive = activeTab === tab.name;
                             return (
@@ -96,10 +96,10 @@ export default function DashboardTabs() {
                                         backgroundColor: isActive ? 'var(--primary-main)' : '#ffffff',
                                         color: isActive ? '#ffffff' : '#334155',
                                         borderColor: isActive ? 'var(--primary-main)' : '#cbd5e1',
-                                        transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                                        transform: isActive ? 'scale(1.02)' : 'scale(1)',
                                         boxShadow: isActive ? '0 4px 12px rgba(15, 23, 42, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)',
                                     }}
-                                    className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-200 font-sans font-semibold text-sm border ${isActive ? 'border' : 'hover:bg-slate-50'}`}
+                                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl flex items-center gap-1.5 sm:gap-2 transition-all duration-200 font-sans font-semibold text-xs sm:text-sm border ${isActive ? 'border' : 'hover:bg-slate-50'}`}
                                 >
                                     {tab.icon}
                                     <span>{tab.label}</span>

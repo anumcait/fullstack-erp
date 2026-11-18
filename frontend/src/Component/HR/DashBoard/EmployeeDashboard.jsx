@@ -93,7 +93,7 @@ const EmployeeDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300">
+    <div className="min-h-screen bg-slate-50 p-2 sm:p-4 transition-all duration-300">
       {/* Header */}
       <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200">
         <div>

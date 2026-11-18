@@ -164,7 +164,7 @@ const ManagerDashboard = () => {
   const isStale = summary.effectiveDate && summary.effectiveDate !== todayStr;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 transition-all duration-300 animate-fadeIn">
+    <div className="min-h-screen bg-slate-50 p-2 sm:p-4 transition-all duration-300 animate-fadeIn">
       {isStale && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <p className="text-sm font-bold text-amber-800">⚠️ Team attendance up to <span className="underline">{summary.effectiveDate}</span> only (today {todayStr}). Enter via HR Attendance / Shift Schedule.</p>
@@ -179,7 +179,7 @@ const ManagerDashboard = () => {
             Welcome back, <span className="text-[var(--primary-main)]">{managerName}</span> — team overview
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Live attendance rate badge */}
           <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
             <span className="text-xs font-bold text-green-700">{attendanceRate}% Present</span>
@@ -200,7 +200,7 @@ const ManagerDashboard = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fadeIn">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8 animate-fadeIn">
         <KpiCard
           title="Total Team"
           icon={<FaUsers className="text-green-500 text-2xl" />}
@@ -304,7 +304,7 @@ const ManagerDashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleApprove(item)}
                       className="p-1.5 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition"
