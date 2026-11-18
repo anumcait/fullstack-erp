@@ -174,3 +174,38 @@
   background: var(--sidebar-border);
   border-radius: 5px;
 }
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE DEVICE BREAKPOINTS
+   ═══════════════════════════════════════════════════════ */
+
+/* Mobile Phones (320px - 768px): Hide desktop sidebar; navigation is via Header mobile drawer */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none !important;
+  }
+}
+
+/* Tablets & Small Laptops (769px - 1024px): Compact icon sidebar by default; floats when expanded */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar.collapsed {
+    width: 64px;
+  }
+  .sidebar:not(.collapsed) {
+    width: 230px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Large Monitors (1920px+): Roomier sidebar */
+@media (min-width: 1920px) {
+  .sidebar:not(.collapsed) {
+    width: 260px;
+  }
+}
+

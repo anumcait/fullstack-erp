@@ -443,28 +443,40 @@
   display: none;
   background: none;
   border: none;
-  color: #1f2937;
-  font-size: 18px;
+  color: var(--primary-main, #1565c0);
+  font-size: 20px;
   cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.hamburger:hover {
+  background: rgba(25, 118, 210, 0.08);
 }
 
 /* Mobile Side Drawer */
 .mobile-drawer {
   position: fixed;
   top: 0;
-  left: -280px;
-  width: 280px;
+  left: 0;
+  width: min(300px, 85vw);
   height: 100vh;
+  height: 100dvh;
   background: var(--dropdown-bg);
   z-index: 1500;
-  transition: left 0.3s ease;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
   box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
   padding: 20px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-drawer.open {
-  left: 0;
+  transform: translateX(0);
 }
 
 .drawer-header {
@@ -673,17 +685,77 @@
 
   .header-top-row {
     height: 60px;
-    padding: 0 15px;
+    padding: 0 14px;
     border-bottom: none;
   }
 
   .hamburger {
-    display: block;
+    display: flex;
+  }
+}
+
+/* Compact Laptops (1101px - 1366px) */
+@media (min-width: 1101px) and (max-width: 1366px) {
+  .dashboard-header .nav-item {
+    padding: 0 8px;
+    font-size: 11.5px !important;
+  }
+  .header-top-row {
+    padding: 4px 16px;
   }
 }
 
 @media (max-width: 600px) {
   .desktop-only {
-    display: none;
+    display: none !important;
+  }
+
+  .logo-title {
+    font-size: 1.05rem;
+    max-width: 130px;
+  }
+
+  .logo-img {
+    height: 28px;
+    max-width: 75px;
+    padding: 2px 4px;
+  }
+
+  .right-bar {
+    gap: 4px;
+  }
+
+  .header-top-row {
+    padding: 0 10px;
+  }
+
+  .notif-dropdown {
+    width: min(300px, calc(100vw - 20px));
+    right: -40px;
+  }
+
+  .settings-dropdown {
+    min-width: 180px;
+    right: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .logo-title {
+    font-size: 0.95rem;
+    max-width: 100px;
+  }
+  .header-top-row {
+    padding: 0 6px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .dashboard-header {
+    max-width: 100%;
+  }
+
+  .nav-menu {
+    max-width: 1800px;
   }
 }

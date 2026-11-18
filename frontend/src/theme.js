@@ -95,7 +95,27 @@ const theme = createTheme({
           fontSize: '0.9rem',
         }
       }
-    }
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          margin: 12,
+          maxWidth: 'calc(100% - 24px)',
+          '@media (min-width: 600px)': {
+            margin: 32,
+            maxWidth: '600px',
+          },
+        },
+      },
+    },
+    MuiTableContainer: {
+      styleOverrides: {
+        root: {
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+        },
+      },
+    },
   },
   shape: {
     borderRadius: 4, // Global default reduced

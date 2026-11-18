@@ -102,6 +102,9 @@ const Sidebar = () => {
   });
   const [openChild, setOpenChild] = useState("");
   const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+      return true;
+    }
     return localStorage.getItem('sidebarCollapsed') === 'true';
   });
   const [isHovered, setIsHovered] = useState(false);
@@ -110,6 +113,13 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   const path = location.pathname;
+
+  // Auto-collapse sidebar on tablet / small screens on route change
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+      setCollapsed(true);
+    }
+  }, [location.pathname]);
 
   // Persist sidebar state
   useEffect(() => {

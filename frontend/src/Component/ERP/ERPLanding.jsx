@@ -237,7 +237,7 @@ export default function ERPLanding() {
       </Box>
 
       {/* Content */}
-      <Box sx={{ px: { xs: 2, md: 4 }, py: 3, flex: 1, maxWidth: 1400, width: "100%", mx: "auto" }}>
+      <Box sx={{ px: { xs: 2, md: 4 }, py: 3, flex: 1, maxWidth: { xs: "100%", xl: 1600 }, width: "100%", mx: "auto" }}>
         {/* Module launchpad */}
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
           <FiGrid size={18} color={theme.palette.primary.main} />
@@ -259,10 +259,11 @@ export default function ERPLanding() {
             sx={{
               display: "grid",
               gridTemplateColumns: {
-                xs: "repeat(2, 1fr)",
+                xs: "repeat(auto-fill, minmax(140px, 1fr))",
                 sm: "repeat(3, 1fr)",
                 md: "repeat(4, 1fr)",
                 lg: "repeat(6, 1fr)",
+                xl: "repeat(6, 1fr)",
               },
               gap: 2,
             }}
@@ -275,7 +276,7 @@ export default function ERPLanding() {
                   onClick={() => navigate(m.to)}
                   sx={{
                     cursor: "pointer",
-                    height: 148,
+                    minHeight: 140,
                     display: "flex",
                     flexDirection: "column",
                     borderRadius: 3,

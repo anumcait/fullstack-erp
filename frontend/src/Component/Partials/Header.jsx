@@ -807,6 +807,27 @@ const Header = () => {
                   </div>
                 </div>
               ))}
+              <div className="drawer-footer" style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--dropdown-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'var(--primary-main)' }}>
+                    {userRole === 'ADMIN' ? <SecurityIcon fontSize="small" /> : <PersonIcon fontSize="small" />}
+                  </Avatar>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--dropdown-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--dropdown-text)', opacity: 0.6 }}>{userRole || 'User'}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setIsMobileMenuOpen(false); confirmLogout(); }}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ef4444',
+                    background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer'
+                  }}
+                >
+                  <LogoutIcon fontSize="small" /> Logout
+                </button>
+              </div>
             </div>
           </div>
         </>

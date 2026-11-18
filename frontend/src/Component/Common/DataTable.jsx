@@ -80,16 +80,25 @@ const DataTable = ({ title, columns, rows, loading, emptyMessage = 'No records f
   const exportCols = columns.map((c) => ({ field: c.field, header: c.header, type: c.type }));
 
   return (
-    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-      <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mr: 'auto' }}>{title}</Typography>
+    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', width: '100%' }}>
+      <Box sx={{
+        p: 1.5,
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'center' },
+        gap: 1.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        flexWrap: 'wrap',
+      }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mr: { xs: 0, sm: 'auto' } }}>{title}</Typography>
         <TextField size="small" placeholder="Search…" value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           InputProps={{ startAdornment: <InputAdornment position="start"><FiSearch size={16} /></InputAdornment> }}
-          sx={{ '& .MuiInputBase-root': { fontSize: 13, borderRadius: 2 }, width: 240 }} />
+          sx={{ '& .MuiInputBase-root': { fontSize: 13, borderRadius: 2 }, width: { xs: '100%', sm: 240 } }} />
         <ExportButtons title={title} columns={exportCols} rows={filtered} />
       </Box>
-      <TableContainer sx={{ maxHeight: 'calc(100vh - 280px)' }}>
+      <TableContainer sx={{ maxHeight: 'calc(100vh - 280px)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <Table stickyHeader size={dense ? 'small' : 'medium'}>
           <TableHead>
             <TableRow>
